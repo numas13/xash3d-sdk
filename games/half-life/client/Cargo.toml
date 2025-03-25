@@ -1,0 +1,31 @@
+[package]
+name = "xash3d-hl-client"
+version = "0.1.0"
+license.workspace = true
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[lints]
+workspace = true
+
+[features]
+default = ["client-weapons"]
+client-weapons = []
+
+[lib]
+name = "client"
+path = "lib.rs"
+crate-type = ["cdylib"]
+
+[dependencies]
+log.workspace = true
+bitflags.workspace = true
+csz.workspace = true
+cell.workspace = true
+math.workspace = true
+utils.workspace = true
+shared.workspace = true
+pm.workspace = true
+cl.workspace = true
+res = { package = "xash3d-hl-resources", path = "../resources" }

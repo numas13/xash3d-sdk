@@ -1,0 +1,45 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/cell",
+    "crates/math",
+    "crates/utils",
+    "engine/shared",
+    "engine/player-move",
+    "engine/client",
+    "engine/server",
+    "engine/ui",
+    "games/half-life/resources",
+    "games/half-life/client",
+    "games/half-life/server",
+]
+exclude = ["tools"]
+
+[workspace.package]
+license = "LGPL-3.0-only"
+authors = ["Denis Drakhnia <numas13@gmail.com>"]
+edition = "2021"
+rust-version = "1.77"
+
+[workspace.lints.rust]
+unsafe_op_in_unsafe_fn = "forbid"
+
+[workspace.dependencies]
+bitflags = "2.6"
+log = "0.4"
+csz = { git = "https://github.com/numas13/csz.git", features = ["alloc"] }
+cell = { package = "xash3d-cell", version = "0.1.0", path = "crates/cell" }
+math = { package = "xash3d-math", version = "0.1.0", path = "crates/math" }
+utils = { package = "xash3d-utils", version = "0.1.0", path = "crates/utils" }
+shared = { package = "xash3d-shared", version = "0.1.0", path = "engine/shared" }
+pm = { package = "xash3d-player-move", version = "0.1.0", path = "engine/player-move" }
+cl = { package = "xash3d-client", version = "0.1.0", path = "engine/client" }
+sv = { package = "xash3d-server", version = "0.1.0", path = "engine/server" }
+
+[profile.dev]
+panic = "abort"
+
+[profile.release]
+panic = "abort"
+lto = true
+codegen-units = 1

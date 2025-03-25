@@ -1,0 +1,25 @@
+[package]
+name = "xash3d-player-move"
+version = "0.1.0"
+license.workspace = true
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[lib]
+path = "lib.rs"
+
+[features]
+#default = ["debug"]
+debug = []
+
+[lints]
+workspace = true
+
+[dependencies]
+log.workspace = true
+bitflags.workspace = true
+csz.workspace = true
+cell.workspace = true
+math.workspace = true
+shared.workspace = true
