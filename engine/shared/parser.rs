@@ -1,10 +1,20 @@
-use core::mem;
+use core::{fmt, mem};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Error<'a> {
     InvalidData,
     UnexpectedToken(&'a str),
     UnexpectedEnd,
+}
+
+impl fmt::Display for Error<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::InvalidData => write!(f, "Invalid data"),
+            Self::UnexpectedToken(token) => write!(f, "Unexpected token \"{token}\""),
+            Self::UnexpectedEnd => write!(f, "Unexpected end"),
+        }
+    }
 }
 
 pub struct Tokens<'a> {
