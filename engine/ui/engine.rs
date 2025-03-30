@@ -96,10 +96,16 @@ impl TryFrom<c_int> for ActiveMenu {
     }
 }
 
+#[derive(Default)]
+struct Borrows {
+    keynum_to_str: BorrowRef,
+    addr_to_string: BorrowRef,
+}
+
 pub struct Engine {
     raw: raw::ui_enginefuncs_s,
     ext: raw::ui_extendedfuncs_s,
-    addr_to_string: BorrowRef,
+    borrows: Borrows,
 }
 
 macro_rules! unwrap {
@@ -122,7 +128,7 @@ impl Engine {
         Self {
             raw,
             ext: Default::default(),
-            addr_to_string: BorrowRef::new(),
+            borrows: Default::default(),
         }
     }
 
@@ -524,17 +530,17 @@ impl Engine {
         }
     }
 
-    pub fn keynum_to_str(&self, keynum: c_int) -> Option<&CStrThin> {
-        // FIXME: engine returns a reference to a static buffer
-        let s = unsafe { unwrap!(self, pfnKeynumToString)(keynum) };
-        if !s.is_null() {
-            Some(unsafe { CStrThin::from_ptr(s) })
-        } else {
-            None
+    pub fn keynum_to_str(&self, keynum: c_int) -> Ref<CStrThin> {
+        // SAFETY: The returned string is allocated in a private static buffer
+        // in that function. Never returns a null pointer.
+        unsafe {
+            let s = unwrap!(self, pfnKeynumToString)(keynum);
+            self.borrows.keynum_to_str.borrow(s as *mut CStrThin)
         }
     }
 
     pub fn key_get_binding(&self, keynum: c_int) -> Option<&CStrThin> {
+        // FIXME: engine returns cstr on heap, can be freed at any time
         let s = unsafe { unwrap!(self, pfnKeyGetBinding)(keynum) };
         if !s.is_null() {
             Some(unsafe { CStrThin::from_ptr(s) })
@@ -790,8 +796,12 @@ impl Engine {
     }
 
     pub fn addr_to_string(&self, addr: netadr_s) -> Ref<CStrThin> {
-        let s = unsafe { unwrap!(self, ext.pfnAdrToString)(addr) };
-        self.addr_to_string.borrow(s as *mut CStrThin)
+        // SAFETY: The returned string is allocated in a private static buffer
+        // in that function. Never returns a null pointer.
+        unsafe {
+            let s = unwrap!(self, ext.pfnAdrToString)(addr);
+            self.borrows.addr_to_string.borrow(s as *mut CStrThin)
+        }
     }
 
     // pub pfnCompareAdr: Option<unsafe extern "C" fn(a: *const c_void, b: *const c_void) -> c_int>,

@@ -12,7 +12,15 @@ impl BorrowRef {
         }
     }
 
-    pub fn borrow<T>(&self, value: *mut T) -> Ref<T> {
+    /// # Safety
+    ///
+    /// Behavior is undefined if any of the following conditions are violated:
+    ///
+    /// * `value` must be non-null.
+    /// * The memory referenced by the returned wrapper must not be mutated for the duration
+    ///   of lifetime 'b.
+    pub unsafe fn borrow<'b, T: 'b>(&'b self, value: *mut T) -> Ref<'b, T> {
+        assert!(!value.is_null());
         assert!(!self.lock.replace(true));
         Ref::new(value, self)
     }
