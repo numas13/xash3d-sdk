@@ -151,7 +151,7 @@ mod tests {
     }
 
     #[test]
-    fn signle_char() {
+    fn single_char() {
         assert_eq!(tokens(" {\nfoobar").parse(), Ok("{"));
         assert_eq!(tokens(" }\nfoobar").parse(), Ok("}"));
         assert_eq!(tokens("\'\nfoobar").parse(), Ok("\'"));

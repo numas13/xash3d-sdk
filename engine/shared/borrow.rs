@@ -74,9 +74,9 @@ mod tests {
     #[test]
     fn borrow() {
         let value = BorrowRef::new();
-        let a = value.borrow(&mut 0);
+        let a = unsafe { value.borrow(&mut 0) };
         drop(a);
-        let b = value.borrow(&mut 0);
+        let b = unsafe { value.borrow(&mut 0) };
         drop(b);
     }
 
@@ -84,7 +84,7 @@ mod tests {
     #[test]
     fn borrow_fail() {
         let value = BorrowRef::new();
-        let _a = value.borrow(&mut 0);
-        let _b = value.borrow(&mut 0);
+        let _a = unsafe { value.borrow(&mut 0) };
+        let _b = unsafe { value.borrow(&mut 0) };
     }
 }
