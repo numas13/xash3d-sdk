@@ -210,4 +210,11 @@ mod tests {
         }
         assert_eq!(iter.parse(), Err(Error::UnexpectedEnd));
     }
+
+    #[test]
+    fn parse_colon() {
+        let data = "abc:123 foobar";
+        let mut tokens = Tokens::new(data).handle_colon(false);
+        assert_eq!(tokens.parse(), Ok("abc:123"));
+    }
 }
