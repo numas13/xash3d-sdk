@@ -100,7 +100,6 @@ impl TryFrom<c_int> for ActiveMenu {
 struct Borrows {
     keynum_to_str: BorrowRef,
     addr_to_string: BorrowRef,
-    addr_to_string_ref: BorrowRef,
 }
 
 pub struct Engine {
@@ -863,8 +862,9 @@ impl Engine {
         // SAFETY: The returned string is allocated in a private static buffer
         // in that function. Never returns a null pointer.
         unsafe {
+            // XXX: uses pfnAdrToString under the hood
             let s = unwrap!(self, ext.net.AdrToString)(addr);
-            self.borrows.addr_to_string_ref.borrow(s as *mut CStrThin)
+            self.borrows.addr_to_string.borrow(s as *mut CStrThin)
         }
     }
 
