@@ -1207,9 +1207,9 @@ pub struct net_api_s {
     >,
     pub CancelRequest: Option<unsafe extern "C" fn(context: c_int)>,
     pub CancelAllRequests: Option<unsafe extern "C" fn()>,
-    pub AdrToString: Option<unsafe extern "C" fn(a: *mut netadr_s) -> *const c_char>,
-    pub CompareAdr: Option<unsafe extern "C" fn(a: *mut netadr_s, b: *mut netadr_s) -> c_int>,
-    pub StringToAdr: Option<unsafe extern "C" fn(s: *mut c_char, a: *mut netadr_s) -> c_int>,
+    pub AdrToString: Option<unsafe extern "C" fn(a: *const netadr_s) -> *const c_char>,
+    pub CompareAdr: Option<unsafe extern "C" fn(a: *const netadr_s, b: *const netadr_s) -> c_int>,
+    pub StringToAdr: Option<unsafe extern "C" fn(s: *const c_char, a: *mut netadr_s) -> c_int>,
     pub ValueForKey:
         Option<unsafe extern "C" fn(s: *const c_char, key: *const c_char) -> *const c_char>,
     pub RemoveKey: Option<unsafe extern "C" fn(s: *mut c_char, key: *const c_char)>,

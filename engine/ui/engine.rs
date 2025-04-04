@@ -13,7 +13,7 @@ use shared::{
     color::RGBA,
     consts::{MAX_STRING, MAX_SYSPATH},
     cvar::{CVarFlags, CVarPtr},
-    raw::{kbutton_t, netadr_s, wrect_s},
+    raw::{kbutton_t, net_api_s, netadr_s, wrect_s},
 };
 use utils::str::{AsPtr, ToEngineStr};
 
@@ -100,6 +100,7 @@ impl TryFrom<c_int> for ActiveMenu {
 struct Borrows {
     keynum_to_str: BorrowRef,
     addr_to_string: BorrowRef,
+    addr_to_string_ref: BorrowRef,
 }
 
 pub struct Engine {
@@ -109,6 +110,12 @@ pub struct Engine {
 }
 
 macro_rules! unwrap {
+    ($self:expr, ext.net.$name:ident) => {
+        match $self.net_api().unwrap().$name {
+            Some(func) => func,
+            None => panic!("ui_extendedfuncs_s.net_api.{} is null", stringify!($name)),
+        }
+    };
     ($self:expr, ext.$name:ident) => {
         match $self.ext.$name {
             Some(func) => func,
@@ -806,7 +813,6 @@ impl Engine {
 
     // pub pfnCompareAdr: Option<unsafe extern "C" fn(a: *const c_void, b: *const c_void) -> c_int>,
     // pub pfnGetNativeObject: Option<unsafe extern "C" fn(name: *const c_char) -> *mut c_void>,
-    // pub pNetAPI: *mut ffi::net_api_s,
 
     pub fn get_game_info_2(&self) -> Option<&raw::gameinfo2_s> {
         let info = unsafe { unwrap!(self, ext.pfnGetGameInfo)(raw::GAMEINFO_VERSION) };
@@ -829,6 +835,65 @@ impl Engine {
     pub fn get_mod_info_iter(&self) -> impl Iterator<Item = &raw::gameinfo2_s> {
         (0..).map_while(|i| self.get_mod_info(i))
     }
+
+    fn net_api(&self) -> Option<&net_api_s> {
+        if !self.ext.pNetAPI.is_null() {
+            Some(unsafe { &*self.ext.pNetAPI })
+        } else {
+            None
+        }
+    }
+
+    // pub InitNetworking: Option<unsafe extern "C" fn()>,
+    // pub Status: Option<unsafe extern "C" fn(status: *mut net_status_s)>,
+    // pub SendRequest: Option<
+    //     unsafe extern "C" fn(
+    //         context: c_int,
+    //         request: c_int,
+    //         flags: c_int,
+    //         timeout: f64,
+    //         remote_address: *mut netadr_s,
+    //         response: net_api_response_func_t,
+    //     ),
+    // >,
+    // pub CancelRequest: Option<unsafe extern "C" fn(context: c_int)>,
+    // pub CancelAllRequests: Option<unsafe extern "C" fn()>,
+
+    pub fn addr_to_string_ref(&self, addr: &netadr_s) -> Ref<CStrThin> {
+        // SAFETY: The returned string is allocated in a private static buffer
+        // in that function. Never returns a null pointer.
+        unsafe {
+            let s = unwrap!(self, ext.net.AdrToString)(addr);
+            self.borrows.addr_to_string_ref.borrow(s as *mut CStrThin)
+        }
+    }
+
+    pub fn compare_addr(&self, a: &netadr_s, b: &netadr_s) -> bool {
+        unsafe { unwrap!(self, ext.net.CompareAdr)(a, b) != 0 }
+    }
+
+    pub fn string_to_addr(&self, s: impl ToEngineStr) -> Option<netadr_s> {
+        let s = s.to_engine_str();
+        let mut netadr_s = MaybeUninit::uninit();
+        let res = unsafe { unwrap!(self, ext.net.StringToAdr)(s.as_ptr(), netadr_s.as_mut_ptr()) };
+        if res != 0 {
+            Some(unsafe { netadr_s.assume_init() })
+        } else {
+            None
+        }
+    }
+
+    // pub ValueForKey:
+    //     Option<unsafe extern "C" fn(s: *const c_char, key: *const c_char) -> *const c_char>,
+    // pub RemoveKey: Option<unsafe extern "C" fn(s: *mut c_char, key: *const c_char)>,
+    // pub SetValueForKey: Option<
+    //     unsafe extern "C" fn(
+    //         s: *mut c_char,
+    //         key: *const c_char,
+    //         value: *const c_char,
+    //         maxsize: c_int,
+    //     ),
+    // >,
 }
 
 pub struct File {
