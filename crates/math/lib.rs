@@ -17,7 +17,7 @@ macro_rules! define {
         $(
             #[inline(always)]
             pub fn $name($($a: $t),*) $(-> $r)? {
-                #[link(name = "m")]
+                #[cfg_attr(unix, link(name = "m"))]
                 extern "C" {
                     fn $name($($a: $t),*) $(-> $r)?;
                 }
