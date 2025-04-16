@@ -54,7 +54,7 @@ impl<T> PrivateData<T> {
         unsafe { (self as *const Self).byte_add(self.offset as usize).cast() }
     }
 
-    const fn as_mut_ptr(&mut self) -> *mut T {
+    fn as_mut_ptr(&mut self) -> *mut T {
         self.as_ptr() as *mut T
     }
 

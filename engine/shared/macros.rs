@@ -48,7 +48,9 @@ pub use const_assert_size_eq;
 #[macro_export]
 macro_rules! cstringify {
     ($x:ident) => {
-        unsafe { core::ffi::CStr::from_ptr(concat!(stringify!($x), "\0").as_ptr().cast()) }
+        unsafe {
+            core::ffi::CStr::from_bytes_with_nul_unchecked(concat!(stringify!($x), "\0").as_bytes())
+        }
     };
 }
 #[doc(inline)]

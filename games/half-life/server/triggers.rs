@@ -193,19 +193,18 @@ impl Entity for ChangeLevel {
     }
 
     fn fields(&self) -> &'static [TYPEDESCRIPTION] {
-        const {
-            &[
-                define_field!(ChangeLevel, map_name, FieldType::CHARACTER, MAP_NAME_MAX),
-                define_field!(
-                    ChangeLevel,
-                    landmark_name,
-                    FieldType::CHARACTER,
-                    MAP_NAME_MAX
-                ),
-                define_field!(ChangeLevel, target, FieldType::STRING),
-                define_field!(ChangeLevel, change_target_delay, FieldType::FLOAT),
-            ]
-        }
+        const FIELDS: &[TYPEDESCRIPTION] = &[
+            define_field!(ChangeLevel, map_name, FieldType::CHARACTER, MAP_NAME_MAX),
+            define_field!(
+                ChangeLevel,
+                landmark_name,
+                FieldType::CHARACTER,
+                MAP_NAME_MAX
+            ),
+            define_field!(ChangeLevel, target, FieldType::STRING),
+            define_field!(ChangeLevel, change_target_delay, FieldType::FLOAT),
+        ];
+        FIELDS
     }
 }
 

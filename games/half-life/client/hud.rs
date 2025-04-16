@@ -206,7 +206,7 @@ bitflags! {
     }
 }
 
-#[derive(Clone, Default)]
+#[derive(Copy, Clone, Default)]
 pub struct PlayerInfoExtra {
     pub frags: i16,
     pub deaths: i16,
@@ -277,7 +277,7 @@ impl State {
             key_bits: 0,
 
             server_name: Default::default(),
-            player_info_extra: [const { None }; MAX_PLAYERS + 1],
+            player_info_extra: [None; MAX_PLAYERS + 1],
         }
     }
 

@@ -3,7 +3,7 @@ use core::{
     ffi::{c_int, CStr},
 };
 
-use alloc::boxed::Box;
+use alloc::{boxed::Box, vec, vec::Vec};
 use cl::raw::{client_textmessage_s, SCREENINFO};
 use math::fabsf;
 use shared::{color::RGB, raw::byte};
@@ -155,7 +155,7 @@ impl Msg {
 pub struct HudMessage {
     active: bool,
 
-    messages: [Option<Msg>; MAX_HUD_MESSAGES],
+    messages: Vec<Option<Msg>>,
     fixup_time: f32,
     end_after_message: bool,
 
@@ -186,7 +186,7 @@ impl HudMessage {
         Self {
             active: false,
 
-            messages: [const { None }; MAX_HUD_MESSAGES],
+            messages: vec![None; MAX_HUD_MESSAGES],
             fixup_time: 0.0,
             end_after_message: false,
 
