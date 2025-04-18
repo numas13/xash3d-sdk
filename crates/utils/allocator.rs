@@ -38,15 +38,15 @@ impl Default for System {
 unsafe impl GlobalAlloc for System {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
         let size = layout.size();
-        match layout.align() {
-            1 | 2 => unsafe { malloc(size).cast() },
-            align => {
-                let mut ret = ptr::null_mut();
-                if unsafe { posix_memalign(&mut ret, align, size) } == 0 {
-                    ret.cast()
-                } else {
-                    ptr::null_mut()
-                }
+        let align = layout.align();
+        if align < core::mem::size_of::<*const u8>() {
+            unsafe { malloc(size).cast() }
+        } else {
+            let mut ret = ptr::null_mut();
+            if unsafe { posix_memalign(&mut ret, align, size) } == 0 {
+                ret.cast()
+            } else {
+                ptr::null_mut()
             }
         }
     }
