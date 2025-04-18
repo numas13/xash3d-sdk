@@ -690,6 +690,7 @@ impl Globals {
         unsafe { CStr::from_ptr(self.pStringBase.wrapping_byte_add(string.0 as usize)) }
     }
 
+    #[deprecated = "use Engine::alloc_string"]
     pub fn make_string(&self, s: &CStr) -> string_t {
         let base = self.string(string_t(0)).as_ptr() as usize;
         string_t(s.as_ptr().wrapping_byte_sub(base) as c_int)

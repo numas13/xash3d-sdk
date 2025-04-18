@@ -293,7 +293,7 @@ impl EntityVars for Stub {
 
 impl Entity for Stub {
     fn spawn(&mut self) -> bool {
-        let classname = globals().make_string(self.name);
+        let classname = engine().alloc_string(self.name);
         let ev = self.vars_mut();
         ev.classname = classname;
         true

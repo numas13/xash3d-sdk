@@ -68,7 +68,7 @@ impl Entity for Player {
 
     fn spawn(&mut self) -> bool {
         let ev = self.vars_mut();
-        ev.classname = globals().make_string(c"player");
+        ev.classname = engine().alloc_string(c"player");
         ev.health = 100.0;
         ev.armorvalue = 0.0;
         ev.takedamage = DAMAGE_AIM as f32;
