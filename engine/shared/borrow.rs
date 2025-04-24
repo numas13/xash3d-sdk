@@ -1,5 +1,11 @@
 use core::{cell::Cell, fmt, ops::Deref, ptr::NonNull};
 
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum BorrowError {
+    NullPointer,
+    AlreadyBorrowed,
+}
+
 #[derive(Debug)]
 pub struct BorrowRef {
     lock: Cell<bool>,
@@ -12,6 +18,37 @@ impl BorrowRef {
         }
     }
 
+    #[track_caller]
+    #[cold]
+    fn panic_null() -> ! {
+        panic!("pointer is null");
+    }
+
+    #[track_caller]
+    #[cold]
+    fn panic_already_borrowed() -> ! {
+        panic!("already borrowed");
+    }
+
+    /// # Safety
+    ///
+    /// Behavior is undefined if any of the following conditions are violated:
+    ///
+    /// * The memory referenced by the returned wrapper must not be mutated for the duration
+    ///   of lifetime 'b.
+    #[inline]
+    #[track_caller]
+    pub unsafe fn try_borrow<'b, T: 'b>(&'b self, data: *mut T) -> Result<Ref<'b, T>, BorrowError> {
+        if data.is_null() {
+            Err(BorrowError::NullPointer)
+        } else if self.lock.get() {
+            Err(BorrowError::AlreadyBorrowed)
+        } else {
+            self.lock.set(true);
+            Ok(Ref::new(data, self))
+        }
+    }
+
     /// # Safety
     ///
     /// Behavior is undefined if any of the following conditions are violated:
@@ -19,10 +56,14 @@ impl BorrowRef {
     /// * `value` must be non-null.
     /// * The memory referenced by the returned wrapper must not be mutated for the duration
     ///   of lifetime 'b.
-    pub unsafe fn borrow<'b, T: 'b>(&'b self, value: *mut T) -> Ref<'b, T> {
-        assert!(!value.is_null());
-        assert!(!self.lock.replace(true));
-        Ref::new(value, self)
+    #[inline]
+    #[track_caller]
+    pub unsafe fn borrow<'b, T: 'b>(&'b self, data: *mut T) -> Ref<'b, T> {
+        match unsafe { self.try_borrow(data) } {
+            Ok(x) => x,
+            Err(BorrowError::NullPointer) => Self::panic_null(),
+            Err(BorrowError::AlreadyBorrowed) => Self::panic_already_borrowed(),
+        }
     }
 }
 
