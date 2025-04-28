@@ -38,7 +38,7 @@ pub struct GAMEINFO {
     pub gamemode: c_int,
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq, Eq)]
 #[repr(C)]
 pub enum GameType {
     Normal = 0,
