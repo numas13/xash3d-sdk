@@ -1,4 +1,5 @@
-use ffi::vec3_t;
+use math::angle_vectors;
+use shared::{consts::PM_STUDIO_BOX, raw::vec3_t};
 
 const BOX_GAP: f32 = 0.0;
 const BOX_POINTS: [[usize; 4]; 6] = [
@@ -66,7 +67,7 @@ impl super::PlayerMove<'_> {
             }
 
             if pe.angles != vec3_t::ZERO {
-                let (forward, right, up) = super::angle_vectors_transpose(pe.angles);
+                let (forward, right, up) = angle_vectors(pe.angles).transpose_all();
                 for point in &mut points {
                     *point = vec3_t::new(
                         point.dot_product(forward),
@@ -111,11 +112,11 @@ impl super::PlayerMove<'_> {
 
     fn view_entity(&self, color: i32) {
         let raydist = 256.0;
-        let (forward, _, _) = super::angle_vectors(self.raw.angles);
+        let forward = angle_vectors(self.raw.angles).forward();
         let start = self.raw.origin;
-        let start = start.copy_z(self.raw.origin[2] + self.raw.view_ofs[2]);
+        let start = start.copy_with_z(self.raw.origin[2] + self.raw.view_ofs[2]);
         let end = start + forward * raydist;
-        let trace = self.raw.player_trace(start, end, ffi::PM_STUDIO_BOX, -1);
+        let trace = self.raw.player_trace(start, end, PM_STUDIO_BOX, -1);
         if trace.ent > 0 {
             self.draw_phys_ent_bbox(trace.ent, color);
         }
@@ -176,7 +177,7 @@ impl super::PlayerMove<'_> {
 
         if true {
             let raydist = 256.0;
-            let (forward, _, _) = super::angle_vectors(self.raw.angles);
+            let forward = angle_vectors(self.raw.angles).forward();
             let start = self.raw.origin;
             let end = start + forward * raydist;
             self.draw_particle_line(start, end, color);

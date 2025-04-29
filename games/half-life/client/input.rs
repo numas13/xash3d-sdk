@@ -30,11 +30,6 @@ use crate::{
 
 const MOUSE_BUTTON_COUNT: c_int = 5;
 
-#[link(name = "SDL2")]
-extern "C" {
-    fn SDL_GetRelativeMouseState(x: &mut c_int, y: &mut c_int) -> u32;
-}
-
 mod cvar {
     shared::cvar::define! {
         pub static lookstrafe(c"0", ARCHIVE);
@@ -438,15 +433,26 @@ impl Input {
             engine.set_mouse_position(cx, cy);
             (mx - cx, my - cy)
         } else {
-            let mut dx = 0;
-            let mut dy = 0;
-            unsafe {
-                SDL_GetRelativeMouseState(&mut dx, &mut dy);
+            // Do not link SDL2 for tests.
+            #[cfg(not(test))]
+            {
+                let mut dx = 0;
+                let mut dy = 0;
+                #[link(name = "SDL2-2.0")]
+                extern "C" {
+                    fn SDL_GetRelativeMouseState(x: &mut c_int, y: &mut c_int) -> u32;
+                }
+                unsafe {
+                    SDL_GetRelativeMouseState(&mut dx, &mut dy);
+                }
+                if !self.mouse_raw_used {
+                    self.mouse_raw_used = true;
+                }
+                (dx, dy)
             }
-            if !self.mouse_raw_used {
-                self.mouse_raw_used = true;
-            }
-            (dx, dy)
+
+            #[cfg(test)]
+            (0, 0)
         }
     }
 
