@@ -8,7 +8,6 @@ use sv::{
     engine, globals,
     math::vec3_t,
     raw::{clientdata_s, edict_s, entity_state_s, entvars_s, EdictFlags, Effects, MoveType},
-    utils::str::cstr_copy,
 };
 
 use crate::{
@@ -46,10 +45,10 @@ pub fn update_client_data(ent: &edict_s, sendweapons: bool, cd: &mut clientdata_
     cd.flSwimTime = ev.flSwimTime;
     cd.waterjumptime = ev.teleport_time as c_int;
 
-    cstr_copy(
-        &mut cd.physinfo,
-        engine.get_physics_info_string(ent).to_bytes(),
-    );
+    cd.physinfo
+        .cursor()
+        .write_c_str(engine.get_physics_info_string(ent).into())
+        .unwrap();
 
     cd.maxspeed = ev.maxspeed;
     cd.fov = ev.fov;

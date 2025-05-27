@@ -4,7 +4,6 @@ use alloc::string::String;
 use cl::{
     engine,
     message::{hook_message, Message, MessageError},
-    utils::str::cstr_copy,
     Engine,
 };
 
@@ -19,6 +18,14 @@ const HUD_PRINTCENTER: c_int = 4;
 
 extern "C" {
     fn snprintf(str: *mut c_char, size: usize, format: *const c_char, ...) -> c_int;
+}
+
+fn cstr_copy(dst: &mut [u8], src: &[u8]) -> usize {
+    let len = src.len() - src.ends_with(b"\0") as usize;
+    let len = core::cmp::min(len, dst.len() - 1);
+    dst[..len].copy_from_slice(&src[..len]);
+    dst[len] = b'\0';
+    len
 }
 
 pub struct TextMessage {}

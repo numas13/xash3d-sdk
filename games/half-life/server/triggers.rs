@@ -1,9 +1,6 @@
-use core::{
-    ffi::c_int,
-    ptr::{self, addr_of_mut},
-};
+use core::{ffi::c_int, ptr};
 
-use csz::{CStrArray, CStrThin};
+use csz::{cstr, CStrArray, CStrThin};
 use sv::{
     consts::{FENTTABLE_GLOBAL, FENTTABLE_MOVEABLE, SOLID_TRIGGER},
     engine, globals, globals_mut,
@@ -13,7 +10,6 @@ use sv::{
         edict_s, entvars_s, string_t, Effects, FieldType, KeyValueData, MoveType, LEVELLIST,
         SAVERESTOREDATA, TYPEDESCRIPTION,
     },
-    utils::str::cstr_copy,
 };
 
 use crate::{
@@ -87,30 +83,16 @@ impl ChangeLevel {
 
         ev.dmgtime = globals().time;
 
-        static mut NEXT_MAP: [u8; MAP_NAME_MAX] = [0; MAP_NAME_MAX];
-        static mut NEXT_SPOT: [u8; MAP_NAME_MAX] = [0; MAP_NAME_MAX];
-
-        unsafe {
-            // copy map name to static memory because this object will get removed
-            // in the call to change_level
-            cstr_copy(&mut *addr_of_mut!(NEXT_MAP), self.map_name.to_bytes());
-            NEXT_SPOT[0] = 0;
-        }
-
         let landmark = find_landmark(self.landmark_name.as_thin());
         let engine = engine();
+        let mut next_spot = cstr!("");
         if !engine.is_null_ent(landmark) {
-            unsafe {
-                cstr_copy(&mut *addr_of_mut!(NEXT_SPOT), self.landmark_name.to_bytes());
-                globals_mut().vecLandmarkOffset = (*landmark).v.origin;
-            }
+            next_spot = self.landmark_name.as_thin();
+            globals_mut().vecLandmarkOffset = unsafe { (*landmark).v.origin };
         }
 
-        let next_map = unsafe { CStrThin::from_ptr((*addr_of_mut!(NEXT_MAP)).as_ptr().cast()) };
-        let next_spot = unsafe { CStrThin::from_ptr((*addr_of_mut!(NEXT_SPOT)).as_ptr().cast()) };
-
-        info!("CHANGE LEVEL: {next_map:?} {next_spot:?}");
-        engine.change_level(next_map, next_spot);
+        info!("CHANGE LEVEL: {:?} {next_spot:?}", self.map_name);
+        engine.change_level(&self.map_name, next_spot);
     }
 }
 

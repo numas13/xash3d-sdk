@@ -14,6 +14,7 @@ use core::{
 };
 
 use bitflags::bitflags;
+use csz::CStrArray;
 
 use self::bsp::dmodel_t;
 
@@ -603,7 +604,7 @@ pub struct clientdata_s {
     pub tfstate: c_int,
     pub pushmsec: c_int,
     pub deadflag: c_int,
-    pub physinfo: [c_uchar; MAX_PHYSINFO_STRING],
+    pub physinfo: CStrArray<MAX_PHYSINFO_STRING>,
     pub iuser1: c_int,
     pub iuser2: c_int,
     pub iuser3: c_int,

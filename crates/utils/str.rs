@@ -1,18 +1,7 @@
-use core::{
-    cmp,
-    ffi::{c_char, CStr},
-};
+use core::ffi::{c_char, CStr};
 
 use alloc::{ffi::CString, string::String};
 use csz::{CStrArray, CStrBox, CStrThin};
-
-pub fn cstr_copy(dst: &mut [u8], src: &[u8]) -> usize {
-    let len = src.len() - src.ends_with(b"\0") as usize;
-    let len = cmp::min(len, dst.len() - 1);
-    dst[..len].copy_from_slice(&src[..len]);
-    dst[len] = b'\0';
-    len
-}
 
 /// An internal buffer for [CStrTemp].
 enum Buf<const N: usize = 512> {

@@ -19,11 +19,6 @@ use core::ffi::c_int;
 pub use shared::{cell, color, consts, cvar, math};
 pub use utils;
 
-pub use crate::{
-    efx::EfxApi,
-    engine::*,
-    event::EventApi,
-    studio::{studio, studio_set},
-};
+pub use crate::{efx::EfxApi, engine::*, event::EventApi, studio::*};
 
 pub const CLDLL_INTERFACE_VERSION: c_int = 7;
