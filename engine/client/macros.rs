@@ -21,7 +21,7 @@ pub use hook_command;
 #[macro_export]
 macro_rules! hook_command_key {
     ($name:expr, $expr:expr $(, down $down:block)? $(, up $up:block)?) => {{
-        use $crate::KeyButtonExt;
+        use $crate::input::KeyButtonExt;
 
         unsafe extern "C" fn on_key_down() {
             $expr.key_down();

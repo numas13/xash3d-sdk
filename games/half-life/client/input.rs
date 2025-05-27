@@ -9,6 +9,7 @@ use alloc::vec::Vec;
 use cl::{
     cell::SyncOnceCell,
     consts, engine,
+    input::KeyButtonExt,
     macros::{hook_command, hook_command_key},
     math::{
         angle_mod,
@@ -16,7 +17,6 @@ use cl::{
         pow, sqrt, sqrtf, vec3_t,
     },
     raw::{kbutton_t, usercmd_s, KeyState},
-    KeyButtonExt,
 };
 use csz::{CStrBox, CStrThin};
 

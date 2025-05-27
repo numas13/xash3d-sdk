@@ -7,13 +7,13 @@ use core::{
 use cl::{
     cell::SyncOnceCell,
     engine,
+    input::KeyButtonExt,
     macros::{hook_command, hook_command_key},
     math::{
         consts::{PITCH, ROLL, YAW},
         fabsf, vec3_t,
     },
     raw::kbutton_t,
-    KeyButtonExt,
 };
 
 use crate::{helpers, input::input_mut};

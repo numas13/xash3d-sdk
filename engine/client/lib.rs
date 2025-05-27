@@ -8,6 +8,7 @@ pub mod macros;
 mod efx;
 mod engine;
 mod event;
+pub mod input;
 pub mod message;
 pub mod raw;
 mod studio;
