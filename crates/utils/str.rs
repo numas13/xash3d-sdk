@@ -1,11 +1,9 @@
 use core::{
     cmp,
     ffi::{c_char, CStr},
-    mem::MaybeUninit,
-    ptr,
 };
 
-use alloc::{boxed::Box, ffi::CString, string::String};
+use alloc::{ffi::CString, string::String};
 use csz::{CStrArray, CStrBox, CStrThin};
 
 pub fn cstr_copy(dst: &mut [u8], src: &[u8]) -> usize {
@@ -16,58 +14,64 @@ pub fn cstr_copy(dst: &mut [u8], src: &[u8]) -> usize {
     len
 }
 
-pub enum CStrBuf<const N: usize = 512> {
-    Stack([u8; N]),
-    Heap(Box<[u8]>),
+/// An internal buffer for [CStrTemp].
+enum Buf<const N: usize = 512> {
+    Stack(CStrArray<N>),
+    Heap(CString),
 }
 
-impl<const N: usize> CStrBuf<N> {
-    pub fn new(s: &str) -> Self {
-        if s.len() < N {
-            unsafe {
-                let mut bytes = MaybeUninit::<[u8; N]>::uninit();
-                let dst = bytes.as_mut_ptr().cast::<u8>();
-                ptr::copy(s.as_ptr(), dst, s.len());
-                ptr::write(dst.add(s.len()), 0);
-                Self::Stack(bytes.assume_init())
-            }
-        } else {
-            let bytes = CString::new(s).unwrap().into_bytes_with_nul();
-            Self::Heap(bytes.into_boxed_slice())
-        }
+/// A `CStrTemp` is a temporary C string stored on the stack or the heap.
+pub struct CStrTemp<const N: usize = 512> {
+    buf: Buf<N>,
+}
+
+impl<const N: usize> CStrTemp<N> {
+    fn new(s: &str) -> Self {
+        let buf = CStrArray::from_bytes(s.as_bytes())
+            .map(Buf::Stack)
+            .unwrap_or_else(|_| Buf::Heap(CString::new(s).unwrap()));
+        Self { buf }
     }
 
+    /// Converts this C string to a byte slice containing the trailing 0 byte.
     pub fn as_bytes_with_null(&self) -> &[u8] {
-        match self {
-            Self::Stack(s) => s,
-            Self::Heap(s) => s,
+        match &self.buf {
+            Buf::Stack(s) => s.to_bytes_with_nul(),
+            Buf::Heap(s) => s.as_bytes_with_nul(),
         }
     }
 
+    /// Returns the inner pointer to this C string.
     pub fn as_ptr(&self) -> *const c_char {
-        self.as_bytes_with_null().as_ptr().cast()
+        match &self.buf {
+            Buf::Stack(s) => s.as_ptr(),
+            Buf::Heap(s) => s.as_ptr(),
+        }
     }
 
+    /// Extracts a [CStr] slice containing the entire string.
     pub fn as_c_str(&self) -> &CStr {
         unsafe { CStr::from_ptr(self.as_ptr()) }
     }
 
+    /// Returns `true` if the string is stored on the stack.
     pub fn is_stack(&self) -> bool {
-        matches!(self, Self::Stack(_))
+        matches!(self.buf, Buf::Stack(_))
     }
 
+    /// Returns `true` if the string is stored on the heap.
     pub fn is_heap(&self) -> bool {
-        matches!(self, Self::Heap(_))
+        matches!(self.buf, Buf::Heap(_))
     }
 }
 
-impl From<&'_ str> for CStrBuf {
+impl From<&'_ str> for CStrTemp {
     fn from(src: &str) -> Self {
         Self::new(src)
     }
 }
 
-impl AsRef<CStr> for CStrBuf {
+impl AsRef<CStr> for CStrTemp {
     fn as_ref(&self) -> &CStr {
         self.as_c_str()
     }
@@ -89,7 +93,7 @@ impl AsPtr<c_char> for &'_ CStrThin {
     }
 }
 
-impl AsPtr<c_char> for CStrBuf {
+impl AsPtr<c_char> for CStrTemp {
     fn as_ptr(&self) -> *const c_char {
         self.as_ptr()
     }
@@ -102,18 +106,18 @@ pub trait ToEngineStr {
 }
 
 impl ToEngineStr for &'_ str {
-    type Output = CStrBuf;
+    type Output = CStrTemp;
 
     fn to_engine_str(&self) -> Self::Output {
-        CStrBuf::new(self)
+        CStrTemp::new(self)
     }
 }
 
 impl ToEngineStr for String {
-    type Output = CStrBuf;
+    type Output = CStrTemp;
 
     fn to_engine_str(&self) -> Self::Output {
-        CStrBuf::new(self.as_str())
+        CStrTemp::new(self.as_str())
     }
 }
 
@@ -164,7 +168,7 @@ mod tests {
     use core::ffi::CStr;
 
     fn test<const N: usize>(src: &CStr, stack: bool) {
-        let s = CStrBuf::<N>::new(src.to_str().unwrap());
+        let s = CStrTemp::<N>::new(src.to_str().unwrap());
         assert_eq!(s.is_stack(), stack);
         assert_eq!(s.as_bytes_with_null(), src.to_bytes_with_nul());
         assert_eq!(s.as_c_str(), src);
