@@ -1,4 +1,4 @@
-#![no_std]
+#![cfg_attr(not(feature = "std"), no_std)]
 
 //#[macro_use]
 extern crate alloc;
@@ -20,10 +20,12 @@ mod todo;
 mod triggers;
 mod world;
 
+#[cfg(not(feature = "std"))]
 #[cfg(not(test))]
 #[global_allocator]
 static ALLOCATOR: sv::utils::allocator::System = sv::utils::allocator::System::new();
 
+#[cfg(not(feature = "std"))]
 #[cfg(panic = "abort")]
 #[panic_handler]
 fn panic(info: &core::panic::PanicInfo) -> ! {
@@ -31,6 +33,7 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
     sv::utils::abort();
 }
 
+#[cfg(not(feature = "std"))]
 #[cfg(panic = "abort")]
 #[no_mangle]
 fn rust_eh_personality() {}

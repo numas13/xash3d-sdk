@@ -11,6 +11,7 @@ workspace = true
 
 [features]
 default = ["client-weapons"]
+std = []
 client-weapons = []
 
 [lib]
