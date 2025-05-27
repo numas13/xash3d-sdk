@@ -69,12 +69,13 @@ exec bindgen \
     --blocklist-item 'CRC32_t' \
     --blocklist-item 'fs_offset_t' \
     --newtype-enum 'qboolean' \
-    "$root/src/wrapper$suffix.h" \
+    "$root/wrapper$suffix.h" \
     -- \
     -I. \
     -Icommon \
     -Ipublic \
     -Ipm_shared \
     -Iengine \
+    -Ifilesystem \
     -Idlls \
     -Icl_dll

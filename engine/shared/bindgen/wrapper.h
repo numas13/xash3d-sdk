@@ -82,3 +82,7 @@ typedef int (*pfnUserMsgHook)(const char *pszName, int iSize, void *pbuf);
 #ifdef XASH
 #include "engine/menu_int.h"
 #endif
+
+#ifdef XASH
+#include "engine/ref_api.h"
+#endif
