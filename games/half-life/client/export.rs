@@ -4,22 +4,16 @@ use core::{
 };
 
 use cl::{
-    self as engine, engine, engine_set,
-    raw::kbutton_t,
+    cvar::CVarPtr,
+    engine,
+    math::vec3_t,
     raw::{
-        client_data_s, local_state_s, ref_params_s, EntityType, CLDLL_INTERFACE_VERSION, TEMPENTITY,
+        byte, cl_entity_s, client_data_s, clientdata_s, engine_studio_api_s, entity_state_s,
+        kbutton_t, local_state_s, netadr_s, playermove_s, qboolean, r_studio_interface_s,
+        ref_params_s, usercmd_s, weapon_data_s, EntityType, TEMPENTITY,
     },
-    studio_set,
 };
 use csz::CStrThin;
-use math::vec3_t;
-use shared::{
-    cvar::CVarPtr,
-    raw::{
-        byte, cl_entity_s, clientdata_s, entity_state_s, netadr_s, playermove_s, qboolean,
-        usercmd_s, weapon_data_s,
-    },
-};
 
 use crate::{
     camera::{camera, camera_mut},
@@ -34,19 +28,19 @@ use crate::{
 
 #[no_mangle]
 unsafe extern "C" fn Initialize(
-    engine_funcs: Option<&mut engine::raw::cl_enginefuncs_s>,
+    engine_funcs: Option<&mut cl::raw::cl_enginefuncs_s>,
     version: c_int,
 ) -> c_int {
-    if version != CLDLL_INTERFACE_VERSION {
+    if version != cl::CLDLL_INTERFACE_VERSION {
         return 0;
     }
 
     let engine_funcs = engine_funcs.unwrap();
-    engine_set(*engine_funcs);
+    cl::engine_set(*engine_funcs);
     let dev = engine().cvar_get_float(c"developer") as i32;
-    utils::logger::init(dev, |s| engine().console_print(s));
+    cl::utils::logger::init(dev, |s| engine().console_print(s));
 
-    shared::cvar::init(|name, value, flags| {
+    cl::cvar::init(|name, value, flags| {
         let engine = engine();
         let ptr = engine.get_cvar(name);
         if ptr.is_null() {
@@ -219,7 +213,7 @@ unsafe extern "C" fn Demo_ReadBuffer(_size: c_int, _buffer: *mut byte) {
 
 #[no_mangle]
 unsafe extern "C" fn HUD_StudioEvent(
-    _event: *const engine::raw::mstudioevent_s,
+    _event: *const cl::raw::mstudioevent_s,
     _entity: *const cl_entity_s,
 ) {
     // TODO:
@@ -251,8 +245,8 @@ unsafe extern "C" fn StudioDrawPlayer(flags: c_int, player: *mut entity_state_s)
     renderer_mut().draw_player(flags, player)
 }
 
-static mut STUDIO: engine::raw::r_studio_interface_s = engine::raw::r_studio_interface_s {
-    version: shared::consts::STUDIO_INTERFACE_VERSION,
+static mut STUDIO: r_studio_interface_s = r_studio_interface_s {
+    version: cl::consts::STUDIO_INTERFACE_VERSION,
     StudioDrawModel: Some(StudioDrawModel),
     StudioDrawPlayer: Some(StudioDrawPlayer),
 };
@@ -260,15 +254,15 @@ static mut STUDIO: engine::raw::r_studio_interface_s = engine::raw::r_studio_int
 #[no_mangle]
 unsafe extern "C" fn HUD_GetStudioModelInterface(
     version: c_int,
-    ppinterface: *mut *mut engine::raw::r_studio_interface_s,
-    pstudio: *mut engine::raw::engine_studio_api_s,
+    ppinterface: *mut *mut r_studio_interface_s,
+    pstudio: *mut engine_studio_api_s,
 ) -> c_int {
     // TODO:
     if true {
         return 0;
     }
 
-    if version != shared::consts::STUDIO_INTERFACE_VERSION {
+    if version != cl::consts::STUDIO_INTERFACE_VERSION {
         return 0;
     }
 
@@ -276,7 +270,7 @@ unsafe extern "C" fn HUD_GetStudioModelInterface(
         ptr::write(ppinterface, ptr::addr_of_mut!(STUDIO));
     }
 
-    studio_set(unsafe { *pstudio });
+    cl::studio_set(unsafe { *pstudio });
 
     studio::init();
 
@@ -383,10 +377,10 @@ pub unsafe extern "C" fn HUD_TempEntUpdate(
 }
 
 #[no_mangle]
-unsafe extern "C" fn F(cldll_func: Option<&mut engine::raw::cldll_func_s>) {
+unsafe extern "C" fn F(cldll_func: Option<&mut cl::raw::cldll_func_s>) {
     let Some(cldll_func) = cldll_func else { return };
 
-    cldll_func.clone_from(&engine::raw::cldll_func_s {
+    cldll_func.clone_from(&cl::raw::cldll_func_s {
         pfnInitialize: Some(Initialize),
         pfnInit: Some(HUD_Init),
         pfnVidInit: Some(HUD_VidInit),

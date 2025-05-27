@@ -4,17 +4,17 @@ use core::{
 };
 
 use csz::{CStrArray, CStrThin};
-use math::vec3_t;
-use shared::{
-    consts::{FENTTABLE_GLOBAL, FENTTABLE_MOVEABLE, SOLID_TRIGGER},
-    raw::{edict_s, entvars_s, string_t, Effects, MoveType},
-};
 use sv::{
+    consts::{FENTTABLE_GLOBAL, FENTTABLE_MOVEABLE, SOLID_TRIGGER},
     engine, globals, globals_mut,
     macros::define_field,
-    raw::{FieldType, KeyValueData, LEVELLIST, SAVERESTOREDATA, TYPEDESCRIPTION},
+    math::vec3_t,
+    raw::{
+        edict_s, entvars_s, string_t, Effects, FieldType, KeyValueData, MoveType, LEVELLIST,
+        SAVERESTOREDATA, TYPEDESCRIPTION,
+    },
+    utils::str::cstr_copy,
 };
-use utils::str::cstr_copy;
 
 use crate::{
     entity::{impl_cast, Entity, EntityVars, ObjectCaps},

@@ -1,11 +1,12 @@
 use core::{ffi::c_int, mem::MaybeUninit};
 
 use csz::CStrThin;
-use math::vec3_t;
-use shared::raw::{physent_s, pmtrace_s, SoundFlags};
-use utils::str::{AsPtr, ToEngineStr};
 
-use crate::raw;
+use crate::{
+    math::vec3_t,
+    raw::{self, physent_s, pmtrace_s, SoundFlags},
+    utils::str::{AsPtr, ToEngineStr},
+};
 
 pub struct PmStates<'a>(&'a EventApi<'a>);
 

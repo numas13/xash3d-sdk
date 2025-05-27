@@ -18,10 +18,9 @@ use core::{
 };
 
 use alloc::vec::Vec;
-use cell::SyncOnceCell;
 use csz::{CStrArray, CStrThin};
-use math::{fabsf, fmaxf, fminf, pow2, sqrtf};
 use shared::{
+    cell::SyncOnceCell,
     consts::{
         ATTN_NORM, CHAN_BODY, CHAN_VOICE, CONTENTS_CURRENT_0, CONTENTS_CURRENT_DOWN,
         CONTENTS_EMPTY, CONTENTS_LADDER, CONTENTS_LAVA, CONTENTS_SLIME, CONTENTS_SOLID,
@@ -29,6 +28,7 @@ use shared::{
         IN_FORWARD, IN_JUMP, IN_MOVELEFT, IN_MOVERIGHT, IN_USE, MAX_CLIP_PLANES, MAX_PHYSENTS,
         PITCH, PITCH_NORM, PM_NORMAL, ROLL, YAW,
     },
+    math::{self, fabsf, fmaxf, fminf, pow2, sqrtf},
     raw::{modtype_t, physent_s, pmtrace_s, qboolean, vec3_t, EdictFlags, MoveType, SoundFlags},
 };
 

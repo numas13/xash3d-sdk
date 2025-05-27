@@ -13,8 +13,6 @@ path = "lib.rs"
 log.workspace = true
 bitflags.workspace = true
 csz.workspace = true
-cell.workspace = true
-math.workspace = true
 utils.workspace = true
 shared.workspace = true
 

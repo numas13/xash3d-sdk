@@ -1,9 +1,8 @@
 use core::{cmp, ffi::c_int, fmt::Write};
 
 use alloc::vec::Vec;
-use cl::engine;
+use cl::{color::RGB, consts::MAX_PLAYERS, engine};
 use csz::CStrArray;
-use shared::{color::RGB, consts::MAX_PLAYERS};
 
 use super::{HudFlags, HudItem, PlayerInfoExtra, State};
 

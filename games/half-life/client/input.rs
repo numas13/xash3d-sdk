@@ -6,20 +6,19 @@ use core::{
 };
 
 use alloc::vec::Vec;
-use cell::SyncOnceCell;
 use cl::{
-    engine,
+    cell::SyncOnceCell,
+    consts, engine,
     macros::{hook_command, hook_command_key},
-    raw::{kbutton_t, KeyState},
+    math::{
+        angle_mod,
+        consts::{PITCH, ROLL, YAW},
+        pow, sqrt, sqrtf, vec3_t,
+    },
+    raw::{kbutton_t, usercmd_s, KeyState},
     KeyButtonExt,
 };
 use csz::{CStrBox, CStrThin};
-use math::{
-    angle_mod,
-    consts::{PITCH, ROLL, YAW},
-    pow, sqrt, sqrtf, vec3_t,
-};
-use shared::{consts, raw::usercmd_s};
 
 use crate::{
     helpers,
@@ -31,7 +30,7 @@ use crate::{
 const MOUSE_BUTTON_COUNT: c_int = 5;
 
 mod cvar {
-    shared::cvar::define! {
+    cl::cvar::define! {
         pub static lookstrafe(c"0", ARCHIVE);
         pub static lookspring(c"0", ARCHIVE);
         pub static cl_pitchup(c"89", NONE);

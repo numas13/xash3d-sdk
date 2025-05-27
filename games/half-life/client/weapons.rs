@@ -3,9 +3,7 @@ use core::{
     ffi::c_uint,
 };
 
-use cell::SyncOnceCell;
-use cl::{engine, raw::local_state_s};
-use shared::{cvar::CVarPtr, raw::usercmd_s};
+use cl::{cell::SyncOnceCell, cvar::CVarPtr, engine, raw::local_state_s, raw::usercmd_s};
 
 use crate::hud::{hud, hud_mut};
 

@@ -22,10 +22,6 @@ crate-type = ["cdylib"]
 log.workspace = true
 bitflags.workspace = true
 csz.workspace = true
-cell.workspace = true
-math.workspace = true
-utils.workspace = true
-shared.workspace = true
 pm.workspace = true
 sv.workspace = true
 res = { package = "xash3d-hl-resources", path = "../resources" }

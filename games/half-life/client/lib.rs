@@ -19,13 +19,13 @@ mod weapons;
 
 #[cfg(not(test))]
 #[global_allocator]
-static ALLOCATOR: utils::allocator::System = utils::allocator::System::new();
+static ALLOCATOR: cl::utils::allocator::System = cl::utils::allocator::System::new();
 
 #[cfg(panic = "abort")]
 #[panic_handler]
 fn panic(info: &core::panic::PanicInfo) -> ! {
     error!("{info}");
-    utils::abort();
+    cl::utils::abort();
 }
 
 #[cfg(panic = "abort")]

@@ -1,8 +1,7 @@
 use core::ffi::c_int;
 
-use cl::{engine, raw::event_args_s};
+use cl::{consts::PM_NORMAL, engine, raw::event_args_s};
 use pm::{VEC_DUCK_HULL_MIN, VEC_HULL_MIN};
-use shared::consts::PM_NORMAL;
 
 use super::{is_local, Events};
 
@@ -37,7 +36,7 @@ impl Events {
         let pm_states = ev.push_pm_states();
         ev.set_solid_players(idx - 1);
         ev.set_trace_hull(2);
-        let forward = math::angle_vectors(angles).forward();
+        let forward = cl::math::angle_vectors(angles).forward();
         let end = src + forward * 64.0;
         let src = src + forward * 20.0;
         let tr = ev.player_trace(src, end, PM_NORMAL, -1);

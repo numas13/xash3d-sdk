@@ -1,7 +1,6 @@
 use core::{cmp, ffi::c_int, mem};
 
-use cl::{engine, macros::hook_command};
-use shared::{color::RGB, consts};
+use cl::{color::RGB, consts, engine, macros::hook_command};
 
 use crate::hud::{
     hud, hud_mut,
@@ -10,7 +9,7 @@ use crate::hud::{
 };
 
 mod cvar {
-    shared::cvar::define! {
+    cl::cvar::define! {
         pub static hud_fastswitch(c"0", ARCHIVE);
     }
 }

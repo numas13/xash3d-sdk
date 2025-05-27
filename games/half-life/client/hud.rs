@@ -25,17 +25,19 @@ use core::{
 
 use alloc::{boxed::Box, rc::Rc, string::String, vec::Vec};
 use bitflags::bitflags;
-use cell::SyncOnceCell;
 use cl::{
+    cell::SyncOnceCell,
+    color::RGB,
+    consts::MAX_PLAYERS,
     engine,
-    macros::{hook_command, hook_message, hook_message_flag, spr_load},
-    raw::client_data_s,
+    macros::{hook_command, spr_load},
+    math::vec3_t,
+    message::{hook_message, hook_message_flag},
+    raw::{client_data_s, wrect_s},
+    utils::macros::unimpl,
     SpriteHandle,
 };
 use csz::{CStrArray, CStrBox};
-use math::vec3_t;
-use shared::{color::RGB, consts::MAX_PLAYERS, raw::wrect_s};
-use utils::macros::unimpl;
 
 use crate::{
     hud::{
@@ -58,7 +60,7 @@ const DEFAULT_COLOR: RGB = RGB::new(255, 0, 255); // TODO: remove me
 const MAX_PLAYER_NAME_LENGTH: usize = 32;
 
 mod cvar {
-    shared::cvar::define! {
+    cl::cvar::define! {
         pub static zoom_sensitivity_ratio(c"1.2", ARCHIVE);
         pub static cl_autowepswitch(c"1", ARCHIVE.union(USERINFO));
         pub static default_fov(c"90", ARCHIVE);

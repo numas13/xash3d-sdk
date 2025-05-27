@@ -1,13 +1,12 @@
 use core::{cell::RefCell, ffi::c_int, mem::MaybeUninit, ptr};
 
 use alloc::collections::linked_list::LinkedList;
-use cell::SyncOnceCell;
 use csz::{CStrArray, CStrThin};
-use shared::raw::{edict_s, string_t};
 use sv::{
+    cell::SyncOnceCell,
     globals,
     macros::define_field,
-    raw::{FieldType, SAVERESTOREDATA, TYPEDESCRIPTION},
+    raw::{edict_s, string_t, FieldType, SAVERESTOREDATA, TYPEDESCRIPTION},
 };
 
 use crate::save::{self, SaveRestore};

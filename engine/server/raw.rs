@@ -10,11 +10,10 @@ use core::{
 
 use bitflags::bitflags;
 use csz::{CStrArray, CStrThin};
-use shared::{
-    consts::MAX_LEVEL_CONNECTIONS,
-    cvar::cvar_s,
-    raw::{byte, edict_s, entity_state_s, entvars_s, playermove_s, qboolean, string_t, vec3_t},
-};
+
+use crate::{consts::MAX_LEVEL_CONNECTIONS, cvar::cvar_s};
+
+pub use shared::raw::*;
 
 pub type FILE = c_void;
 pub type CRC32_t = u32;
@@ -726,9 +725,8 @@ pub struct DLL_FUNCTIONS {
     pub pfnParmsNewLevel: Option<unsafe extern "C" fn()>,
     pub pfnParmsChangeLevel: Option<unsafe extern "C" fn()>,
     pub pfnGetGameDescription: Option<unsafe extern "C" fn() -> *const c_char>,
-    pub pfnPlayerCustomization: Option<
-        unsafe extern "C" fn(pEntity: *mut edict_s, pCustom: *mut shared::raw::customization_s),
-    >,
+    pub pfnPlayerCustomization:
+        Option<unsafe extern "C" fn(pEntity: *mut edict_s, pCustom: *mut customization_s)>,
     pub pfnSpectatorConnect: Option<unsafe extern "C" fn(pEntity: *mut edict_s)>,
     pub pfnSpectatorDisconnect: Option<unsafe extern "C" fn(pEntity: *mut edict_s)>,
     pub pfnSpectatorThink: Option<unsafe extern "C" fn(pEntity: *mut edict_s)>,
@@ -745,11 +743,7 @@ pub struct DLL_FUNCTIONS {
         ),
     >,
     pub pfnUpdateClientData: Option<
-        unsafe extern "C" fn(
-            ent: *const edict_s,
-            sendweapons: c_int,
-            cd: *mut shared::raw::clientdata_s,
-        ),
+        unsafe extern "C" fn(ent: *const edict_s, sendweapons: c_int, cd: *mut clientdata_s),
     >,
     pub pfnAddToFullPack: Option<
         unsafe extern "C" fn(
@@ -774,20 +768,15 @@ pub struct DLL_FUNCTIONS {
         ),
     >,
     pub pfnRegisterEncoders: Option<unsafe extern "C" fn()>,
-    pub pfnGetWeaponData: Option<
-        unsafe extern "C" fn(player: *mut edict_s, info: *mut shared::raw::weapon_data_s) -> c_int,
-    >,
+    pub pfnGetWeaponData:
+        Option<unsafe extern "C" fn(player: *mut edict_s, info: *mut weapon_data_s) -> c_int>,
     pub pfnCmdStart: Option<
-        unsafe extern "C" fn(
-            player: *const edict_s,
-            cmd: *const shared::raw::usercmd_s,
-            random_seed: c_uint,
-        ),
+        unsafe extern "C" fn(player: *const edict_s, cmd: *const usercmd_s, random_seed: c_uint),
     >,
     pub pfnCmdEnd: Option<unsafe extern "C" fn(player: *const edict_s)>,
     pub pfnConnectionlessPacket: Option<
         unsafe extern "C" fn(
-            net_from: *const shared::raw::netadr_s,
+            net_from: *const netadr_s,
             args: *const c_char,
             response_buffer: *mut c_char,
             response_buffer_size: *mut c_int,

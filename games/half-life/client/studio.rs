@@ -1,7 +1,6 @@
 use core::{cell::RefCell, ffi::c_int};
 
-use cell::SyncOnceCell;
-use shared::raw::entity_state_s;
+use cl::{cell::SyncOnceCell, raw::entity_state_s};
 
 pub struct StudioRenderer {}
 

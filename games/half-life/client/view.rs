@@ -1,21 +1,21 @@
 use core::{cell::RefCell, f32, ffi::c_int, ptr};
 
-use cell::SyncOnceCell;
 use cl::{
+    cell::SyncOnceCell,
+    consts::CONTENTS_WATER,
     engine,
     macros::hook_command,
-    raw::{ref_params_s, KeyState},
+    math::{
+        consts::{PITCH, ROLL, YAW},
+        fabsf, fmaxf, fminf, sinf, sqrtf, vec3_t,
+    },
+    raw::{cl_entity_s, ref_params_s, KeyState},
 };
-use math::{
-    consts::{PITCH, ROLL, YAW},
-    fabsf, fmaxf, fminf, sinf, sqrtf, vec3_t,
-};
-use shared::{consts::CONTENTS_WATER, raw::cl_entity_s};
 
 use crate::{camera::camera, helpers::*, input};
 
 mod cvar {
-    shared::cvar::define! {
+    cl::cvar::define! {
         pub static cl_bobcycle(c"0.8", NONE);
         pub static cl_bob(c"0.01", ARCHIVE);
         pub static cl_bobup(c"0.5", NONE);
@@ -384,7 +384,7 @@ impl View {
         calc_view_roll(params);
 
         let angles = params.cl_viewangles;
-        let (forward, right, up) = math::angle_vectors(angles).all();
+        let (forward, right, up) = cl::math::angle_vectors(angles).all();
         params.forward = forward;
         params.right = right;
         params.up = up;
@@ -403,7 +403,7 @@ impl View {
             cam_angles = ofs;
             cam_angles[2] = 0.0;
 
-            let cam_forward = math::angle_vectors(cam_angles).forward();
+            let cam_forward = cl::math::angle_vectors(cam_angles).forward();
             params.vieworg += cam_forward * -ofs[2];
         }
 
@@ -520,7 +520,7 @@ fn calc_view_roll(params: &mut ref_params_s) {
     }
     let viewentity = unsafe { &*viewentity };
 
-    let side = math::calc_roll(
+    let side = cl::math::calc_roll(
         viewentity.angles,
         params.simvel,
         params.movevars().rollangle,

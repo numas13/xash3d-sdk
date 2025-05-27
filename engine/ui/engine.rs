@@ -8,16 +8,15 @@ use core::{
 };
 
 use csz::{CStrArray, CStrThin};
-use shared::{
-    borrow::{BorrowRef, Ref},
+use shared::borrow::{BorrowRef, Ref};
+
+use crate::{
     color::RGBA,
     consts::{MAX_STRING, MAX_SYSPATH},
     cvar::{CVarFlags, CVarPtr},
-    raw::{kbutton_t, net_api_s, netadr_s, wrect_s},
+    raw::{self, kbutton_t, net_api_s, netadr_s, wrect_s, HIMAGE},
+    utils::str::{AsPtr, ToEngineStr},
 };
-use utils::str::{AsPtr, ToEngineStr};
-
-use crate::raw::{self, HIMAGE};
 
 #[derive(Copy, Clone, PartialEq, Eq)]
 pub struct Point {

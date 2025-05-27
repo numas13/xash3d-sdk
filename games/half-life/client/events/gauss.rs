@@ -1,12 +1,12 @@
 use core::ffi::c_int;
 
-use cl::{engine, raw::event_args_s, raw::TempEntFlags};
-use math::{consts::PITCH, vec3_t};
-use res::valve::{self, sound, sprites};
-use shared::{
+use cl::{
     consts::{ATTN_NORM, CHAN_WEAPON, PM_NORMAL, SOLID_BSP, TE_SPRITETRAIL},
-    raw::{BeamEntity, RenderFx, RenderMode, SoundFlags},
+    engine,
+    math::{consts::PITCH, vec3_t},
+    raw::{event_args_s, BeamEntity, RenderFx, RenderMode, SoundFlags, TempEntFlags},
 };
+use res::valve::{self, sound, sprites};
 
 use crate::view::view_mut;
 
@@ -45,7 +45,7 @@ impl Events {
         let primary_fire = args.bparam1 != 0;
         let origin = args.origin;
         let angles = args.angles;
-        let (mut forward, _, _) = math::angle_vectors(angles).all();
+        let (mut forward, _, _) = cl::math::angle_vectors(angles).all();
 
         let engine = engine();
         let ev = engine.event_api();

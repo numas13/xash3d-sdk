@@ -17,17 +17,18 @@ use core::{
     ffi::{c_int, CStr},
 };
 
-use cell::SyncOnceCell;
-use cl::{engine, macros::hook_event, raw::event_args_s};
-use csz::CStrArray;
-use math::vec3_t;
-use res::valve::{self, sound};
-use shared::{
+use cl::{
+    cell::SyncOnceCell,
     consts::{
         ATTN_NORM, CHAN_STATIC, EFLAG_FLESH_SOUND, MAX_PLAYERS, PITCH_NORM, PM_NORMAL, SOLID_BSP,
     },
-    raw::{physent_s, pmtrace_s, Effects, MoveType, RenderMode, SoundFlags},
+    engine,
+    macros::hook_event,
+    math::vec3_t,
+    raw::{event_args_s, physent_s, pmtrace_s, Effects, MoveType, RenderMode, SoundFlags},
 };
+use csz::CStrArray;
+use res::valve::{self, sound};
 
 const DEFAULT_VIEWHEIGHT: f32 = 28.0;
 const VEC_DUCK_VIEW: f32 = 12.0;

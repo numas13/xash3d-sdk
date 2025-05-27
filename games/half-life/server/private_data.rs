@@ -6,8 +6,10 @@ use core::{
     ptr,
 };
 
-use shared::raw::{edict_s, entvars_s};
-use sv::engine;
+use sv::{
+    engine,
+    raw::{edict_s, entvars_s},
+};
 
 use crate::entity::Entity;
 

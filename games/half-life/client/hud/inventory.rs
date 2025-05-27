@@ -4,14 +4,12 @@ use core::{
 };
 
 use cl::{
+    color::RGB,
     engine,
-    macros::{hook_message, spr_get_list, spr_load},
+    macros::{spr_get_list, spr_load},
+    message::{hook_message, Message, MessageError},
 };
 use csz::CStrArray;
-use shared::{
-    color::RGB,
-    message::{Message, MessageError},
-};
 
 use crate::hud::{hud_mut, weapon_menu::WeaponMenu, Sprite, Weapons, MAX_WEAPONS};
 

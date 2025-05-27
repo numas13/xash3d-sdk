@@ -20,6 +20,4 @@ workspace = true
 log.workspace = true
 bitflags.workspace = true
 csz.workspace = true
-cell.workspace = true
-math.workspace = true
 shared.workspace = true

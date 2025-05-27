@@ -1,13 +1,12 @@
 use core::{cmp, ffi::c_int, fmt::Write};
 
 use alloc::string::String;
-use csz::CStrArray;
-use shared::{
+use cl::{
     color::RGB,
-    message::{Message, MessageError},
+    engine,
+    message::{hook_message, Message, MessageError},
 };
-
-use cl::{engine, macros::hook_message};
+use csz::CStrArray;
 
 use super::{hud, HudItem, State};
 

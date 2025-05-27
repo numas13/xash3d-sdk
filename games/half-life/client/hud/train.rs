@@ -1,10 +1,6 @@
 use core::ffi::c_int;
 
-use cl::{
-    engine,
-    macros::{hook_message, spr_load},
-    SpriteHandle,
-};
+use cl::{engine, macros::spr_load, message::hook_message, SpriteHandle};
 
 use crate::hud::{hud, try_spr_load, HudItem, State};
 

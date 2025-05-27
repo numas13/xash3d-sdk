@@ -6,15 +6,15 @@ use core::{
 };
 
 use csz::CStrThin;
-use math::vec3_t;
 use pm::{VEC_DUCK_HULL_MIN, VEC_HULL_MIN};
-use shared::raw::{
-    clientdata_s, customization_s, edict_s, entity_state_s, netadr_s, playermove_s, qboolean,
-    usercmd_s, weapon_data_s, EdictFlags,
-};
 use sv::{
     engine, engine_set, globals,
-    raw::{self, INTERFACE_VERSION, NEW_DLL_FUNCTIONS_VERSION},
+    math::vec3_t,
+    raw::{
+        self, clientdata_s, customization_s, edict_s, entity_state_s, netadr_s, playermove_s,
+        qboolean, usercmd_s, weapon_data_s, EdictFlags, INTERFACE_VERSION,
+        NEW_DLL_FUNCTIONS_VERSION,
+    },
 };
 
 use crate::{
@@ -623,5 +623,5 @@ unsafe extern "C" fn GiveFnptrsToDll(
 ) {
     engine_set(*funcs.unwrap(), globals);
     let dev = engine().cvar_get_float(c"developer") as i32;
-    utils::logger::init(dev, |s| engine().server_print(s));
+    sv::utils::logger::init(dev, |s| engine().server_print(s));
 }

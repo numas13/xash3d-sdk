@@ -4,18 +4,17 @@ use core::{
     iter, ptr,
 };
 
-use cell::SyncOnceCell;
 use cl::{
+    cell::SyncOnceCell,
+    consts::{DEAD_NO, PM_STUDIO_BOX, PM_WORLD_ONLY},
     engine,
-    raw::EntityType,
-    raw::{TempEntFlags, TEMPENTITY},
+    math::{consts::YAW, sinf, vec3_t},
+    raw::{
+        cl_entity_s, clientdata_s, entity_state_s, weapon_data_s, EntityType, RenderMode,
+        TempEntFlags, TEMPENTITY,
+    },
 };
 use csz::CStrThin;
-use math::{consts::YAW, sinf, vec3_t};
-use shared::{
-    consts::{DEAD_NO, PM_STUDIO_BOX, PM_WORLD_ONLY},
-    raw::{cl_entity_s, clientdata_s, entity_state_s, weapon_data_s, RenderMode},
-};
 
 use crate::{helpers, hud::MAX_WEAPONS};
 

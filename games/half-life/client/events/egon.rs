@@ -1,11 +1,11 @@
 use core::ffi::{c_int, CStr};
 
-use cl::{engine, raw::event_args_s};
-use res::valve::sound;
-use shared::{
+use cl::{
     consts::{ATTN_NORM, CHAN_STATIC, CHAN_WEAPON},
-    raw::SoundFlags,
+    engine,
+    raw::{event_args_s, SoundFlags},
 };
+use res::valve::sound;
 
 use super::{is_local, Events};
 

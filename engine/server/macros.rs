@@ -1,10 +1,12 @@
+pub use shared::macros::cstringify;
+
 #[doc(hidden)]
 #[macro_export]
 macro_rules! field {
     ($ty:ty, $name:ident, $fieldtype:expr, $count:expr, $flags:expr) => {
         $crate::raw::TYPEDESCRIPTION {
             fieldType: $fieldtype,
-            fieldName: shared::macros::cstringify!($name).as_ptr(),
+            fieldName: $crate::macros::cstringify!($name).as_ptr(),
             fieldOffset: core::mem::offset_of!($ty, $name) as core::ffi::c_int,
             fieldSize: $count as core::ffi::c_short,
             flags: $flags,
@@ -44,7 +46,7 @@ pub use define_field;
 macro_rules! define_entity_field {
     ($name:ident, $fieldtype:expr, $count:expr, global) => {
         $crate::macros::field!(
-            shared::raw::entvars_s,
+            $crate::raw::entvars_s,
             $name,
             $fieldtype,
             $count,
@@ -53,7 +55,7 @@ macro_rules! define_entity_field {
     };
     ($name:ident, $fieldtype:expr, global) => {
         $crate::macros::field!(
-            shared::raw::entvars_s,
+            $crate::raw::entvars_s,
             $name,
             $fieldtype,
             1,
@@ -62,7 +64,7 @@ macro_rules! define_entity_field {
     };
     ($name:ident, $fieldtype:expr, $count:expr) => {
         $crate::macros::field!(
-            shared::raw::entvars_s,
+            $crate::raw::entvars_s,
             $name,
             $fieldtype,
             $count,
@@ -71,7 +73,7 @@ macro_rules! define_entity_field {
     };
     ($name:ident, $fieldtype:expr) => {
         $crate::macros::field!(
-            shared::raw::entvars_s,
+            $crate::raw::entvars_s,
             $name,
             $fieldtype,
             1,

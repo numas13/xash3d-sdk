@@ -1,13 +1,13 @@
 use core::ffi::c_int;
 
-use cl::{engine, macros::hook_message};
+use cl::{engine, message::hook_message};
 
 use crate::hud::{hud, Hide, HudItem, State};
 
 const MAX_HISTORY: usize = 12;
 
 mod cvar {
-    shared::cvar::define! {
+    cl::cvar::define! {
         pub static hud_drawhistory_time(c"5", NONE);
     }
 }

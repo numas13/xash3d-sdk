@@ -10,10 +10,10 @@ use core::{
 };
 
 use csz::CStrArray;
-use shared::{
-    cvar::cvar_s,
-    raw::{byte, cl_entity_s, con_nprint_s, net_api_s, netadr_s, ref_viewpass_s, wrect_s},
-};
+
+use crate::cvar::cvar_s;
+
+pub use shared::raw::*;
 
 pub type HIMAGE = c_int;
 

@@ -3,13 +3,13 @@ use core::{
     ptr,
 };
 
-use math::vec3_t;
-use shared::{
+use sv::{
     consts::{EFLAG_SLERP, ENTITY_BEAM, ENTITY_NORMAL, SOLID_SLIDEBOX},
+    engine, globals,
+    math::vec3_t,
     raw::{clientdata_s, edict_s, entity_state_s, entvars_s, EdictFlags, Effects, MoveType},
+    utils::str::cstr_copy,
 };
-use sv::{engine, globals};
-use utils::str::cstr_copy;
 
 use crate::{
     entity::{impl_cast, Entity, EntityVars},
@@ -303,7 +303,7 @@ impl Entity for Stub {
 macro_rules! link_entity_stub {
     ($($name:ident),* $(,)?) => {
         $($crate::macros::link_entity!($name, |vars| {
-            $crate::todo::Stub { vars, name: shared::macros::cstringify!($name) }
+            $crate::todo::Stub { vars, name: sv::macros::cstringify!($name) }
         });)*
     };
 }

@@ -4,16 +4,16 @@ use core::{
     ffi::c_int,
 };
 
-use cell::SyncOnceCell;
 use cl::{
+    cell::SyncOnceCell,
     engine,
     macros::{hook_command, hook_command_key},
+    math::{
+        consts::{PITCH, ROLL, YAW},
+        fabsf, vec3_t,
+    },
     raw::kbutton_t,
     KeyButtonExt,
-};
-use math::{
-    consts::{PITCH, ROLL, YAW},
-    fabsf, vec3_t,
 };
 
 use crate::{helpers, input::input_mut};
@@ -34,7 +34,7 @@ const CAM_ANGLE_MOVE: f32 = 0.5;
 // const YAW_MIN: f32 = -135.0;
 
 mod cvar {
-    shared::cvar::define! {
+    cl::cvar::define! {
         pub static cam_command(c"0", NONE);
         pub static cam_snapto(c"0", NONE);
         pub static cam_idealyaw(c"0", NONE);

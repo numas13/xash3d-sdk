@@ -1,7 +1,6 @@
 use core::ffi::c_int;
 
-use cl::{engine, raw::event_args_s};
-use shared::consts::PM_NORMAL;
+use cl::{consts::PM_NORMAL, engine, raw::event_args_s};
 
 use super::{is_local, Events};
 
@@ -32,7 +31,7 @@ impl Events {
 
         let origin = args.origin;
         let angles = args.angles;
-        let forward = math::angle_vectors(angles).forward();
+        let forward = cl::math::angle_vectors(angles).forward();
 
         let view_ofs = ev.local_player_view_height();
         let src = origin + view_ofs;

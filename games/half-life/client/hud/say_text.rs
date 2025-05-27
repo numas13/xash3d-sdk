@@ -1,10 +1,8 @@
 use core::ffi::{c_int, CStr};
 
 use alloc::collections::vec_deque::VecDeque;
+use cl::{engine, math::fminf, message::hook_message};
 use csz::CStrArray;
-use math::fminf;
-
-use cl::{engine, macros::hook_message};
 
 use super::{hud, HudFlags, HudItem, State};
 
@@ -14,7 +12,7 @@ const MAX_CHARS_PER_LINE: usize = 256;
 const SAY_MESSAGE: u8 = 2;
 
 mod cvar {
-    shared::cvar::define! {
+    cl::cvar::define! {
         pub static hud_saytext(c"1", NONE);
         pub static hud_saytext_time(c"5", NONE);
     }

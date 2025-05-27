@@ -1,7 +1,6 @@
 use core::ffi::c_int;
 
-use cl::{engine, macros::hook_message};
-use shared::color::RGB;
+use cl::{color::RGB, engine, message::hook_message};
 
 use crate::hud::{hud, Hide, Sprite, State};
 

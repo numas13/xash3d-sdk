@@ -1,10 +1,10 @@
-use shared::cvar::define;
+use sv::cvar::define;
 
 use sv::engine;
 
 #[allow(dead_code)]
 mod flags {
-    use shared::cvar::CVarFlags;
+    use sv::cvar::CVarFlags;
 
     pub const NONE: CVarFlags = CVarFlags::NONE;
     pub const ARCHIVE: CVarFlags = CVarFlags::ARCHIVE;
@@ -29,15 +29,15 @@ macro_rules! define_server {
             $(
                 #[allow(non_upper_case_globals)]
                 $(#[$meta])*
-                static mut $name: shared::cvar::cvar_s = {
+                static mut $name: sv::cvar::cvar_s = {
                     use $crate::cvar::flags::*;
 
                     #[allow(unused_variables)]
                     let flags = NONE;
                     $(let flags = $flags;)?
 
-                    shared::cvar::cvar_s {
-                        name: shared::macros::cstringify!($name).as_ptr(),
+                    sv::cvar::cvar_s {
+                        name: sv::macros::cstringify!($name).as_ptr(),
                         string: $value.as_ptr() as *mut core::ffi::c_char,
                         value: 0.0,
                         flags,
@@ -54,7 +54,7 @@ macro_rules! define_server {
             }
         }
 
-        shared::cvar::define! {
+        sv::cvar::define! {
             $($(#[$meta])* $vis static $name;)*
         }
 
@@ -406,7 +406,7 @@ define_server! {
 }
 
 pub fn init() {
-    shared::cvar::init(|name, _, _| engine().get_cvar(name));
+    sv::cvar::init(|name, _, _| engine().get_cvar(name));
 
     sv_gravity.get_ptr();
     sv_aim.get_ptr();

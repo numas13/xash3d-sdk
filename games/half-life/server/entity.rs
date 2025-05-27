@@ -4,14 +4,11 @@ use core::{
 };
 
 use bitflags::bitflags;
-use math::{fabsf, vec3_t};
-use shared::{
-    consts::{SOLID_BSP, SOLID_NOT},
-    raw::{edict_s, entvars_s, EdictFlags, Effects, MoveType},
-};
 use sv::{
+    consts::{SOLID_BSP, SOLID_NOT},
     engine, globals,
-    raw::{KeyValueData, TYPEDESCRIPTION},
+    math::{fabsf, vec3_t},
+    raw::{edict_s, entvars_s, EdictFlags, Effects, KeyValueData, MoveType, TYPEDESCRIPTION},
 };
 
 use crate::save::{self, SaveRestore};

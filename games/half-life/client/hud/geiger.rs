@@ -1,6 +1,6 @@
 use core::fmt::Write;
 
-use cl::{engine, macros::hook_message};
+use cl::{engine, message::hook_message};
 use csz::CStrArray;
 
 use crate::hud::{hud, HudItem, State};

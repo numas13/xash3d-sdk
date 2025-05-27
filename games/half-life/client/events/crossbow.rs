@@ -1,19 +1,15 @@
 use core::ffi::c_int;
 
 use cl::{
-    engine,
-    raw::event_args_s,
-    raw::{TempEntFlags, TEMPENTITY},
-};
-use math::{consts::PITCH, vec3_t};
-use res::valve::{models, sound};
-use shared::{
     consts::{
         ATTN_NORM, CHAN_BODY, CHAN_ITEM, CHAN_WEAPON, CONTENTS_WATER, PITCH_NORM, PM_NORMAL,
         SOLID_BSP, TE_BOUNCE_NULL,
     },
-    raw::{RenderMode, SoundFlags},
+    engine,
+    math::{consts::PITCH, vec3_t},
+    raw::{event_args_s, RenderMode, SoundFlags, TempEntFlags, TEMPENTITY},
 };
+use res::valve::{models, sound};
 
 use crate::view::view_mut;
 
@@ -86,7 +82,7 @@ impl Events {
     pub(super) fn fire_crossbow2(&mut self, args: &mut event_args_s) {
         let idx = args.entindex;
         let origin = args.origin;
-        let forward = math::angle_vectors(args.angles).forward();
+        let forward = cl::math::angle_vectors(args.angles).forward();
         let engine = engine();
         let ev = engine.event_api();
         let efx = engine.efx_api();

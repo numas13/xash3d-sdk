@@ -5,10 +5,8 @@ use core::{
 };
 
 use alloc::collections::vec_deque::VecDeque;
+use cl::{color::RGB, engine, message::hook_message};
 use csz::{CStrArray, CStrThin};
-use shared::color::RGB;
-
-use cl::{engine, macros::hook_message};
 
 use super::{hud, HudItem, Sprite, State, MAX_PLAYER_NAME_LENGTH};
 
@@ -16,7 +14,7 @@ const MAX_DEATH_NOTICES: usize = 4;
 const DEATHNOTICE_TOP: c_int = 32;
 
 mod cvar {
-    shared::cvar::define! {
+    cl::cvar::define! {
         pub static hud_deathnotice_time(c"6", ARCHIVE);
     }
 }

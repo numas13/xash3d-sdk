@@ -1,7 +1,7 @@
-use cell::SyncOnceCell;
-use shared::raw::cl_entity_s;
-
-use crate::raw;
+use crate::{
+    cell::SyncOnceCell,
+    raw::{self, cl_entity_s},
+};
 
 pub struct Studio {
     raw: raw::engine_studio_api_s,

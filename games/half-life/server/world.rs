@@ -1,7 +1,9 @@
 use core::ffi::CStr;
 
-use shared::raw::entvars_s;
-use sv::{engine, raw::KeyValueData};
+use sv::{
+    engine,
+    raw::{entvars_s, KeyValueData},
+};
 
 use crate::{
     entity::{impl_cast, Entity, EntityVars},

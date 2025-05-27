@@ -2,6 +2,8 @@ use core::fmt::{self, Write};
 
 use crate::engine;
 
+pub use utils::*;
+
 pub struct EscapeCommand<'a> {
     src: &'a str,
     scripting: bool,

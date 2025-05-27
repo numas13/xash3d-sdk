@@ -1,8 +1,11 @@
 use core::ffi::{c_int, CStr};
 
-use shared::{color::RGBA, raw::PictureFlags};
-
-use crate::{engine, raw::HIMAGE, Size};
+use crate::{
+    color::RGBA,
+    engine,
+    raw::{PictureFlags, HIMAGE},
+    Size,
+};
 
 pub struct Picture<T: AsRef<CStr> = &'static CStr> {
     raw: HIMAGE,

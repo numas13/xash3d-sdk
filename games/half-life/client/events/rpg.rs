@@ -1,12 +1,12 @@
 use core::ffi::c_int;
 
-use cl::{engine, raw::event_args_s};
-use math::consts::PITCH;
-use res::valve::sound;
-use shared::{
+use cl::{
     consts::{ATTN_NORM, CHAN_ITEM, CHAN_WEAPON, PITCH_NORM},
-    raw::SoundFlags,
+    engine,
+    math::consts::PITCH,
+    raw::{event_args_s, SoundFlags},
 };
+use res::valve::sound;
 
 use crate::view::view_mut;
 

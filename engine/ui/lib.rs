@@ -9,6 +9,8 @@ pub mod utils;
 
 use core::ptr;
 
+pub use shared::{cell, color, cvar, math, parser};
+
 pub use crate::engine::{ActiveMenu, Engine, Point, Size};
 
 static mut ENGINE: Option<Engine> = None;

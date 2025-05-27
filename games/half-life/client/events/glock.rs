@@ -1,12 +1,12 @@
 use core::ffi::c_int;
 
-use cl::{engine, raw::event_args_s};
-use math::consts::{PITCH, YAW};
-use res::valve::{models, sound};
-use shared::{
+use cl::{
     consts::{ATTN_NORM, CHAN_WEAPON, TE_BOUNCE_SHELL},
-    raw::SoundFlags,
+    engine,
+    math::consts::{PITCH, YAW},
+    raw::{event_args_s, SoundFlags},
 };
+use res::valve::{models, sound};
 
 use crate::view::view_mut;
 
@@ -37,7 +37,7 @@ impl Events {
         let origin = args.origin;
         let angles = args.angles;
         let velocity = args.velocity;
-        let av @ (forward, _, _) = math::angle_vectors(angles).all();
+        let av @ (forward, _, _) = cl::math::angle_vectors(angles).all();
         let engine = engine();
         let ev = engine.event_api();
         let shell = ev.find_model_index(models::SHELL);
@@ -84,7 +84,7 @@ impl Events {
         let origin = args.origin;
         let angles = args.angles;
         let velocity = args.velocity;
-        let av @ (forward, _, _) = math::angle_vectors(angles).all();
+        let av @ (forward, _, _) = cl::math::angle_vectors(angles).all();
         let engine = engine();
         let ev = engine.event_api();
         let shell = ev.find_model_index(models::SHELL);

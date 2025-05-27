@@ -1,10 +1,11 @@
 use core::ffi::c_int;
 
-use math::vec3_t;
-use shared::raw::{dlight_s, BeamEntity, RenderFx, RenderMode};
 use utils::str::{AsPtr, ToEngineStr};
 
-use crate::raw::{self, TempEntFlags, TEMPENTITY};
+use crate::{
+    math::vec3_t,
+    raw::{self, dlight_s, BeamEntity, RenderFx, RenderMode, TempEntFlags, TEMPENTITY},
+};
 
 pub struct EfxApi<'a> {
     raw: &'a raw::efx_api_s,

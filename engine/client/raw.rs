@@ -10,20 +10,12 @@ use core::{
 
 use bitflags::bitflags;
 use csz::{CStrArray, CStrThin};
-use shared::{
-    consts::MAX_LOCAL_WEAPONS,
-    cvar::cvar_s,
-    raw::{
-        byte, cache_user_s, cl_entity_s, clientdata_s, con_nprint_s, customization_s, dlight_s,
-        edict_s, entity_state_s, model_s, movevars_s, msurface_s, net_api_s, netadr_s, physent_s,
-        playermove_s, pmtrace_s, qboolean, usercmd_s, vec3_t, weapon_data_s, wrect_s, RenderFx,
-        RenderMode, SoundFlags,
-    },
-};
+
+use crate::{consts::MAX_LOCAL_WEAPONS, cvar::cvar_s};
+
+pub use shared::raw::*;
 
 pub type HSPRITE = c_int;
-
-pub const CLDLL_INTERFACE_VERSION: c_int = 7;
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(C)]
@@ -1285,8 +1277,6 @@ pub struct client_data_s {
     pub iWeaponBits: c_int,
     pub fov: f32,
 }
-
-pub use shared::raw::{kbutton_t, KeyState};
 
 #[derive(Copy, Clone)]
 #[repr(C)]

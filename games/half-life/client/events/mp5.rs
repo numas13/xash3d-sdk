@@ -1,15 +1,15 @@
 use core::ffi::c_int;
 
-use cl::{engine, raw::event_args_s};
-use math::{
-    angle_vectors,
-    consts::{PITCH, YAW},
+use cl::{
+    consts::{ATTN_NORM, CHAN_WEAPON, TE_BOUNCE_SHELL},
+    engine,
+    math::{
+        angle_vectors,
+        consts::{PITCH, YAW},
+    },
+    raw::{event_args_s, SoundFlags},
 };
 use res::valve::{models, sound};
-use shared::{
-    consts::{ATTN_NORM, CHAN_WEAPON, TE_BOUNCE_SHELL},
-    raw::SoundFlags,
-};
 
 use crate::view::view_mut;
 

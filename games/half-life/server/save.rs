@@ -7,14 +7,16 @@ use core::{
 };
 
 use csz::CStrThin;
-use math::vec3_t;
-use shared::raw::{edict_s, entvars_s, string_t, MoveType};
 use sv::{
     engine, globals,
     macros::define_entity_field,
-    raw::{FieldType, FtypeDesc, KeyValueData, SAVERESTOREDATA, TYPEDESCRIPTION},
+    math::vec3_t,
+    raw::{
+        edict_s, entvars_s, string_t, FieldType, FtypeDesc, KeyValueData, MoveType,
+        SAVERESTOREDATA, TYPEDESCRIPTION,
+    },
+    utils::array_from_slice,
 };
-use utils::array_from_slice;
 
 use crate::{
     entity::ObjectCaps,

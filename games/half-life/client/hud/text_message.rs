@@ -1,9 +1,12 @@
 use core::ffi::{c_char, c_int, CStr};
 
 use alloc::string::String;
-use cl::{engine, macros::hook_message, Engine};
-use shared::message::{Message, MessageError};
-use utils::str::cstr_copy;
+use cl::{
+    engine,
+    message::{hook_message, Message, MessageError},
+    utils::str::cstr_copy,
+    Engine,
+};
 
 use crate::hud::say_text::SayText;
 

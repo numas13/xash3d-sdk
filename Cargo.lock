@@ -30,8 +30,6 @@ dependencies = [
  "bitflags",
  "csz",
  "log",
- "xash3d-cell",
- "xash3d-math",
  "xash3d-shared",
  "xash3d-utils",
 ]
@@ -43,13 +41,9 @@ dependencies = [
  "bitflags",
  "csz",
  "log",
- "xash3d-cell",
  "xash3d-client",
  "xash3d-hl-resources",
- "xash3d-math",
  "xash3d-player-move",
- "xash3d-shared",
- "xash3d-utils",
 ]
 
 [[package]]
@@ -63,13 +57,9 @@ dependencies = [
  "bitflags",
  "csz",
  "log",
- "xash3d-cell",
  "xash3d-hl-resources",
- "xash3d-math",
  "xash3d-player-move",
  "xash3d-server",
- "xash3d-shared",
- "xash3d-utils",
 ]
 
 [[package]]
@@ -83,8 +73,6 @@ dependencies = [
  "bitflags",
  "csz",
  "log",
- "xash3d-cell",
- "xash3d-math",
  "xash3d-shared",
 ]
 
@@ -95,8 +83,6 @@ dependencies = [
  "bitflags",
  "csz",
  "log",
- "xash3d-cell",
- "xash3d-math",
  "xash3d-shared",
  "xash3d-utils",
 ]

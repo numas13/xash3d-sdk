@@ -1,6 +1,6 @@
 use core::{cmp, ffi::c_int};
 
-use cl::{engine, macros::hook_message};
+use cl::{engine, message::hook_message};
 
 use crate::hud::{hud, Fade, Hide, Sprite, State};
 

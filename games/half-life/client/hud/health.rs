@@ -3,12 +3,13 @@ use core::ffi::c_int;
 use alloc::collections::VecDeque;
 use bitflags::bitflags;
 use cl::{
+    color::RGB,
     engine,
-    macros::{hook_message, spr_load},
+    macros::spr_load,
+    math::{fabsf, fmaxf, sinf, vec3_t},
+    message::hook_message,
     Engine, SpriteHandle,
 };
-use math::{fabsf, fmaxf, sinf, vec3_t};
-use shared::color::RGB;
 
 use crate::hud::{hud, hud_mut, try_spr_load, Fade, Hide, Sprite, State};
 
@@ -260,7 +261,7 @@ impl Health {
         if dist_to_target <= 50.0 {
             self.attack = [1.0; 4];
         } else {
-            let av = math::angle_vectors(state.angles);
+            let av = cl::math::angle_vectors(state.angles);
             let from = from.normalize();
             let front = from.dot_product(av.right());
             let side = from.dot_product(av.forward());

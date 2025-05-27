@@ -259,7 +259,7 @@ macro_rules! define {
                 )?
 
                 $crate::cvar::CVar::new(
-                    shared::macros::cstringify!($name),
+                    $crate::macros::cstringify!($name),
                     value,
                     flags,
                 )
