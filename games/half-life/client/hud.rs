@@ -34,8 +34,8 @@ use cl::{
     math::vec3_t,
     message::{hook_message, hook_message_flag},
     raw::{client_data_s, wrect_s},
+    sprite::SpriteHandle,
     utils::macros::unimpl,
-    SpriteHandle,
 };
 use csz::{CStrArray, CStrBox};
 

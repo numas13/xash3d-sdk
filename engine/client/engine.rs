@@ -1,4 +1,4 @@
-use core::{ffi::c_int, mem::MaybeUninit, num::NonZeroI32, ops::Deref, ptr, slice};
+use core::{ffi::c_int, mem::MaybeUninit, ptr};
 
 use csz::CStrThin;
 
@@ -10,24 +10,9 @@ use crate::{
     event::EventApi,
     math::vec3_t,
     raw::{self, cl_entity_s, wrect_s},
+    sprite::{SpriteHandle, SpriteList},
     utils::str::{AsPtr, ToEngineStr},
 };
-
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
-#[repr(transparent)]
-pub struct SpriteHandle {
-    raw: NonZeroI32,
-}
-
-impl SpriteHandle {
-    pub fn new(raw: raw::HSPRITE) -> Option<Self> {
-        NonZeroI32::new(raw).map(|raw| Self { raw })
-    }
-
-    pub fn raw(&self) -> raw::HSPRITE {
-        self.raw.get()
-    }
-}
 
 pub struct Engine {
     raw: raw::cl_enginefuncs_s,
@@ -128,10 +113,7 @@ impl Engine {
         unsafe {
             let mut len = MaybeUninit::uninit();
             let data = unwrap!(self, pfnSPR_GetList)(path.as_ptr(), len.as_mut_ptr());
-            SpriteList {
-                data,
-                len: len.assume_init() as usize,
-            }
+            SpriteList::new(data, len.assume_init() as usize)
         }
     }
 
@@ -157,7 +139,7 @@ impl Engine {
 
     pub fn set_crosshair(&self, sprite: SpriteHandle, rect: wrect_s, color: RGB) {
         let [r, g, b] = color.into();
-        unsafe { unwrap!(self, pfnSetCrosshair)(sprite.raw.get(), rect, r, g, b) }
+        unsafe { unwrap!(self, pfnSetCrosshair)(sprite.raw(), rect, r, g, b) }
     }
 
     pub fn register_variable(
@@ -634,43 +616,6 @@ impl Engine {
 impl From<raw::cl_enginefuncs_s> for Engine {
     fn from(raw: raw::cl_enginefuncs_s) -> Self {
         Self { raw }
-    }
-}
-
-pub struct SpriteList {
-    data: *const raw::client_sprite_s,
-    len: usize,
-}
-
-impl SpriteList {
-    // pub fn empty() -> Self {
-    //     Self {
-    //         data: ptr::null(),
-    //         len: 0,
-    //     }
-    // }
-
-    pub fn as_slice(&self) -> &[raw::client_sprite_s] {
-        if !self.data.is_null() {
-            unsafe { slice::from_raw_parts(self.data, self.len) }
-        } else {
-            &[]
-        }
-    }
-
-    pub fn find(&self, name: &CStrThin, res: c_int) -> Option<&raw::client_sprite_s> {
-        self.as_slice()
-            .iter()
-            .filter(|i| i.res <= res && i.name == *name)
-            .max_by_key(|i| i.res)
-    }
-}
-
-impl Deref for SpriteList {
-    type Target = [raw::client_sprite_s];
-
-    fn deref(&self) -> &Self::Target {
-        self.as_slice()
     }
 }
 

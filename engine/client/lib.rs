@@ -11,6 +11,7 @@ mod event;
 pub mod input;
 pub mod message;
 pub mod raw;
+pub mod sprite;
 mod studio;
 
 use core::ffi::c_int;

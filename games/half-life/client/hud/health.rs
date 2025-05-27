@@ -8,7 +8,8 @@ use cl::{
     macros::spr_load,
     math::{fabsf, fmaxf, sinf, vec3_t},
     message::hook_message,
-    Engine, SpriteHandle,
+    sprite::SpriteHandle,
+    Engine,
 };
 
 use crate::hud::{hud, hud_mut, try_spr_load, Fade, Hide, Sprite, State};
