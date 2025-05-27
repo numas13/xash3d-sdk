@@ -1,5 +1,4 @@
-use math::angle_vectors;
-use shared::{consts::PM_STUDIO_BOX, raw::vec3_t};
+use shared::{consts::PM_STUDIO_BOX, math::angle_vectors, raw::vec3_t};
 
 const BOX_GAP: f32 = 0.0;
 const BOX_POINTS: [[usize; 4]; 6] = [
