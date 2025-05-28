@@ -195,6 +195,7 @@ pub const XASH_LINUX: u32 = 1;
 pub const XASH_LITTLE_ENDIAN: u32 = 1;
 pub const XASH_64BIT: u32 = 1;
 pub const XASH_AMD64: u32 = 1;
+
 pub const MAX_STRING: usize = 256;
 pub const MAX_INFO_STRING: u32 = 256;
 pub const MAX_SERVERINFO_STRING: u32 = 512;
@@ -203,10 +204,57 @@ pub const MAX_SYSPATH: usize = 1024;
 pub const MAX_VA_STRING: u32 = 1024;
 pub const MAX_PRINT_MSG: u32 = 8192;
 pub const MAX_TOKEN: u32 = 2048;
-pub const MAX_MODS: u32 = 512;
+pub const MAX_MODS: usize = 512;
 pub const MAX_USERMSG_LENGTH: u32 = 2048;
-pub const MAX_QPATH: u32 = 64;
+pub const MAX_QPATH: usize = 64;
 pub const MAX_OSPATH: u32 = 260;
+pub const NUM_AMBIENTS: usize = 4;
+// pub const MAX_VISIBLE_PACKET_BITS: u32 = 11;
+// pub const MAX_VISIBLE_PACKET: u32 = 2048;
+// pub const MAX_VISIBLE_PACKET_VIS_BYTES: u32 = 256;
+
+// additional protocol data
+
+pub const MAX_CLIENT_BITS: u32 = 5;
+pub const MAX_CLIENTS: usize = 1 << MAX_CLIENT_BITS;
+
+pub const MAX_WEAPON_BITS: u32 = 6;
+/// Predictable weapons.
+pub const MAX_WEAPONS: usize = 1 << MAX_WEAPON_BITS;
+
+pub const MAX_EVENT_BITS: u32 = 10;
+/// 1024 events is the original Half-Life limit.
+pub const MAX_EVENTS: usize = 1 << MAX_EVENT_BITS;
+
+pub const MAX_MODEL_BITS: u32 = 12;
+pub const MAX_MODELS: usize = 1 << MAX_MODEL_BITS;
+
+pub const MAX_SOUND_BITS: u32 = 11;
+pub const MAX_SOUNDS: usize = 1 << MAX_SOUND_BITS;
+pub const MAX_SOUNDS_NONSENTENCE: usize = MAX_SOUNDS;
+
+pub const MAX_ENTITY_BITS: u32 = 13;
+pub const MAX_EDICTS: u32 = 1 << MAX_ENTITY_BITS;
+pub const MAX_EDICTS_BYTES: u32 = MAX_EDICTS.div_ceil(8);
+pub const LAST_EDICT: u32 = 8191;
+
+pub const MIN_EDICTS: u32 = 64;
+
+pub const MAX_CUSTOM_BITS: u32 = 10;
+pub const MAX_CUSTOM: u32 = 1 << MAX_CUSTOM_BITS;
+pub const MAX_USER_MESSAGES: u32 = 197;
+/// Dynamic lights (rendered per one frame).
+pub const MAX_DLIGHTS: u32 = 32;
+/// Entity only point lights.
+pub const MAX_ELIGHTS: u32 = 128;
+pub const MAX_LIGHTSTYLES: u32 = 256;
+/// Max rendering decals per a level.
+pub const MAX_RENDER_DECALS: u32 = 4096;
+
+// sound proto
+pub const MAX_SND_FLAGS_BITS: u32 = 14;
+pub const MAX_SND_CHAN_BITS: u32 = 4;
+
 pub const CS_SIZE: usize = 64;
 pub const CS_TIME: usize = 16;
 pub const MAX_ENT_LEAFS: usize = 48;
@@ -314,45 +362,61 @@ pub const TRI_QUAD_STRIP: u32 = 6;
 pub const TRI_POINTS: u32 = 7;
 pub const CL_RENDER_INTERFACE_VERSION: u32 = 37;
 pub const MAX_STUDIO_DECALS: u32 = 4096;
-pub const PARM_TEX_WIDTH: u32 = 1;
-pub const PARM_TEX_HEIGHT: u32 = 2;
-pub const PARM_TEX_SRC_WIDTH: u32 = 3;
-pub const PARM_TEX_SRC_HEIGHT: u32 = 4;
-pub const PARM_TEX_SKYBOX: u32 = 5;
-pub const PARM_TEX_SKYTEXNUM: u32 = 6;
-pub const PARM_TEX_LIGHTMAP: u32 = 7;
-pub const PARM_TEX_TARGET: u32 = 8;
-pub const PARM_TEX_TEXNUM: u32 = 9;
-pub const PARM_TEX_FLAGS: u32 = 10;
-pub const PARM_TEX_DEPTH: u32 = 11;
-pub const PARM_TEX_GLFORMAT: u32 = 13;
-pub const PARM_TEX_ENCODE: u32 = 14;
-pub const PARM_TEX_MIPCOUNT: u32 = 15;
-pub const PARM_BSP2_SUPPORTED: u32 = 16;
-pub const PARM_SKY_SPHERE: u32 = 17;
-pub const PARAM_GAMEPAUSED: u32 = 18;
-pub const PARM_MAP_HAS_DELUXE: u32 = 19;
-pub const PARM_MAX_ENTITIES: u32 = 20;
-pub const PARM_WIDESCREEN: u32 = 21;
-pub const PARM_FULLSCREEN: u32 = 22;
-pub const PARM_SCREEN_WIDTH: u32 = 23;
-pub const PARM_SCREEN_HEIGHT: u32 = 24;
-pub const PARM_CLIENT_INGAME: u32 = 25;
-pub const PARM_FEATURES: u32 = 26;
-pub const PARM_ACTIVE_TMU: u32 = 27;
-pub const PARM_LIGHTSTYLEVALUE: u32 = 28;
-pub const PARM_MAX_IMAGE_UNITS: u32 = 29;
-pub const PARM_CLIENT_ACTIVE: u32 = 30;
-pub const PARM_REBUILD_GAMMA: u32 = 31;
-pub const PARM_DEDICATED_SERVER: u32 = 32;
-pub const PARM_SURF_SAMPLESIZE: u32 = 33;
-pub const PARM_GL_CONTEXT_TYPE: u32 = 34;
-pub const PARM_GLES_WRAPPER: u32 = 35;
-pub const PARM_STENCIL_ACTIVE: u32 = 36;
-pub const PARM_WATER_ALPHA: u32 = 37;
-pub const PARM_TEX_MEMORY: u32 = 38;
-pub const PARM_DELUXEDATA: u32 = 39;
-pub const PARM_SHADOWDATA: u32 = 40;
+
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
+#[repr(transparent)]
+pub struct RefParm(c_int);
+
+impl RefParm {
+    pub const fn new(raw: c_int) -> RefParm {
+        Self(raw)
+    }
+
+    pub const fn as_raw(&self) -> c_int {
+        self.0
+    }
+}
+
+pub const PARM_TEX_WIDTH: RefParm = RefParm::new(1);
+pub const PARM_TEX_HEIGHT: RefParm = RefParm::new(2);
+pub const PARM_TEX_SRC_WIDTH: RefParm = RefParm::new(3);
+pub const PARM_TEX_SRC_HEIGHT: RefParm = RefParm::new(4);
+pub const PARM_TEX_SKYBOX: RefParm = RefParm::new(5);
+pub const PARM_TEX_SKYTEXNUM: RefParm = RefParm::new(6);
+pub const PARM_TEX_LIGHTMAP: RefParm = RefParm::new(7);
+pub const PARM_TEX_TARGET: RefParm = RefParm::new(8);
+pub const PARM_TEX_TEXNUM: RefParm = RefParm::new(9);
+pub const PARM_TEX_FLAGS: RefParm = RefParm::new(10);
+pub const PARM_TEX_DEPTH: RefParm = RefParm::new(11);
+pub const PARM_TEX_GLFORMAT: RefParm = RefParm::new(13);
+pub const PARM_TEX_ENCODE: RefParm = RefParm::new(14);
+pub const PARM_TEX_MIPCOUNT: RefParm = RefParm::new(15);
+pub const PARM_BSP2_SUPPORTED: RefParm = RefParm::new(16);
+pub const PARM_SKY_SPHERE: RefParm = RefParm::new(17);
+pub const PARAM_GAMEPAUSED: RefParm = RefParm::new(18);
+pub const PARM_MAP_HAS_DELUXE: RefParm = RefParm::new(19);
+pub const PARM_MAX_ENTITIES: RefParm = RefParm::new(20);
+pub const PARM_WIDESCREEN: RefParm = RefParm::new(21);
+pub const PARM_FULLSCREEN: RefParm = RefParm::new(22);
+pub const PARM_SCREEN_WIDTH: RefParm = RefParm::new(23);
+pub const PARM_SCREEN_HEIGHT: RefParm = RefParm::new(24);
+pub const PARM_CLIENT_INGAME: RefParm = RefParm::new(25);
+pub const PARM_FEATURES: RefParm = RefParm::new(26);
+pub const PARM_ACTIVE_TMU: RefParm = RefParm::new(27);
+pub const PARM_LIGHTSTYLEVALUE: RefParm = RefParm::new(28);
+pub const PARM_MAX_IMAGE_UNITS: RefParm = RefParm::new(29);
+pub const PARM_CLIENT_ACTIVE: RefParm = RefParm::new(30);
+pub const PARM_REBUILD_GAMMA: RefParm = RefParm::new(31);
+pub const PARM_DEDICATED_SERVER: RefParm = RefParm::new(32);
+pub const PARM_SURF_SAMPLESIZE: RefParm = RefParm::new(33);
+pub const PARM_GL_CONTEXT_TYPE: RefParm = RefParm::new(34);
+pub const PARM_GLES_WRAPPER: RefParm = RefParm::new(35);
+pub const PARM_STENCIL_ACTIVE: RefParm = RefParm::new(36);
+pub const PARM_WATER_ALPHA: RefParm = RefParm::new(37);
+pub const PARM_TEX_MEMORY: RefParm = RefParm::new(38);
+pub const PARM_DELUXEDATA: RefParm = RefParm::new(39);
+pub const PARM_SHADOWDATA: RefParm = RefParm::new(40);
+
 pub const K_TAB: u32 = 9;
 pub const K_ENTER: u32 = 13;
 pub const K_ESCAPE: u32 = 27;
@@ -472,6 +536,7 @@ pub const K_MOUSE2: u32 = 242;
 pub const K_MOUSE3: u32 = 243;
 pub const K_MOUSE4: u32 = 244;
 pub const K_MOUSE5: u32 = 245;
+
 pub const MAX_PHYSENTS: usize = 600;
 pub const MAX_MOVEENTS: usize = 64;
 pub const MAX_CLIP_PLANES: usize = 5;

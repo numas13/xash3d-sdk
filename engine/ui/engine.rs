@@ -520,7 +520,7 @@ impl Engine {
     ///
     /// # Safety
     ///
-    /// Buffer must be allocated with [load_file].
+    /// Buffer must be allocated with [load_file](Self::load_file).
     pub unsafe fn free_file(&self, buffer: *mut c_void) {
         unsafe { unwrap!(self, COM_FreeFile)(buffer) }
     }

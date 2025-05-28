@@ -1,0 +1,21 @@
+[package]
+name = "xash3d-ref"
+version = "0.1.0"
+license.workspace = true
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[lib]
+path = "lib.rs"
+
+[dependencies]
+log.workspace = true
+bitflags.workspace = true
+csz.workspace = true
+utils.workspace = true
+shared.workspace = true
+libc = "0.2.172"
+
+[lints]
+workspace = true

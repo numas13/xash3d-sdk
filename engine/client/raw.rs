@@ -17,13 +17,6 @@ pub use shared::raw::*;
 
 pub type HSPRITE = c_int;
 
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-#[repr(C)]
-pub enum TRICULLSTYLE {
-    Front = 0,
-    None = 1,
-}
-
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct triangleapi_s {
@@ -51,68 +44,6 @@ pub struct triangleapi_s {
     pub Color4fRendermode:
         Option<unsafe extern "C" fn(r: f32, g: f32, b: f32, a: f32, rendermode: c_int)>,
     pub FogParams: Option<unsafe extern "C" fn(flDensity: f32, iFogSkybox: c_int)>,
-}
-
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-#[repr(C)]
-pub enum ptype_t {
-    Static = 0,
-    Grav = 1,
-    SlowGrav = 2,
-    Fire = 3,
-    Explode = 4,
-    Explode2 = 5,
-    Blob = 6,
-    Blob2 = 7,
-    VoxSlowGrav = 8,
-    VoxGrav = 9,
-    ClientCustom = 10,
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct particle_s {
-    pub org: vec3_t,
-    pub color: c_short,
-    pub packedColor: c_short,
-    pub next: *mut particle_s,
-    pub vel: vec3_t,
-    pub ramp: f32,
-    pub die: f32,
-    pub type_: ptype_t,
-    pub deathfunc: Option<unsafe extern "C" fn(particle: *mut particle_s)>,
-    pub callback: Option<unsafe extern "C" fn(particle: *mut particle_s, frametime: f32)>,
-    pub context: c_uchar,
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct BEAM {
-    pub next: *mut BEAM,
-    pub type_: c_int,
-    pub flags: c_int,
-    pub source: vec3_t,
-    pub target: vec3_t,
-    pub delta: vec3_t,
-    pub t: f32,
-    pub freq: f32,
-    pub die: f32,
-    pub width: f32,
-    pub amplitude: f32,
-    pub r: f32,
-    pub g: f32,
-    pub b: f32,
-    pub brightness: f32,
-    pub speed: f32,
-    pub frameRate: f32,
-    pub frame: f32,
-    pub segments: c_int,
-    pub startEntity: c_int,
-    pub endEntity: c_int,
-    pub modelIndex: c_int,
-    pub frameCount: c_int,
-    pub pFollowModel: *mut model_s,
-    pub particles: *mut particle_s,
 }
 
 bitflags! {
@@ -146,7 +77,7 @@ bitflags! {
 
 #[derive(Copy, Clone)]
 #[repr(C)]
-pub struct TEMPENTITY {
+pub struct tempent_s {
     pub flags: TempEntFlags,
     pub die: f32,
     pub frameMax: f32,
@@ -165,6 +96,7 @@ pub struct TEMPENTITY {
     pub tentOffset: vec3_t,
     pub entity: cl_entity_s,
 }
+pub type TEMPENTITY = tempent_s;
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -818,20 +750,6 @@ pub struct event_args_s {
     pub bparam2: c_int,
 }
 
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct screenfade_s {
-    pub fadeSpeed: f32,
-    pub fadeEnd: f32,
-    pub fadeTotalEnd: f32,
-    pub fadeReset: f32,
-    pub fader: byte,
-    pub fadeg: byte,
-    pub fadeb: byte,
-    pub fadealpha: byte,
-    pub fadeFlags: c_int,
-}
-
 pub type pfnUserMsgHook =
     Option<unsafe extern "C" fn(pszName: *const c_char, iSize: c_int, pbuf: *mut c_void) -> c_int>;
 
@@ -1149,124 +1067,6 @@ pub struct cl_enginefuncs_s {
     pub pfnGetAliases: Option<unsafe extern "C" fn() -> *mut cmdalias_s>,
     pub pfnVguiWrap2_GetMouseDelta: Option<unsafe extern "C" fn(x: *mut c_int, y: *mut c_int)>,
     pub pfnFilteredClientCmd: Option<unsafe extern "C" fn(cmd: *const c_char) -> c_int>,
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct mstudioevent_s {
-    pub frame: i32,
-    pub event: i32,
-    pub unused: i32,
-    pub options: [c_char; 64usize],
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct r_studio_interface_s {
-    pub version: c_int,
-    pub StudioDrawModel: Option<unsafe extern "C" fn(flags: c_int) -> c_int>,
-    pub StudioDrawPlayer:
-        Option<unsafe extern "C" fn(flags: c_int, pplayer: *mut entity_state_s) -> c_int>,
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct player_info_s {
-    pub userid: c_int,
-    pub userinfo: [c_char; 256usize],
-    pub name: [c_char; 32usize],
-    pub spectator: c_int,
-    pub ping: c_int,
-    pub packet_loss: c_int,
-    pub model: [c_char; 64usize],
-    pub topcolor: c_int,
-    pub bottomcolor: c_int,
-    pub renderframe: c_int,
-    pub gaitsequence: c_int,
-    pub gaitframe: f32,
-    pub gaityaw: f32,
-    pub prevgaitorigin: vec3_t,
-    pub customdata: customization_s,
-    pub hashedcdkey: [c_char; 16usize],
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct alight_s {
-    pub ambientlight: c_int,
-    pub shadelight: c_int,
-    pub color: vec3_t,
-    pub plightvec: *mut f32,
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct engine_studio_api_s {
-    pub Mem_Calloc: Option<unsafe extern "C" fn(number: c_int, size: usize) -> *mut c_void>,
-    pub Cache_Check: Option<unsafe extern "C" fn(c: *mut cache_user_s) -> *mut c_void>,
-    pub LoadCacheFile: Option<unsafe extern "C" fn(path: *const c_char, cu: *mut cache_user_s)>,
-    pub Mod_ForName:
-        Option<unsafe extern "C" fn(name: *const c_char, crash_if_missing: c_int) -> *mut model_s>,
-    pub Mod_Extradata: Option<unsafe extern "C" fn(mod_: *mut model_s) -> *mut c_void>,
-    pub GetModelByIndex: Option<unsafe extern "C" fn(index: c_int) -> *mut model_s>,
-    pub GetCurrentEntity: Option<unsafe extern "C" fn() -> *mut cl_entity_s>,
-    pub PlayerInfo: Option<unsafe extern "C" fn(index: c_int) -> *mut player_info_s>,
-    pub GetPlayerState: Option<unsafe extern "C" fn(index: c_int) -> *mut entity_state_s>,
-    pub GetViewEntity: Option<unsafe extern "C" fn() -> *mut cl_entity_s>,
-    pub GetTimes:
-        Option<unsafe extern "C" fn(framecount: *mut c_int, current: *mut f64, old: *mut f64)>,
-    pub GetCvar: Option<unsafe extern "C" fn(name: *const c_char) -> *mut cvar_s>,
-    pub GetViewInfo: Option<
-        unsafe extern "C" fn(origin: *mut f32, upv: *mut f32, rightv: *mut f32, vpnv: *mut f32),
-    >,
-    pub GetChromeSprite: Option<unsafe extern "C" fn() -> *mut model_s>,
-    pub GetModelCounters: Option<unsafe extern "C" fn(s: *mut *mut c_int, a: *mut *mut c_int)>,
-    pub GetAliasScale: Option<unsafe extern "C" fn(x: *mut f32, y: *mut f32)>,
-    pub StudioGetBoneTransform: Option<unsafe extern "C" fn() -> *mut *mut *mut *mut f32>,
-    pub StudioGetLightTransform: Option<unsafe extern "C" fn() -> *mut *mut *mut *mut f32>,
-    pub StudioGetAliasTransform: Option<unsafe extern "C" fn() -> *mut *mut *mut f32>,
-    pub StudioGetRotationMatrix: Option<unsafe extern "C" fn() -> *mut *mut *mut f32>,
-    pub StudioSetupModel: Option<
-        unsafe extern "C" fn(
-            bodypart: c_int,
-            ppbodypart: *mut *mut c_void,
-            ppsubmodel: *mut *mut c_void,
-        ),
-    >,
-    pub StudioCheckBBox: Option<unsafe extern "C" fn() -> c_int>,
-    pub StudioDynamicLight:
-        Option<unsafe extern "C" fn(ent: *mut cl_entity_s, plight: *mut alight_s)>,
-    pub StudioEntityLight: Option<unsafe extern "C" fn(plight: *mut alight_s)>,
-    pub StudioSetupLighting: Option<unsafe extern "C" fn(plighting: *mut alight_s)>,
-    pub StudioDrawPoints: Option<unsafe extern "C" fn()>,
-    pub StudioDrawHulls: Option<unsafe extern "C" fn()>,
-    pub StudioDrawAbsBBox: Option<unsafe extern "C" fn()>,
-    pub StudioDrawBones: Option<unsafe extern "C" fn()>,
-    pub StudioSetupSkin: Option<unsafe extern "C" fn(ptexturehdr: *mut c_void, index: c_int)>,
-    pub StudioSetRemapColors: Option<unsafe extern "C" fn(top: c_int, bottom: c_int)>,
-    pub SetupPlayerModel: Option<unsafe extern "C" fn(index: c_int) -> *mut model_s>,
-    pub StudioClientEvents: Option<unsafe extern "C" fn()>,
-    pub GetForceFaceFlags: Option<unsafe extern "C" fn() -> c_int>,
-    pub SetForceFaceFlags: Option<unsafe extern "C" fn(flags: c_int)>,
-    pub StudioSetHeader: Option<unsafe extern "C" fn(header: *mut c_void)>,
-    pub SetRenderModel: Option<unsafe extern "C" fn(model: *mut model_s)>,
-    pub SetupRenderer: Option<unsafe extern "C" fn(rendermode: c_int)>,
-    pub RestoreRenderer: Option<unsafe extern "C" fn()>,
-    pub SetChromeOrigin: Option<unsafe extern "C" fn()>,
-    pub IsHardware: Option<unsafe extern "C" fn() -> c_int>,
-    pub GL_StudioDrawShadow: Option<unsafe extern "C" fn()>,
-    pub GL_SetRenderMode: Option<unsafe extern "C" fn(mode: c_int)>,
-    pub StudioSetRenderamt: Option<unsafe extern "C" fn(iRenderamt: c_int)>,
-    pub StudioSetCullState: Option<unsafe extern "C" fn(iCull: c_int)>,
-    pub StudioRenderShadow: Option<
-        unsafe extern "C" fn(
-            iSprite: c_int,
-            p1: *mut f32,
-            p2: *mut f32,
-            p3: *mut f32,
-            p4: *mut f32,
-        ),
-    >,
 }
 
 #[derive(Copy, Clone)]

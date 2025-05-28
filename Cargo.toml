@@ -6,6 +6,7 @@ members = [
     "crates/utils",
     "engine/shared",
     "engine/player-move",
+    "engine/ref",
     "engine/client",
     "engine/server",
     "engine/ui",
