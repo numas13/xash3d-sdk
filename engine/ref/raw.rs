@@ -6,7 +6,7 @@
 pub mod filesystem;
 pub mod vgui;
 
-use std::ffi::{c_char, c_int, c_short, c_uchar, c_uint, c_ushort, c_void, CStr};
+use core::ffi::{c_char, c_int, c_short, c_uchar, c_uint, c_ushort, c_void, CStr};
 
 use bitflags::bitflags;
 use shared::{

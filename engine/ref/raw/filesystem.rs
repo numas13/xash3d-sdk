@@ -1,4 +1,4 @@
-use std::ffi::{c_char, c_int, c_uint, c_void, CStr};
+use core::ffi::{c_char, c_int, c_uint, c_void, CStr};
 
 use shared::{
     consts::{MAX_MODS, MAX_QPATH, NUM_AMBIENTS},
