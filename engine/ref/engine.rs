@@ -1,10 +1,18 @@
-use core::ffi::c_int;
+use core::{
+    cell::{Ref, RefCell, RefMut},
+    ffi::c_int,
+    fmt::{self, Write},
+    ops::{Deref, DerefMut},
+};
 
-use csz::CStrThin;
+use csz::{CStrArray, CStrThin};
 use shared::consts::RefParm;
 use utils::str::{AsPtr, ToEngineStr};
 
-use crate::{cell::SyncOnceCell, raw::ref_api_s};
+use crate::{
+    cell::SyncOnceCell,
+    raw::{ref_api_s, ref_globals_s},
+};
 
 pub struct Engine {
     raw: ref_api_s,
@@ -72,7 +80,21 @@ impl Engine {
     // pub Cbuf_AddText: Option<unsafe extern "C" fn(commands: *const c_char)>,
     // pub Cbuf_InsertText: Option<unsafe extern "C" fn(commands: *const c_char)>,
     // pub Cbuf_Execute: Option<unsafe extern "C" fn()>,
-    // pub Con_Printf: Option<unsafe extern "C" fn(fmt: *const c_char, ...)>,
+
+    pub fn con_print(&self, msg: impl ToEngineStr) {
+        let msg = msg.to_engine_str();
+        unsafe {
+            unwrap!(self, Con_Printf)(c"%s".as_ptr(), msg.as_ptr());
+        }
+    }
+
+    pub fn con_printf(&self, args: fmt::Arguments) -> fmt::Result {
+        let mut buf = CStrArray::<8192>::new();
+        buf.cursor().write_fmt(args)?;
+        self.con_print(buf.as_thin());
+        Ok(())
+    }
+
     // pub Con_DPrintf: Option<unsafe extern "C" fn(fmt: *const c_char, ...)>,
     // pub Con_Reportf: Option<unsafe extern "C" fn(fmt: *const c_char, ...)>,
     // pub Con_NPrintf: Option<unsafe extern "C" fn(pos: c_int, fmt: *const c_char, ...)>,
@@ -290,14 +312,49 @@ impl From<ref_api_s> for Engine {
     }
 }
 
+pub struct Globals {
+    raw: *mut ref_globals_s,
+}
+
+impl Globals {
+    fn new(raw: *mut ref_globals_s) -> Self {
+        Self { raw }
+    }
+}
+
+impl Deref for Globals {
+    type Target = ref_globals_s;
+
+    fn deref(&self) -> &Self::Target {
+        unsafe { &*self.raw }
+    }
+}
+
+impl DerefMut for Globals {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        unsafe { &mut *self.raw }
+    }
+}
+
 static ENGINE: SyncOnceCell<Engine> = unsafe { SyncOnceCell::new() };
+static GLOBALS: SyncOnceCell<RefCell<Globals>> = unsafe { SyncOnceCell::new() };
 
 pub fn engine<'a>() -> &'a Engine {
     ENGINE.get().unwrap()
 }
 
-pub fn engine_set(engine_funcs: ref_api_s) {
-    if ENGINE.set(engine_funcs.into()).is_err() {
+pub fn globals() -> Ref<'static, Globals> {
+    GLOBALS.get().unwrap().borrow()
+}
+
+pub fn globals_mut() -> RefMut<'static, Globals> {
+    GLOBALS.get().unwrap().borrow_mut()
+}
+
+pub fn init(engine_funcs: &ref_api_s, globals: *mut ref_globals_s) {
+    if ENGINE.set((*engine_funcs).into()).is_err()
+        || GLOBALS.set(RefCell::new(Globals::new(globals))).is_err()
+    {
         warn!("ref engine initialized multiple times");
     }
 }

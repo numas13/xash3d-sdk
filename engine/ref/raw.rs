@@ -20,8 +20,6 @@ pub use shared::raw::*;
 pub type vec_t = f32;
 pub type rgba_t = [byte; 4];
 
-pub const REF_API_VERSION: u32 = 9;
-
 bitflags! {
     #[derive(Copy, Clone, PartialEq, Eq)]
     #[repr(transparent)]
@@ -424,7 +422,6 @@ pub enum demo_mode {
 // pub const A2C_PRINT: &CStr = c"print";
 // pub const A2C_GOLDSRC_PRINT: u8 = 108u8;
 // pub const M2A_SERVERSLIST: &CStr = c"f";
-// pub const GET_REF_API: &CStr = c"GetRefAPI";
 
 // pub type pfnCreateInterface_t = Option<
 //     unsafe extern "C" fn(
@@ -1396,6 +1393,7 @@ pub const PARM_GET_ELIGHTS_PTR: RefParm = RefParm::new(-22);
 /// Pass -1 to query global filtering settings.
 pub const PARM_TEX_FILTERING: RefParm = RefParm::new(-0x10000);
 
+#[derive(Copy, Clone)]
 #[repr(C)]
 pub struct ref_api_s {
     pub EngineGetParm: Option<unsafe extern "C" fn(parm: c_int, arg: c_int) -> isize>,
@@ -1643,6 +1641,7 @@ pub struct ref_api_s {
 }
 pub type ref_api_t = ref_api_s;
 
+#[derive(Copy, Clone, Default)]
 #[repr(C)]
 pub struct ref_interface_s {
     pub R_Init: Option<unsafe extern "C" fn() -> qboolean>,
@@ -1932,11 +1931,13 @@ pub struct ref_interface_s {
 }
 pub type ref_interface_t = ref_interface_s;
 
+pub const GET_REF_API: &CStr = c"GetRefAPI";
+
 pub type REFAPI = Option<
     unsafe extern "C" fn(
         version: c_int,
-        pFunctionTable: *mut ref_interface_t,
-        engfuncs: *mut ref_api_t,
-        pGlobals: *mut ref_globals_s,
+        exported_funcs: &mut ref_interface_t,
+        engine_funcs: &ref_api_t,
+        globals: *mut ref_globals_s,
     ) -> c_int,
 >;
