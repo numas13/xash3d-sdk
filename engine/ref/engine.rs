@@ -1,18 +1,115 @@
 use core::{
     cell::{Ref, RefCell, RefMut},
-    ffi::c_int,
+    ffi::{c_char, c_int},
     fmt::{self, Write},
     ops::{Deref, DerefMut},
+    ptr,
 };
 
 use csz::{CStrArray, CStrThin};
-use shared::consts::RefParm;
+use shared::{
+    consts::RefParm,
+    raw::{cl_entity_s, decallist_s, model_s, ref_viewpass_s, vec2_t},
+};
 use utils::str::{AsPtr, ToEngineStr};
 
 use crate::{
     cell::SyncOnceCell,
-    raw::{ref_api_s, ref_globals_s},
+    raw::{ilFlags_t, ref_api_s, ref_globals_s, render_interface_t, rgbdata_t, GraphicApi},
 };
+
+pub enum Renderer {
+    Engine,
+    Client,
+}
+
+pub struct Draw<'a> {
+    raw: &'a render_interface_t,
+}
+
+impl Draw<'_> {
+    fn new(raw: &render_interface_t) -> Draw {
+        Draw { raw }
+    }
+
+    pub fn version(&self) -> c_int {
+        self.raw.version
+    }
+
+    pub fn gl_render_frame(&self, rvp: &ref_viewpass_s) -> Option<Renderer> {
+        self.raw.GL_RenderFrame.map(|f| match unsafe { f(rvp) } {
+            0 => Renderer::Engine,
+            1 => Renderer::Client,
+            n => {
+                error!("expected GL_RenderFrame result {n}");
+                Renderer::Engine
+            }
+        })
+    }
+
+    pub fn gl_build_lightmaps(&self) -> Option<()> {
+        self.raw.GL_BuildLightmaps.map(|f| unsafe { f() })
+    }
+
+    pub fn gl_ortho_bounds(&self, mins: vec2_t, maxs: vec2_t) -> Option<()> {
+        self.raw
+            .GL_OrthoBounds
+            .map(|f| unsafe { f(mins.as_ptr(), maxs.as_ptr()) })
+    }
+
+    pub fn r_create_studio_decal_list(&self, list: &mut [decallist_s]) -> Option<usize> {
+        self.raw
+            .R_CreateStudioDecalList
+            .map(|f| unsafe { f(list.as_mut_ptr(), list.len() as c_int) as usize })
+    }
+
+    pub fn r_clear_studio_decals(&self) -> Option<()> {
+        self.raw.R_ClearStudioDecals.map(|f| unsafe { f() })
+    }
+
+    pub fn r_speeds_message(&self, out: &mut [c_char]) -> Option<bool> {
+        self.raw
+            .R_SpeedsMessage
+            .map(|f| unsafe { f(out.as_mut_ptr(), out.len()).to_bool() })
+    }
+
+    // XXX: temporary silence clippy
+    #[allow(clippy::not_unsafe_ptr_arg_deref)]
+    pub fn mod_process_user_data(
+        &self,
+        model: &mut model_s,
+        create: bool,
+        buffer: *const u8,
+    ) -> Option<()> {
+        self.raw
+            .Mod_ProcessUserData
+            .map(|f| unsafe { f(model, create.into(), buffer) })
+    }
+
+    pub fn r_process_ent_data(&self, allocate: bool) -> Option<()> {
+        self.raw
+            .R_ProcessEntData
+            .map(|f| unsafe { f(allocate.into()) })
+    }
+
+    pub fn mod_get_current_vis(&self) -> Option<*mut u8> {
+        self.raw.Mod_GetCurrentVis.map(|f| unsafe { f() })
+    }
+
+    pub fn r_new_map(&self) -> Option<()> {
+        self.raw.R_NewMap.map(|f| unsafe { f() })
+    }
+
+    pub fn r_clear_scene(&self) -> Option<()> {
+        self.raw.R_ClearScene.map(|f| unsafe { f() })
+    }
+
+    pub fn cl_update_latched_vars(&self, ent: &mut cl_entity_s, reset: bool) -> Option<()> {
+        self.raw
+            .CL_UpdateLatchedVars
+            .map(|f| unsafe { f(ent, reset.into()) })
+    }
+}
 
 pub struct Engine {
     raw: ref_api_s,
@@ -225,8 +322,15 @@ impl Engine {
     // pub COM_FreeLibrary: Option<unsafe extern "C" fn(handle: *mut c_void)>,
     // pub COM_GetProcAddress:
     //     Option<unsafe extern "C" fn(handle: *mut c_void, name: *const c_char) -> *mut c_void>,
-    // pub R_Init_Video: Option<unsafe extern "C" fn(type_: c_int) -> qboolean>,
-    // pub R_Free_Video: Option<unsafe extern "C" fn()>,
+
+    pub fn r_init_video(&self, api: GraphicApi) -> bool {
+        unsafe { unwrap!(self, R_Init_Video)(api as c_int).to_bool() }
+    }
+
+    pub fn r_free_video(&self) {
+        unsafe { unwrap!(self, R_Free_Video)() }
+    }
+
     // pub GL_SetAttribute: Option<unsafe extern "C" fn(attr: c_int, value: c_int) -> c_int>,
     // pub GL_GetAttribute: Option<unsafe extern "C" fn(attr: c_int, value: *mut c_int) -> c_int>,
     // pub GL_GetProcAddress: Option<unsafe extern "C" fn(name: *const c_char) -> *mut c_void>,
@@ -275,7 +379,11 @@ impl Engine {
     //     unsafe extern "C" fn(start: *mut vec3_t, end: *mut vec3_t, flags: c_int) -> pmtrace_s,
     // >,
     // pub Image_AddCmdFlags: Option<unsafe extern "C" fn(flags: c_uint)>,
-    // pub Image_SetForceFlags: Option<unsafe extern "C" fn(flags: c_uint)>,
+
+    pub fn image_set_force_flags(&self, flags: ilFlags_t) {
+        unsafe { unwrap!(self, Image_SetForceFlags)(flags.bits()) }
+    }
+
     // pub Image_ClearForceFlags: Option<unsafe extern "C" fn()>,
     // pub Image_CustomPalette: Option<unsafe extern "C" fn() -> qboolean>,
     // pub Image_Process: Option<
@@ -287,13 +395,24 @@ impl Engine {
     //         reserved: f32,
     //     ) -> qboolean,
     // >,
-    // pub FS_LoadImage: Option<
-    //     unsafe extern "C" fn(
-    //         filename: *const c_char,
-    //         buffer: *const byte,
-    //         size: usize,
-    //     ) -> *mut rgbdata_t,
-    // >,
+
+    pub fn fs_load_image(
+        &self,
+        filename: impl ToEngineStr,
+        buffer: Option<&[u8]>,
+    ) -> Option<&rgbdata_t> {
+        let filename = filename.to_engine_str();
+        let (buffer, size) = buffer
+            .map(|i| (i.as_ptr(), i.len()))
+            .unwrap_or((ptr::null_mut(), 0));
+        let ret = unsafe { unwrap!(self, FS_LoadImage)(filename.as_ptr(), buffer, size) };
+        if !ret.is_null() {
+            Some(unsafe { &*ret })
+        } else {
+            None
+        }
+    }
+
     // pub FS_SaveImage:
     //     Option<unsafe extern "C" fn(filename: *const c_char, pix: *mut rgbdata_t) -> qboolean>,
     // pub FS_CopyImage: Option<unsafe extern "C" fn(in_: *mut rgbdata_t) -> *mut rgbdata_t>,
@@ -302,7 +421,12 @@ impl Engine {
     // pub Image_GetPFDesc: Option<unsafe extern "C" fn(idx: c_int) -> *const bpc_desc_s>,
     // pub pfnDrawNormalTriangles: Option<unsafe extern "C" fn()>,
     // pub pfnDrawTransparentTriangles: Option<unsafe extern "C" fn()>,
-    // pub drawFuncs: *mut render_interface_t,
+
+    pub fn draw(&self) -> Draw {
+        debug_assert!(!self.raw.drawFuncs.is_null());
+        Draw::new(unsafe { &*self.raw.drawFuncs })
+    }
+
     // pub fsapi: *mut fs_api_t,
 }
 

@@ -522,7 +522,7 @@ pub struct render_api_s {
             width: c_int,
             height: c_int,
             buffer: *const c_void,
-            flags: texFlags_t,
+            flags: TextureFlags,
         ) -> c_int,
     >,
     pub GL_LoadTextureArray:
@@ -534,7 +534,7 @@ pub struct render_api_s {
             height: c_int,
             depth: c_int,
             buffer: *const c_void,
-            flags: texFlags_t,
+            flags: TextureFlags,
         ) -> c_int,
     >,
     pub GL_FreeTexture: Option<unsafe extern "C" fn(texnum: c_uint)>,
@@ -701,16 +701,21 @@ pub struct bpc_desc_s {
 }
 pub type bpc_desc_t = bpc_desc_s;
 
-pub const ilFlags_t_IL_USE_LERPING: ilFlags_t = 1;
-pub const ilFlags_t_IL_KEEP_8BIT: ilFlags_t = 2;
-pub const ilFlags_t_IL_ALLOW_OVERWRITE: ilFlags_t = 4;
-pub const ilFlags_t_IL_DONTFLIP_TGA: ilFlags_t = 8;
-pub const ilFlags_t_IL_DDS_HARDWARE: ilFlags_t = 16;
-pub const ilFlags_t_IL_LOAD_DECAL: ilFlags_t = 32;
-pub const ilFlags_t_IL_OVERVIEW: ilFlags_t = 64;
-pub const ilFlags_t_IL_LOAD_PLAYER_DECAL: ilFlags_t = 128;
-pub const ilFlags_t_IL_KTX2_RAW: ilFlags_t = 256;
-pub type ilFlags_t = c_uint;
+bitflags! {
+    #[derive(Copy, Clone, PartialEq, Eq)]
+    #[repr(transparent)]
+    pub struct ilFlags_t: c_uint {
+        const USE_LERPING       = 1 << 0; // lerping images during resample
+        const KEEP_8BIT         = 1 << 1; // don't expand paletted images
+        const ALLOW_OVERWRITE   = 1 << 2; // allow to overwrite stored images
+        const DONTFLIP_TGA      = 1 << 3; // Steam background completely ignore tga attribute 0x20 (stupid lammers!)
+        const DDS_HARDWARE      = 1 << 4; // DXT compression is support
+        const LOAD_DECAL        = 1 << 5; // special mode for load gradient decals
+        const OVERVIEW          = 1 << 6; // overview required some unque operations
+        const LOAD_PLAYER_DECAL = 1 << 7; // special mode for player decals
+        const KTX2_RAW          = 1 << 8; // renderer can consume raw KTX2 files (e.g. ref_vk)
+    }
+}
 
 pub const imgFlags_t_IMAGE_CUBEMAP: imgFlags_t = 1;
 pub const imgFlags_t_IMAGE_HAS_ALPHA: imgFlags_t = 2;
@@ -1265,7 +1270,7 @@ pub enum ref_defaultsprite_e {
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
 #[repr(C)]
-pub enum ref_graphic_apis_e {
+pub enum GraphicApi {
     // hypothetical: just make a surface to draw on, in software
     Software,
     // create GL context
@@ -1683,7 +1688,7 @@ pub struct ref_interface_s {
         unsafe extern "C" fn(
             name: *const c_char,
             pic: *mut rgbdata_t,
-            flags: texFlags_t,
+            flags: TextureFlags,
             update: qboolean,
         ) -> c_int,
     >,
@@ -1834,7 +1839,7 @@ pub struct ref_interface_s {
             width: c_int,
             height: c_int,
             buffer: *const c_void,
-            flags: texFlags_t,
+            flags: TextureFlags,
         ) -> c_int,
     >,
     pub GL_LoadTextureArray:
@@ -1846,7 +1851,7 @@ pub struct ref_interface_s {
             height: c_int,
             depth: c_int,
             buffer: *const c_void,
-            flags: texFlags_t,
+            flags: TextureFlags,
         ) -> c_int,
     >,
     pub GL_FreeTexture: Option<unsafe extern "C" fn(texnum: c_uint)>,

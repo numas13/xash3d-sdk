@@ -216,7 +216,7 @@ const_assert_size_eq!(RenderFx, c_int);
 pub type byte = c_uchar;
 pub type poolhandle_t = u32;
 
-#[derive(Copy, Clone, Hash, PartialEq, Eq)]
+#[derive(Copy, Clone, Hash, PartialEq, Eq, Debug)]
 #[repr(transparent)]
 pub struct qboolean(pub c_uint);
 
@@ -687,7 +687,7 @@ pub struct cl_entity_s {
     pub cvFloorColor: RGBA,
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
 #[repr(C)]
 pub enum modtype_t {
     Bad = -1,
@@ -1428,10 +1428,11 @@ pub enum SkyboxOrdering {
     Down = 5,
 }
 
+pub type texFlags_t = TextureFlags;
 bitflags! {
-    #[derive(Copy, Clone, PartialEq, Eq)]
+    #[derive(Copy, Clone, PartialEq, Eq, Debug, Default)]
     #[repr(transparent)]
-    pub struct texFlags_t: u32 {
+    pub struct TextureFlags: c_int {
         /// Just for tabulate source.
         const COLORMAP          = 0;
         /// Disable texfilter.
@@ -1495,7 +1496,7 @@ bitflags! {
     }
 }
 
-impl texFlags_t {
+impl TextureFlags {
     pub const SKY: Self = Self::SKYSIDE
         .union(Self::NOMIPMAP)
         .union(Self::ALLOW_NEAREST);
