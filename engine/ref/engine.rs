@@ -1,6 +1,5 @@
 use core::{
     cell::{Ref, RefCell, RefMut},
-    error::Error,
     ffi::{c_char, c_int, c_void},
     fmt::{self, Write},
     ops::{Deref, DerefMut},
@@ -286,8 +285,6 @@ impl fmt::Debug for SaveImageError {
         f.debug_tuple("SaveImageError").finish()
     }
 }
-
-impl Error for SaveImageError {}
 
 pub struct Engine {
     raw: ref_api_s,
