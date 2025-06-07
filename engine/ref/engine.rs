@@ -450,6 +450,10 @@ impl Globals {
     fn new(raw: *mut ref_globals_s) -> Self {
         Self { raw }
     }
+
+    pub fn screen_size(&self) -> (c_int, c_int) {
+        (self.width, self.height)
+    }
 }
 
 impl Deref for Globals {
