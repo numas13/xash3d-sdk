@@ -1,5 +1,6 @@
 use core::{
     cell::{Ref, RefCell, RefMut},
+    error::Error,
     ffi::{c_char, c_int},
     fmt::{self, Write},
     ops::{Deref, DerefMut},
@@ -17,6 +18,7 @@ use crate::{
     cell::SyncOnceCell,
     raw::{
         convar_s, ilFlags_t, ref_api_s, ref_globals_s, render_interface_t, rgbdata_t, GraphicApi,
+        ImageFlags,
     },
 };
 
@@ -112,6 +114,56 @@ impl Draw<'_> {
             .map(|f| unsafe { f(ent, reset.into()) })
     }
 }
+
+pub struct RgbData {
+    raw: *mut rgbdata_t,
+}
+
+impl Clone for RgbData {
+    fn clone(&self) -> Self {
+        let raw = unsafe { engine().fs_copy_image(self.raw) };
+        assert!(!raw.is_null());
+        Self { raw }
+    }
+}
+
+impl Drop for RgbData {
+    fn drop(&mut self) {
+        unsafe {
+            engine().fs_free_image(self.raw);
+        }
+    }
+}
+
+impl Deref for RgbData {
+    type Target = rgbdata_t;
+
+    fn deref(&self) -> &Self::Target {
+        unsafe { &*self.raw }
+    }
+}
+
+impl DerefMut for RgbData {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        unsafe { &mut *self.raw }
+    }
+}
+
+pub struct SaveImageError(());
+
+impl fmt::Display for SaveImageError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.write_str("failed to save an image")
+    }
+}
+
+impl fmt::Debug for SaveImageError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_tuple("SaveImageError").finish()
+    }
+}
+
+impl Error for SaveImageError {}
 
 pub struct Engine {
     raw: ref_api_s,
@@ -392,37 +444,58 @@ impl Engine {
 
     // pub Image_ClearForceFlags: Option<unsafe extern "C" fn()>,
     // pub Image_CustomPalette: Option<unsafe extern "C" fn() -> qboolean>,
-    // pub Image_Process: Option<
-    //     unsafe extern "C" fn(
-    //         pix: *mut *mut rgbdata_t,
-    //         width: c_int,
-    //         height: c_int,
-    //         flags: c_uint,
-    //         reserved: f32,
-    //     ) -> qboolean,
-    // >,
+
+    pub fn image_process(
+        &self,
+        pic: &mut RgbData,
+        width: c_int,
+        height: c_int,
+        flags: ImageFlags,
+    ) -> bool {
+        unsafe {
+            unwrap!(self, Image_Process)(&mut pic.raw, width, height, flags.bits(), 0.0).into()
+        }
+    }
 
     pub fn fs_load_image(
         &self,
         filename: impl ToEngineStr,
         buffer: Option<&[u8]>,
-    ) -> Option<&rgbdata_t> {
+    ) -> Option<RgbData> {
         let filename = filename.to_engine_str();
         let (buffer, size) = buffer
             .map(|i| (i.as_ptr(), i.len()))
             .unwrap_or((ptr::null_mut(), 0));
-        let ret = unsafe { unwrap!(self, FS_LoadImage)(filename.as_ptr(), buffer, size) };
-        if !ret.is_null() {
-            Some(unsafe { &*ret })
+        let raw = unsafe { unwrap!(self, FS_LoadImage)(filename.as_ptr(), buffer, size) };
+        if !raw.is_null() {
+            Some(RgbData { raw })
         } else {
             None
         }
     }
 
-    // pub FS_SaveImage:
-    //     Option<unsafe extern "C" fn(filename: *const c_char, pix: *mut rgbdata_t) -> qboolean>,
-    // pub FS_CopyImage: Option<unsafe extern "C" fn(in_: *mut rgbdata_t) -> *mut rgbdata_t>,
-    // pub FS_FreeImage: Option<unsafe extern "C" fn(pack: *mut rgbdata_t)>,
+    pub fn fs_save_image(
+        &self,
+        filename: impl ToEngineStr,
+        pic: &RgbData,
+    ) -> Result<(), SaveImageError> {
+        let filename = filename.to_engine_str();
+        let res = unsafe { unwrap!(self, FS_SaveImage)(filename.as_ptr(), pic.raw) };
+        if res.to_bool() {
+            Ok(())
+        } else {
+            Err(SaveImageError(()))
+        }
+    }
+
+    unsafe fn fs_copy_image(&self, src: *mut rgbdata_t) -> *mut rgbdata_t {
+        unsafe { unwrap!(self, FS_CopyImage)(src) }
+    }
+
+    unsafe fn fs_free_image(&self, pack: *mut rgbdata_t) {
+        unsafe { unwrap!(self, FS_FreeImage)(pack) }
+    }
+
     // pub Image_SetMDLPointer: Option<unsafe extern "C" fn(p: *mut byte)>,
     // pub Image_GetPFDesc: Option<unsafe extern "C" fn(idx: c_int) -> *const bpc_desc_s>,
     // pub pfnDrawNormalTriangles: Option<unsafe extern "C" fn()>,
