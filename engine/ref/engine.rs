@@ -1,10 +1,10 @@
 use core::{
     cell::{Ref, RefCell, RefMut},
     error::Error,
-    ffi::{c_char, c_int},
+    ffi::{c_char, c_int, c_void},
     fmt::{self, Write},
     ops::{Deref, DerefMut},
-    ptr,
+    ptr, slice,
 };
 
 use csz::{CStrArray, CStrThin};
@@ -112,6 +112,130 @@ impl Draw<'_> {
         self.raw
             .CL_UpdateLatchedVars
             .map(|f| unsafe { f(ent, reset.into()) })
+    }
+}
+
+#[derive(Default)]
+pub struct SwBuffer {
+    width: c_int,
+    height: c_int,
+    stride: u32,
+    bpp: u32,
+    r_mask: u32,
+    g_mask: u32,
+    b_mask: u32,
+}
+
+impl SwBuffer {
+    pub fn width(&self) -> usize {
+        self.width as usize
+    }
+
+    pub fn height(&self) -> usize {
+        self.height as usize
+    }
+
+    pub fn stride(&self) -> usize {
+        self.stride as usize
+    }
+
+    pub fn bpp(&self) -> usize {
+        self.bpp as usize
+    }
+
+    pub fn r_mask(&self) -> u32 {
+        self.r_mask
+    }
+
+    pub fn g_mask(&self) -> u32 {
+        self.g_mask
+    }
+
+    pub fn b_mask(&self) -> u32 {
+        self.b_mask
+    }
+
+    pub fn stride_bytes(&self) -> usize {
+        self.stride() * self.bpp()
+    }
+
+    pub fn row_bytes(&self) -> usize {
+        self.width() * self.bpp()
+    }
+
+    pub fn len_bytes(&self) -> usize {
+        self.stride_bytes() * self.height()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.stride == 0 || self.width == 0 || self.height == 0
+    }
+
+    pub fn len(&self) -> usize {
+        self.stride() * self.height()
+    }
+
+    pub fn lock(&mut self, width: c_int, height: c_int) -> Option<SwBufferLock> {
+        let engine = engine();
+        let data = unsafe { engine.sw_lock_buffer() };
+        if !data.is_null() && width == self.width && height == self.height {
+            Some(SwBufferLock { buf: self, data })
+        } else {
+            None
+        }
+    }
+}
+
+pub struct SwBufferLock<'a> {
+    buf: &'a mut SwBuffer,
+    data: *mut c_void,
+}
+
+impl SwBufferLock<'_> {
+    pub fn as_bytes(&self) -> &[u8] {
+        unsafe { slice::from_raw_parts(self.data.cast(), self.len_bytes()) }
+    }
+
+    pub fn as_bytes_mut(&mut self) -> &mut [u8] {
+        unsafe { slice::from_raw_parts_mut(self.data.cast(), self.len_bytes()) }
+    }
+
+    pub fn as_ptr(&self) -> *const u8 {
+        self.data.cast()
+    }
+
+    pub fn as_mut_ptr(&self) -> *mut u8 {
+        self.data.cast()
+    }
+
+    pub fn rows_mut(&mut self) -> impl Iterator<Item = &mut [u8]> {
+        let stride = self.stride_bytes();
+        let row_len = self.row_bytes();
+        self.as_bytes_mut()
+            .chunks_exact_mut(stride)
+            .map(move |row| &mut row[..row_len])
+    }
+}
+
+impl Deref for SwBufferLock<'_> {
+    type Target = SwBuffer;
+
+    fn deref(&self) -> &Self::Target {
+        self.buf
+    }
+}
+
+impl DerefMut for SwBufferLock<'_> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.buf
+    }
+}
+
+impl Drop for SwBufferLock<'_> {
+    fn drop(&mut self) {
+        unsafe {
+            engine().sw_unlock_buffer();
+        }
     }
 }
 
@@ -393,19 +517,35 @@ impl Engine {
     // pub GL_GetAttribute: Option<unsafe extern "C" fn(attr: c_int, value: *mut c_int) -> c_int>,
     // pub GL_GetProcAddress: Option<unsafe extern "C" fn(name: *const c_char) -> *mut c_void>,
     // pub GL_SwapBuffers: Option<unsafe extern "C" fn()>,
-    // pub SW_CreateBuffer: Option<
-    //     unsafe extern "C" fn(
-    //         width: c_int,
-    //         height: c_int,
-    //         stride: *mut c_uint,
-    //         bpp: *mut c_uint,
-    //         r: *mut c_uint,
-    //         g: *mut c_uint,
-    //         b: *mut c_uint,
-    //     ) -> qboolean,
-    // >,
-    // pub SW_LockBuffer: Option<unsafe extern "C" fn() -> *mut c_void>,
-    // pub SW_UnlockBuffer: Option<unsafe extern "C" fn()>,
+
+    pub fn sw_create_buffer(&self, width: c_int, height: c_int) -> Option<SwBuffer> {
+        let mut buffer = SwBuffer {
+            width,
+            height,
+            ..SwBuffer::default()
+        };
+        let res = unsafe {
+            unwrap!(self, SW_CreateBuffer)(
+                width,
+                height,
+                &mut buffer.stride,
+                &mut buffer.bpp,
+                &mut buffer.r_mask,
+                &mut buffer.g_mask,
+                &mut buffer.b_mask,
+            )
+        };
+        res.to_bool().then_some(buffer)
+    }
+
+    unsafe fn sw_lock_buffer(&self) -> *mut c_void {
+        unsafe { unwrap!(self, SW_LockBuffer)() }
+    }
+
+    unsafe fn sw_unlock_buffer(&self) {
+        unsafe { unwrap!(self, SW_UnlockBuffer)() }
+    }
+
     // pub R_FatPVS: Option<
     //     unsafe extern "C" fn(
     //         org: *const f32,
