@@ -172,7 +172,7 @@ bitflags! {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
 #[repr(i32)]
 pub enum RenderMode {
     /// src
