@@ -6,12 +6,16 @@
 pub mod filesystem;
 pub mod vgui;
 
-use core::ffi::{c_char, c_int, c_short, c_uchar, c_uint, c_ushort, c_void, CStr};
+use core::{
+    ffi::{c_char, c_int, c_short, c_uchar, c_uint, c_ushort, c_void, CStr},
+    ptr,
+};
 
 use bitflags::bitflags;
+use csz::CStrThin;
 use shared::{
     consts::{RefParm, MAX_MODELS, MAX_SKINS},
-    cvar::cvar_s,
+    cvar::{cvar_s, CVarFlags},
     raw::bsp::word,
 };
 
@@ -1365,9 +1369,75 @@ pub struct remap_info_s {
     pub model: *mut model_s,
 }
 
+pub const CVAR_SENTINEL: usize = 0xdeadbeefdeadbeef_u64 as usize;
+
+/// Xash3D internal cvar format
 #[repr(C)]
 pub struct convar_s {
-    _unused: [u8; 0],
+    name: *const c_char,
+    string: *const c_char,
+    flags: CVarFlags,
+    value: f32,
+    next: *mut convar_s,
+    desc: *const c_char,
+    def_string: *const c_char,
+}
+
+impl convar_s {
+    pub const fn builder(name: &'static CStr) -> ConVarBuilder {
+        ConVarBuilder::new(name)
+    }
+
+    pub fn name(&self) -> &CStrThin {
+        unsafe { CStrThin::from_ptr(self.name) }
+    }
+
+    pub fn value_c_str(&self) -> &CStrThin {
+        unsafe { CStrThin::from_ptr(self.string) }
+    }
+
+    pub fn value(&self) -> f32 {
+        self.value
+    }
+}
+
+pub struct ConVarBuilder {
+    var: convar_s,
+}
+
+impl ConVarBuilder {
+    pub const fn new(name: &'static CStr) -> Self {
+        ConVarBuilder {
+            var: convar_s {
+                name: name.as_ptr(),
+                string: c"".as_ptr(),
+                flags: CVarFlags::NONE,
+                value: 0.0,
+                next: CVAR_SENTINEL as *mut convar_s,
+                desc: ptr::null_mut(),
+                def_string: ptr::null_mut(),
+            },
+        }
+    }
+
+    pub const fn value(mut self, value: &'static CStr) -> Self {
+        self.var.string = value.as_ptr();
+        self
+    }
+
+    pub const fn flags(mut self, flags: CVarFlags) -> Self {
+        self.var.flags = flags;
+        self
+    }
+
+    pub const fn description(mut self, desc: &'static CStr) -> Self {
+        self.var.desc = desc.as_ptr();
+        self
+    }
+
+    pub const fn build(self) -> convar_s {
+        self.var
+    }
 }
 
 pub const PARM_DEV_OVERVIEW: RefParm = RefParm::new(-1);
