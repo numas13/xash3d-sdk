@@ -15,7 +15,9 @@ use utils::str::{AsPtr, ToEngineStr};
 
 use crate::{
     cell::SyncOnceCell,
-    raw::{ilFlags_t, ref_api_s, ref_globals_s, render_interface_t, rgbdata_t, GraphicApi},
+    raw::{
+        convar_s, ilFlags_t, ref_api_s, ref_globals_s, render_interface_t, rgbdata_t, GraphicApi,
+    },
 };
 
 pub enum Renderer {
@@ -160,7 +162,11 @@ impl Engine {
 
     // pub Cvar_SetValue: Option<unsafe extern "C" fn(name: *const c_char, value: f32)>,
     // pub Cvar_Set: Option<unsafe extern "C" fn(name: *const c_char, value: *const c_char)>,
-    // pub Cvar_RegisterVariable: Option<unsafe extern "C" fn(var: *mut convar_s)>,
+
+    pub fn cvar_register(&self, var: &'static mut convar_s) {
+        unsafe { unwrap!(self, Cvar_RegisterVariable)(var) }
+    }
+
     // pub Cvar_FullSet:
     //     Option<unsafe extern "C" fn(var_name: *const c_char, value: *const c_char, flags: c_int)>,
     // pub Cmd_AddCommand: Option<
