@@ -195,6 +195,21 @@ pub enum RenderMode {
 }
 const_assert_size_eq!(RenderMode, c_int);
 
+impl RenderMode {
+    pub fn from_raw(raw: c_int) -> Option<RenderMode> {
+        match raw {
+            0 => Some(Self::Normal),
+            1 => Some(Self::TransColor),
+            2 => Some(Self::TransTexture),
+            3 => Some(Self::Glow),
+            4 => Some(Self::TransAlpha),
+            5 => Some(Self::TransAdd),
+            0x1000 => Some(Self::ScreenFadeModulate),
+            _ => None,
+        }
+    }
+}
+
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(C)]
 pub enum RenderFx {
