@@ -434,21 +434,6 @@ pub enum demo_mode {
 //     ) -> *mut c_void,
 // >;
 
-// #[repr(C)]
-// pub struct color24 {
-//     pub r: byte,
-//     pub g: byte,
-//     pub b: byte,
-// }
-
-#[repr(C)]
-pub struct colorVec {
-    pub r: c_uint,
-    pub g: c_uint,
-    pub b: c_uint,
-    pub a: c_uint,
-}
-
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct server_studio_api_s {
