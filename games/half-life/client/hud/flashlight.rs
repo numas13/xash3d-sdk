@@ -82,7 +82,7 @@ impl super::HudItem for Flashlight {
         } else {
             state.color
         };
-        let color = color.scale(a);
+        let color = color.scale_color(a);
 
         let engine = engine();
         let screen = engine.get_screen_info();

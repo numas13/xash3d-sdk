@@ -55,7 +55,7 @@ impl super::HudItem for Battery {
             return;
         };
 
-        let color = state.color.scale(self.fade.alpha(state.time_delta));
+        let color = state.color.scale_color(self.fade.alpha(state.time_delta));
         let screen_info = engine.get_screen_info();
         let width = empty.rect.width();
         let mut x = width * 3;

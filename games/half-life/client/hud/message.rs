@@ -303,7 +303,7 @@ impl HudMessage {
             return false;
         }
         let brightness = fade_blend(title.fadein, title.fadeout, title.holdtime, local_time);
-        let color = RGB::new(title.r1, title.g1, title.b1).scale((brightness * 255.0) as u8);
+        let color = RGB::new(title.r1, title.g1, title.b1).scale_color((brightness * 255.0) as u8);
 
         let half_width = title_half.rect.width();
         let full_width = half_width + title_life.rect.width();

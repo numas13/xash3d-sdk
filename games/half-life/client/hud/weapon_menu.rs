@@ -310,7 +310,7 @@ impl HudItem for WeaponMenu {
                 _ => 192,
             };
 
-            let color = state.color.scale(a);
+            let color = state.color.scale_color(a);
 
             if let Some(index) = self.bucket0 {
                 let sprite = state.sprites[index + slot as usize];
@@ -366,9 +366,9 @@ impl HudItem for WeaponMenu {
                         }
                     } else if let Some(sprite) = weapon.inactive {
                         let color = if state.inv.has_ammo(weapon) {
-                            color.scale(128)
+                            color.scale_color(128)
                         } else {
-                            RGB::REDISH.scale(96)
+                            RGB::REDISH.scale_color(96)
                         };
 
                         engine.spr_set(sprite.hspr, color);

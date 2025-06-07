@@ -170,7 +170,7 @@ impl Health {
             255
         };
 
-        let color = self.get_pain_color().unwrap_or(state.color).scale(a);
+        let color = self.get_pain_color().unwrap_or(state.color).scale_color(a);
 
         let screen_info = engine.get_screen_info();
         let cross_width = cross.rect.width();
@@ -230,7 +230,7 @@ impl Health {
         let sprites = &state.sprites[index..];
 
         let a = (fabsf(sinf(state.time * 2.0)) * 256.0) as u8;
-        let color = state.color.scale(a);
+        let color = state.color.scale_color(a);
 
         let width = sprites[0].rect.width();
         let height = sprites[0].rect.height();
@@ -303,7 +303,7 @@ impl Health {
 
         for i in 0..4 {
             if self.attack[i] > 0.4 {
-                let color = color.scale((a as f32 * fmaxf(self.attack[i], 0.5)) as u8);
+                let color = color.scale_color((a as f32 * fmaxf(self.attack[i], 0.5)) as u8);
                 engine.spr_set(hspr, color);
 
                 let frame = i as c_int;

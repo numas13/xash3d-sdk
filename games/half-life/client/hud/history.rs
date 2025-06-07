@@ -116,7 +116,7 @@ impl HudItem for History {
             };
 
             let a = ((item.time - state.time) * 80.0) as u8;
-            let color = state.color.scale(a);
+            let color = state.color.scale_color(a);
             let mut x = screen.width - 4;
             let y = screen.height - height - gap * i as c_int;
 

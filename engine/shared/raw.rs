@@ -19,7 +19,6 @@ use csz::CStrArray;
 use self::bsp::dmodel_t;
 
 use crate::{
-    color::{RGB, RGBA},
     consts::{
         self, HISTORY_MAX, MAXLIGHTMAPS, MAX_MAP_HULLS, MAX_MOVEENTS, MAX_PHYSINFO_STRING,
         MAX_SKINS, NUM_GLYPHS, VERTEXSIZE,
@@ -30,6 +29,23 @@ use crate::{
 pub use math::{vec2_t, vec3_t, vec4_t, Vector};
 
 pub type playermove_s = c_void;
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Default)]
+#[repr(C)]
+pub struct colorVec {
+    pub r: c_uint,
+    pub g: c_uint,
+    pub b: c_uint,
+    pub a: c_uint,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Default)]
+#[repr(C)]
+pub struct color24 {
+    pub r: byte,
+    pub g: byte,
+    pub b: byte,
+}
 
 #[derive(Default)]
 #[repr(C)]
@@ -543,7 +559,7 @@ pub struct entity_state_s {
     pub eflags: byte,
     pub rendermode: RenderMode,
     pub renderamt: c_int,
-    pub rendercolor: RGB,
+    pub rendercolor: color24,
     pub renderfx: c_int,
     pub movetype: MoveType,
     pub animtime: f32,
@@ -684,7 +700,7 @@ pub struct cl_entity_s {
     pub topnode: *mut mnode_s,
     pub syncbase: f32,
     pub visframe: c_int,
-    pub cvFloorColor: RGBA,
+    pub cvFloorColor: colorVec,
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
@@ -852,7 +868,7 @@ pub struct mextrasurf_s {
     pub lightmapmins: [c_short; 2],
     pub lightextents: [c_short; 2],
     pub lmvecs: [vec4_t; 2],
-    pub deluxemap: *mut RGB,
+    pub deluxemap: *mut color24,
     pub shadowmap: *mut byte,
     pub lightmapchain: *mut msurface_s,
     pub detailchain: *mut mextrasurf_s,
@@ -889,7 +905,7 @@ pub struct msurface_s {
     pub styles: [byte; MAXLIGHTMAPS],
     pub cached_light: [c_int; MAXLIGHTMAPS],
     pub info: *mut mextrasurf_s,
-    pub samples: *mut RGB,
+    pub samples: *mut color24,
     pub pdecals: *mut decal_s,
 }
 
@@ -1018,7 +1034,7 @@ pub struct model_s {
     pub numtextures: c_int,
     pub textures: *mut *mut texture_t,
     pub visdata: *mut byte,
-    pub lightdata: *mut RGB,
+    pub lightdata: *mut color24,
     pub entities: *mut c_char,
     pub cache: cache_user_s,
 }
@@ -1215,7 +1231,7 @@ pub struct con_nprint_s {
 pub struct dlight_s {
     pub origin: vec3_t,
     pub radius: f32,
-    pub color: RGB,
+    pub color: color24,
     pub die: f32,
     pub decay: f32,
     pub minlight: f32,

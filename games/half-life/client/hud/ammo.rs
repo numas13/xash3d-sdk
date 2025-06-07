@@ -41,7 +41,7 @@ impl HudItem for Ammo {
         }
 
         let a = self.fade.alpha(state.time_delta);
-        let color = state.color.scale(a);
+        let color = state.color.scale_color(a);
 
         let engine = engine();
         let screen = engine.get_screen_info();
