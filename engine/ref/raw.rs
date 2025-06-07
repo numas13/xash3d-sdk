@@ -657,29 +657,63 @@ pub struct render_interface_s {
 }
 pub type render_interface_t = render_interface_s;
 
-pub const pixformat_t_PF_UNKNOWN: pixformat_t = 0;
-pub const pixformat_t_PF_INDEXED_24: pixformat_t = 1;
-pub const pixformat_t_PF_INDEXED_32: pixformat_t = 2;
-pub const pixformat_t_PF_RGBA_32: pixformat_t = 3;
-pub const pixformat_t_PF_BGRA_32: pixformat_t = 4;
-pub const pixformat_t_PF_RGB_24: pixformat_t = 5;
-pub const pixformat_t_PF_BGR_24: pixformat_t = 6;
-pub const pixformat_t_PF_LUMINANCE: pixformat_t = 7;
-pub const pixformat_t_PF_DXT1: pixformat_t = 8;
-pub const pixformat_t_PF_DXT3: pixformat_t = 9;
-pub const pixformat_t_PF_DXT5: pixformat_t = 10;
-pub const pixformat_t_PF_ATI2: pixformat_t = 11;
-pub const pixformat_t_PF_BC4_SIGNED: pixformat_t = 12;
-pub const pixformat_t_PF_BC4_UNSIGNED: pixformat_t = 13;
-pub const pixformat_t_PF_BC5_SIGNED: pixformat_t = 14;
-pub const pixformat_t_PF_BC5_UNSIGNED: pixformat_t = 15;
-pub const pixformat_t_PF_BC6H_SIGNED: pixformat_t = 16;
-pub const pixformat_t_PF_BC6H_UNSIGNED: pixformat_t = 17;
-pub const pixformat_t_PF_BC7_UNORM: pixformat_t = 18;
-pub const pixformat_t_PF_BC7_SRGB: pixformat_t = 19;
-pub const pixformat_t_PF_KTX2_RAW: pixformat_t = 20;
-pub const pixformat_t_PF_TOTALCOUNT: pixformat_t = 21;
-pub type pixformat_t = c_uint;
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Default)]
+#[non_exhaustive]
+#[repr(C)]
+pub enum PixelFormat {
+    #[default]
+    UNKNOWN = 0,
+    INDEXED_24,
+    INDEXED_32,
+    RGBA_32,
+    BGRA_32,
+    RGB_24,
+    BGR_24,
+    LUMINANCE,
+    DXT1,
+    DXT3,
+    DXT5,
+    ATI2,
+    BC4_SIGNED,
+    BC4_UNSIGNED,
+    BC5_SIGNED,
+    BC5_UNSIGNED,
+    BC6H_SIGNED,
+    BC6H_UNSIGNED,
+    BC7_UNORM,
+    BC7_SRGB,
+    KTX2_RAW,
+    TOTALCOUNT,
+}
+pub type pixformat_t = PixelFormat;
+
+impl PixelFormat {
+    pub const fn is_raw(&self) -> bool {
+        matches!(
+            self,
+            Self::RGBA_32 | Self::BGRA_32 | Self::RGB_24 | Self::BGR_24 | Self::LUMINANCE
+        )
+    }
+
+    pub const fn is_compressed(&self) -> bool {
+        matches!(
+            self,
+            Self::DXT1
+                | Self::DXT3
+                | Self::DXT5
+                | Self::ATI2
+                | Self::BC4_SIGNED
+                | Self::BC4_UNSIGNED
+                | Self::BC5_SIGNED
+                | Self::BC5_UNSIGNED
+                | Self::BC6H_SIGNED
+                | Self::BC6H_UNSIGNED
+                | Self::BC7_UNORM
+                | Self::BC7_SRGB
+                | Self::KTX2_RAW
+        )
+    }
+}
 
 #[repr(C)]
 pub struct bpc_desc_s {
@@ -735,7 +769,7 @@ pub struct rgbdata_s {
     pub width: word,
     pub height: word,
     pub depth: word,
-    pub type_: c_uint,
+    pub type_: PixelFormat,
     pub flags: c_uint,
     pub encode: word,
     pub numMips: byte,
