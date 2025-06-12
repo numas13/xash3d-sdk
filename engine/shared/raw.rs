@@ -1012,7 +1012,7 @@ bitflags! {
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct model_s {
-    pub name: [c_char; 64],
+    pub name: CStrArray<64>,
     pub needload: qboolean,
     pub type_: modtype_t,
     pub numframes: c_int,
