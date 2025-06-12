@@ -210,6 +210,7 @@ impl RenderMode {
     }
 }
 
+#[non_exhaustive]
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(C)]
 pub enum RenderFx {
@@ -243,6 +244,36 @@ pub enum RenderFx {
     LightMultiplier,
 }
 const_assert_size_eq!(RenderFx, c_int);
+
+impl RenderFx {
+    pub fn from_u32(value: u32) -> Option<RenderFx> {
+        Some(match value {
+            0 => Self::None,
+            1 => Self::PulseSlow,
+            2 => Self::PulseFast,
+            3 => Self::PulseSlowWide,
+            4 => Self::PulseFastWide,
+            5 => Self::FadeSlow,
+            6 => Self::FadeFast,
+            7 => Self::SolidSlow,
+            8 => Self::SolidFast,
+            9 => Self::StrobeSlow,
+            10 => Self::StrobeFast,
+            11 => Self::StrobeFaster,
+            12 => Self::FlickerSlow,
+            13 => Self::FlickerFast,
+            14 => Self::NoDissipation,
+            15 => Self::Distort,
+            16 => Self::Hologram,
+            17 => Self::DeadPlayer,
+            18 => Self::Explode,
+            19 => Self::GlowShell,
+            20 => Self::ClampMinScale,
+            21 => Self::LightMultiplier,
+            _ => return None,
+        })
+    }
+}
 
 pub type byte = c_uchar;
 pub type poolhandle_t = u32;
@@ -396,7 +427,7 @@ pub struct entvars_s {
     pub rendermode: RenderMode,
     pub renderamt: f32,
     pub rendercolor: vec3_t,
-    pub renderfx: c_int,
+    pub renderfx: RenderFx,
     pub health: f32,
     pub frags: f32,
     pub weapons: c_int,
@@ -575,7 +606,7 @@ pub struct entity_state_s {
     pub rendermode: RenderMode,
     pub renderamt: c_int,
     pub rendercolor: color24,
-    pub renderfx: c_int,
+    pub renderfx: RenderFx,
     pub movetype: MoveType,
     pub animtime: f32,
     pub framerate: f32,

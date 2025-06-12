@@ -219,7 +219,7 @@ pub fn create_baseline(
     baseline.rendercolor.r = ent.v.rendercolor[0] as u8;
     baseline.rendercolor.g = ent.v.rendercolor[1] as u8;
     baseline.rendercolor.b = ent.v.rendercolor[2] as u8;
-    baseline.renderfx = ent.v.renderfx as u8 as c_int;
+    baseline.renderfx = ent.v.renderfx;
 
     if player {
         baseline.mins = player_mins;
