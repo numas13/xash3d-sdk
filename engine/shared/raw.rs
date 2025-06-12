@@ -210,7 +210,8 @@ impl RenderMode {
     }
 }
 
-#[non_exhaustive]
+// FIXME: not FFI-safe on current MSRV (1.77)
+// #[non_exhaustive]
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(C)]
 pub enum RenderFx {
@@ -1741,6 +1742,8 @@ bitflags! {
     }
 }
 
+// FIXME: not FFI-safe on current MSRV (1.77)
+// #[non_exhaustive]
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 #[repr(C)]
 pub enum MoveType {
@@ -1760,6 +1763,7 @@ pub enum MoveType {
     PushStep = 13,
     Compound = 14,
 }
+const_assert_size_eq!(MoveType, c_int);
 
 #[derive(Clone)]
 #[repr(C)]
