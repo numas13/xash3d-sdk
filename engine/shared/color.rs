@@ -15,7 +15,7 @@ macro_rules! define_colors {
 }
 
 define_colors! {
-    0x00000000 => BLACK,
+    0xff000000 => BLACK,
     0xffc0c0c0 => SILVER,
     0xff808080 => GRAY,
     0xffffffff => WHITE,
