@@ -1423,6 +1423,21 @@ pub struct ref_overview_s {
     pub flZoom: f32,
 }
 
+bitflags! {
+    #[derive(Copy, Clone, PartialEq, Eq, Debug, Default)]
+    #[repr(transparent)]
+    pub struct RefFlags: c_int {
+        /// pass should draw the world (otherwise it's player menu model)
+        const DRAW_WORLD        = 1 << 0;
+        /// special 6x pass to render cubemap/skybox sides
+        const DRAW_CUBEMAP      = 1 << 1;
+        /// overview mode is active
+        const DRAW_OVERVIEW     = 1 << 2;
+        /// nothing is drawn by the engine except clientDraw functions
+        const ONLY_CLIENTDRAW   = 1 << 3;
+    }
+}
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct ref_viewpass_s {
@@ -1432,7 +1447,7 @@ pub struct ref_viewpass_s {
     pub viewentity: c_int,
     pub fov_x: f32,
     pub fov_y: f32,
-    pub flags: c_int,
+    pub flags: RefFlags,
 }
 
 #[derive(Copy, Clone, Default)]
