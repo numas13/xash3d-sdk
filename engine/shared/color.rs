@@ -33,16 +33,41 @@ define_colors! {
     0xff00ffff => CYAN,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Default)]
-pub struct RGB {
-    pub r: u8,
-    pub g: u8,
-    pub b: u8,
+macro_rules! impl_get_set {
+    ($($i:expr => $field:ident, $field_set:ident;)*) => {
+        $(
+            #[inline(always)]
+            pub const fn $field(&self) -> u8 {
+                let bytes = self.to_bytes();
+                bytes[$i]
+            }
+
+            #[inline(always)]
+            pub fn $field_set(&mut self, value: u8) {
+                let mut bytes = self.to_bytes();
+                bytes[$i] = value;
+                *self = Self::from_bytes(bytes);
+            }
+        )*
+    };
 }
 
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Default)]
+#[repr(transparent)]
+pub struct RGB(u32);
+
 impl RGB {
+    pub const fn from_bytes([r, g, b]: [u8; 3]) -> RGB {
+        Self(u32::from_le_bytes([r, g, b, 0]))
+    }
+
+    pub const fn to_bytes(self) -> [u8; 3] {
+        let [r, g, b, _] = self.0.to_le_bytes();
+        [r, g, b]
+    }
+
     pub const fn new(r: u8, g: u8, b: u8) -> Self {
-        Self { r, g, b }
+        Self::from_bytes([r, g, b])
     }
 
     const fn from_u32_rgb(value: u32) -> Self {
@@ -55,16 +80,23 @@ impl RGB {
     }
 
     pub const fn rgba(self, a: u8) -> RGBA {
-        RGBA::new(self.r, self.g, self.b, a)
+        let [r, g, b] = self.to_bytes();
+        RGBA::new(r, g, b, a)
+    }
+
+    impl_get_set! {
+        0 => r, set_r;
+        1 => g, set_g;
+        2 => b, set_b;
     }
 
     pub fn saturating_add(self, other: impl Into<RGB>) -> RGB {
-        let other = other.into();
-        Self::new(
-            self.r.saturating_add(other.r),
-            self.g.saturating_add(other.g),
-            self.b.saturating_add(other.b),
-        )
+        let mut c = self.to_bytes();
+        let o = other.into().to_bytes();
+        for i in 0..3 {
+            c[i] = c[i].saturating_add(o[i]);
+        }
+        Self::from_bytes(c)
     }
 
     pub fn scale_color(self, a: u8) -> Self {
@@ -72,10 +104,11 @@ impl RGB {
             return self;
         }
         let a = a as u16 + 1;
-        let r = ((self.r as u16 * a) >> 8) as u8;
-        let g = ((self.g as u16 * a) >> 8) as u8;
-        let b = ((self.b as u16 * a) >> 8) as u8;
-        Self::new(r, g, b)
+        let mut c = self.to_bytes();
+        for i in &mut c {
+            *i = ((*i as u16 * a) >> 8) as u8;
+        }
+        Self::from_bytes(c)
     }
 
     #[deprecated(note = "use scale_color instead")]
@@ -84,22 +117,20 @@ impl RGB {
     }
 
     pub fn blend_alpha(self, other: impl Into<RGB>, alpha: u8) -> RGB {
-        let x = self.scale_color(alpha);
-        let y = other.into().scale_color(255 - alpha);
-        Self::new(x.r + y.r, x.g + y.g, x.b + y.b)
+        if alpha == 255 {
+            return self;
+        }
+        let mut c = self.scale_color(alpha).to_bytes();
+        let o = other.into().scale_color(255 - alpha).to_bytes();
+        for i in 0..3 {
+            c[i] += o[i];
+        }
+        Self::from_bytes(c)
     }
 
     pub const fn to_rgba(self) -> RGBA {
-        RGBA::rgb(self.r, self.g, self.b)
-    }
-
-    pub const fn from_bytes([r, g, b]: [u8; 3]) -> RGB {
-        Self::new(r, g, b)
-    }
-
-    pub const fn to_bytes(self) -> [u8; 3] {
-        let Self { r, g, b } = self;
-        [r, g, b]
+        let [r, g, b] = self.to_bytes();
+        RGBA::rgb(r, g, b)
     }
 }
 
@@ -111,18 +142,19 @@ impl From<[u8; 3]> for RGB {
 
 impl From<RGBA> for RGB {
     fn from(color: RGBA) -> RGB {
-        RGB::new(color.r, color.g, color.b)
+        color.to_rgb()
     }
 }
 
 impl From<RGB> for [u8; 3] {
-    fn from(RGB { r, g, b }: RGB) -> Self {
-        [r, g, b]
+    fn from(color: RGB) -> Self {
+        color.to_bytes()
     }
 }
 
 impl From<RGB> for [c_int; 3] {
-    fn from(RGB { r, g, b }: RGB) -> Self {
+    fn from(color: RGB) -> Self {
+        let [r, g, b] = color.to_bytes();
         [r as c_int, g as c_int, b as c_int]
     }
 }
@@ -134,17 +166,20 @@ impl From<color24> for RGB {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Default)]
-#[repr(align(4))]
-pub struct RGBA {
-    pub r: u8,
-    pub g: u8,
-    pub b: u8,
-    pub a: u8,
-}
+#[repr(transparent)]
+pub struct RGBA(u32);
 
 impl RGBA {
+    pub const fn from_bytes([r, g, b, a]: [u8; 4]) -> RGBA {
+        Self(u32::from_le_bytes([r, g, b, a]))
+    }
+
+    pub const fn to_bytes(self) -> [u8; 4] {
+        self.0.to_le_bytes()
+    }
+
     pub const fn new(r: u8, g: u8, b: u8, a: u8) -> RGBA {
-        Self { r, g, b, a }
+        Self::from_bytes([r, g, b, a])
     }
 
     const fn from_u32_argb(value: u32) -> RGBA {
@@ -164,17 +199,16 @@ impl RGBA {
         Self::new(c, c, c, 255)
     }
 
+    impl_get_set! {
+        0 => r, set_r;
+        1 => g, set_g;
+        2 => b, set_b;
+        3 => a, set_a;
+    }
+
     pub const fn to_rgb(self) -> RGB {
-        RGB::new(self.r, self.g, self.b)
-    }
-
-    pub const fn from_bytes([r, g, b, a]: [u8; 4]) -> RGBA {
-        Self::new(r, g, b, a)
-    }
-
-    pub const fn to_bytes(self) -> [u8; 4] {
-        let Self { r, g, b, a } = self;
-        [r, g, b, a]
+        let [r, g, b, _] = self.to_bytes();
+        RGB::new(r, g, b)
     }
 
     pub fn scale_color(self, a: u8) -> RGBA {
@@ -182,33 +216,41 @@ impl RGBA {
             return self;
         }
         let a = a as u16 + 1;
-        let r = ((self.r as u16 * a) >> 8) as u8;
-        let g = ((self.g as u16 * a) >> 8) as u8;
-        let b = ((self.b as u16 * a) >> 8) as u8;
-        Self::new(r, g, b, self.a)
+        let mut c = self.to_bytes();
+        for i in c[..3].iter_mut() {
+            *i = ((*i as u16 * a) >> 8) as u8;
+        }
+        Self::from_bytes(c)
     }
 
     pub fn blend_color(self, color: impl Into<RGB>) -> RGBA {
-        let color = color.into();
-        let r = ((self.r as u16 * color.r as u16) >> 8) as u8;
-        let g = ((self.g as u16 * color.g as u16) >> 8) as u8;
-        let b = ((self.b as u16 * color.b as u16) >> 8) as u8;
-        Self::new(r, g, b, self.a)
+        let mut c = self.to_bytes();
+        let o = color.into().to_bytes();
+        for i in 0..3 {
+            c[i] = ((c[i] as u16 * o[i] as u16) >> 8) as u8;
+        }
+        Self::from_bytes(c)
     }
 
     pub fn blend_color_with_alpha(self, other: impl Into<RGB>, alpha: u8) -> RGBA {
-        let x = self.scale_color(alpha);
-        let y = other.into().scale_color(255 - alpha);
-        Self::new(x.r + y.r, x.g + y.g, x.b + y.b, self.a)
+        if alpha == 255 {
+            return self;
+        }
+        let mut c = self.scale_color(alpha).to_bytes();
+        let o = other.into().scale_color(255 - alpha).to_bytes();
+        for i in 0..3 {
+            c[i] += o[i];
+        }
+        Self::from_bytes(c)
     }
 
     pub fn blend(self, other: impl Into<RGBA>) -> Self {
-        let other = other.into();
-        let r = ((self.r as u16 * other.r as u16) >> 8) as u8;
-        let g = ((self.g as u16 * other.g as u16) >> 8) as u8;
-        let b = ((self.b as u16 * other.b as u16) >> 8) as u8;
-        let a = ((self.a as u16 * other.a as u16) >> 8) as u8;
-        Self::new(r, g, b, a)
+        let mut c = self.to_bytes();
+        let o = other.into().to_bytes();
+        for i in 0..4 {
+            c[i] = ((c[i] as u16 * o[i] as u16) >> 8) as u8;
+        }
+        Self::from_bytes(c)
     }
 }
 
@@ -226,7 +268,8 @@ impl From<[u8; 4]> for RGBA {
 
 impl From<RGB> for RGBA {
     fn from(color: RGB) -> RGBA {
-        RGBA::rgb(color.r, color.g, color.b)
+        let [r, g, b] = color.to_bytes();
+        RGBA::rgb(r, g, b)
     }
 }
 
@@ -237,19 +280,21 @@ impl From<color24> for RGBA {
 }
 
 impl From<RGBA> for [u8; 3] {
-    fn from(RGBA { r, g, b, .. }: RGBA) -> Self {
+    fn from(color: RGBA) -> Self {
+        let [r, g, b, _] = color.to_bytes();
         [r, g, b]
     }
 }
 
 impl From<RGBA> for [u8; 4] {
-    fn from(RGBA { r, g, b, a }: RGBA) -> Self {
-        [r, g, b, a]
+    fn from(color: RGBA) -> Self {
+        color.to_bytes()
     }
 }
 
 impl From<RGBA> for [c_int; 4] {
-    fn from(RGBA { r, g, b, a }: RGBA) -> Self {
+    fn from(color: RGBA) -> Self {
+        let [r, g, b, a] = color.to_bytes();
         [r as c_int, g as c_int, b as c_int, a as c_int]
     }
 }
@@ -286,7 +331,7 @@ impl FromStr for RGBA {
         }
         let mut ret = RGB::from_str(&s[..7])?.to_rgba();
         if s.len() == 9 {
-            ret.a = u8::from_str_radix(&s[7..9], 16)?;
+            ret.set_a(u8::from_str_radix(&s[7..9], 16)?);
         };
         Ok(ret)
     }
@@ -294,14 +339,15 @@ impl FromStr for RGBA {
 
 impl fmt::Display for RGB {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "#{:02x}{:02x}{:02x}", self.r, self.g, self.b)
+        let [r, g, b] = self.to_bytes();
+        write!(f, "#{r:02x}{g:02x}{b:02x}")
     }
 }
 
 impl fmt::Display for RGBA {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let [r, g, b, a] = <[u8; 4]>::from(*self);
-        if self.a != u8::MAX {
+        let [r, g, b, a] = self.to_bytes();
+        if a != u8::MAX {
             write!(f, "#{r:02x}{g:02x}{b:02x}{a:02x}")
         } else {
             write!(f, "#{r:02x}{g:02x}{b:02x}")

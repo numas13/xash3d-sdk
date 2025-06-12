@@ -135,17 +135,13 @@ impl Msg {
                     _ => todo!(),
                 }
 
-                blend = blend.clamp(0.0, 255.0);
-                let r = (src.r as f32 * (255.0 - blend) + (dest.r as f32 * blend)) as u32 >> 8;
-                let g = (src.g as f32 * (255.0 - blend) + (dest.g as f32 * blend)) as u32 >> 8;
-                let b = (src.b as f32 * (255.0 - blend) + (dest.b as f32 * blend)) as u32 >> 8;
-
                 if self.effect == 1 && char_time != 0.0 {
                     let color = RGB::new(self.r2, self.g2, self.b2);
                     engine.draw_character(x, y, c as c_int, color);
                 }
 
-                let color = RGB::new(r as u8, g as u8, b as u8);
+                let alpha = blend.clamp(0.0, 255.0) as u8;
+                let color = dest.blend_alpha(src, alpha);
                 engine.draw_character(x, y, c as c_int, color);
 
                 x = x_next;

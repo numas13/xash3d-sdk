@@ -94,9 +94,8 @@ impl HudItem for ScoreBoard {
         let h = h + h / 4;
 
         let fields_x = right - gap - w * fields.len() as c_int;
-        let r = state.color.r as f32;
-        let g = state.color.g as f32;
-        let b = state.color.b as f32;
+        let [r, g, b] = state.color.to_bytes();
+        let [r, g, b] = [r as f32, g as f32, b as f32];
         let mut x = fields_x;
         for &i in &fields {
             x += w;
