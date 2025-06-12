@@ -1269,11 +1269,13 @@ pub const RS_ACTIVE_TENTS: _bindgen_ty_11 = 0;
 pub type _bindgen_ty_11 = c_uint;
 
 // refdll must expose this default textures using this names
+pub const REF_UNUSED_TEXTURE: &CStr = c"*unused*";
 pub const REF_DEFAULT_TEXTURE: &CStr = c"*default";
 pub const REF_GRAY_TEXTURE: &CStr = c"*gray";
 pub const REF_WHITE_TEXTURE: &CStr = c"*white";
 pub const REF_BLACK_TEXTURE: &CStr = c"*black";
 pub const REF_PARTICLE_TEXTURE: &CStr = c"*particle";
+pub const REF_CINEMATIC_DUMMY_TEXTURE: &CStr = c"*cintexture";
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
 #[repr(C)]
