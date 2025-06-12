@@ -9,6 +9,7 @@ use core::{
 use csz::{CStrArray, CStrThin};
 use shared::{
     consts::RefParm,
+    cvar::cvar_s,
     raw::{cl_entity_s, decallist_s, model_s, ref_viewpass_s, vec2_t},
 };
 use utils::str::{AsPtr, ToEngineStr};
@@ -316,8 +317,11 @@ impl Engine {
     //         description: *const c_char,
     //     ) -> *mut cvar_s,
     // >,
-    // pub pfnGetCvarPointer:
-    //     Option<unsafe extern "C" fn(name: *const c_char, ignore_flags: c_int) -> *mut cvar_s>,
+
+    pub fn get_cvar_ptr(&self, name: impl ToEngineStr, ignore_flags: c_int) -> *mut cvar_s {
+        let name = name.to_engine_str();
+        unsafe { unwrap!(self, pfnGetCvarPointer)(name.as_ptr(), ignore_flags) }
+    }
 
     pub fn get_cvar_float(&self, name: impl ToEngineStr) -> f32 {
         let name = name.to_engine_str();
@@ -333,8 +337,16 @@ impl Engine {
         unsafe { CStrThin::from_ptr(ret) }
     }
 
-    // pub Cvar_SetValue: Option<unsafe extern "C" fn(name: *const c_char, value: f32)>,
-    // pub Cvar_Set: Option<unsafe extern "C" fn(name: *const c_char, value: *const c_char)>,
+    pub fn cvar_set_value(&self, name: impl ToEngineStr, value: f32) {
+        let name = name.to_engine_str();
+        unsafe { unwrap!(self, Cvar_SetValue)(name.as_ptr(), value) }
+    }
+
+    pub fn cvar_set(&self, name: impl ToEngineStr, value: impl ToEngineStr) {
+        let name = name.to_engine_str();
+        let value = value.to_engine_str();
+        unsafe { unwrap!(self, Cvar_Set)(name.as_ptr(), value.as_ptr()) }
+    }
 
     pub fn cvar_register(&self, var: &'static mut convar_s) {
         unsafe { unwrap!(self, Cvar_RegisterVariable)(var) }
@@ -442,8 +454,15 @@ impl Engine {
     // pub CL_ExtraUpdate: Option<unsafe extern "C" fn()>,
     // pub Host_Error: Option<unsafe extern "C" fn(fmt: *const c_char, ...)>,
     // pub COM_SetRandomSeed: Option<unsafe extern "C" fn(lSeed: c_int)>,
-    // pub COM_RandomFloat: Option<unsafe extern "C" fn(rmin: f32, rmax: f32) -> f32>,
-    // pub COM_RandomLong: Option<unsafe extern "C" fn(rmin: c_int, rmax: c_int) -> c_int>,
+
+    pub fn com_random_float(&self, min: f32, max: f32) -> f32 {
+        unsafe { unwrap!(self, COM_RandomFloat)(min, max) }
+    }
+
+    pub fn com_random_long(&self, min: c_int, max: c_int) -> c_int {
+        unsafe { unwrap!(self, COM_RandomLong)(min, max) }
+    }
+
     // pub GetScreenFade: Option<unsafe extern "C" fn() -> *mut screenfade_s>,
     // pub CL_GetScreenInfo: Option<unsafe extern "C" fn(width: *mut c_int, height: *mut c_int)>,
     // pub SetLocalLightLevel: Option<unsafe extern "C" fn(level: c_int)>,
