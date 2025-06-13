@@ -208,6 +208,10 @@ impl RenderMode {
             _ => None,
         }
     }
+
+    pub const fn is_opaque(&self) -> bool {
+        matches!(self, Self::Normal)
+    }
 }
 
 // FIXME: not FFI-safe on current MSRV (1.77)
