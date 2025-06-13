@@ -10,7 +10,7 @@ use csz::{CStrArray, CStrThin};
 use shared::{
     consts::RefParm,
     cvar::cvar_s,
-    raw::{cl_entity_s, decallist_s, model_s, ref_viewpass_s, vec2_t},
+    raw::{cl_entity_s, decallist_s, mleaf_s, mnode_s, model_s, ref_viewpass_s, vec2_t, vec3_t},
 };
 use utils::str::{AsPtr, ToEngineStr};
 
@@ -412,8 +412,16 @@ impl Engine {
     //         visbits: *const byte,
     //     ) -> qboolean,
     // >,
-    // pub Mod_PointInLeaf:
-    //     Option<unsafe extern "C" fn(p: *const vec3_t, node: *mut mnode_s) -> *mut mleaf_s>,
+
+    ///
+    ///
+    /// # Safety
+    ///
+    /// `node` must not be null.
+    pub unsafe fn mod_point_in_leaf(&self, point: vec3_t, node: *mut mnode_s) -> *mut mleaf_s {
+        unsafe { unwrap!(self, Mod_PointInLeaf)(&point, node) }
+    }
+
     // pub R_DrawWorldHull: Option<unsafe extern "C" fn()>,
     // pub R_DrawModelHull: Option<unsafe extern "C" fn(mod_: *mut model_s)>,
     // pub R_StudioGetAnim: Option<
