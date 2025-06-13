@@ -451,7 +451,11 @@ impl Engine {
     // >,
     // pub CL_GetRemapInfoForEntity:
     //     Option<unsafe extern "C" fn(e: *mut cl_entity_s) -> *mut remap_info_s>,
-    // pub CL_ExtraUpdate: Option<unsafe extern "C" fn()>,
+
+    pub fn cl_extra_update(&self) {
+        unsafe { unwrap!(self, CL_ExtraUpdate)() }
+    }
+
     // pub Host_Error: Option<unsafe extern "C" fn(fmt: *const c_char, ...)>,
     // pub COM_SetRandomSeed: Option<unsafe extern "C" fn(lSeed: c_int)>,
 
