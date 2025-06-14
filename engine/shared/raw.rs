@@ -1069,6 +1069,8 @@ bitflags! {
         // Lightmaps stored as RGB.
         const COLORED_LIGHTING  = 1 << 4;
 
+        // uses 32-bit types.
+        const QBSP2             = 1 << 28;
         /// It's a world model.
         const WORLD             = 1 << 29;
         /// A client sprite.
