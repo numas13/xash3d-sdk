@@ -903,8 +903,28 @@ pub struct mnode_s {
     pub parent: *mut mnode_s,
     pub plane: *mut mplane_s,
     pub children: [*mut mnode_s; 2],
-    pub firstsurface: c_ushort,
-    pub numsurfaces: c_ushort,
+    pub firstsurface_0: c_ushort,
+    pub numsurfaces_0: c_ushort,
+    #[cfg(target_pointer_width = "64")]
+    pub firstsurface_1: c_ushort,
+    #[cfg(target_pointer_width = "64")]
+    pub numsurfaces_1: c_ushort,
+}
+
+impl mnode_s {
+    pub fn children(&self, model: &model_s, side: usize) -> *mut mnode_s {
+        #[cfg(target_pointer_width = "32")]
+        if model.flags.intersects(ModelFlags::QBSP2) {
+            let raw = self.children[side] as usize;
+            let offset = (raw & 0xfffffe) >> 1;
+            if raw & 1 == 0 {
+                return model.leafs.wrapping_add(offset) as *mut mnode_s;
+            } else {
+                return model.nodes.wrapping_add(offset);
+            }
+        }
+        self.children[side]
+    }
 }
 
 #[derive(Copy, Clone)]
