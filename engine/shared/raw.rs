@@ -754,6 +754,24 @@ pub struct cl_entity_s {
     pub cvFloorColor: colorVec,
 }
 
+impl cl_entity_s {
+    pub fn model(&self) -> Option<&model_s> {
+        if !self.model.is_null() {
+            Some(unsafe { &*self.model })
+        } else {
+            None
+        }
+    }
+
+    pub fn model_mut(&mut self) -> Option<&mut model_s> {
+        if !self.model.is_null() {
+            Some(unsafe { &mut *self.model })
+        } else {
+            None
+        }
+    }
+}
+
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
 #[repr(C)]
 pub enum modtype_t {
