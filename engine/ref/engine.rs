@@ -456,7 +456,11 @@ impl Engine {
     // pub CL_AllocParticleFast: Option<unsafe extern "C" fn() -> *mut particle_s>,
     // pub CL_AllocElight: Option<unsafe extern "C" fn(key: c_int) -> *mut dlight_s>,
     // pub GetDefaultSprite: Option<unsafe extern "C" fn(spr: ref_defaultsprite_e) -> *mut model_s>,
-    // pub R_StoreEfrags: Option<unsafe extern "C" fn(ppefrag: *mut *mut efrag_s, framecount: c_int)>,
+
+    pub fn r_store_efrags(&self, efrags: &mut *mut raw::efrag_s, framecount: c_int) {
+        unsafe { unwrap!(self, R_StoreEfrags)(efrags, framecount) }
+    }
+
     // pub Mod_ForName: Option<
     //     unsafe extern "C" fn(
     //         name: *const c_char,
