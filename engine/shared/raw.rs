@@ -782,12 +782,25 @@ pub enum modtype_t {
     Studio = 3,
 }
 
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Default)]
+#[repr(transparent)]
+pub struct PlaneType(pub byte);
+
+impl PlaneType {
+    // 0 - 2 are axial planes
+    pub const X: Self = Self(0);
+    pub const Y: Self = Self(1);
+    pub const Z: Self = Self(2);
+    // 3 needs alternate calc
+    pub const NONAXIAL: Self = Self(3);
+}
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct mplane_s {
     pub normal: vec3_t,
     pub dist: f32,
-    pub type_: byte,
+    pub type_: PlaneType,
     pub signbits: byte,
     pub pad: [byte; 2],
 }
