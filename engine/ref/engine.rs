@@ -592,7 +592,10 @@ impl Engine {
         unsafe { &*ret }
     }
 
-    // pub pfnTime: Option<unsafe extern "C" fn() -> f64>,
+    pub fn time(&self) -> f64 {
+        unsafe { unwrap!(self, pfnTime)() }
+    }
+
     // pub EV_GetPhysent: Option<unsafe extern "C" fn(idx: c_int) -> *mut physent_s>,
     // pub EV_TraceSurface: Option<
     //     unsafe extern "C" fn(ground: c_int, vstart: *mut f32, vend: *mut f32) -> *mut msurface_s,
