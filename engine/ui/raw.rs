@@ -15,6 +15,8 @@ use crate::cvar::cvar_s;
 
 pub use shared::raw::*;
 
+use bitflags::bitflags;
+
 pub type HIMAGE = c_int;
 
 pub const MENU_EXTENDED_API_VERSION: c_int = 1;
@@ -38,7 +40,20 @@ pub struct GAMEINFO {
     pub gamemode: c_int,
 }
 
-#[derive(Copy, Clone)]
+bitflags! {
+    #[derive(Copy, Clone, PartialEq, Eq)]
+    #[repr(transparent)]
+    pub struct GameInfoFlags : u32 {
+        const NONE                  = 0;
+        const NOMODELS              = 1 << 0;
+        const NOSKILLS              = 1 << 1;
+        const RENDER_PICBUTTON_TEXT = 1 << 2;
+        const HD_BACKGROUND         = 1 << 3;
+        const ANIMATED_TITLE        = 1 << 4;
+    }
+}
+
+#[derive(Copy, Clone, PartialEq, Eq)]
 #[repr(C)]
 pub enum GameType {
     Normal = 0,
@@ -57,7 +72,7 @@ pub struct gameinfo2_s {
     pub title: CStrArray<64>,
     pub iconpath: CStrArray<64>,
     pub version: CStrArray<16>,
-    pub flags: u32,
+    pub flags: GameInfoFlags,
     pub game_url: CStrArray<256>,
     pub update_url: CStrArray<256>,
     pub type_: CStrArray<64>,
