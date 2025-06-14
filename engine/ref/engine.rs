@@ -10,7 +10,9 @@ use csz::{CStrArray, CStrThin};
 use shared::{
     consts::RefParm,
     cvar::cvar_s,
-    raw::{cl_entity_s, decallist_s, mleaf_s, mnode_s, model_s, ref_viewpass_s, vec2_t, vec3_t},
+    raw::{
+        self, cl_entity_s, decallist_s, mleaf_s, mnode_s, model_s, ref_viewpass_s, vec2_t, vec3_t,
+    },
 };
 use utils::str::{AsPtr, ToEngineStr};
 
@@ -583,7 +585,13 @@ impl Engine {
     //         fullvis: qboolean,
     //     ) -> c_int,
     // >,
-    // pub GetOverviewParms: Option<unsafe extern "C" fn() -> *const ref_overview_s>,
+
+    pub fn get_overview_parms(&self) -> &raw::ref_overview_s {
+        let ret = unsafe { unwrap!(self, GetOverviewParms)() };
+        assert!(!ret.is_null());
+        unsafe { &*ret }
+    }
+
     // pub pfnTime: Option<unsafe extern "C" fn() -> f64>,
     // pub EV_GetPhysent: Option<unsafe extern "C" fn(idx: c_int) -> *mut physent_s>,
     // pub EV_TraceSurface: Option<
