@@ -54,28 +54,37 @@ pub const LS_UNUSED: u32 = 0xfe;
 pub const LS_NONE: u32 = 0xff;
 
 pub const MAX_MAP_CLIPNODES_HLBSP: u32 = 32767;
-pub const MAX_MAP_CLIPNODES_BSP2: u32 = 524288;
 
-// TODO: if bsp2 format support enabled
-// pub const MAX_MAP_MODELS: u32 = 2048;
-// pub const MAX_MAP_ENTSTRING: u32 = 0x200000;
-// pub const MAX_MAP_PLANES: u32 = 131072;
-// pub const MAX_MAP_NODES: u32 = 262144;
-// pub const MAX_MAP_CLIPNODES: u32 = MAX_MAP_CLIPNODES_BSP2;
-// pub const MAX_MAP_LEAFS: u32 = 131072;
-// pub const MAX_MAP_VERTS: u32 = 524288;
-// pub const MAX_MAP_FACES: u32 = 262144;
-// pub const MAX_MAP_MARKSURFACES: u32 = 524288;
+#[cfg(not(feature = "bsp2"))]
+mod bsp_version_consts {
+    pub const MAX_MAP_MODELS: usize = 1024;
+    pub const MAX_MAP_ENTSTRING: usize = 0x100000;
+    pub const MAX_MAP_PLANES: usize = 65536;
+    pub const MAX_MAP_NODES: usize = 32767;
+    pub const MAX_MAP_CLIPNODES: usize = 32767;
+    pub const MAX_MAP_LEAFS: usize = 32767;
+    pub const MAX_MAP_VERTS: usize = 65535;
+    pub const MAX_MAP_FACES: usize = 65535;
+    pub const MAX_MAP_MARKSURFACES: usize = 65535;
+}
 
-pub const MAX_MAP_MODELS: u32 = 1024;
-pub const MAX_MAP_ENTSTRING: u32 = 0x100000;
-pub const MAX_MAP_PLANES: u32 = 65536;
-pub const MAX_MAP_NODES: u32 = 32767;
-pub const MAX_MAP_CLIPNODES: u32 = 32767;
-pub const MAX_MAP_LEAFS: u32 = 32767;
-pub const MAX_MAP_VERTS: u32 = 65535;
-pub const MAX_MAP_FACES: u32 = 65535;
-pub const MAX_MAP_MARKSURFACES: u32 = 65535;
+#[cfg(feature = "bsp2")]
+mod bsp_version_consts {
+    pub const MAX_MAP_CLIPNODES_BSP2: usize = 524288;
+    pub const MAX_MAP_MODELS: usize = 2048;
+    pub const MAX_MAP_ENTSTRING: usize = 0x200000;
+    pub const MAX_MAP_PLANES: usize = 131072;
+    pub const MAX_MAP_NODES: usize = 262144;
+    pub const MAX_MAP_CLIPNODES: usize = MAX_MAP_CLIPNODES_BSP2;
+    pub const MAX_MAP_LEAFS: usize = 131072;
+    pub const MAX_MAP_VERTS: usize = 524288;
+    pub const MAX_MAP_FACES: usize = 262144;
+    pub const MAX_MAP_MARKSURFACES: usize = 524288;
+}
+
+pub use self::bsp_version_consts::*;
+
+pub const MAX_MAP_LEAFS_BYTES: usize = MAX_MAP_LEAFS.div_ceil(8);
 
 pub const MAX_MAP_ENTITIES: u32 = 8192;
 pub const MAX_MAP_TEXINFO: u32 = 65535;

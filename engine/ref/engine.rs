@@ -11,7 +11,8 @@ use shared::{
     consts::RefParm,
     cvar::cvar_s,
     raw::{
-        self, cl_entity_s, decallist_s, mleaf_s, mnode_s, model_s, ref_viewpass_s, vec2_t, vec3_t,
+        self, bsp::MAX_MAP_LEAFS_BYTES, cl_entity_s, decallist_s, mleaf_s, mnode_s, model_s,
+        ref_viewpass_s, vec2_t, vec3_t,
     },
 };
 use utils::str::{AsPtr, ToEngineStr};
@@ -286,6 +287,20 @@ impl fmt::Display for SaveImageError {
 impl fmt::Debug for SaveImageError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_tuple("SaveImageError").finish()
+    }
+}
+
+pub struct FatPvsError(());
+
+impl fmt::Display for FatPvsError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.write_str("The buffer size must be greater or equal to {MAX_MAP_LEAFS_BYTES}")
+    }
+}
+
+impl fmt::Debug for FatPvsError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_tuple("FatPvsError").finish()
     }
 }
 
@@ -576,15 +591,31 @@ impl Engine {
         unsafe { unwrap!(self, SW_UnlockBuffer)() }
     }
 
-    // pub R_FatPVS: Option<
-    //     unsafe extern "C" fn(
-    //         org: *const f32,
-    //         radius: f32,
-    //         visbuffer: *mut byte,
-    //         merge: qboolean,
-    //         fullvis: qboolean,
-    //     ) -> c_int,
-    // >,
+    /// Calculates a Potentially Visible Sets (PVS) within radius of pixels of the given point.
+    ///
+    /// Returns an error if length of `buffer` is less than [MAX_MAP_LEAFS_BYTES].
+    pub fn r_fat_pvs<'a>(
+        &self,
+        org: vec3_t,
+        radius: f32,
+        buffer: &'a mut [u8],
+        merge: bool,
+        fullvis: bool,
+    ) -> Result<&'a mut [u8], FatPvsError> {
+        if buffer.len() < MAX_MAP_LEAFS_BYTES {
+            return Err(FatPvsError(()));
+        }
+        let bytes = unsafe {
+            unwrap!(self, R_FatPVS)(
+                org.as_ptr(),
+                radius,
+                buffer.as_mut_ptr(),
+                merge.into(),
+                fullvis.into(),
+            )
+        };
+        Ok(&mut buffer[..bytes as usize])
+    }
 
     pub fn get_overview_parms(&self) -> &raw::ref_overview_s {
         let ret = unsafe { unwrap!(self, GetOverviewParms)() };

@@ -6,6 +6,10 @@ authors.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 
+[features]
+default = ["bsp2"]
+bsp2 = []
+
 [lib]
 path = "lib.rs"
 
