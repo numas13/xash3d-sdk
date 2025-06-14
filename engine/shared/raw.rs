@@ -926,9 +926,48 @@ impl mnode_s {
         self.children[side]
     }
 
+    fn firstsurface_0(&self) -> u32 {
+        self.firstsurface_0 as u32
+    }
+
+    fn numsurfaces_0(&self) -> u32 {
+        self.numsurfaces_0 as u32
+    }
+
+    #[cfg(target_pointer_width = "32")]
+    fn firstsurface_1(&self) -> u32 {
+        (self.children[0] as u32) >> 24
+    }
+
+    #[cfg(target_pointer_width = "32")]
+    fn numsurfaces_1(&self) -> u32 {
+        (self.children[1] as u32) >> 24
+    }
+
     #[cfg(not(target_pointer_width = "32"))]
-    pub fn children(&self, _: &model_s, side: usize) -> *mut mnode_s {
-        self.children[side]
+    fn firstsurface_1(&self) -> u32 {
+        self.firstsurface_1 as u32
+    }
+
+    #[cfg(not(target_pointer_width = "32"))]
+    fn numsurfaces_1(&self) -> u32 {
+        self.numsurfaces_1 as u32
+    }
+
+    pub fn first_surface(&self, model: &model_s) -> u32 {
+        if model.flags.intersects(ModelFlags::QBSP2) {
+            self.firstsurface_0() + (self.firstsurface_1() << 16)
+        } else {
+            self.firstsurface_0()
+        }
+    }
+
+    pub fn num_surfaces(&self, model: &model_s) -> u32 {
+        if model.flags.intersects(ModelFlags::QBSP2) {
+            self.numsurfaces_0() + (self.numsurfaces_1() << 16)
+        } else {
+            self.numsurfaces_0()
+        }
     }
 }
 
