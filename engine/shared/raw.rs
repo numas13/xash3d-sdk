@@ -912,8 +912,8 @@ pub struct mnode_s {
 }
 
 impl mnode_s {
+    #[cfg(target_pointer_width = "32")]
     pub fn children(&self, model: &model_s, side: usize) -> *mut mnode_s {
-        #[cfg(target_pointer_width = "32")]
         if model.flags.intersects(ModelFlags::QBSP2) {
             let raw = self.children[side] as usize;
             let offset = (raw & 0xfffffe) >> 1;
@@ -923,6 +923,11 @@ impl mnode_s {
                 return model.nodes.wrapping_add(offset);
             }
         }
+        self.children[side]
+    }
+
+    #[cfg(not(target_pointer_width = "32"))]
+    pub fn children(&self, _: &model_s, side: usize) -> *mut mnode_s {
         self.children[side]
     }
 }
