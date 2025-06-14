@@ -1030,12 +1030,28 @@ pub struct mextrasurf_s {
     pub reserved: [isize; 32],
 }
 
+bitflags! {
+    #[derive(Copy, Clone, PartialEq, Eq, Debug, Default)]
+    #[repr(transparent)]
+    pub struct SurfaceFlags: c_int {
+        const NONE              = 0;
+        const PLANEBACK         = 1 << 1; // plane should be negated
+        const DRAWSKY           = 1 << 2; // sky surface
+        const DRAWTURB_QUADS    = 1 << 3; // all subidivided polygons are quads
+        const DRAWTURB          = 1 << 4; // warp surface
+        const DRAWTILED         = 1 << 5; // face without lighmap
+        const CONVEYOR          = 1 << 6; // scrolled texture (was SURF_DRAWBACKGROUND)
+        const UNDERWATER        = 1 << 7; // caustics
+        const TRANSPARENT       = 1 << 8; // it's a transparent texture (was SURF_DONTWARP)
+    }
+}
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct msurface_s {
     pub visframe: c_int,
     pub plane: *mut mplane_s,
-    pub flags: c_int,
+    pub flags: SurfaceFlags,
     pub firstedge: c_int,
     pub numedges: c_int,
     pub texturemins: [c_short; 2],
