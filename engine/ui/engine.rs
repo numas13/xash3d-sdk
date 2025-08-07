@@ -535,7 +535,7 @@ impl Engine {
         }
     }
 
-    pub fn keynum_to_str(&self, keynum: c_int) -> Ref<CStrThin> {
+    pub fn keynum_to_str(&self, keynum: c_int) -> Ref<'_, CStrThin> {
         // SAFETY: The returned string is allocated in a private static buffer
         // in that function. Never returns a null pointer.
         unsafe {
@@ -608,7 +608,7 @@ impl Engine {
         }
     }
 
-    pub fn get_files_list(&self, pattern: impl ToEngineStr, gamedironly: bool) -> FileList {
+    pub fn get_files_list(&self, pattern: impl ToEngineStr, gamedironly: bool) -> FileList<'_> {
         let pattern = pattern.to_engine_str();
         let mut len = 0;
         let func = unwrap!(self, pfnGetFilesList);
@@ -800,7 +800,7 @@ impl Engine {
         }
     }
 
-    pub fn addr_to_string(&self, addr: netadr_s) -> Ref<CStrThin> {
+    pub fn addr_to_string(&self, addr: netadr_s) -> Ref<'_, CStrThin> {
         // SAFETY: The returned string is allocated in a private static buffer
         // in that function. Never returns a null pointer.
         unsafe {
@@ -857,7 +857,7 @@ impl Engine {
     // pub CancelRequest: Option<unsafe extern "C" fn(context: c_int)>,
     // pub CancelAllRequests: Option<unsafe extern "C" fn()>,
 
-    pub fn addr_to_string_ref(&self, addr: &netadr_s) -> Ref<CStrThin> {
+    pub fn addr_to_string_ref(&self, addr: &netadr_s) -> Ref<'_, CStrThin> {
         // SAFETY: The returned string is allocated in a private static buffer
         // in that function. Never returns a null pointer.
         unsafe {
@@ -909,7 +909,7 @@ impl File {
         unsafe { slice::from_raw_parts_mut(self.data, self.len) }
     }
 
-    pub fn cursor(&mut self) -> Cursor {
+    pub fn cursor(&mut self) -> Cursor<'_> {
         unsafe { Cursor::from_ptr(self.data) }
     }
 }

@@ -67,13 +67,6 @@ pub static mut in_mlook: kbutton_t = kbutton_t::new();
 #[allow(non_upper_case_globals)]
 static mut in_jlook: kbutton_t = kbutton_t::new();
 
-#[derive(Copy, Clone, Default)]
-#[repr(C)]
-pub struct Point {
-    x: c_int,
-    y: c_int,
-}
-
 struct Mouse {}
 
 impl Mouse {

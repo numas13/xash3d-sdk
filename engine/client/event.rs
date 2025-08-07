@@ -122,7 +122,7 @@ impl<'a> EventApi<'a> {
         }
     }
 
-    pub fn push_pm_states(&self) -> PmStates {
+    pub fn push_pm_states(&self) -> PmStates<'_> {
         unsafe { unwrap!(self, EV_PushPMStates)() }
         PmStates(self)
     }

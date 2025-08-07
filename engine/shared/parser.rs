@@ -146,7 +146,7 @@ impl<'a> Iterator for Tokens<'a> {
     }
 }
 
-pub fn tokens(data: &str) -> Tokens {
+pub fn tokens(data: &str) -> Tokens<'_> {
     Tokens::new(data)
 }
 

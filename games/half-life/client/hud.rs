@@ -347,7 +347,7 @@ impl State {
         self.inv.weapons().contains(Weapons::SUIT)
     }
 
-    fn draw_number(&self, number: c_int) -> DrawNumber {
+    fn draw_number(&self, number: c_int) -> DrawNumber<'_> {
         DrawNumber {
             state: self,
             width: 0,

@@ -35,11 +35,11 @@ impl Engine {
 
     // pub pTriAPI: *mut triangleapi_s,
 
-    pub fn efx_api(&self) -> EfxApi {
+    pub fn efx_api(&self) -> EfxApi<'_> {
         EfxApi::new(unsafe { &*self.raw.pEfxAPI })
     }
 
-    pub fn event_api(&self) -> EventApi {
+    pub fn event_api(&self) -> EventApi<'_> {
         EventApi::new(unsafe { &*self.raw.pEventAPI })
     }
 

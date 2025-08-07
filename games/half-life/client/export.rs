@@ -366,8 +366,8 @@ pub unsafe extern "C" fn HUD_TempEntUpdate(
     cl_gravity: f64,
     temp_ent_free: *mut *mut TEMPENTITY,
     temp_ent_active: *mut *mut TEMPENTITY,
-    add_visible_entity: unsafe extern "C" fn(pEntity: *mut cl_entity_s) -> c_int,
-    temp_ent_play_sound: unsafe extern "C" fn(pTemp: *mut TEMPENTITY, damp: f32),
+    add_visible_entity: unsafe extern "C" fn(entity: *mut cl_entity_s) -> c_int,
+    temp_ent_play_sound: unsafe extern "C" fn(temp: *mut TEMPENTITY, damp: f32),
 ) {
     let mut list = unsafe { entity::TempEntityList::new(temp_ent_active, temp_ent_free) };
     let add = |ent: &mut cl_entity_s| unsafe { add_visible_entity(ent) };

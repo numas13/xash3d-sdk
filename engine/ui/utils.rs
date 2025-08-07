@@ -29,7 +29,7 @@ impl fmt::Display for EscapeCommand<'_> {
     }
 }
 
-pub fn escape_command(src: &str) -> EscapeCommand {
+pub fn escape_command(src: &str) -> EscapeCommand<'_> {
     EscapeCommand::new(src, engine().cvar(c"cmd_scripting"))
 }
 

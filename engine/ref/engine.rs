@@ -35,7 +35,7 @@ pub struct Draw<'a> {
 }
 
 impl Draw<'_> {
-    fn new(raw: &render_interface_t) -> Draw {
+    fn new(raw: &render_interface_t) -> Draw<'_> {
         Draw { raw }
     }
 
@@ -178,7 +178,7 @@ impl SwBuffer {
         self.stride() * self.height()
     }
 
-    pub fn lock(&mut self, width: c_int, height: c_int) -> Option<SwBufferLock> {
+    pub fn lock(&mut self, width: c_int, height: c_int) -> Option<SwBufferLock<'_>> {
         let engine = engine();
         let data = unsafe { engine.sw_lock_buffer() };
         if !data.is_null() && width == self.width && height == self.height {
@@ -715,7 +715,7 @@ impl Engine {
     // pub pfnDrawNormalTriangles: Option<unsafe extern "C" fn()>,
     // pub pfnDrawTransparentTriangles: Option<unsafe extern "C" fn()>,
 
-    pub fn draw(&self) -> Draw {
+    pub fn draw(&self) -> Draw<'_> {
         debug_assert!(!self.raw.drawFuncs.is_null());
         Draw::new(unsafe { &*self.raw.drawFuncs })
     }
