@@ -15,6 +15,7 @@ use consts::*;
 macro_rules! define {
     ($(fn $name:ident($($a:ident: $t:ty),* $(,)?) $(-> $r:ty)?;)*) => (
         $(
+            #[cfg(not(feature = "libm"))]
             #[inline(always)]
             pub fn $name($($a: $t),*) $(-> $r)? {
                 #[cfg_attr(unix, link(name = "m"))]
@@ -25,6 +26,9 @@ macro_rules! define {
                     $name($($a),*)
                 }
             }
+
+            #[cfg(feature = "libm")]
+            pub use libm::$name;
         )*
     );
 }
