@@ -227,9 +227,13 @@ impl Engine {
         }
     }
 
-    // pub pfnPIC_EnableScissor:
-    //     Option<unsafe extern "C" fn(x: c_int, y: c_int, width: c_int, height: c_int)>,
-    // pub pfnPIC_DisableScissor: Option<unsafe extern "C" fn()>,
+    pub fn pic_enable_scissor(&self, x: c_int, y: c_int, width: c_int, height: c_int) {
+        unsafe { unwrap!(self, pfnPIC_EnableScissor)(x, y, width, height) }
+    }
+
+    pub fn pic_disable_scissor(&self) {
+        unsafe { unwrap!(self, pfnPIC_DisableScissor)() }
+    }
 
     pub fn fill_rgba<P, S, C>(&self, pos: P, size: S, color: C)
     where
