@@ -20,6 +20,9 @@ pub trait UiDll: UnsyncGlobal {
     }
 
     fn redraw(&self, time: f32) {
+        if !self.is_visible() {
+            return;
+        }
         let engine = engine();
         let globals = globals();
         engine.fill_rgba((0, 0), (globals.scrWidth, globals.scrHeight), RGBA::BLACK);
