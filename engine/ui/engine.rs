@@ -11,7 +11,7 @@ use csz::{CStrArray, CStrThin};
 use shared::borrow::{BorrowRef, Ref};
 
 use crate::{
-    color::RGBA,
+    color::{RGB, RGBA},
     consts::{MAX_STRING, MAX_SYSPATH},
     cvar::{CVarFlags, CVarPtr},
     raw::{self, kbutton_t, net_api_s, netadr_s, wrect_s, HIMAGE},
@@ -451,11 +451,30 @@ impl Engine {
         unsafe { unwrap!(self, pfnDrawConsoleString)(x, y, text.as_ptr()) }
     }
 
-    // pub pfnDrawSetTextColor:
-    //     Option<unsafe extern "C" fn(r: c_int, g: c_int, b: c_int, alpha: c_int)>,
-    // pub pfnDrawConsoleStringLen:
-    //     Option<unsafe extern "C" fn(string: *const c_char, length: *mut c_int, height: *mut c_int)>,
-    // pub pfnSetConsoleDefaultColor: Option<unsafe extern "C" fn(r: c_int, g: c_int, b: c_int)>,
+    pub fn draw_set_text_color(&self, color: impl Into<RGBA>) {
+        let [r, g, b, a] = color.into().to_bytes();
+        unsafe {
+            unwrap!(self, pfnDrawSetTextColor)(r as c_int, g as c_int, b as c_int, a as c_int);
+        }
+    }
+
+    pub fn draw_console_string_len(&self, text: impl ToEngineStr) -> (c_int, c_int) {
+        let text = text.to_engine_str();
+        let mut width = 0;
+        let mut height = 0;
+        unsafe {
+            unwrap!(self, pfnDrawConsoleStringLen)(text.as_ptr(), &mut width, &mut height);
+        }
+        (width, height)
+    }
+
+    pub fn set_console_default_color(&self, color: impl Into<RGB>) {
+        let [r, g, b] = color.into().to_bytes();
+        unsafe {
+            unwrap!(self, pfnSetConsoleDefaultColor)(r as c_int, g as c_int, b as c_int);
+        }
+    }
+
     // pub pfnGetPlayerModel: Option<unsafe extern "C" fn() -> *mut cl_entity_s>,
     // pub pfnSetModel: Option<unsafe extern "C" fn(ed: *mut cl_entity_s, path: *const c_char)>,
     // pub pfnClearScene: Option<unsafe extern "C" fn()>,

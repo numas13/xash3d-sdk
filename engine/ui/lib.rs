@@ -1,7 +1,11 @@
 #![cfg_attr(not(test), no_std)]
 
+#[macro_use]
+extern crate log;
+
 pub mod consts;
 pub mod engine;
+pub mod export;
 pub mod picture;
 pub mod rand;
 pub mod raw;
