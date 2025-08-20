@@ -423,3 +423,31 @@ pub fn get_ext_api<T: UiDll + Default>(
     *ret_funcs = T::ui_extended_functions();
     1
 }
+
+#[doc(hidden)]
+#[macro_export]
+macro_rules! export_dll {
+    ($instance:ty $(, pre $pre:block)? $(, post $post:block)?) => {
+        #[no_mangle]
+        pub extern "C" fn GetMenuAPI(
+            ret: Option<&mut $crate::raw::UI_FUNCTIONS>,
+            funcs: Option<&$crate::raw::ui_enginefuncs_s>,
+            globals: Option<&'static $crate::raw::ui_globalvars_s>,
+        ) -> core::ffi::c_int {
+            $($pre)?
+            let result = $crate::export::get_menu_api::<$instance>(ret, funcs, globals);
+            $($post)?
+            result
+        }
+
+        #[no_mangle]
+        pub extern "C" fn GetExtAPI(
+            version: core::ffi::c_int,
+            ret: Option<&mut $crate::raw::UI_EXTENDED_FUNCTIONS>,
+            funcs: Option<&$crate::raw::ui_extendedfuncs_s>,
+        ) -> core::ffi::c_int {
+            $crate::export::get_ext_api::<$instance>(version, ret, funcs)
+        }
+    };
+}
+pub use export_dll;
