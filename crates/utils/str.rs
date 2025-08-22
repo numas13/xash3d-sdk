@@ -1,4 +1,7 @@
-use core::ffi::{c_char, CStr};
+use core::{
+    ffi::{c_char, CStr},
+    fmt::{self, Write},
+};
 
 use alloc::{ffi::CString, string::String};
 use csz::{CStrArray, CStrBox, CStrThin};
@@ -88,6 +91,13 @@ impl AsPtr<c_char> for CStrTemp {
     }
 }
 
+impl<const N: usize> AsPtr<c_char> for CStrArray<N> {
+    fn as_ptr(&self) -> *const c_char {
+        self.as_thin().as_ptr()
+    }
+}
+
+/// A helper trait to convert an object to a string accepted by the engine.
 pub trait ToEngineStr {
     type Output: AsPtr<c_char>;
 
@@ -147,6 +157,16 @@ impl<'a> ToEngineStr for &'a CString {
 
     fn to_engine_str(&self) -> Self::Output {
         self.as_c_str()
+    }
+}
+
+impl<'a> ToEngineStr for fmt::Arguments<'a> {
+    type Output = CStrArray<8192>;
+
+    fn to_engine_str(&self) -> Self::Output {
+        let mut buf = CStrArray::new();
+        buf.cursor().write_fmt(*self).unwrap();
+        buf
     }
 }
 

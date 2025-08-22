@@ -6,7 +6,6 @@ use core::{
     ptr,
 };
 
-use csz::CStrArray;
 use utils::str::{AsPtr, ToEngineStr};
 
 use crate::{
@@ -331,16 +330,16 @@ impl Engine {
         unsafe { unwrap!(self, pfnCVarSetString)(name.as_ptr(), value.as_ptr()) }
     }
 
-    pub fn alert_message_fmt(&self, atype: raw::ALERT_TYPE, args: fmt::Arguments) {
-        use core::fmt::Write;
-
-        let mut buf = CStrArray::<2048>::new();
-        buf.cursor()
-            .write_fmt(args)
-            .expect("message must be less than 2048 bytes");
+    pub fn alert_message(&self, atype: raw::ALERT_TYPE, msg: impl ToEngineStr) {
+        let msg = msg.to_engine_str();
         unsafe {
-            unwrap!(self, pfnAlertMessage)(atype, c"%s\n".as_ptr(), buf.as_c_str().as_ptr());
+            unwrap!(self, pfnAlertMessage)(atype, c"%s\n".as_ptr(), msg.as_ptr());
         }
+    }
+
+    #[deprecated(note = "use alert_message instead")]
+    pub fn alert_message_fmt(&self, atype: raw::ALERT_TYPE, args: fmt::Arguments) {
+        self.alert_message(atype, args);
     }
 
     // pub pfnEngineFprintf: Option<unsafe extern "C" fn(pfile: *mut FILE, szFmt: *mut c_char, ...)>,

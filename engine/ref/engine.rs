@@ -393,6 +393,7 @@ impl Engine {
         }
     }
 
+    #[deprecated(note = "use con_print instead")]
     pub fn con_printf(&self, args: fmt::Arguments) -> fmt::Result {
         let mut buf = CStrArray::<8192>::new();
         buf.cursor().write_fmt(args)?;

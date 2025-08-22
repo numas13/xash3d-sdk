@@ -1,6 +1,6 @@
 use core::{
     ffi::{c_char, c_int, c_uint, c_void, CStr},
-    fmt::{self, Write},
+    fmt,
     marker::PhantomData,
     mem::MaybeUninit,
     ops::{Deref, DerefMut},
@@ -323,18 +323,14 @@ impl Engine {
         unsafe { unwrap!(self, pfnClientCmd)(1, cmd.as_ptr()) }
     }
 
-    fn client_cmdf_impl(&self, now: bool, cmd: fmt::Arguments) {
-        let mut buf = CStrArray::<1024>::new();
-        buf.cursor().write_fmt(cmd).unwrap();
-        unsafe { unwrap!(self, pfnClientCmd)(now as c_int, buf.as_ptr()) }
-    }
-
+    #[deprecated(note = "use client_cmd instead")]
     pub fn client_cmdf(&self, cmd: fmt::Arguments) {
-        self.client_cmdf_impl(false, cmd);
+        self.client_cmd(cmd);
     }
 
+    #[deprecated(note = "use client_cmd instead")]
     pub fn client_cmdf_now(&self, cmd: fmt::Arguments) {
-        self.client_cmdf_impl(true, cmd);
+        self.client_cmd_now(cmd);
     }
 
     pub fn delete_command(&self, cmd_name: impl ToEngineStr) {
@@ -370,10 +366,9 @@ impl Engine {
         }
     }
 
+    #[deprecated(note = "use con_print instead")]
     pub fn con_printf(&self, args: fmt::Arguments<'_>) -> fmt::Result {
-        let mut buf = CStrArray::<8192>::new();
-        buf.cursor().write_fmt(args)?;
-        self.con_print(buf.as_thin());
+        self.con_print(args);
         Ok(())
     }
 
@@ -384,10 +379,9 @@ impl Engine {
         }
     }
 
+    #[deprecated(note = "use con_dprint instead")]
     pub fn con_dprintf(&self, args: fmt::Arguments<'_>) -> fmt::Result {
-        let mut buf = CStrArray::<8192>::new();
-        buf.cursor().write_fmt(args)?;
-        self.con_dprint(buf.as_thin());
+        self.con_dprint(args);
         Ok(())
     }
 
@@ -398,10 +392,9 @@ impl Engine {
         }
     }
 
+    #[deprecated(note = "use con_nprint instead")]
     pub fn con_nprintf(&self, pos: c_int, args: fmt::Arguments<'_>) -> fmt::Result {
-        let mut buf = CStrArray::<8192>::new();
-        buf.cursor().write_fmt(args)?;
-        self.con_nprint(pos, buf.as_thin());
+        self.con_nprint(pos, args);
         Ok(())
     }
 
@@ -486,11 +479,10 @@ impl Engine {
     // pub CL_CreateVisibleEntity:
     //     Option<unsafe extern "C" fn(type_: c_int, ent: *mut cl_entity_s) -> c_int>,
 
-    pub fn host_error(&self, args: fmt::Arguments<'_>) -> ! {
-        let mut buf = CStrArray::<4096>::new();
-        buf.cursor().write_fmt(args).unwrap();
+    pub fn host_error(&self, msg: impl ToEngineStr) -> ! {
+        let msg = msg.to_engine_str();
         unsafe {
-            unwrap!(self, pfnHostError)(c"%s".as_ptr(), buf.as_ptr());
+            unwrap!(self, pfnHostError)(c"%s".as_ptr(), msg.as_ptr());
         }
         unreachable!()
     }
