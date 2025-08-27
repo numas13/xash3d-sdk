@@ -53,11 +53,26 @@ bitflags! {
 }
 
 #[derive(Copy, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 #[repr(C)]
 pub enum GameType {
     Normal = 0,
     SingleplayerOnly = 1,
     MultiplayerOnly = 2,
+}
+
+impl GameType {
+    pub fn is_normal(&self) -> bool {
+        matches!(self, Self::Normal)
+    }
+
+    pub fn is_singleplayer_only(&self) -> bool {
+        matches!(self, Self::SingleplayerOnly)
+    }
+
+    pub fn is_multiplayer_only(&self) -> bool {
+        matches!(self, Self::MultiplayerOnly)
+    }
 }
 
 #[derive(Copy, Clone)]
