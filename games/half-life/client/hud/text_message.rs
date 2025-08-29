@@ -1,4 +1,4 @@
-use core::ffi::{c_char, c_int, CStr};
+use core::ffi::{c_int, CStr};
 
 use alloc::string::String;
 use cl::{
@@ -15,10 +15,6 @@ const HUD_PRINTNOTIFY: c_int = 1;
 const HUD_PRINTCONSOLE: c_int = 2;
 const HUD_PRINTTALK: c_int = 3;
 const HUD_PRINTCENTER: c_int = 4;
-
-extern "C" {
-    fn snprintf(str: *mut c_char, size: usize, format: *const c_char, ...) -> c_int;
-}
 
 fn cstr_copy(dst: &mut [u8], src: &[u8]) -> usize {
     let len = src.len() - src.ends_with(b"\0") as usize;
@@ -69,7 +65,7 @@ impl TextMessage {
                 len -= 1;
             }
 
-            snprintf(
+            libc::snprintf(
                 ptr.cast(),
                 len,
                 format.as_ptr(),

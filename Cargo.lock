@@ -52,6 +52,7 @@ version = "0.1.0"
 dependencies = [
  "bitflags",
  "csz",
+ "libc",
  "log",
  "xash3d-client",
  "xash3d-hl-resources",
