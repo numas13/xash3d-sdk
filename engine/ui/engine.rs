@@ -141,12 +141,19 @@ impl Engine {
         self.ext = ext;
     }
 
-    pub fn pic_load(&self, path: impl ToEngineStr, buf: Option<&[u8]>, flags: u32) -> HIMAGE {
+    pub fn pic_load(
+        &self,
+        path: impl ToEngineStr,
+        buf: Option<&[u8]>,
+        flags: u32,
+    ) -> Option<HIMAGE> {
         let path = path.to_engine_str();
         let (buf, len) = buf
             .map(|i| (i.as_ptr(), i.len()))
             .unwrap_or((ptr::null(), 0));
-        unsafe { unwrap!(self, pfnPIC_Load)(path.as_ptr(), buf, len as c_int, flags as c_int) }
+        let pic =
+            unsafe { unwrap!(self, pfnPIC_Load)(path.as_ptr(), buf, len as c_int, flags as c_int) };
+        (pic != 0).then_some(pic)
     }
 
     pub fn pic_free(&self, path: impl ToEngineStr) {
