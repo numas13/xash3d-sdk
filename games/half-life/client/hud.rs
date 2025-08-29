@@ -34,7 +34,6 @@ use cl::{
     message::{hook_message, hook_message_flag},
     raw::{client_data_s, vec3_t, wrect_s},
     sprite::SpriteHandle,
-    utils::macros::unimpl,
 };
 use csz::{CStrArray, CStrBox};
 
@@ -811,7 +810,7 @@ fn hook_messages_and_commands() {
     });
 
     hook_message!(GameMode, {
-        unimpl!("GameMode");
+        trace!("message GameMode is not implemented");
         true
     });
 
