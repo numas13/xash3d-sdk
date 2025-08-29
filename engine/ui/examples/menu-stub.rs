@@ -1,7 +1,7 @@
 use std::{cell::Cell, ffi::c_int};
 
-use shared::color::RGBA;
-use xash3d_ui_engine::{
+use xash3d_ui::{
+    color::RGBA,
     consts::keys,
     engine,
     export::{export_dll, impl_unsync_global, UiDll},
