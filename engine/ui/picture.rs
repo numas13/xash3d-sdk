@@ -1,5 +1,4 @@
 use core::{
-    error::Error,
     ffi::{c_int, CStr},
     fmt,
 };
@@ -26,7 +25,9 @@ impl fmt::Display for PictureError {
     }
 }
 
-impl Error for PictureError {}
+// FIXME: use core::error::Error when MSRV >= 1.81
+#[cfg(feature = "std")]
+impl std::error::Error for PictureError {}
 
 pub struct Picture<T: AsRef<CStr> = &'static CStr> {
     raw: HIMAGE,

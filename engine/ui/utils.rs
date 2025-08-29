@@ -35,11 +35,15 @@ pub fn escape_command(src: &str) -> EscapeCommand<'_> {
 
 #[cfg(test)]
 mod tests {
+    use csz::CStrArray;
+
     use super::*;
 
     #[test]
     fn test_escape_command() {
-        let s = EscapeCommand::new("abc \"123\" $x", true).to_string();
-        assert_eq!(s, r#"abc \"123\" $$x"#);
+        let cmd = EscapeCommand::new("abc \"123\" $x", true);
+        let mut buf = CStrArray::<512>::new();
+        write!(buf.cursor(), "{cmd}").unwrap();
+        assert_eq!(cr#"abc \"123\" $$x"#, buf.as_c_str());
     }
 }

@@ -9,6 +9,9 @@ rust-version.workspace = true
 [lib]
 path = "lib.rs"
 
+[features]
+std = []
+
 [dependencies]
 log.workspace = true
 bitflags.workspace = true

@@ -1,4 +1,7 @@
-#![cfg_attr(not(test), no_std)]
+#![no_std]
+
+#[cfg(feature = "std")]
+extern crate std;
 
 #[macro_use]
 extern crate log;
