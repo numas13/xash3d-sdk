@@ -1,6 +1,9 @@
 use core::ops;
 
-use crate::math::sqrtf;
+use crate::{
+    consts::{PITCH, ROLL, YAW},
+    math::sqrtf,
+};
 
 #[allow(non_camel_case_types)]
 pub type vec2_t = Vector<2>;
@@ -89,6 +92,30 @@ impl Vector<3> {
             a[2] * b[0] - a[0] * b[2],
             a[0] * b[1] - a[1] * b[0],
         )
+    }
+
+    pub fn pitch(&self) -> f32 {
+        self.arr[PITCH]
+    }
+
+    pub fn set_pitch(&mut self, value: f32) {
+        self.arr[PITCH] = value;
+    }
+
+    pub fn yaw(&self) -> f32 {
+        self.arr[YAW]
+    }
+
+    pub fn set_yaw(&mut self, value: f32) {
+        self.arr[YAW] = value;
+    }
+
+    pub fn roll(&self) -> f32 {
+        self.arr[ROLL]
+    }
+
+    pub fn set_roll(&mut self, value: f32) {
+        self.arr[ROLL] = value;
     }
 }
 
