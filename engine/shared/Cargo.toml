@@ -21,7 +21,6 @@ workspace = true
 [dependencies]
 bitflags.workspace = true
 log.workspace = true
-libc.workspace = true
 csz.workspace = true
 cell.workspace = true
 libm = { workspace = true, optional = true }

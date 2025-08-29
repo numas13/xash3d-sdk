@@ -30,7 +30,7 @@ static ALLOCATOR: allocator::System = allocator::System::new();
 #[panic_handler]
 fn panic(info: &core::panic::PanicInfo) -> ! {
     error!("{info}");
-    sv::utils::abort();
+    unsafe { libc::abort() }
 }
 
 #[cfg(not(feature = "std"))]

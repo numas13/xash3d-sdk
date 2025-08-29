@@ -23,6 +23,7 @@ crate-type = ["cdylib"]
 log.workspace = true
 bitflags.workspace = true
 csz.workspace = true
+libc.workspace = true
 pm.workspace = true
 sv.workspace = true
 allocator.workspace = true

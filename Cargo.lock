@@ -76,6 +76,7 @@ version = "0.1.0"
 dependencies = [
  "bitflags",
  "csz",
+ "libc",
  "log",
  "xash3d-allocator",
  "xash3d-hl-resources",
@@ -120,7 +121,6 @@ version = "0.1.0"
 dependencies = [
  "bitflags",
  "csz",
- "libc",
  "libm",
  "log",
  "xash3d-cell",
