@@ -18,5 +18,6 @@ pub mod math;
 pub mod message;
 pub mod parser;
 pub mod raw;
+pub mod utils;
 
 pub use cell;

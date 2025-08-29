@@ -13,11 +13,11 @@ pub mod message;
 pub mod raw;
 pub mod sprite;
 mod studio;
+pub mod utils;
 
 use core::ffi::c_int;
 
 pub use shared::{cell, color, consts, cvar, math};
-pub use utils;
 
 pub use crate::{efx::EfxApi, engine::*, event::EventApi, studio::*};
 

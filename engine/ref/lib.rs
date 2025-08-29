@@ -6,8 +6,8 @@ extern crate log;
 pub mod consts;
 mod engine;
 pub mod raw;
+pub mod utils;
 
 pub use shared::{cell, color, cvar, math};
-pub use utils;
 
 pub use crate::engine::*;

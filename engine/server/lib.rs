@@ -7,8 +7,8 @@ extern crate log;
 pub mod macros;
 mod engine;
 pub mod raw;
+pub mod utils;
 
 pub use shared::{cell, consts, cvar, math};
-pub use utils;
 
 pub use crate::engine::*;

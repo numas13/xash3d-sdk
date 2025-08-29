@@ -114,6 +114,7 @@ version = "0.1.0"
 dependencies = [
  "bitflags",
  "csz",
+ "libc",
  "libm",
  "log",
  "xash3d-cell",
