@@ -1,6 +1,6 @@
 use core::ops;
 
-use crate::sqrtf;
+use crate::math::sqrtf;
 
 #[allow(non_camel_case_types)]
 pub type vec2_t = Vector<2>;

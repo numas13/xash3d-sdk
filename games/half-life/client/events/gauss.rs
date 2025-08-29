@@ -1,10 +1,9 @@
 use core::ffi::c_int;
 
 use cl::{
-    consts::{ATTN_NORM, CHAN_WEAPON, PM_NORMAL, SOLID_BSP, TE_SPRITETRAIL},
+    consts::{ATTN_NORM, CHAN_WEAPON, PITCH, PM_NORMAL, SOLID_BSP, TE_SPRITETRAIL},
     engine,
-    math::{consts::PITCH, vec3_t},
-    raw::{event_args_s, BeamEntity, RenderFx, RenderMode, SoundFlags, TempEntFlags},
+    raw::{event_args_s, vec3_t, BeamEntity, RenderFx, RenderMode, SoundFlags, TempEntFlags},
 };
 use res::valve::{self, sound, sprites};
 

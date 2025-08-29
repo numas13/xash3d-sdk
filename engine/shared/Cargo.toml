@@ -9,6 +9,8 @@ rust-version.workspace = true
 [features]
 default = ["bsp2"]
 bsp2 = []
+# Use libm crate for float math instead of C math library.
+libm = ["dep:libm"]
 
 [lib]
 path = "lib.rs"
@@ -21,4 +23,4 @@ bitflags.workspace = true
 log.workspace = true
 csz.workspace = true
 cell.workspace = true
-math.workspace = true
+libm = { workspace = true, optional = true }

@@ -1,9 +1,8 @@
 use core::ffi::c_int;
 
 use cl::{
-    consts::{ATTN_NORM, CHAN_ITEM, CHAN_WEAPON, PITCH_NORM},
+    consts::{ATTN_NORM, CHAN_ITEM, CHAN_WEAPON, PITCH, PITCH_NORM},
     engine,
-    math::consts::PITCH,
     raw::{event_args_s, SoundFlags},
 };
 use res::valve::sound;

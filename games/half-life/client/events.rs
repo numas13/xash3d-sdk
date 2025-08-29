@@ -24,8 +24,7 @@ use cl::{
     },
     engine,
     macros::hook_event,
-    math::vec3_t,
-    raw::{event_args_s, physent_s, pmtrace_s, Effects, MoveType, RenderMode, SoundFlags},
+    raw::{event_args_s, physent_s, pmtrace_s, vec3_t, Effects, MoveType, RenderMode, SoundFlags},
 };
 use csz::CStrArray;
 use res::valve::{self, sound};

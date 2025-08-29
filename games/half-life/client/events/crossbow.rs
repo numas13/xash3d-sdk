@@ -2,12 +2,11 @@ use core::ffi::c_int;
 
 use cl::{
     consts::{
-        ATTN_NORM, CHAN_BODY, CHAN_ITEM, CHAN_WEAPON, CONTENTS_WATER, PITCH_NORM, PM_NORMAL,
+        ATTN_NORM, CHAN_BODY, CHAN_ITEM, CHAN_WEAPON, CONTENTS_WATER, PITCH, PITCH_NORM, PM_NORMAL,
         SOLID_BSP, TE_BOUNCE_NULL,
     },
     engine,
-    math::{consts::PITCH, vec3_t},
-    raw::{event_args_s, RenderMode, SoundFlags, TempEntFlags, TEMPENTITY},
+    raw::{event_args_s, vec3_t, RenderMode, SoundFlags, TempEntFlags, TEMPENTITY},
 };
 use res::valve::{models, sound};
 

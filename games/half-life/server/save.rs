@@ -10,9 +10,8 @@ use csz::CStrThin;
 use sv::{
     engine, globals,
     macros::define_entity_field,
-    math::vec3_t,
     raw::{
-        edict_s, entvars_s, string_t, FieldType, FtypeDesc, KeyValueData, MoveType,
+        edict_s, entvars_s, string_t, vec3_t, FieldType, FtypeDesc, KeyValueData, MoveType,
         SAVERESTOREDATA, TYPEDESCRIPTION,
     },
     utils::array_from_slice,

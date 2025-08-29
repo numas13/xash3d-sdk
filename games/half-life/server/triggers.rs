@@ -5,10 +5,9 @@ use sv::{
     consts::{FENTTABLE_GLOBAL, FENTTABLE_MOVEABLE, SOLID_TRIGGER},
     engine, globals, globals_mut,
     macros::define_field,
-    math::vec3_t,
     raw::{
-        edict_s, entvars_s, string_t, Effects, FieldType, KeyValueData, MoveType, LEVELLIST,
-        SAVERESTOREDATA, TYPEDESCRIPTION,
+        edict_s, entvars_s, string_t, vec3_t, Effects, FieldType, KeyValueData, MoveType,
+        LEVELLIST, SAVERESTOREDATA, TYPEDESCRIPTION,
     },
 };
 

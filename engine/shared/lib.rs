@@ -13,9 +13,9 @@ pub mod color;
 pub mod consts;
 pub mod cvar;
 pub mod export;
+pub mod math;
 pub mod message;
 pub mod parser;
 pub mod raw;
 
 pub use cell;
-pub use math;

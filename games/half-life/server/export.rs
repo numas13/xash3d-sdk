@@ -9,10 +9,9 @@ use csz::CStrThin;
 use pm::{VEC_DUCK_HULL_MIN, VEC_HULL_MIN};
 use sv::{
     engine, engine_set, globals,
-    math::vec3_t,
     raw::{
         self, clientdata_s, customization_s, edict_s, entity_state_s, netadr_s, playermove_s,
-        qboolean, usercmd_s, weapon_data_s, EdictFlags, INTERFACE_VERSION,
+        qboolean, usercmd_s, vec3_t, weapon_data_s, EdictFlags, INTERFACE_VERSION,
         NEW_DLL_FUNCTIONS_VERSION,
     },
 };

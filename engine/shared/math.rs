@@ -1,16 +1,7 @@
-#![no_std]
-
-mod vector;
-
-pub mod consts {
-    pub const PITCH: usize = 0;
-    pub const YAW: usize = 1;
-    pub const ROLL: usize = 2;
-}
-
-pub use vector::*;
-
-use consts::*;
+use crate::{
+    consts::{PITCH, ROLL, YAW},
+    raw::vec3_t,
+};
 
 macro_rules! define {
     ($(fn $name:ident($($a:ident: $t:ty),* $(,)?) $(-> $r:ty)?;)*) => (

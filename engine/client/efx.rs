@@ -2,9 +2,8 @@ use core::ffi::c_int;
 
 use utils::str::{AsPtr, ToEngineStr};
 
-use crate::{
-    math::vec3_t,
-    raw::{self, dlight_s, BeamEntity, RenderFx, RenderMode, TempEntFlags, TEMPENTITY},
+use crate::raw::{
+    self, dlight_s, vec3_t, BeamEntity, RenderFx, RenderMode, TempEntFlags, TEMPENTITY,
 };
 
 pub struct EfxApi<'a> {

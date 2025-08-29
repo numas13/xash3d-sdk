@@ -31,9 +31,8 @@ use cl::{
     consts::MAX_PLAYERS,
     engine,
     macros::{hook_command, spr_load},
-    math::vec3_t,
     message::{hook_message, hook_message_flag},
-    raw::{client_data_s, wrect_s},
+    raw::{client_data_s, vec3_t, wrect_s},
     sprite::SpriteHandle,
     utils::macros::unimpl,
 };

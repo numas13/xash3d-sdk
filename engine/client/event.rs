@@ -3,8 +3,7 @@ use core::{ffi::c_int, mem::MaybeUninit};
 use csz::CStrThin;
 
 use crate::{
-    math::vec3_t,
-    raw::{self, physent_s, pmtrace_s, SoundFlags},
+    raw::{self, physent_s, pmtrace_s, vec3_t, SoundFlags},
     utils::str::{AsPtr, ToEngineStr},
 };
 

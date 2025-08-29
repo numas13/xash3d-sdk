@@ -2,14 +2,11 @@ use core::{cell::RefCell, f32, ffi::c_int, ptr};
 
 use cl::{
     cell::SyncOnceCell,
-    consts::CONTENTS_WATER,
+    consts::{CONTENTS_WATER, PITCH, ROLL, YAW},
     engine,
     macros::hook_command,
-    math::{
-        consts::{PITCH, ROLL, YAW},
-        fabsf, fmaxf, fminf, sinf, sqrtf, vec3_t,
-    },
-    raw::{cl_entity_s, ref_params_s, KeyState},
+    math::{fabsf, fmaxf, fminf, sinf, sqrtf},
+    raw::{cl_entity_s, ref_params_s, vec3_t, KeyState},
 };
 
 use crate::{camera::camera, helpers::*, input};

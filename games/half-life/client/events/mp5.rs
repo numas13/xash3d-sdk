@@ -1,12 +1,9 @@
 use core::ffi::c_int;
 
 use cl::{
-    consts::{ATTN_NORM, CHAN_WEAPON, TE_BOUNCE_SHELL},
+    consts::{ATTN_NORM, CHAN_WEAPON, PITCH, TE_BOUNCE_SHELL, YAW},
     engine,
-    math::{
-        angle_vectors,
-        consts::{PITCH, YAW},
-    },
+    math::angle_vectors,
     raw::{event_args_s, SoundFlags},
 };
 use res::valve::{models, sound};

@@ -11,8 +11,7 @@ use utils::str::{AsPtr, ToEngineStr};
 use crate::{
     cell::SyncOnceCell,
     cvar::{cvar_s, CVarPtr},
-    math::vec3_t,
-    raw::{self, edict_s, string_t},
+    raw::{self, edict_s, string_t, vec3_t},
 };
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]

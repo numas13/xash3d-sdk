@@ -1,7 +1,11 @@
 use core::{ffi::CStr, ptr};
 
 use alloc::boxed::Box;
-use sv::{cell::Sync, engine, globals, math::vec3_t, raw::edict_s};
+use sv::{
+    cell::Sync,
+    engine, globals,
+    raw::{edict_s, vec3_t},
+};
 
 use crate::{entity::Entity, player::Player};
 

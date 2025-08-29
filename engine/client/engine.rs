@@ -8,8 +8,7 @@ use crate::{
     cvar::{CVarFlags, CVarPtr},
     efx::EfxApi,
     event::EventApi,
-    math::vec3_t,
-    raw::{self, cl_entity_s, wrect_s},
+    raw::{self, cl_entity_s, vec3_t, wrect_s},
     sprite::{SpriteHandle, SpriteList},
     utils::str::{AsPtr, ToEngineStr},
 };

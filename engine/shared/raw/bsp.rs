@@ -1,11 +1,11 @@
 use core::ffi::{c_char, c_int, c_short, c_ushort};
 
 use bitflags::bitflags;
-use math::{vec3_t, vec4_t};
 
 use crate::raw::{
     byte,
     consts::{CONTENTS_LAVA, CONTENTS_SLIME, CONTENTS_WATER, MAX_MAP_HULLS},
+    vec3_t, vec4_t,
 };
 
 pub type word = c_ushort;

@@ -6,8 +6,9 @@ use cl::{
     color::RGB,
     engine,
     macros::spr_load,
-    math::{fabsf, fmaxf, sinf, vec3_t},
+    math::{fabsf, fmaxf, sinf},
     message::hook_message,
+    raw::vec3_t,
     sprite::SpriteHandle,
     Engine,
 };

@@ -6,8 +6,9 @@ use core::{
 use sv::{
     consts::{EFLAG_SLERP, ENTITY_BEAM, ENTITY_NORMAL, SOLID_SLIDEBOX},
     engine, globals,
-    math::vec3_t,
-    raw::{clientdata_s, edict_s, entity_state_s, entvars_s, EdictFlags, Effects, MoveType},
+    raw::{
+        clientdata_s, edict_s, entity_state_s, entvars_s, vec3_t, EdictFlags, Effects, MoveType,
+    },
 };
 
 use crate::{

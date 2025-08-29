@@ -7,8 +7,10 @@ use bitflags::bitflags;
 use sv::{
     consts::{SOLID_BSP, SOLID_NOT},
     engine, globals,
-    math::{fabsf, vec3_t},
-    raw::{edict_s, entvars_s, EdictFlags, Effects, KeyValueData, MoveType, TYPEDESCRIPTION},
+    math::fabsf,
+    raw::{
+        edict_s, entvars_s, vec3_t, EdictFlags, Effects, KeyValueData, MoveType, TYPEDESCRIPTION,
+    },
 };
 
 use crate::save::{self, SaveRestore};

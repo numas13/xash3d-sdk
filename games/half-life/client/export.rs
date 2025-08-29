@@ -6,11 +6,10 @@ use core::{
 use cl::{
     cvar::CVarPtr,
     engine,
-    math::vec3_t,
     raw::{
         byte, cl_entity_s, client_data_s, clientdata_s, engine_studio_api_s, entity_state_s,
         kbutton_t, local_state_s, netadr_s, playermove_s, qboolean, r_studio_interface_s,
-        ref_params_s, usercmd_s, weapon_data_s, EntityType, TEMPENTITY,
+        ref_params_s, usercmd_s, vec3_t, weapon_data_s, EntityType, TEMPENTITY,
     },
 };
 use csz::CStrThin;

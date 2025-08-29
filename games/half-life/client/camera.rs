@@ -6,14 +6,12 @@ use core::{
 
 use cl::{
     cell::SyncOnceCell,
+    consts::{PITCH, ROLL, YAW},
     engine,
     input::KeyButtonExt,
     macros::{hook_command, hook_command_key},
-    math::{
-        consts::{PITCH, ROLL, YAW},
-        fabsf, vec3_t,
-    },
-    raw::kbutton_t,
+    math::fabsf,
+    raw::{kbutton_t, vec3_t},
 };
 
 use crate::{helpers, input::input_mut};

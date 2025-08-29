@@ -5,6 +5,7 @@
 #![allow(clippy::type_complexity)]
 
 pub mod bsp;
+mod vector;
 
 use core::{
     ffi::{c_char, c_int, c_short, c_uchar, c_uint, c_ushort, c_void},
@@ -16,8 +17,6 @@ use core::{
 use bitflags::bitflags;
 use csz::CStrArray;
 
-use self::bsp::dmodel_t;
-
 use crate::{
     consts::{
         self, HISTORY_MAX, MAXLIGHTMAPS, MAX_MAP_HULLS, MAX_MOVEENTS, MAX_PHYSINFO_STRING,
@@ -26,7 +25,9 @@ use crate::{
     cvar::cvar_s,
 };
 
-pub use math::{vec2_t, vec3_t, vec4_t, Vector};
+use self::bsp::dmodel_t;
+
+pub use self::vector::{vec2_t, vec3_t, vec4_t, Vector};
 
 pub type playermove_s = c_void;
 

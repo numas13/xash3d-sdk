@@ -20,9 +20,9 @@ unsafe_op_in_unsafe_fn = "forbid"
 bitflags = "2.6"
 log = "0.4"
 libc = "0.2.172"
+libm = "0.2.15"
 csz = { git = "https://github.com/numas13/csz.git", features = ["alloc"] }
 cell = { package = "xash3d-cell", version = "0.1.0", path = "crates/cell" }
-math = { package = "xash3d-math", version = "0.1.0", path = "crates/math" }
 utils = { package = "xash3d-utils", version = "0.1.0", path = "crates/utils" }
 shared = { package = "xash3d-shared", version = "0.1.0", path = "engine/shared" }
 pm = { package = "xash3d-player-move", version = "0.1.0", path = "engine/player-move" }

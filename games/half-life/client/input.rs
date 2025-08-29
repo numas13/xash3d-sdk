@@ -8,15 +8,12 @@ use core::{
 use alloc::vec::Vec;
 use cl::{
     cell::SyncOnceCell,
-    consts, engine,
+    consts::{self, PITCH, ROLL, YAW},
+    engine,
     input::KeyButtonExt,
     macros::{hook_command, hook_command_key},
-    math::{
-        angle_mod,
-        consts::{PITCH, ROLL, YAW},
-        pow, sqrt, sqrtf, vec3_t,
-    },
-    raw::{kbutton_t, usercmd_s, KeyState},
+    math::{angle_mod, pow, sqrt, sqrtf},
+    raw::{kbutton_t, usercmd_s, vec3_t, KeyState},
 };
 use csz::{CStrBox, CStrThin};
 

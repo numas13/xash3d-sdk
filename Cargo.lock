@@ -76,13 +76,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "xash3d-math"
-version = "0.1.0"
-dependencies = [
- "libm",
-]
-
-[[package]]
 name = "xash3d-player-move"
 version = "0.1.0"
 dependencies = [
@@ -121,9 +114,9 @@ version = "0.1.0"
 dependencies = [
  "bitflags",
  "csz",
+ "libm",
  "log",
  "xash3d-cell",
- "xash3d-math",
 ]
 
 [[package]]

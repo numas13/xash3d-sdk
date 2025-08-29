@@ -1,6 +1,8 @@
 use core::ffi::{c_int, CStr};
 
-pub use math::consts::*;
+pub const PITCH: usize = 0;
+pub const YAW: usize = 1;
+pub const ROLL: usize = 2;
 
 pub const FTRACE_SIMPLEBOX: u32 = 1;
 pub const FTRACE_IGNORE_GLASS: u32 = 2;
