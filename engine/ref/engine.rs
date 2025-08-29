@@ -10,12 +10,12 @@ use csz::{CStrArray, CStrThin};
 use shared::{
     consts::RefParm,
     cvar::cvar_s,
+    engine::AsCStrPtr,
     raw::{
         self, bsp::MAX_MAP_LEAFS_BYTES, cl_entity_s, decallist_s, mleaf_s, mnode_s, model_s,
         ref_viewpass_s, vec2_t, vec3_t,
     },
 };
-use utils::str::{AsPtr, ToEngineStr};
 
 use crate::{
     cell::SyncOnceCell,
@@ -24,6 +24,8 @@ use crate::{
         ImageFlags,
     },
 };
+
+pub use shared::engine::ToEngineStr;
 
 pub enum Renderer {
     Engine,

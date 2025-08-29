@@ -6,13 +6,15 @@ use core::{
     ptr,
 };
 
-use utils::str::{AsPtr, ToEngineStr};
+use shared::engine::AsCStrPtr;
 
 use crate::{
     cell::SyncOnceCell,
     cvar::{cvar_s, CVarPtr},
     raw::{self, edict_s, string_t, vec3_t},
 };
+
+pub use shared::engine::ToEngineStr;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(transparent)]

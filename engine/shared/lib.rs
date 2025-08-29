@@ -12,6 +12,7 @@ pub mod borrow;
 pub mod color;
 pub mod consts;
 pub mod cvar;
+pub mod engine;
 pub mod export;
 pub mod math;
 pub mod message;

@@ -2,6 +2,8 @@ use core::{ffi::c_int, mem::MaybeUninit, ptr};
 
 use csz::CStrThin;
 
+use shared::engine::AsCStrPtr;
+
 use crate::{
     cell::SyncOnceCell,
     color::{RGB, RGBA},
@@ -10,8 +12,9 @@ use crate::{
     event::EventApi,
     raw::{self, cl_entity_s, vec3_t, wrect_s},
     sprite::{SpriteHandle, SpriteList},
-    utils::str::{AsPtr, ToEngineStr},
 };
+
+pub use shared::engine::ToEngineStr;
 
 pub struct Engine {
     raw: raw::cl_enginefuncs_s,

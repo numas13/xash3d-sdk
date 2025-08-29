@@ -7,13 +7,14 @@ use alloc::{ffi::CString, string::String};
 use csz::{CStrArray, CStrBox, CStrThin};
 
 /// An internal buffer for [CStrTemp].
-enum Buf<const N: usize = 512> {
+enum Buf<const N: usize> {
     Stack(CStrArray<N>),
     Heap(CString),
 }
 
+#[doc(hidden)]
 /// A `CStrTemp` is a temporary C string stored on the stack or the heap.
-pub struct CStrTemp<const N: usize = 512> {
+pub struct CStrTemp<const N: usize = 2048> {
     buf: Buf<N>,
 }
 
@@ -57,49 +58,27 @@ impl<const N: usize> CStrTemp<N> {
     }
 }
 
-impl From<&'_ str> for CStrTemp {
-    fn from(src: &str) -> Self {
-        Self::new(src)
+impl AsRef<CStrThin> for CStrTemp {
+    fn as_ref(&self) -> &CStrThin {
+        self.as_c_str().into()
     }
 }
 
-impl AsRef<CStr> for CStrTemp {
-    fn as_ref(&self) -> &CStr {
-        self.as_c_str()
-    }
+/// Shorthand for `s.as_ref().as_ptr()`.
+#[doc(hidden)]
+pub trait AsCStrPtr {
+    fn as_ptr(&self) -> *const c_char;
 }
 
-pub trait AsPtr<T> {
-    fn as_ptr(&self) -> *const T;
-}
-
-impl AsPtr<c_char> for &'_ CStr {
+impl<T: AsRef<CStrThin>> AsCStrPtr for T {
     fn as_ptr(&self) -> *const c_char {
-        CStr::as_ptr(self)
-    }
-}
-
-impl AsPtr<c_char> for &'_ CStrThin {
-    fn as_ptr(&self) -> *const c_char {
-        CStrThin::as_ptr(self)
-    }
-}
-
-impl AsPtr<c_char> for CStrTemp {
-    fn as_ptr(&self) -> *const c_char {
-        self.as_ptr()
-    }
-}
-
-impl<const N: usize> AsPtr<c_char> for CStrArray<N> {
-    fn as_ptr(&self) -> *const c_char {
-        self.as_thin().as_ptr()
+        self.as_ref().as_ptr()
     }
 }
 
 /// A helper trait to convert an object to a string accepted by the engine.
 pub trait ToEngineStr {
-    type Output: AsPtr<c_char>;
+    type Output: AsRef<CStrThin>;
 
     fn to_engine_str(&self) -> Self::Output;
 }
@@ -161,12 +140,20 @@ impl<'a> ToEngineStr for &'a CString {
 }
 
 impl<'a> ToEngineStr for fmt::Arguments<'a> {
-    type Output = CStrArray<8192>;
+    type Output = CStrTemp;
 
     fn to_engine_str(&self) -> Self::Output {
-        let mut buf = CStrArray::new();
-        buf.cursor().write_fmt(*self).unwrap();
-        buf
+        let mut temp = CStrArray::new();
+        let buf = temp
+            .cursor()
+            .write_fmt(*self)
+            .map(|_| Buf::Stack(temp))
+            .unwrap_or_else(|_| {
+                let mut s = String::with_capacity(temp.capacity() * 2);
+                s.write_fmt(*self).unwrap();
+                Buf::Heap(CString::new(s).unwrap())
+            });
+        CStrTemp { buf }
     }
 }
 
