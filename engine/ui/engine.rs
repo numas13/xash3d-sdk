@@ -717,12 +717,24 @@ impl Engine {
         }
     }
 
-    pub fn rand_f32(&self, start: f32, end: f32) -> f32 {
-        unsafe { unwrap!(self, pfnRandomFloat)(start, end) }
+    pub fn random_float(&self, min: f32, max: f32) -> f32 {
+        unsafe { unwrap!(self, pfnRandomFloat)(min, max) }
     }
 
+    pub fn random_int(&self, min: c_int, max: c_int) -> c_int {
+        assert!(min >= 0, "min must be greater than or equal to zero");
+        assert!(min <= max, "min must be less than or equal to max");
+        unsafe { unwrap!(self, pfnRandomLong)(min, max) }
+    }
+
+    #[deprecated(note = "use random_float instead")]
+    pub fn rand_f32(&self, start: f32, end: f32) -> f32 {
+        self.random_float(start, end)
+    }
+
+    #[deprecated(note = "use random_int instead")]
     pub fn rand_int(&self, start: c_int, end: c_int) -> c_int {
-        unsafe { unwrap!(self, pfnRandomLong)(start, end) }
+        self.random_int(start, end)
     }
 
     // pub pfnSetCursor: Option<unsafe extern "C" fn(hCursor: *mut c_void)>,

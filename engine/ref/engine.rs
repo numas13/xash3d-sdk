@@ -487,12 +487,27 @@ impl Engine {
     }
 
     // pub Host_Error: Option<unsafe extern "C" fn(fmt: *const c_char, ...)>,
-    // pub COM_SetRandomSeed: Option<unsafe extern "C" fn(lSeed: c_int)>,
 
+    pub fn set_random_seed(&self, seed: c_int) {
+        unsafe { unwrap!(self, COM_SetRandomSeed)(seed) }
+    }
+
+    pub fn random_float(&self, min: f32, max: f32) -> f32 {
+        unsafe { unwrap!(self, COM_RandomFloat)(min, max) }
+    }
+
+    pub fn random_int(&self, min: c_int, max: c_int) -> c_int {
+        assert!(min >= 0, "min must be greater than or equal to zero");
+        assert!(min <= max, "min must be less than or equal to max");
+        unsafe { unwrap!(self, COM_RandomLong)(min, max) }
+    }
+
+    #[deprecated(note = "use random_float instead")]
     pub fn com_random_float(&self, min: f32, max: f32) -> f32 {
         unsafe { unwrap!(self, COM_RandomFloat)(min, max) }
     }
 
+    #[deprecated(note = "use random_int instead")]
     pub fn com_random_long(&self, min: c_int, max: c_int) -> c_int {
         unsafe { unwrap!(self, COM_RandomLong)(min, max) }
     }

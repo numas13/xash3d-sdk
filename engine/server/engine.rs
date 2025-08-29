@@ -427,8 +427,17 @@ impl Engine {
     //     Option<unsafe extern "C" fn(pulCRC: *mut CRC32_t, p: *const c_void, len: c_int)>,
     // pub pfnCRC32_ProcessByte: Option<unsafe extern "C" fn(pulCRC: *mut CRC32_t, ch: c_uchar)>,
     // pub pfnCRC32_Final: Option<unsafe extern "C" fn(pulCRC: CRC32_t) -> CRC32_t>,
-    // pub pfnRandomLong: Option<unsafe extern "C" fn(lLow: c_int, lHigh: c_int) -> c_int>,
-    // pub pfnRandomFloat: Option<unsafe extern "C" fn(flLow: f32, flHigh: f32) -> f32>,
+
+    pub fn random_int(&self, min: c_int, max: c_int) -> c_int {
+        assert!(min >= 0, "min must be greater than or equal to zero");
+        assert!(min <= max, "min must be less than or equal to max");
+        unsafe { unwrap!(self, pfnRandomLong)(min, max) }
+    }
+
+    pub fn random_float(&self, min: f32, max: f32) -> f32 {
+        unsafe { unwrap!(self, pfnRandomFloat)(min, max) }
+    }
+
     // pub pfnSetView: Option<unsafe extern "C" fn(pClient: *const edict_t, pViewent: *const edict_t)>,
     // pub pfnTime: Option<unsafe extern "C" fn() -> f32>,
     // pub pfnCrosshairAngle:

@@ -299,7 +299,13 @@ impl playermove_s {
     }
 
     pub fn random_int(&self, min: c_int, max: c_int) -> c_int {
+        assert!(min >= 0, "min must be greater than or equal to zero");
+        assert!(min <= max, "min must be less than or equal to max");
         unsafe { pm_unwrap!(self, RandomLong)(min, max) }
+    }
+
+    pub fn random_float(&self, min: f32, max: f32) -> f32 {
+        unsafe { pm_unwrap!(self, RandomFloat)(min, max) }
     }
 
     pub fn play_sound(
