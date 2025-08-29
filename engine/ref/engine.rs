@@ -795,5 +795,7 @@ pub fn init(engine_funcs: &ref_api_s, globals: *mut ref_globals_s) {
         || GLOBALS.set(RefCell::new(Globals::new(globals))).is_err()
     {
         warn!("ref engine initialized multiple times");
+        return;
     }
+    crate::logger::init_console_logger();
 }

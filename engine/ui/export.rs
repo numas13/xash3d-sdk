@@ -390,14 +390,7 @@ pub fn get_menu_api<T: UiDll + Default>(
         return 0;
     };
     let Some(globals) = globals else { return 0 };
-
     crate::init(engine_funcs, globals);
-
-    let dev = engine().cvar::<f32>(c"developer") as i32;
-    crate::utils::logger::init(dev, |s| {
-        engine().con_print(s);
-    });
-
     *ret_funcs = T::ui_functions();
     1
 }

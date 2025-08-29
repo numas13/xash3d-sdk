@@ -630,5 +630,7 @@ pub fn engine<'a>() -> &'a Engine {
 pub fn engine_set(engine_funcs: raw::cl_enginefuncs_s) {
     if ENGINE.set(engine_funcs.into()).is_err() {
         warn!("client engine initialized multiple times");
+        return;
     }
+    crate::logger::init_console_logger();
 }

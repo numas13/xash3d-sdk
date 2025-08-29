@@ -732,5 +732,7 @@ pub fn engine_set(funcs: raw::enginefuncs_s, globals: *mut raw::globalvars_t) {
         || GLOBALS.set(RefCell::new(Globals::new(globals))).is_err()
     {
         warn!("server engine initialized multiple times");
+        return;
     }
+    crate::logger::init_console_logger();
 }

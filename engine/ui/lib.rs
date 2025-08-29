@@ -9,6 +9,7 @@ extern crate log;
 pub mod consts;
 mod engine;
 pub mod export;
+mod logger;
 pub mod picture;
 pub mod raw;
 pub mod utils;
@@ -38,6 +39,7 @@ pub fn init(eng_funcs: &raw::ui_enginefuncs_s, globals: &'static raw::ui_globalv
         ENGINE = Some(Engine::new(*eng_funcs));
         GLOBALS = Some(globals);
     }
+    crate::logger::init_console_logger();
 }
 
 pub fn init_ext(ext: &raw::ui_extendedfuncs_s) {

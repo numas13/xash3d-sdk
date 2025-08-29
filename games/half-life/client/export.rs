@@ -36,8 +36,6 @@ unsafe extern "C" fn Initialize(
 
     let engine_funcs = engine_funcs.unwrap();
     cl::engine_set(*engine_funcs);
-    let dev = engine().cvar_get_float(c"developer") as i32;
-    cl::utils::logger::init(dev, |s| engine().console_print(s));
 
     cl::cvar::init(|name, value, flags| {
         let engine = engine();

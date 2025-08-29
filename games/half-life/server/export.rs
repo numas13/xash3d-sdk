@@ -621,6 +621,4 @@ unsafe extern "C" fn GiveFnptrsToDll(
     globals: *mut sv::raw::globalvars_t,
 ) {
     engine_set(*funcs.unwrap(), globals);
-    let dev = engine().cvar_get_float(c"developer") as i32;
-    sv::utils::logger::init(dev, |s| engine().server_print(s));
 }

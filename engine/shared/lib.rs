@@ -14,6 +14,7 @@ pub mod consts;
 pub mod cvar;
 pub mod engine;
 pub mod export;
+pub mod logger;
 pub mod math;
 pub mod message;
 pub mod parser;

@@ -9,6 +9,7 @@ mod efx;
 mod engine;
 mod event;
 pub mod input;
+mod logger;
 pub mod message;
 pub mod raw;
 pub mod sprite;
