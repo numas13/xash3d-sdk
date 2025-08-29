@@ -23,7 +23,7 @@ mod world;
 #[cfg(not(feature = "std"))]
 #[cfg(not(test))]
 #[global_allocator]
-static ALLOCATOR: sv::utils::allocator::System = sv::utils::allocator::System::new();
+static ALLOCATOR: allocator::System = allocator::System::new();
 
 #[cfg(not(feature = "std"))]
 #[cfg(panic = "abort")]

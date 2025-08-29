@@ -32,6 +32,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a7a70ba024b9dc04c27ea2f0c0548feb474ec5c54bba33a7f72f873a39d07b24"
 
 [[package]]
+name = "xash3d-allocator"
+version = "0.1.0"
+dependencies = [
+ "libc",
+]
+
+[[package]]
 name = "xash3d-cell"
 version = "0.1.0"
 
@@ -43,7 +50,6 @@ dependencies = [
  "csz",
  "log",
  "xash3d-shared",
- "xash3d-utils",
 ]
 
 [[package]]
@@ -54,6 +60,7 @@ dependencies = [
  "csz",
  "libc",
  "log",
+ "xash3d-allocator",
  "xash3d-client",
  "xash3d-hl-resources",
  "xash3d-player-move",
@@ -70,6 +77,7 @@ dependencies = [
  "bitflags",
  "csz",
  "log",
+ "xash3d-allocator",
  "xash3d-hl-resources",
  "xash3d-player-move",
  "xash3d-server",
@@ -94,7 +102,6 @@ dependencies = [
  "libc",
  "log",
  "xash3d-shared",
- "xash3d-utils",
 ]
 
 [[package]]
@@ -105,7 +112,6 @@ dependencies = [
  "csz",
  "log",
  "xash3d-shared",
- "xash3d-utils",
 ]
 
 [[package]]
@@ -128,15 +134,4 @@ dependencies = [
  "csz",
  "log",
  "xash3d-shared",
- "xash3d-utils",
-]
-
-[[package]]
-name = "xash3d-utils"
-version = "0.1.0"
-dependencies = [
- "csz",
- "libc",
- "log",
- "xash3d-cell",
 ]

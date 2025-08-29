@@ -23,7 +23,7 @@ libc = "0.2.172"
 libm = "0.2.15"
 csz = { git = "https://github.com/numas13/csz.git", features = ["alloc"] }
 cell = { package = "xash3d-cell", version = "0.1.0", path = "crates/cell" }
-utils = { package = "xash3d-utils", version = "0.1.0", path = "crates/utils" }
+allocator = { package = "xash3d-allocator", version = "0.1.0", path = "crates/allocator" }
 shared = { package = "xash3d-shared", version = "0.1.0", path = "engine/shared" }
 pm = { package = "xash3d-player-move", version = "0.1.0", path = "engine/player-move" }
 cl = { package = "xash3d-client", version = "0.1.0", path = "engine/client" }

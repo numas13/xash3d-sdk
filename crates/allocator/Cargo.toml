@@ -1,5 +1,5 @@
 [package]
-name = "xash3d-utils"
+name = "xash3d-allocator"
 version = "0.1.0"
 license.workspace = true
 authors.workspace = true
@@ -10,9 +10,6 @@ rust-version.workspace = true
 path = "lib.rs"
 
 [dependencies]
-log.workspace = true
-csz.workspace = true
-cell.workspace = true
 libc.workspace = true
 
 [lints]

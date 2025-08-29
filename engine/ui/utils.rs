@@ -3,7 +3,6 @@ use core::fmt::{self, Write};
 use crate::engine;
 
 pub use shared::utils::*;
-pub use utils::*;
 
 pub struct EscapeCommand<'a> {
     src: &'a str,
