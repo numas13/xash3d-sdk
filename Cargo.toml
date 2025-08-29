@@ -1,18 +1,9 @@
 [workspace]
 resolver = "2"
 members = [
-    "crates/cell",
-    "crates/math",
-    "crates/utils",
-    "engine/shared",
-    "engine/player-move",
-    "engine/ref",
-    "engine/client",
-    "engine/server",
-    "engine/ui",
-    "games/half-life/resources",
-    "games/half-life/client",
-    "games/half-life/server",
+    "crates/*",
+    "engine/*",
+    "games/half-life/*",
 ]
 exclude = ["tools"]
 
