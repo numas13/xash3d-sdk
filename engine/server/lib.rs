@@ -5,7 +5,7 @@ extern crate log;
 
 #[macro_use]
 pub mod macros;
-pub mod engine;
+mod engine;
 pub mod raw;
 
 pub use shared::{cell, consts, cvar, math};
