@@ -13,6 +13,7 @@ path = "lib.rs"
 log.workspace = true
 csz.workspace = true
 cell.workspace = true
+libc.workspace = true
 
 [lints]
 workspace = true

@@ -141,6 +141,7 @@ name = "xash3d-utils"
 version = "0.1.0"
 dependencies = [
  "csz",
+ "libc",
  "log",
  "xash3d-cell",
 ]

@@ -16,8 +16,5 @@ pub fn array_from_slice<T: Copy + Default, const N: usize>(slice: &[T]) -> [T; N
 }
 
 pub fn abort() -> ! {
-    extern "C" {
-        fn abort() -> !;
-    }
-    unsafe { abort() }
+    unsafe { libc::abort() }
 }

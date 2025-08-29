@@ -15,7 +15,7 @@ bitflags.workspace = true
 csz.workspace = true
 utils.workspace = true
 shared.workspace = true
-libc = "0.2.172"
+libc.workspace = true
 
 [lints]
 workspace = true

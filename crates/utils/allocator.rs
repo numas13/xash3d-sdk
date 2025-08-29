@@ -1,24 +1,4 @@
-use core::{
-    alloc::{GlobalAlloc, Layout},
-    ffi::c_void,
-};
-
-#[cfg(not(windows))]
-use core::{ffi::c_int, ptr};
-
-extern "C" {
-    fn malloc(size: usize) -> *mut c_void;
-    fn free(ptr: *mut c_void);
-
-    #[cfg(not(windows))]
-    fn posix_memalign(memptr: *mut *mut c_void, alignment: usize, size: usize) -> c_int;
-}
-
-#[cfg(windows)]
-extern "C" {
-    fn _aligned_malloc(size: usize, alignment: usize) -> *mut c_void;
-    fn _aligned_free(memblock: *mut c_void);
-}
+use core::alloc::{GlobalAlloc, Layout};
 
 pub struct System {}
 
@@ -37,13 +17,14 @@ impl Default for System {
 #[cfg(not(windows))]
 unsafe impl GlobalAlloc for System {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
+        use core::ptr;
         let size = layout.size();
         let align = layout.align();
         if align < core::mem::size_of::<*const u8>() {
-            unsafe { malloc(size).cast() }
+            unsafe { libc::malloc(size).cast() }
         } else {
             let mut ret = ptr::null_mut();
-            if unsafe { posix_memalign(&mut ret, align, size) } == 0 {
+            if unsafe { libc::posix_memalign(&mut ret, align, size) } == 0 {
                 ret.cast()
             } else {
                 ptr::null_mut()
@@ -52,7 +33,7 @@ unsafe impl GlobalAlloc for System {
     }
 
     unsafe fn dealloc(&self, ptr: *mut u8, _layout: Layout) {
-        unsafe { free(ptr.cast()) }
+        unsafe { libc::free(ptr.cast()) }
     }
 }
 
@@ -61,15 +42,15 @@ unsafe impl GlobalAlloc for System {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
         let size = layout.size();
         match layout.align() {
-            1 | 2 => unsafe { malloc(size).cast() },
-            align => unsafe { _aligned_malloc(size, align).cast() },
+            1 | 2 => unsafe { libc::malloc(size).cast() },
+            align => unsafe { libc::aligned_malloc(size, align).cast() },
         }
     }
 
     unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
         match layout.align() {
-            1 | 2 => unsafe { free(ptr.cast()) },
-            _ => unsafe { _aligned_free(ptr.cast()) },
+            1 | 2 => unsafe { libc::free(ptr.cast()) },
+            _ => unsafe { libc::aligned_free(ptr.cast()) },
         }
     }
 }
