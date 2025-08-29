@@ -7,7 +7,7 @@ extern crate std;
 extern crate log;
 
 pub mod consts;
-pub mod engine;
+mod engine;
 pub mod export;
 pub mod picture;
 pub mod raw;
@@ -17,7 +17,7 @@ use core::ptr;
 
 pub use shared::{cell, color, cvar, math, parser};
 
-pub use crate::engine::{ActiveMenu, Engine, Point, Size};
+pub use crate::engine::*;
 
 static mut ENGINE: Option<Engine> = None;
 static mut GLOBALS: Option<&'static raw::ui_globalvars_s> = None;
