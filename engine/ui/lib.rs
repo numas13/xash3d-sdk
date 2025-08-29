@@ -10,7 +10,6 @@ pub mod consts;
 pub mod engine;
 pub mod export;
 pub mod picture;
-pub mod rand;
 pub mod raw;
 pub mod utils;
 
