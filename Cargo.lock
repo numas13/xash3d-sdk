@@ -11,7 +11,7 @@ checksum = "b048fb63fd8b5923fc5aa7b340d8e156aec7ec02f0c78fa8a6ddc2613f6f71de"
 [[package]]
 name = "csz"
 version = "0.2.0"
-source = "git+https://github.com/numas13/csz.git#cfa344b47e2be7822556112105b52ca120cd2b68"
+source = "git+https://github.com/numas13/csz.git#bbb074d253961660841bcf007cc0dc5bc6bddcfb"
 
 [[package]]
 name = "libc"

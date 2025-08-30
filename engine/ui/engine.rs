@@ -287,11 +287,11 @@ impl Engine {
         shared::engine::get_cvar_string(unwrap!(self, pfnGetCvarString), name)
     }
 
-    pub fn cvar<T: CVar>(&self, name: &CStr) -> T {
+    pub fn cvar<'a, T: CVar<'a>>(&'a self, name: &CStr) -> T {
         CVar::get(self, name)
     }
 
-    pub fn cvar_set<T: CVar>(&self, name: &CStr, value: T) {
+    pub fn cvar_set<'a, T: CVar<'a>>(&'a self, name: &CStr, value: T) {
         CVar::set(&value, self, name)
     }
 
@@ -1092,13 +1092,13 @@ impl fmt::Debug for GameInfo {
     }
 }
 
-pub trait CVar {
-    fn get(eng: &Engine, name: &CStr) -> Self;
+pub trait CVar<'a> {
+    fn get(eng: &'a Engine, name: &CStr) -> Self;
     fn set(&self, eng: &Engine, name: &CStr);
 }
 
-impl CVar for bool {
-    fn get(eng: &Engine, name: &CStr) -> Self {
+impl<'a> CVar<'a> for bool {
+    fn get(eng: &'a Engine, name: &CStr) -> Self {
         eng.get_cvar_float(name) != 0.0
     }
 
@@ -1107,8 +1107,8 @@ impl CVar for bool {
     }
 }
 
-impl CVar for usize {
-    fn get(eng: &Engine, name: &CStr) -> Self {
+impl<'a> CVar<'a> for usize {
+    fn get(eng: &'a Engine, name: &CStr) -> Self {
         eng.get_cvar_float(name) as usize
     }
 
@@ -1117,8 +1117,8 @@ impl CVar for usize {
     }
 }
 
-impl CVar for f32 {
-    fn get(eng: &Engine, name: &CStr) -> Self {
+impl<'a> CVar<'a> for f32 {
+    fn get(eng: &'a Engine, name: &CStr) -> Self {
         eng.get_cvar_float(name)
     }
 
@@ -1127,8 +1127,8 @@ impl CVar for f32 {
     }
 }
 
-impl CVar for &CStr {
-    fn get(eng: &Engine, name: &CStr) -> Self {
+impl<'a> CVar<'a> for &'a CStr {
+    fn get(eng: &'a Engine, name: &CStr) -> Self {
         eng.get_cvar_string(name).into()
     }
 
