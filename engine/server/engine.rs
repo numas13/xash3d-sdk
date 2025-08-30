@@ -1,21 +1,17 @@
 use core::{
-    cell::{Ref, RefCell, RefMut},
     ffi::{c_int, c_long, c_uchar, c_void, CStr},
-    fmt, iter,
-    ops::{Deref, DerefMut},
-    ptr,
+    fmt, iter, ptr,
 };
 
 use csz::CStrThin;
-use shared::engine::AsCStrPtr;
+use shared::engine_private::{self, AsCStrPtr};
 
 use crate::{
-    cell::SyncOnceCell,
     cvar::{cvar_s, CVarPtr},
     raw::{self, edict_s, string_t, vec3_t},
 };
 
-pub use shared::engine::ToEngineStr;
+pub use shared::engine::*;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(transparent)]
@@ -24,6 +20,8 @@ pub struct EntOffset(pub c_int);
 pub struct Engine {
     raw: raw::enginefuncs_s,
 }
+
+shared::export::impl_unsync_global!(Engine);
 
 macro_rules! unwrap {
     ($self:expr, $name:ident) => {
@@ -35,8 +33,11 @@ macro_rules! unwrap {
 }
 
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
-#[allow(dead_code)]
 impl Engine {
+    pub(crate) fn new(raw: &raw::enginefuncs_s) -> Self {
+        Self { raw: *raw }
+    }
+
     pub fn precache_model(&self, name: impl ToEngineStr) -> c_int {
         let name = name.to_engine_str();
         unsafe { unwrap!(self, pfnPrecacheModel)(name.as_ptr()) }
@@ -329,7 +330,7 @@ impl Engine {
     }
 
     pub fn get_cvar_string(&self, name: impl ToEngineStr) -> &CStrThin {
-        shared::engine::get_cvar_string(unwrap!(self, pfnCVarGetString), name)
+        engine_private::get_cvar_string(unwrap!(self, pfnCVarGetString), name)
     }
 
     // pub pfnCVarSetFloat: Option<unsafe extern "C" fn(szVarName: *const c_char, flValue: f32)>,
@@ -678,70 +679,4 @@ impl Engine {
     //     Option<unsafe extern "C" fn(parm: *mut c_char, ppnext: *mut *mut c_char) -> c_int>,
     // pub pfnPEntityOfEntIndexAllEntities:
     //     Option<unsafe extern "C" fn(iEntIndex: c_int) -> *mut edict_t>,
-}
-
-impl From<raw::enginefuncs_s> for Engine {
-    fn from(raw: raw::enginefuncs_s) -> Self {
-        Self { raw }
-    }
-}
-
-pub struct Globals {
-    raw: *mut raw::globalvars_t,
-}
-
-impl Globals {
-    fn new(raw: *mut raw::globalvars_t) -> Self {
-        Self { raw }
-    }
-
-    pub fn string(&self, string: string_t) -> &'static CStr {
-        unsafe { CStr::from_ptr(self.pStringBase.wrapping_byte_add(string.0 as usize)) }
-    }
-
-    #[deprecated = "use Engine::alloc_string"]
-    pub fn make_string(&self, s: &CStr) -> string_t {
-        let base = self.string(string_t(0)).as_ptr() as usize;
-        string_t(s.as_ptr().wrapping_byte_sub(base) as c_int)
-    }
-}
-
-impl Deref for Globals {
-    type Target = raw::globalvars_t;
-
-    fn deref(&self) -> &Self::Target {
-        unsafe { &*self.raw }
-    }
-}
-
-impl DerefMut for Globals {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        unsafe { &mut *self.raw }
-    }
-}
-
-static ENGINE: SyncOnceCell<Engine> = unsafe { SyncOnceCell::new() };
-
-static GLOBALS: SyncOnceCell<RefCell<Globals>> = unsafe { SyncOnceCell::new() };
-
-pub fn engine<'a>() -> &'a Engine {
-    ENGINE.get().unwrap()
-}
-
-pub fn globals() -> Ref<'static, Globals> {
-    GLOBALS.get().unwrap().borrow()
-}
-
-pub fn globals_mut() -> RefMut<'static, Globals> {
-    GLOBALS.get().unwrap().borrow_mut()
-}
-
-pub fn engine_set(funcs: raw::enginefuncs_s, globals: *mut raw::globalvars_t) {
-    if ENGINE.set(funcs.into()).is_err()
-        || GLOBALS.set(RefCell::new(Globals::new(globals))).is_err()
-    {
-        warn!("server engine initialized multiple times");
-        return;
-    }
-    crate::logger::init_console_logger();
 }

@@ -4,6 +4,7 @@ use core::{
 };
 
 use bitflags::bitflags;
+use csz::CStrThin;
 use sv::{
     consts::{SOLID_BSP, SOLID_NOT},
     engine, globals,
@@ -197,19 +198,19 @@ pub trait Entity: EntityVars + Cast + Any {
         self.vars().flags.intersects(EdictFlags::DORMANT)
     }
 
-    fn globalname(&self) -> &'static CStr {
+    fn globalname(&self) -> &'static CStrThin {
         globals().string(self.vars().globalname)
     }
 
-    fn is_globalname(&self, name: &CStr) -> bool {
+    fn is_globalname(&self, name: &CStrThin) -> bool {
         name == self.globalname()
     }
 
-    fn classname(&self) -> &'static CStr {
+    fn classname(&self) -> &'static CStrThin {
         globals().string(self.vars().classname)
     }
 
-    fn is_classname(&self, name: &CStr) -> bool {
+    fn is_classname(&self, name: &CStrThin) -> bool {
         name == self.classname()
     }
 

@@ -13,6 +13,7 @@ pub mod color;
 pub mod consts;
 pub mod cvar;
 pub mod engine;
+pub mod engine_private;
 pub mod export;
 pub mod logger;
 pub mod math;

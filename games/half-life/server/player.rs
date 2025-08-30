@@ -39,7 +39,7 @@ impl Player {
             todo!();
         }
 
-        let mut startspot = c"info_player_start";
+        let mut startspot = c"info_player_start".into();
         if !globals().startspot.is_null() && !globals().string(globals().startspot).is_empty() {
             startspot = globals().string(globals().startspot);
         }

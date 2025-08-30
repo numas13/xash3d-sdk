@@ -1148,7 +1148,7 @@ pub struct local_state_s {
 #[repr(C)]
 pub struct cldll_func_s {
     pub pfnInitialize: Option<
-        unsafe extern "C" fn(pEnginefuncs: Option<&mut cl_enginefuncs_s>, iVersion: c_int) -> c_int,
+        unsafe extern "C" fn(pEnginefuncs: Option<&cl_enginefuncs_s>, iVersion: c_int) -> c_int,
     >,
     pub pfnInit: Option<unsafe extern "C" fn()>,
     pub pfnVidInit: Option<unsafe extern "C" fn() -> c_int>,

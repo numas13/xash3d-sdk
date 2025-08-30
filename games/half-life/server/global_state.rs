@@ -91,11 +91,11 @@ impl Entities {
     }
 
     pub fn find_string(&self, name: string_t) -> Option<&GlobalEntity> {
-        self.find(globals().string(name).into())
+        self.find(globals().string(name))
     }
 
     pub fn find_string_mut(&mut self, name: string_t) -> Option<&mut GlobalEntity> {
-        self.find_mut(globals().string(name).into())
+        self.find_mut(globals().string(name))
     }
 
     pub fn add(&mut self, name: &CStrThin, map_name: &CStrThin, state: EntityState) {
@@ -106,8 +106,8 @@ impl Entities {
 
     pub fn add_string(&mut self, name: string_t, map_name: string_t, state: EntityState) {
         let globals = globals();
-        let name = globals.string(name).into();
-        let map_name = globals.string(map_name).into();
+        let name = globals.string(name);
+        let map_name = globals.string(map_name);
         self.add(name, map_name, state)
     }
 
@@ -116,7 +116,7 @@ impl Entities {
             ent.map_name.clear();
             ent.map_name
                 .cursor()
-                .write_c_str(globals().string(map_name).into())
+                .write_c_str(globals().string(map_name))
                 .unwrap();
         }
     }

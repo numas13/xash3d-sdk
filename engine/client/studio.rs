@@ -1,11 +1,10 @@
-use crate::{
-    cell::SyncOnceCell,
-    raw::{self, cl_entity_s},
-};
+use crate::raw::{self, cl_entity_s};
 
 pub struct Studio {
     raw: raw::engine_studio_api_s,
 }
+
+shared::export::impl_unsync_global!(Studio);
 
 macro_rules! unwrap {
     ($self:expr, $name:ident) => {
@@ -18,6 +17,10 @@ macro_rules! unwrap {
 
 #[allow(dead_code)]
 impl Studio {
+    pub(crate) fn new(raw: &raw::engine_studio_api_s) -> Self {
+        Self { raw: *raw }
+    }
+
     pub fn raw(&self) -> &raw::engine_studio_api_s {
         &self.raw
     }
@@ -95,22 +98,4 @@ impl Studio {
     //         p4: *mut f32,
     //     ),
     // >,
-}
-
-impl From<raw::engine_studio_api_s> for Studio {
-    fn from(raw: raw::engine_studio_api_s) -> Self {
-        Self { raw }
-    }
-}
-
-static STUDIO: SyncOnceCell<Studio> = unsafe { SyncOnceCell::new() };
-
-pub fn studio<'a>() -> &'a Studio {
-    STUDIO.get().unwrap()
-}
-
-pub fn studio_set(funcs: raw::engine_studio_api_s) {
-    if STUDIO.set(funcs.into()).is_err() {
-        warn!("studio api initialized multiple times");
-    }
 }

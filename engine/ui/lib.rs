@@ -9,44 +9,71 @@ extern crate log;
 pub mod consts;
 mod engine;
 pub mod export;
+mod globals;
 mod logger;
 pub mod picture;
 pub mod raw;
 pub mod utils;
 
-use core::ptr;
+use shared::export::UnsyncGlobal;
 
 pub use shared::{cell, color, cvar, math, parser};
 
 pub use crate::engine::*;
+pub use crate::globals::Globals;
 
-static mut ENGINE: Option<Engine> = None;
-static mut GLOBALS: Option<&'static raw::ui_globalvars_s> = None;
-
+/// Initialize the global [Engine] and [Globals] instances.
+///
 /// # Safety
 ///
-/// The lifetime of returned object is inferred at calling side and must not be `'static'.
-pub fn engine<'a>() -> &'a Engine {
-    unsafe { (*ptr::addr_of_mut!(ENGINE)).as_ref().unwrap() }
-}
-
-pub fn globals() -> &'static raw::ui_globalvars_s {
-    unsafe { (*ptr::addr_of_mut!(GLOBALS)).unwrap() }
-}
-
-pub fn init(eng_funcs: &raw::ui_enginefuncs_s, globals: &'static raw::ui_globalvars_s) {
+/// Must be called only once.
+pub unsafe fn init_engine(
+    engine_funcs: &raw::ui_enginefuncs_s,
+    globals: *mut raw::ui_globalvars_s,
+) {
     unsafe {
-        ENGINE = Some(Engine::new(*eng_funcs));
-        GLOBALS = Some(globals);
+        (*Engine::global_as_mut_ptr()).write(Engine::new(engine_funcs));
+        (*Globals::global_as_mut_ptr()).write(Globals::new(globals));
     }
     crate::logger::init_console_logger();
 }
 
-pub fn init_ext(ext: &raw::ui_extendedfuncs_s) {
+/// Initialize extended functions for global [Engine] instance.
+///
+/// # Safety
+///
+/// Must be called only once after [init_engine].
+pub unsafe fn init_engine_ext(ext: &raw::ui_extendedfuncs_s) {
     unsafe {
-        (*ptr::addr_of_mut!(ENGINE))
-            .as_mut()
-            .unwrap()
+        (*Engine::global_as_mut_ptr())
+            .assume_init_mut()
             .set_extended(*ext);
     }
+}
+
+/// Returns a reference to the global [Engine] instance.
+///
+/// # Safety
+///
+/// Must not be called before [init_engine].
+pub fn engine() -> &'static Engine {
+    unsafe { Engine::global_assume_init_ref() }
+}
+
+/// Returns a reference to the global [Globals] instance.
+///
+/// # Safety
+///
+/// Must not be called before [init_engine].
+pub fn globals() -> &'static Globals {
+    unsafe { Globals::global_assume_init_ref() }
+}
+
+/// Returns a mutable reference to the global [Globals] instance.
+///
+/// # Safety
+///
+/// Must not be called before [init_engine].
+pub fn globals_mut() -> &'static mut Globals {
+    unsafe { Globals::global_assume_init_mut() }
 }

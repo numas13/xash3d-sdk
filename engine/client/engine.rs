@@ -2,10 +2,9 @@ use core::{ffi::c_int, mem::MaybeUninit, ptr};
 
 use csz::CStrThin;
 
-use shared::engine::AsCStrPtr;
+use shared::engine_private::{self, AsCStrPtr};
 
 use crate::{
-    cell::SyncOnceCell,
     color::{RGB, RGBA},
     cvar::{CVarFlags, CVarPtr},
     efx::EfxApi,
@@ -14,11 +13,13 @@ use crate::{
     sprite::{SpriteHandle, SpriteList},
 };
 
-pub use shared::engine::ToEngineStr;
+pub use shared::engine::*;
 
 pub struct Engine {
     raw: raw::cl_enginefuncs_s,
 }
+
+shared::export::impl_unsync_global!(Engine);
 
 macro_rules! unwrap {
     ($self:expr, $name:ident) => {
@@ -29,8 +30,11 @@ macro_rules! unwrap {
     };
 }
 
-#[allow(dead_code)]
 impl Engine {
+    pub(crate) fn new(raw: &raw::cl_enginefuncs_s) -> Self {
+        Self { raw: *raw }
+    }
+
     pub fn raw(&self) -> &raw::cl_enginefuncs_s {
         &self.raw
     }
@@ -169,7 +173,7 @@ impl Engine {
     }
 
     pub fn get_cvar_string(&self, name: impl ToEngineStr) -> &CStrThin {
-        shared::engine::get_cvar_string(unwrap!(self, pfnGetCvarString), name)
+        engine_private::get_cvar_string(unwrap!(self, pfnGetCvarString), name)
     }
 
     #[deprecated(note = "use get_cvar_float instead")]
@@ -619,24 +623,4 @@ impl Engine {
     pub fn is_multiplayer(&self) -> bool {
         self.get_max_clients() > 1
     }
-}
-
-impl From<raw::cl_enginefuncs_s> for Engine {
-    fn from(raw: raw::cl_enginefuncs_s) -> Self {
-        Self { raw }
-    }
-}
-
-static ENGINE: SyncOnceCell<Engine> = unsafe { SyncOnceCell::new() };
-
-pub fn engine<'a>() -> &'a Engine {
-    ENGINE.get().unwrap()
-}
-
-pub fn engine_set(engine_funcs: raw::cl_enginefuncs_s) {
-    if ENGINE.set(engine_funcs.into()).is_err() {
-        warn!("client engine initialized multiple times");
-        return;
-    }
-    crate::logger::init_console_logger();
 }

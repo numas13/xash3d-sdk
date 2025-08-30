@@ -3,11 +3,22 @@ use core::mem::MaybeUninit;
 pub trait UnsyncGlobal: Sized {
     fn global_as_mut_ptr() -> *mut MaybeUninit<Self>;
 
+    /// Returns a reference to global instance of this type.
+    ///
     /// # Safety
     ///
     /// Calling this when the global object is not yet initialized causes undefined behavior.
     unsafe fn global_assume_init_ref<'a>() -> &'a Self {
         unsafe { (*Self::global_as_mut_ptr()).assume_init_ref() }
+    }
+
+    /// Returns a mutable reference to global instance of this type.
+    ///
+    /// # Safety
+    ///
+    /// Calling this when the global object is not yet initialized causes undefined behavior.
+    unsafe fn global_assume_init_mut<'a>() -> &'a mut Self {
+        unsafe { (*Self::global_as_mut_ptr()).assume_init_mut() }
     }
 }
 

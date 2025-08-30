@@ -27,7 +27,7 @@ use crate::{
 
 #[no_mangle]
 unsafe extern "C" fn Initialize(
-    engine_funcs: Option<&mut cl::raw::cl_enginefuncs_s>,
+    engine_funcs: Option<&cl::raw::cl_enginefuncs_s>,
     version: c_int,
 ) -> c_int {
     if version != cl::CLDLL_INTERFACE_VERSION {
@@ -35,7 +35,9 @@ unsafe extern "C" fn Initialize(
     }
 
     let engine_funcs = engine_funcs.unwrap();
-    cl::engine_set(*engine_funcs);
+    unsafe {
+        cl::init_engine(engine_funcs);
+    }
 
     cl::cvar::init(|name, value, flags| {
         let engine = engine();
@@ -267,7 +269,9 @@ unsafe extern "C" fn HUD_GetStudioModelInterface(
         ptr::write(ppinterface, ptr::addr_of_mut!(STUDIO));
     }
 
-    cl::studio_set(unsafe { *pstudio });
+    unsafe {
+        cl::init_studio(&*pstudio);
+    }
 
     studio::init();
 

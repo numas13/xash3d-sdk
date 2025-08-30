@@ -10,7 +10,7 @@ use core::{
 use csz::{CStrArray, CStrThin};
 use shared::{
     borrow::{BorrowRef, Ref},
-    engine::AsCStrPtr,
+    engine_private::{self, AsCStrPtr},
 };
 
 use crate::{
@@ -20,7 +20,7 @@ use crate::{
     raw::{self, kbutton_t, net_api_s, netadr_s, wrect_s, HIMAGE},
 };
 
-pub use shared::engine::ToEngineStr;
+pub use shared::engine::*;
 
 #[derive(Copy, Clone, PartialEq, Eq)]
 pub struct Point {
@@ -111,6 +111,8 @@ pub struct Engine {
     borrows: Borrows,
 }
 
+shared::export::impl_unsync_global!(Engine);
+
 macro_rules! unwrap {
     ($self:expr, ext.net.$name:ident) => {
         match $self.net_api().unwrap().$name {
@@ -133,15 +135,15 @@ macro_rules! unwrap {
 }
 
 impl Engine {
-    pub(crate) fn new(raw: raw::ui_enginefuncs_s) -> Self {
+    pub(crate) fn new(raw: &raw::ui_enginefuncs_s) -> Self {
         Self {
-            raw,
+            raw: *raw,
             ext: Default::default(),
             borrows: Default::default(),
         }
     }
 
-    pub(crate) fn set_extended(&mut self, ext: raw::ui_extendedfuncs_s) {
+    pub fn set_extended(&mut self, ext: raw::ui_extendedfuncs_s) {
         self.ext = ext;
     }
 
@@ -284,7 +286,7 @@ impl Engine {
     }
 
     pub fn get_cvar_string(&self, name: impl ToEngineStr) -> &CStrThin {
-        shared::engine::get_cvar_string(unwrap!(self, pfnGetCvarString), name)
+        engine_private::get_cvar_string(unwrap!(self, pfnGetCvarString), name)
     }
 
     pub fn cvar<'a, T: CVar<'a>>(&'a self, name: &CStr) -> T {

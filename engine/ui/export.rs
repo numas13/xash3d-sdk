@@ -380,22 +380,36 @@ impl<T: UiDll + Default> UiDllExport for T {
     }
 }
 
-pub fn get_menu_api<T: UiDll + Default>(
+/// Initialize the global engine instance and returns exported functions.
+///
+/// # Safety
+///
+/// Must be called only once.
+pub unsafe fn get_menu_api<T: UiDll + Default>(
     ret_funcs: Option<&mut raw::UI_FUNCTIONS>,
     engine_funcs: Option<&raw::ui_enginefuncs_s>,
-    globals: Option<&'static raw::ui_globalvars_s>,
+    globals: *mut raw::ui_globalvars_s,
 ) -> c_int {
     let Some(ret_funcs) = ret_funcs else { return 0 };
     let Some(engine_funcs) = engine_funcs else {
         return 0;
     };
-    let Some(globals) = globals else { return 0 };
-    crate::init(engine_funcs, globals);
+    if globals.is_null() {
+        return 0;
+    }
+    unsafe {
+        crate::init_engine(engine_funcs, globals);
+    }
     *ret_funcs = T::ui_functions();
     1
 }
 
-pub fn get_ext_api<T: UiDll + Default>(
+/// Initialize extended functions and returns extended exported functions.
+///
+/// # Safety
+///
+/// Must be called only once after [get_menu_api].
+pub unsafe fn get_ext_api<T: UiDll + Default>(
     version: c_int,
     ret_funcs: Option<&mut raw::UI_EXTENDED_FUNCTIONS>,
     engine_funcs: Option<&raw::ui_extendedfuncs_s>,
@@ -412,7 +426,10 @@ pub fn get_ext_api<T: UiDll + Default>(
         return 0;
     };
 
-    crate::init_ext(engine_funcs);
+    unsafe {
+        crate::init_engine_ext(engine_funcs);
+    }
+
     *ret_funcs = T::ui_extended_functions();
     1
 }
@@ -422,24 +439,28 @@ pub fn get_ext_api<T: UiDll + Default>(
 macro_rules! export_dll {
     ($instance:ty $(, pre $pre:block)? $(, post $post:block)?) => {
         #[no_mangle]
-        pub extern "C" fn GetMenuAPI(
+        pub unsafe extern "C" fn GetMenuAPI(
             ret: Option<&mut $crate::raw::UI_FUNCTIONS>,
             funcs: Option<&$crate::raw::ui_enginefuncs_s>,
-            globals: Option<&'static $crate::raw::ui_globalvars_s>,
+            globals: *mut $crate::raw::ui_globalvars_s,
         ) -> core::ffi::c_int {
             $($pre)?
-            let result = $crate::export::get_menu_api::<$instance>(ret, funcs, globals);
+            let result = unsafe {
+                $crate::export::get_menu_api::<$instance>(ret, funcs, globals)
+            };
             $($post)?
             result
         }
 
         #[no_mangle]
-        pub extern "C" fn GetExtAPI(
+        pub unsafe extern "C" fn GetExtAPI(
             version: core::ffi::c_int,
             ret: Option<&mut $crate::raw::UI_EXTENDED_FUNCTIONS>,
             funcs: Option<&$crate::raw::ui_extendedfuncs_s>,
         ) -> core::ffi::c_int {
-            $crate::export::get_ext_api::<$instance>(version, ret, funcs)
+            unsafe {
+                $crate::export::get_ext_api::<$instance>(version, ret, funcs)
+            }
         }
     };
 }

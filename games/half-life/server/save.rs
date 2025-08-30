@@ -676,7 +676,7 @@ pub fn dispatch_restore(
                     return -1;
                 }
                 let globals = globals();
-                let map_name: &CStrThin = globals.string(globals.mapname).into();
+                let map_name = globals.string(globals.mapname);
                 if map_name != global.map_name() {
                     entity.make_dormant();
                 }

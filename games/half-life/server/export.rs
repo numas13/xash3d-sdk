@@ -8,7 +8,7 @@ use core::{
 use csz::CStrThin;
 use pm::{VEC_DUCK_HULL_MIN, VEC_HULL_MIN};
 use sv::{
-    engine, engine_set, globals,
+    engine, globals,
     raw::{
         self, clientdata_s, customization_s, edict_s, entity_state_s, netadr_s, playermove_s,
         qboolean, usercmd_s, vec3_t, weapon_data_s, EdictFlags, INTERFACE_VERSION,
@@ -62,7 +62,7 @@ unsafe extern "C" fn DispatchSpawn(ent: *mut edict_s) -> c_int {
             if global.is_dead() {
                 return -1;
             }
-            let map_name: &CStrThin = globals().string(globals().mapname).into();
+            let map_name = globals().string(globals().mapname);
             if map_name != global.map_name() {
                 entity.make_dormant();
             }
@@ -620,5 +620,7 @@ unsafe extern "C" fn GiveFnptrsToDll(
     funcs: Option<&sv::raw::enginefuncs_s>,
     globals: *mut sv::raw::globalvars_t,
 ) {
-    engine_set(*funcs.unwrap(), globals);
+    unsafe {
+        sv::init_engine(funcs.unwrap(), globals);
+    }
 }

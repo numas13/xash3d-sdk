@@ -1,6 +1,6 @@
 use core::ffi::c_int;
 
-use shared::engine::{AsCStrPtr, ToEngineStr};
+use shared::engine_private::{AsCStrPtr, ToEngineStr};
 
 use crate::raw::{
     self, dlight_s, vec3_t, BeamEntity, RenderFx, RenderMode, TempEntFlags, TEMPENTITY,

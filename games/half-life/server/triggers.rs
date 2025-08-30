@@ -257,7 +257,7 @@ fn in_transition_volume(ent: *mut edict_s, volume_name: &CStrThin) -> bool {
     let mut ent_volume = engine.find_ent_by_target_name(ptr::null(), volume_name);
     while !engine.is_null_ent(ent_volume) {
         if let Some(volume) = unsafe { &*ent_volume }.private() {
-            if volume.is_classname(c"trigger_transition") && volume.intersects(&**ent) {
+            if volume.is_classname(c"trigger_transition".into()) && volume.intersects(&**ent) {
                 return true;
             }
         }

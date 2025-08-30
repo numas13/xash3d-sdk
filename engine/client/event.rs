@@ -1,7 +1,7 @@
 use core::{ffi::c_int, mem::MaybeUninit};
 
 use csz::CStrThin;
-use shared::engine::{AsCStrPtr, ToEngineStr};
+use shared::engine_private::{AsCStrPtr, ToEngineStr};
 
 use crate::raw::{self, physent_s, pmtrace_s, vec3_t, SoundFlags};
 

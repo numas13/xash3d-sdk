@@ -1,5 +1,4 @@
 use core::{
-    cell::{Ref, RefCell, RefMut},
     ffi::{c_char, c_int, c_void},
     fmt::{self, Write},
     ops::{Deref, DerefMut},
@@ -7,25 +6,19 @@ use core::{
 };
 
 use csz::{CStrArray, CStrThin};
-use shared::{
-    consts::RefParm,
-    cvar::cvar_s,
-    engine::AsCStrPtr,
-    raw::{
-        self, bsp::MAX_MAP_LEAFS_BYTES, cl_entity_s, decallist_s, mleaf_s, mnode_s, model_s,
-        ref_viewpass_s, vec2_t, vec3_t,
-    },
-};
+use shared::engine_private::{self, AsCStrPtr};
 
 use crate::{
-    cell::SyncOnceCell,
+    consts::RefParm,
+    cvar::cvar_s,
+    engine,
     raw::{
-        convar_s, ilFlags_t, ref_api_s, ref_globals_s, render_interface_t, rgbdata_t, GraphicApi,
-        ImageFlags,
+        self, bsp::MAX_MAP_LEAFS_BYTES, cl_entity_s, convar_s, decallist_s, ilFlags_t, mleaf_s,
+        mnode_s, model_s, rgbdata_t, vec2_t, vec3_t, GraphicApi, ImageFlags,
     },
 };
 
-pub use shared::engine::ToEngineStr;
+pub use shared::engine::*;
 
 pub enum Renderer {
     Engine,
@@ -33,11 +26,11 @@ pub enum Renderer {
 }
 
 pub struct Draw<'a> {
-    raw: &'a render_interface_t,
+    raw: &'a raw::render_interface_t,
 }
 
 impl Draw<'_> {
-    fn new(raw: &render_interface_t) -> Draw<'_> {
+    fn new(raw: &raw::render_interface_t) -> Draw<'_> {
         Draw { raw }
     }
 
@@ -45,7 +38,7 @@ impl Draw<'_> {
         self.raw.version
     }
 
-    pub fn gl_render_frame(&self, rvp: &ref_viewpass_s) -> Option<Renderer> {
+    pub fn gl_render_frame(&self, rvp: &raw::ref_viewpass_s) -> Option<Renderer> {
         self.raw.GL_RenderFrame.map(|f| match unsafe { f(rvp) } {
             0 => Renderer::Engine,
             1 => Renderer::Client,
@@ -307,8 +300,10 @@ impl fmt::Debug for FatPvsError {
 }
 
 pub struct Engine {
-    raw: ref_api_s,
+    raw: raw::ref_api_s,
 }
+
+shared::export::impl_unsync_global!(Engine);
 
 macro_rules! unwrap {
     ($self:expr, $name:ident) => {
@@ -320,7 +315,11 @@ macro_rules! unwrap {
 }
 
 impl Engine {
-    pub fn raw(&self) -> &ref_api_s {
+    pub(crate) fn new(raw: &raw::ref_api_s) -> Self {
+        Self { raw: *raw }
+    }
+
+    pub fn raw(&self) -> &raw::ref_api_s {
         &self.raw
     }
 
@@ -348,7 +347,7 @@ impl Engine {
     }
 
     pub fn get_cvar_string(&self, name: impl ToEngineStr) -> &CStrThin {
-        shared::engine::get_cvar_string(unwrap!(self, pfnGetCvarString), name)
+        engine_private::get_cvar_string(unwrap!(self, pfnGetCvarString), name)
     }
 
     pub fn cvar_set_value(&self, name: impl ToEngineStr, value: f32) {
@@ -734,63 +733,4 @@ impl Engine {
     }
 
     // pub fsapi: *mut fs_api_t,
-}
-
-impl From<ref_api_s> for Engine {
-    fn from(raw: ref_api_s) -> Self {
-        Self { raw }
-    }
-}
-
-pub struct Globals {
-    raw: *mut ref_globals_s,
-}
-
-impl Globals {
-    fn new(raw: *mut ref_globals_s) -> Self {
-        Self { raw }
-    }
-
-    pub fn screen_size(&self) -> (c_int, c_int) {
-        (self.width, self.height)
-    }
-}
-
-impl Deref for Globals {
-    type Target = ref_globals_s;
-
-    fn deref(&self) -> &Self::Target {
-        unsafe { &*self.raw }
-    }
-}
-
-impl DerefMut for Globals {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        unsafe { &mut *self.raw }
-    }
-}
-
-static ENGINE: SyncOnceCell<Engine> = unsafe { SyncOnceCell::new() };
-static GLOBALS: SyncOnceCell<RefCell<Globals>> = unsafe { SyncOnceCell::new() };
-
-pub fn engine<'a>() -> &'a Engine {
-    ENGINE.get().unwrap()
-}
-
-pub fn globals() -> Ref<'static, Globals> {
-    GLOBALS.get().unwrap().borrow()
-}
-
-pub fn globals_mut() -> RefMut<'static, Globals> {
-    GLOBALS.get().unwrap().borrow_mut()
-}
-
-pub fn init(engine_funcs: &ref_api_s, globals: *mut ref_globals_s) {
-    if ENGINE.set((*engine_funcs).into()).is_err()
-        || GLOBALS.set(RefCell::new(Globals::new(globals))).is_err()
-    {
-        warn!("ref engine initialized multiple times");
-        return;
-    }
-    crate::logger::init_console_logger();
 }
