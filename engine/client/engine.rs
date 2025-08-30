@@ -163,17 +163,23 @@ impl Engine {
         }
     }
 
-    pub fn cvar_get_float(&self, name: impl ToEngineStr) -> f32 {
+    pub fn get_cvar_float(&self, name: impl ToEngineStr) -> f32 {
         let name = name.to_engine_str();
         unsafe { unwrap!(self, pfnGetCvarFloat)(name.as_ptr()) }
     }
 
-    pub fn cvar_get_c_str(&self, name: impl ToEngineStr) -> &CStrThin {
-        let name = name.to_engine_str();
-        let ptr = unsafe { unwrap!(self, pfnGetCvarString)(name.as_ptr()) };
+    pub fn get_cvar_string(&self, name: impl ToEngineStr) -> &CStrThin {
+        shared::engine::get_cvar_string(unwrap!(self, pfnGetCvarString), name)
+    }
 
-        // SAFETY: the engine returns an empty string if cvar is not found
-        unsafe { CStrThin::from_ptr(ptr) }
+    #[deprecated(note = "use get_cvar_float instead")]
+    pub fn cvar_get_float(&self, name: impl ToEngineStr) -> f32 {
+        self.get_cvar_float(name)
+    }
+
+    #[deprecated(note = "use get_cvar_string instead")]
+    pub fn cvar_get_c_str(&self, name: impl ToEngineStr) -> &CStrThin {
+        self.get_cvar_string(name)
     }
 
     pub fn add_command(&self, name: impl ToEngineStr, func: unsafe extern "C" fn()) -> c_int {

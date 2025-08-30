@@ -63,7 +63,7 @@ impl ChangeLevel {
             unsafe { &mut *ev.pContainingEntity },
             globals().string(ev.model),
         );
-        if engine.cvar_get_float(c"showtriggers") == 0.0 {
+        if engine.get_cvar_float(c"showtriggers") == 0.0 {
             ev.effects.insert(Effects::NODRAW);
         }
     }

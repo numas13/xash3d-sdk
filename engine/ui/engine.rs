@@ -284,13 +284,7 @@ impl Engine {
     }
 
     pub fn get_cvar_string(&self, name: impl ToEngineStr) -> &CStrThin {
-        let name = name.to_engine_str();
-        // FIXME: A lifetime of returned string is valid till
-        // set_cvar_string call with the same name and can be
-        // changed anywhere in C code.
-        let ptr = unsafe { unwrap!(self, pfnGetCvarString)(name.as_ptr()) };
-        assert!(!ptr.is_null());
-        unsafe { CStrThin::from_ptr(ptr) }
+        shared::engine::get_cvar_string(unwrap!(self, pfnGetCvarString), name)
     }
 
     pub fn cvar<T: CVar>(&self, name: &CStr) -> T {

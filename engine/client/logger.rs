@@ -7,7 +7,7 @@ struct Console;
 
 impl EngineConsole for Console {
     fn get_cvar_float(name: &CStrThin) -> f32 {
-        engine().cvar_get_float(name)
+        engine().get_cvar_float(name)
     }
 
     fn console_print(s: &CStrThin) {

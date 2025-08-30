@@ -6,6 +6,7 @@ use core::{
     ptr,
 };
 
+use csz::CStrThin;
 use shared::engine::AsCStrPtr;
 
 use crate::{
@@ -317,12 +318,20 @@ impl Engine {
         unsafe { unwrap!(self, pfnCVarRegister)(cvar) }
     }
 
-    pub fn cvar_get_float(&self, name: impl ToEngineStr) -> f32 {
+    pub fn get_cvar_float(&self, name: impl ToEngineStr) -> f32 {
         let name = name.to_engine_str();
         unsafe { unwrap!(self, pfnCVarGetFloat)(name.as_ptr()) }
     }
 
-    // pub pfnCVarGetString: Option<unsafe extern "C" fn(szVarName: *const c_char) -> *const c_char>,
+    #[deprecated(note = "use get_cvar_float instead")]
+    pub fn cvar_get_float(&self, name: impl ToEngineStr) -> f32 {
+        self.get_cvar_float(name)
+    }
+
+    pub fn get_cvar_string(&self, name: impl ToEngineStr) -> &CStrThin {
+        shared::engine::get_cvar_string(unwrap!(self, pfnCVarGetString), name)
+    }
+
     // pub pfnCVarSetFloat: Option<unsafe extern "C" fn(szVarName: *const c_char, flValue: f32)>,
 
     pub fn cvar_set_string(&self, name: impl ToEngineStr, value: impl ToEngineStr) {
