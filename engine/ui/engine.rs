@@ -1,6 +1,5 @@
 use core::{
     ffi::{c_char, c_int, c_uint, c_void},
-    fmt,
     mem::MaybeUninit,
     ptr, slice,
 };
@@ -220,16 +219,6 @@ impl UiEngine {
     pub fn client_cmd_now(&self, cmd: impl ToEngineStr) {
         let cmd = cmd.to_engine_str();
         unsafe { unwrap!(self, pfnClientCmd)(1, cmd.as_ptr()) }
-    }
-
-    #[deprecated(note = "use client_cmd instead")]
-    pub fn client_cmdf(&self, cmd: fmt::Arguments) {
-        self.client_cmd(cmd);
-    }
-
-    #[deprecated(note = "use client_cmd instead")]
-    pub fn client_cmdf_now(&self, cmd: fmt::Arguments) {
-        self.client_cmd_now(cmd);
     }
 
     pub fn delete_command(&self, cmd_name: impl ToEngineStr) {

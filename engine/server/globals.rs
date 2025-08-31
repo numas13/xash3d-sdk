@@ -1,14 +1,8 @@
-use core::{
-    ffi::CStr,
-    ops::{Deref, DerefMut},
-};
+use core::ops::{Deref, DerefMut};
 
 use csz::CStrThin;
 
-use crate::{
-    prelude::*,
-    raw::{self, string_t},
-};
+use crate::raw::{self, string_t};
 
 pub struct ServerGlobals {
     raw: *mut raw::globalvars_t,
@@ -23,11 +17,6 @@ impl ServerGlobals {
 
     pub fn string(&self, string: string_t) -> &'static CStrThin {
         unsafe { CStrThin::from_ptr(self.pStringBase.wrapping_byte_add(string.0 as usize)) }
-    }
-
-    #[deprecated = "use Engine::alloc_string"]
-    pub fn make_string(&self, s: &CStr) -> string_t {
-        engine().alloc_string(s)
     }
 }
 

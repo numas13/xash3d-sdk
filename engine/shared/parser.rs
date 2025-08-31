@@ -1,8 +1,5 @@
 use core::{fmt, mem};
 
-#[deprecated(note = "use TokenError instead")]
-pub type Error<'a> = TokenError<'a>;
-
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum TokenError<'a> {
     InvalidData,

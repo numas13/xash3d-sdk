@@ -170,28 +170,6 @@ impl RefEngine {
         unsafe { unwrap!(self, COM_SetRandomSeed)(seed) }
     }
 
-    #[deprecated(note = "import EngineRng trait")]
-    pub fn random_float(&self, min: f32, max: f32) -> f32 {
-        unsafe { unwrap!(self, COM_RandomFloat)(min, max) }
-    }
-
-    #[deprecated(note = "import EngineRng trait")]
-    pub fn random_int(&self, min: c_int, max: c_int) -> c_int {
-        assert!(min >= 0, "min must be greater than or equal to zero");
-        assert!(min <= max, "min must be less than or equal to max");
-        unsafe { unwrap!(self, COM_RandomLong)(min, max) }
-    }
-
-    #[deprecated(note = "use random_float instead")]
-    pub fn com_random_float(&self, min: f32, max: f32) -> f32 {
-        unsafe { unwrap!(self, COM_RandomFloat)(min, max) }
-    }
-
-    #[deprecated(note = "use random_int instead")]
-    pub fn com_random_long(&self, min: c_int, max: c_int) -> c_int {
-        unsafe { unwrap!(self, COM_RandomLong)(min, max) }
-    }
-
     // pub GetScreenFade: Option<unsafe extern "C" fn() -> *mut screenfade_s>,
     // pub CL_GetScreenInfo: Option<unsafe extern "C" fn(width: *mut c_int, height: *mut c_int)>,
     // pub SetLocalLightLevel: Option<unsafe extern "C" fn(level: c_int)>,

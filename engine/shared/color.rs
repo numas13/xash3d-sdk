@@ -111,11 +111,6 @@ impl RGB {
         Self::from_bytes(c)
     }
 
-    #[deprecated(note = "use scale_color instead")]
-    pub fn scale(self, a: u8) -> Self {
-        self.scale_color(a)
-    }
-
     pub fn blend_alpha(self, other: impl Into<RGB>, alpha: u8) -> RGB {
         if alpha == 255 {
             return self;

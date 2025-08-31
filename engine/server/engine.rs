@@ -1,6 +1,6 @@
 use core::{
     ffi::{c_char, c_int, c_long, c_uchar, c_void, CStr},
-    fmt, iter, ptr,
+    iter, ptr,
 };
 
 use shared::str::{AsCStrPtr, ToEngineStr};
@@ -320,11 +320,6 @@ impl ServerEngine {
         unsafe {
             unwrap!(self, pfnAlertMessage)(atype, c"%s\n".as_ptr(), msg.as_ptr());
         }
-    }
-
-    #[deprecated(note = "use alert_message instead")]
-    pub fn alert_message_fmt(&self, atype: raw::ALERT_TYPE, args: fmt::Arguments) {
-        self.alert_message(atype, args);
     }
 
     // pub pfnEngineFprintf: Option<unsafe extern "C" fn(pfile: *mut FILE, szFmt: *mut c_char, ...)>,
