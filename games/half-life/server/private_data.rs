@@ -7,7 +7,7 @@ use core::{
 };
 
 use sv::{
-    engine,
+    prelude::*,
     raw::{edict_s, entvars_s},
 };
 

@@ -1,6 +1,6 @@
 use core::fmt::{self, Write};
 
-use crate::engine;
+use crate::prelude::*;
 
 pub use shared::utils::*;
 
@@ -30,7 +30,7 @@ impl fmt::Display for EscapeCommand<'_> {
 }
 
 pub fn escape_command(src: &str) -> EscapeCommand<'_> {
-    EscapeCommand::new(src, engine().cvar(c"cmd_scripting"))
+    EscapeCommand::new(src, engine().get_cvar(c"cmd_scripting"))
 }
 
 #[cfg(test)]

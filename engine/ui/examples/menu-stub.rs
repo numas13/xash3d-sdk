@@ -3,9 +3,8 @@ use std::{cell::Cell, ffi::c_int};
 use xash3d_ui::{
     color::RGBA,
     consts::keys,
-    engine,
     export::{export_dll, impl_unsync_global, UiDll},
-    globals,
+    prelude::*,
     ActiveMenu::{Console, Menu},
 };
 

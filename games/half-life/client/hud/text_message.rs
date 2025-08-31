@@ -2,9 +2,8 @@ use core::ffi::{c_int, CStr};
 
 use alloc::string::String;
 use cl::{
-    engine,
     message::{hook_message, Message, MessageError},
-    Engine,
+    prelude::*,
 };
 
 use crate::hud::say_text::SayText;
@@ -142,7 +141,11 @@ pub fn localise_string(dst: &mut String, src: &str) {
     }
 }
 
-pub fn lookup_string<'a>(engine: &'a Engine, dest: c_int, msg: &'a CStr) -> (c_int, &'a CStr) {
+pub fn lookup_string<'a>(
+    engine: &'a ClientEngine,
+    dest: c_int,
+    msg: &'a CStr,
+) -> (c_int, &'a CStr) {
     if !msg.to_bytes().starts_with(b"#") {
         return (dest, msg);
     }

@@ -7,7 +7,7 @@ use csz::CStrThin;
 
 use crate::{
     color::RGBA,
-    engine, globals,
+    prelude::*,
     raw::{self, netadr_s, MENU_EXTENDED_API_VERSION, UI_EXTENDED_FUNCTIONS, UI_FUNCTIONS},
 };
 
@@ -398,7 +398,7 @@ pub unsafe fn get_menu_api<T: UiDll + Default>(
         return 0;
     }
     unsafe {
-        crate::init_engine(engine_funcs, globals);
+        crate::instance::init_engine(engine_funcs, globals);
     }
     *ret_funcs = T::ui_functions();
     1
@@ -427,7 +427,7 @@ pub unsafe fn get_ext_api<T: UiDll + Default>(
     };
 
     unsafe {
-        crate::init_engine_ext(engine_funcs);
+        crate::instance::init_engine_ext(engine_funcs);
     }
 
     *ret_funcs = T::ui_extended_functions();

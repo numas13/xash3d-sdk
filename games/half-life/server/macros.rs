@@ -16,7 +16,7 @@ macro_rules! link_entity {
             let ent = if !ev.is_null() {
                 unsafe { (*ev).pContainingEntity }
             } else {
-                sv::engine().create_entity()
+                sv::instance::engine().create_entity()
             };
             let ent = unsafe { &mut *ent };
             ent.private_init($create);

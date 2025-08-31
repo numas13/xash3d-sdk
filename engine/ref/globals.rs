@@ -5,13 +5,13 @@ use core::{
 
 use crate::raw;
 
-pub struct Globals {
+pub struct RefGlobals {
     raw: *mut raw::ref_globals_s,
 }
 
-shared::export::impl_unsync_global!(Globals);
+shared::export::impl_unsync_global!(RefGlobals);
 
-impl Globals {
+impl RefGlobals {
     pub(crate) fn new(raw: *mut raw::ref_globals_s) -> Self {
         Self { raw }
     }
@@ -21,7 +21,7 @@ impl Globals {
     }
 }
 
-impl Deref for Globals {
+impl Deref for RefGlobals {
     type Target = raw::ref_globals_s;
 
     fn deref(&self) -> &Self::Target {
@@ -29,7 +29,7 @@ impl Deref for Globals {
     }
 }
 
-impl DerefMut for Globals {
+impl DerefMut for RefGlobals {
     fn deref_mut(&mut self) -> &mut Self::Target {
         unsafe { &mut *self.raw }
     }

@@ -3,8 +3,8 @@ use core::{cmp, ffi::c_int, fmt::Write};
 use alloc::string::String;
 use cl::{
     color::RGB,
-    engine,
     message::{hook_message, Message, MessageError},
+    prelude::*,
 };
 use csz::CStrArray;
 

@@ -5,7 +5,7 @@ use core::{
 
 use cl::{
     cvar::CVarPtr,
-    engine,
+    prelude::*,
     raw::{
         byte, cl_entity_s, client_data_s, clientdata_s, engine_studio_api_s, entity_state_s,
         kbutton_t, local_state_s, netadr_s, playermove_s, qboolean, r_studio_interface_s,
@@ -36,7 +36,7 @@ unsafe extern "C" fn Initialize(
 
     let engine_funcs = engine_funcs.unwrap();
     unsafe {
-        cl::init_engine(engine_funcs);
+        cl::instance::init_engine(engine_funcs);
     }
 
     cl::cvar::init(|name, value, flags| {
@@ -270,7 +270,7 @@ unsafe extern "C" fn HUD_GetStudioModelInterface(
     }
 
     unsafe {
-        cl::init_studio(&*pstudio);
+        cl::instance::init_studio(&*pstudio);
     }
 
     studio::init();

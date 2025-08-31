@@ -6,11 +6,10 @@ use core::{
 use alloc::{boxed::Box, vec, vec::Vec};
 use cl::{
     color::RGB,
-    engine,
     math::fabsf,
     message::hook_message,
+    prelude::*,
     raw::{byte, client_textmessage_s, SCREENINFO},
-    Engine,
 };
 
 use super::{hud, HudFlags, HudItem, Sprite, State};
@@ -50,7 +49,7 @@ impl Msg {
         }
     }
 
-    fn draw(&self, state: &State, engine: &Engine, screen: &SCREENINFO) {
+    fn draw(&self, state: &State, engine: &ClientEngine, screen: &SCREENINFO) {
         // TODO: utf8
 
         let mut length = 0;

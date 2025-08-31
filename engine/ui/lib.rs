@@ -7,73 +7,22 @@ extern crate std;
 extern crate log;
 
 pub mod consts;
-mod engine;
+pub mod engine;
+mod engine_types;
 pub mod export;
+pub mod file;
+pub mod game_info;
 mod globals;
+pub mod instance;
 mod logger;
 pub mod picture;
+pub mod prelude;
 pub mod raw;
 pub mod utils;
 
-use shared::export::UnsyncGlobal;
+pub use shared::{cell, color, cvar, math, parser, str::ToEngineStr};
 
-pub use shared::{cell, color, cvar, math, parser};
+pub use crate::globals::UiGlobals;
 
-pub use crate::engine::*;
-pub use crate::globals::Globals;
-
-/// Initialize the global [Engine] and [Globals] instances.
-///
-/// # Safety
-///
-/// Must be called only once.
-pub unsafe fn init_engine(
-    engine_funcs: &raw::ui_enginefuncs_s,
-    globals: *mut raw::ui_globalvars_s,
-) {
-    unsafe {
-        (*Engine::global_as_mut_ptr()).write(Engine::new(engine_funcs));
-        (*Globals::global_as_mut_ptr()).write(Globals::new(globals));
-    }
-    crate::logger::init_console_logger();
-}
-
-/// Initialize extended functions for global [Engine] instance.
-///
-/// # Safety
-///
-/// Must be called only once after [init_engine].
-pub unsafe fn init_engine_ext(ext: &raw::ui_extendedfuncs_s) {
-    unsafe {
-        (*Engine::global_as_mut_ptr())
-            .assume_init_mut()
-            .set_extended(*ext);
-    }
-}
-
-/// Returns a reference to the global [Engine] instance.
-///
-/// # Safety
-///
-/// Must not be called before [init_engine].
-pub fn engine() -> &'static Engine {
-    unsafe { Engine::global_assume_init_ref() }
-}
-
-/// Returns a reference to the global [Globals] instance.
-///
-/// # Safety
-///
-/// Must not be called before [init_engine].
-pub fn globals() -> &'static Globals {
-    unsafe { Globals::global_assume_init_ref() }
-}
-
-/// Returns a mutable reference to the global [Globals] instance.
-///
-/// # Safety
-///
-/// Must not be called before [init_engine].
-pub fn globals_mut() -> &'static mut Globals {
-    unsafe { Globals::global_assume_init_mut() }
-}
+// TODO: remove me
+pub use crate::engine_types::*;

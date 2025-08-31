@@ -8,8 +8,8 @@ use core::{
 
 use csz::CStrThin;
 use sv::{
-    engine, globals,
     macros::define_entity_field,
+    prelude::*,
     raw::{
         edict_s, entvars_s, string_t, vec3_t, FieldType, FtypeDesc, KeyValueData, MoveType,
         SAVERESTOREDATA, TYPEDESCRIPTION,

@@ -3,7 +3,7 @@ use core::{ffi::CStr, ptr};
 use alloc::boxed::Box;
 use sv::{
     cell::Sync,
-    engine, globals,
+    prelude::*,
     raw::{edict_s, vec3_t},
 };
 

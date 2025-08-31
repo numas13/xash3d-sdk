@@ -2,10 +2,13 @@ use core::{
     ffi::{c_char, c_int, CStr},
     ops::Deref,
     ptr,
+    str::Utf8Error,
 };
 
+use alloc::{ffi::CString, string::String};
 use bitflags::bitflags;
 use cell::SyncOnceCell;
+use csz::{CStrBox, CStrThin};
 
 bitflags! {
     #[derive(Copy, Clone, PartialEq, Eq)]
@@ -123,6 +126,8 @@ pub mod flags {
     pub const FILTERCHARS: CVarFlags = CVarFlags::FILTERCHARS;
     pub const NOBADPATHS: CVarFlags = CVarFlags::NOBADPATHS;
 }
+
+use crate::{engine::EngineCvar, str::ToEngineStr};
 
 pub use self::flags::*;
 
@@ -269,3 +274,105 @@ macro_rules! define {
 }
 #[doc(inline)]
 pub use define;
+
+/// Read a console variable.
+///
+/// # Note
+///
+/// Numbers are stored as [f32] and can not represent all possible values.
+pub trait GetCvar<'a> {
+    fn get_cvar(engine: &'a impl EngineCvar, name: impl ToEngineStr) -> Self;
+}
+
+/// Modify a console variable.
+pub trait SetCvar {
+    fn set_cvar(engine: &impl EngineCvar, name: impl ToEngineStr, value: Self);
+}
+
+impl<'a> GetCvar<'a> for bool {
+    fn get_cvar(engine: &'a impl EngineCvar, name: impl ToEngineStr) -> Self {
+        engine.get_cvar_float(name) != 0.0
+    }
+}
+
+impl SetCvar for bool {
+    fn set_cvar(engine: &impl EngineCvar, name: impl ToEngineStr, value: Self) {
+        engine.set_cvar_float(name, if value { 1.0 } else { 0.0 });
+    }
+}
+
+macro_rules! impl_cvar_for_number {
+    ($($ty:ty),* $(,)?) => {
+        $(
+            impl<'a> GetCvar<'a> for $ty {
+                fn get_cvar(engine: &'a impl EngineCvar, name: impl ToEngineStr) -> Self {
+                    engine.get_cvar_float(name) as $ty
+                }
+            }
+
+            impl SetCvar for $ty {
+                fn set_cvar(engine: &impl EngineCvar, name: impl ToEngineStr, value: Self) {
+                    engine.set_cvar_float(name, value as f32);
+                }
+            }
+        )*
+    };
+}
+
+impl_cvar_for_number!(u8, u16, u32, u64, usize);
+impl_cvar_for_number!(i8, i16, i32, i64, isize);
+impl_cvar_for_number!(f32, f64);
+
+impl<'a> GetCvar<'a> for &'a CStrThin {
+    fn get_cvar(engine: &'a impl EngineCvar, name: impl ToEngineStr) -> Self {
+        engine.get_cvar_string(name)
+    }
+}
+
+impl SetCvar for &CStrThin {
+    fn set_cvar(engine: &impl EngineCvar, name: impl ToEngineStr, value: Self) {
+        engine.set_cvar_string(name, value);
+    }
+}
+
+impl<'a> GetCvar<'a> for &'a CStr {
+    fn get_cvar(engine: &'a impl EngineCvar, name: impl ToEngineStr) -> Self {
+        engine.get_cvar_string(name).into()
+    }
+}
+
+impl SetCvar for &CStr {
+    fn set_cvar(engine: &impl EngineCvar, name: impl ToEngineStr, value: Self) {
+        engine.set_cvar_string(name, value);
+    }
+}
+
+impl<'a> GetCvar<'a> for Result<&'a str, Utf8Error> {
+    fn get_cvar(engine: &'a impl EngineCvar, name: impl ToEngineStr) -> Self {
+        engine.get_cvar_string(name).to_str()
+    }
+}
+
+impl<'a> GetCvar<'a> for CStrBox {
+    fn get_cvar(engine: &'a impl EngineCvar, name: impl ToEngineStr) -> Self {
+        engine.get_cvar_string(name).into()
+    }
+}
+
+impl<'a> GetCvar<'a> for CString {
+    fn get_cvar(engine: &'a impl EngineCvar, name: impl ToEngineStr) -> Self {
+        engine.get_cvar_string(name).into()
+    }
+}
+
+impl SetCvar for &str {
+    fn set_cvar(engine: &impl EngineCvar, name: impl ToEngineStr, value: Self) {
+        engine.set_cvar_string(name, value);
+    }
+}
+
+impl<'a> GetCvar<'a> for Result<String, Utf8Error> {
+    fn get_cvar(engine: &'a impl EngineCvar, name: impl ToEngineStr) -> Self {
+        engine.get_cvar_string(name).to_str().map(Into::into)
+    }
+}

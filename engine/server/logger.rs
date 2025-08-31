@@ -1,7 +1,7 @@
 use csz::CStrThin;
 use shared::logger::EngineConsole;
 
-use crate::engine;
+use crate::prelude::*;
 
 struct Console;
 

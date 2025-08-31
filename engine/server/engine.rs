@@ -4,24 +4,24 @@ use core::{
 };
 
 use csz::CStrThin;
-use shared::engine_private::{self, AsCStrPtr};
+use shared::{
+    engine_private,
+    str::{AsCStrPtr, ToEngineStr},
+};
 
 use crate::{
     cvar::{cvar_s, CVarPtr},
+    engine_types::*,
     raw::{self, edict_s, string_t, vec3_t},
 };
 
-pub use shared::engine::*;
+pub use shared::engine::EngineCvar;
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
-#[repr(transparent)]
-pub struct EntOffset(pub c_int);
-
-pub struct Engine {
+pub struct ServerEngine {
     raw: raw::enginefuncs_s,
 }
 
-shared::export::impl_unsync_global!(Engine);
+shared::export::impl_unsync_global!(ServerEngine);
 
 macro_rules! unwrap {
     ($self:expr, $name:ident) => {
@@ -33,7 +33,7 @@ macro_rules! unwrap {
 }
 
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
-impl Engine {
+impl ServerEngine {
     pub(crate) fn new(raw: &raw::enginefuncs_s) -> Self {
         Self { raw: *raw }
     }
@@ -317,28 +317,6 @@ impl Engine {
 
     pub fn cvar_register(&self, cvar: &'static mut cvar_s) {
         unsafe { unwrap!(self, pfnCVarRegister)(cvar) }
-    }
-
-    pub fn get_cvar_float(&self, name: impl ToEngineStr) -> f32 {
-        let name = name.to_engine_str();
-        unsafe { unwrap!(self, pfnCVarGetFloat)(name.as_ptr()) }
-    }
-
-    #[deprecated(note = "use get_cvar_float instead")]
-    pub fn cvar_get_float(&self, name: impl ToEngineStr) -> f32 {
-        self.get_cvar_float(name)
-    }
-
-    pub fn get_cvar_string(&self, name: impl ToEngineStr) -> &CStrThin {
-        engine_private::get_cvar_string(unwrap!(self, pfnCVarGetString), name)
-    }
-
-    // pub pfnCVarSetFloat: Option<unsafe extern "C" fn(szVarName: *const c_char, flValue: f32)>,
-
-    pub fn cvar_set_string(&self, name: impl ToEngineStr, value: impl ToEngineStr) {
-        let name = name.to_engine_str();
-        let value = value.to_engine_str();
-        unsafe { unwrap!(self, pfnCVarSetString)(name.as_ptr(), value.as_ptr()) }
     }
 
     pub fn alert_message(&self, atype: raw::ALERT_TYPE, msg: impl ToEngineStr) {
@@ -679,4 +657,13 @@ impl Engine {
     //     Option<unsafe extern "C" fn(parm: *mut c_char, ppnext: *mut *mut c_char) -> c_int>,
     // pub pfnPEntityOfEntIndexAllEntities:
     //     Option<unsafe extern "C" fn(iEntIndex: c_int) -> *mut edict_t>,
+}
+
+engine_private::impl_engine_cvar! {
+    ServerEngine {
+        pfnCVarGetFloat,
+        pfnCVarSetFloat,
+        pfnCVarGetString,
+        pfnCVarSetString,
+    }
 }

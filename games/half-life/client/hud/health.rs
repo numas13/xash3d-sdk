@@ -4,13 +4,12 @@ use alloc::collections::VecDeque;
 use bitflags::bitflags;
 use cl::{
     color::RGB,
-    engine,
     macros::spr_load,
     math::{fabsf, fmaxf, sinf},
     message::hook_message,
+    prelude::*,
     raw::vec3_t,
     sprite::SpriteHandle,
-    Engine,
 };
 
 use crate::hud::{hud, hud_mut, try_spr_load, Fade, Hide, Sprite, State};
@@ -162,7 +161,7 @@ impl Health {
         }
     }
 
-    fn draw_health(&mut self, engine: &Engine, state: &mut State) {
+    fn draw_health(&mut self, engine: &ClientEngine, state: &mut State) {
         let Some(cross) = self.cross else { return };
 
         let a = if self.current > 15 {
@@ -220,7 +219,7 @@ impl Health {
         }
     }
 
-    fn draw_damage(&mut self, engine: &Engine, state: &mut State) {
+    fn draw_damage(&mut self, engine: &ClientEngine, state: &mut State) {
         if self.damages.is_empty() {
             return;
         }
@@ -288,7 +287,7 @@ impl Health {
         }
     }
 
-    fn draw_pain(&mut self, engine: &Engine, state: &mut State) {
+    fn draw_pain(&mut self, engine: &ClientEngine, state: &mut State) {
         if self.attack == [0.0; 4] {
             return;
         }

@@ -359,6 +359,8 @@ impl fmt::Display for RGBA {
 mod tests {
     use super::*;
 
+    use alloc::string::ToString;
+
     #[test]
     fn rgb_parse() {
         assert_eq!("#010203".parse(), Ok(RGB::new(1, 2, 3)));

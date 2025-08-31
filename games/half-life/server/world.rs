@@ -1,7 +1,7 @@
 use core::ffi::CStr;
 
 use sv::{
-    engine,
+    prelude::*,
     raw::{entvars_s, KeyValueData},
 };
 
@@ -38,9 +38,9 @@ impl Entity for World {
 
     fn precache(&mut self) {
         let engine = engine();
-        engine.cvar_set_string(c"sv_gravity", c"800");
-        engine.cvar_set_string(c"sv_stepsize", c"18");
-        engine.cvar_set_string(c"room_type", c"0");
+        engine.set_cvar(c"sv_gravity", c"800");
+        engine.set_cvar(c"sv_stepsize", c"18");
+        engine.set_cvar(c"room_type", c"0");
         install_game_rules();
     }
 

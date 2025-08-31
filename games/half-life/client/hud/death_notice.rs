@@ -5,7 +5,7 @@ use core::{
 };
 
 use alloc::collections::vec_deque::VecDeque;
-use cl::{color::RGB, engine, message::hook_message};
+use cl::{color::RGB, message::hook_message, prelude::*};
 use csz::{CStrArray, CStrThin};
 
 use super::{hud, HudItem, Sprite, State, MAX_PLAYER_NAME_LENGTH};

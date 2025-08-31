@@ -22,8 +22,8 @@ use cl::{
     consts::{
         ATTN_NORM, CHAN_STATIC, EFLAG_FLESH_SOUND, MAX_PLAYERS, PITCH_NORM, PM_NORMAL, SOLID_BSP,
     },
-    engine,
     macros::hook_event,
+    prelude::*,
     raw::{event_args_s, physent_s, pmtrace_s, vec3_t, Effects, MoveType, RenderMode, SoundFlags},
 };
 use csz::CStrArray;
@@ -432,7 +432,7 @@ fn fire_bullets(
 
 pub fn init() {
     // FIXME: force cl_lw to 0.0 because it is not implemented
-    engine().cvar_set_value(c"cl_lw", 0.0);
+    engine().set_cvar(c"cl_lw", false);
 
     macro_rules! hook {
         ($($event:expr => $func:ident),* $(,)?) => (

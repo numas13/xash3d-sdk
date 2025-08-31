@@ -2,7 +2,10 @@ use core::{ffi::c_int, mem::MaybeUninit, ptr};
 
 use csz::CStrThin;
 
-use shared::engine_private::{self, AsCStrPtr};
+use shared::{
+    engine_private,
+    str::{AsCStrPtr, ToEngineStr},
+};
 
 use crate::{
     color::{RGB, RGBA},
@@ -13,13 +16,13 @@ use crate::{
     sprite::{SpriteHandle, SpriteList},
 };
 
-pub use shared::engine::*;
+pub use shared::engine::EngineCvar;
 
-pub struct Engine {
+pub struct ClientEngine {
     raw: raw::cl_enginefuncs_s,
 }
 
-shared::export::impl_unsync_global!(Engine);
+shared::export::impl_unsync_global!(ClientEngine);
 
 macro_rules! unwrap {
     ($self:expr, $name:ident) => {
@@ -30,7 +33,7 @@ macro_rules! unwrap {
     };
 }
 
-impl Engine {
+impl ClientEngine {
     pub(crate) fn new(raw: &raw::cl_enginefuncs_s) -> Self {
         Self { raw: *raw }
     }
@@ -167,25 +170,6 @@ impl Engine {
         }
     }
 
-    pub fn get_cvar_float(&self, name: impl ToEngineStr) -> f32 {
-        let name = name.to_engine_str();
-        unsafe { unwrap!(self, pfnGetCvarFloat)(name.as_ptr()) }
-    }
-
-    pub fn get_cvar_string(&self, name: impl ToEngineStr) -> &CStrThin {
-        engine_private::get_cvar_string(unwrap!(self, pfnGetCvarString), name)
-    }
-
-    #[deprecated(note = "use get_cvar_float instead")]
-    pub fn cvar_get_float(&self, name: impl ToEngineStr) -> f32 {
-        self.get_cvar_float(name)
-    }
-
-    #[deprecated(note = "use get_cvar_string instead")]
-    pub fn cvar_get_c_str(&self, name: impl ToEngineStr) -> &CStrThin {
-        self.get_cvar_string(name)
-    }
-
     pub fn add_command(&self, name: impl ToEngineStr, func: unsafe extern "C" fn()) -> c_int {
         let name = name.to_engine_str();
         unsafe { unwrap!(self, pfnAddCommand)(name.as_ptr(), func) }
@@ -306,11 +290,6 @@ impl Engine {
 
     pub fn get_max_clients(&self) -> c_int {
         unsafe { unwrap!(self, GetMaxClients)() }
-    }
-
-    pub fn cvar_set_value(&self, name: impl ToEngineStr, value: f32) {
-        let name = name.to_engine_str();
-        unsafe { unwrap!(self, Cvar_SetValue)(name.as_ptr(), value) }
     }
 
     pub fn cmd_argc(&self) -> usize {
@@ -590,7 +569,6 @@ impl Engine {
     // >,
     // pub pfnGetApproxWavePlayLen: Option<unsafe extern "C" fn(filename: *const c_char) -> c_uint>,
     // pub GetCareerGameUI: Option<unsafe extern "C" fn() -> *mut c_void>,
-    // pub Cvar_Set: Option<unsafe extern "C" fn(name: *const c_char, value: *const c_char)>,
     // pub pfnIsPlayingCareerMatch: Option<unsafe extern "C" fn() -> c_int>,
     // pub pfnPlaySoundVoiceByName:
     //     Option<unsafe extern "C" fn(szSound: *mut c_char, volume: f32, pitch: c_int)>,
@@ -622,5 +600,14 @@ impl Engine {
 
     pub fn is_multiplayer(&self) -> bool {
         self.get_max_clients() > 1
+    }
+}
+
+engine_private::impl_engine_cvar! {
+    ClientEngine {
+        pfnGetCvarFloat,
+        Cvar_SetValue,
+        pfnGetCvarString,
+        Cvar_Set,
     }
 }

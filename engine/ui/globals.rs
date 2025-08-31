@@ -2,19 +2,19 @@ use core::ops::{Deref, DerefMut};
 
 use crate::raw;
 
-pub struct Globals {
+pub struct UiGlobals {
     raw: *mut raw::ui_globalvars_s,
 }
 
-shared::export::impl_unsync_global!(Globals);
+shared::export::impl_unsync_global!(UiGlobals);
 
-impl Globals {
+impl UiGlobals {
     pub(crate) fn new(raw: *mut raw::ui_globalvars_s) -> Self {
         Self { raw }
     }
 }
 
-impl Deref for Globals {
+impl Deref for UiGlobals {
     type Target = raw::ui_globalvars_s;
 
     fn deref(&self) -> &Self::Target {
@@ -22,7 +22,7 @@ impl Deref for Globals {
     }
 }
 
-impl DerefMut for Globals {
+impl DerefMut for UiGlobals {
     fn deref_mut(&mut self) -> &mut Self::Target {
         unsafe { &mut *self.raw }
     }

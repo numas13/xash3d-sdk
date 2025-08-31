@@ -7,8 +7,8 @@ use core::{
 use cl::{
     cell::SyncOnceCell,
     consts::{DEAD_NO, PM_STUDIO_BOX, PM_WORLD_ONLY, YAW},
-    engine,
     math::sinf,
+    prelude::*,
     raw::{
         cl_entity_s, clientdata_s, entity_state_s, vec3_t, weapon_data_s, EntityType, RenderMode,
         TempEntFlags, TEMPENTITY,

@@ -76,7 +76,7 @@ impl<T: AsRef<CStrThin>> AsCStrPtr for T {
     }
 }
 
-/// A helper trait to convert an object to a string accepted by the engine.
+/// Convert a type to a string accepted by the engine.
 pub trait ToEngineStr {
     type Output: AsRef<CStrThin>;
 

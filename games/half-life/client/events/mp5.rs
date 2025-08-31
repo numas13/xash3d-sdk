@@ -2,8 +2,8 @@ use core::ffi::c_int;
 
 use cl::{
     consts::{ATTN_NORM, CHAN_WEAPON, PITCH, TE_BOUNCE_SHELL, YAW},
-    engine,
     math::angle_vectors,
+    prelude::*,
     raw::{event_args_s, SoundFlags},
 };
 use res::valve::{models, sound};

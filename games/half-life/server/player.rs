@@ -2,7 +2,7 @@ use core::{ffi::c_int, ptr};
 
 use sv::{
     consts::{DAMAGE_AIM, DEAD_NO, SOLID_SLIDEBOX},
-    engine, globals,
+    prelude::*,
     raw::{edict_s, entvars_s, EdictFlags, Effects, MoveType},
 };
 

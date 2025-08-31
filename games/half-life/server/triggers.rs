@@ -3,8 +3,8 @@ use core::{ffi::c_int, ptr};
 use csz::{cstr, CStrArray, CStrThin};
 use sv::{
     consts::{FENTTABLE_GLOBAL, FENTTABLE_MOVEABLE, SOLID_TRIGGER},
-    engine, globals, globals_mut,
     macros::define_field,
+    prelude::*,
     raw::{
         edict_s, entvars_s, string_t, vec3_t, Effects, FieldType, KeyValueData, MoveType,
         LEVELLIST, SAVERESTOREDATA, TYPEDESCRIPTION,

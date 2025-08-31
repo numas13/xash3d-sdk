@@ -28,7 +28,7 @@ macro_rules! hook_message {
         }
 
         let name = $crate::macros::cstringify!($name);
-        $crate::engine().hook_user_msg(name, Some(message_hook));
+        $crate::instance::engine().hook_user_msg(name, Some(message_hook));
     }};
 }
 #[doc(inline)]

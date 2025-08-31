@@ -5,15 +5,18 @@ use core::{
 
 use csz::CStrThin;
 
-use crate::raw::{self, string_t};
+use crate::{
+    prelude::*,
+    raw::{self, string_t},
+};
 
-pub struct Globals {
+pub struct ServerGlobals {
     raw: *mut raw::globalvars_t,
 }
 
-shared::export::impl_unsync_global!(Globals);
+shared::export::impl_unsync_global!(ServerGlobals);
 
-impl Globals {
+impl ServerGlobals {
     pub(crate) fn new(raw: *mut raw::globalvars_t) -> Self {
         Self { raw }
     }
@@ -24,11 +27,11 @@ impl Globals {
 
     #[deprecated = "use Engine::alloc_string"]
     pub fn make_string(&self, s: &CStr) -> string_t {
-        crate::engine().alloc_string(s)
+        engine().alloc_string(s)
     }
 }
 
-impl Deref for Globals {
+impl Deref for ServerGlobals {
     type Target = raw::globalvars_t;
 
     fn deref(&self) -> &Self::Target {
@@ -36,7 +39,7 @@ impl Deref for Globals {
     }
 }
 
-impl DerefMut for Globals {
+impl DerefMut for ServerGlobals {
     fn deref_mut(&mut self) -> &mut Self::Target {
         unsafe { &mut *self.raw }
     }

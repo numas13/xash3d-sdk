@@ -5,13 +5,13 @@ pub use shared::macros::*;
 macro_rules! hook_command {
     ($name:expr, $block:block) => ({
         unsafe extern "C" fn command_hook() $block
-        $crate::engine().add_command($name, command_hook);
+        $crate::instance::engine().add_command($name, command_hook);
     });
     ($name:expr, $expr:expr) => ({
         unsafe extern "C" fn command_hook() {
             $expr;
         }
-        $crate::engine().add_command($name, command_hook);
+        $crate::instance::engine().add_command($name, command_hook);
     });
 }
 #[doc(inline)]
@@ -33,7 +33,7 @@ macro_rules! hook_command_key {
             $($up)?
         }
 
-        let engine = engine();
+        let engine = $crate::instance::engine();
         engine.add_command(concat!("+", $name), on_key_down);
         engine.add_command(concat!("-", $name), on_key_up);
     }};
@@ -55,7 +55,7 @@ macro_rules! hook_event {
             handle(unsafe { &mut *args });
         }
 
-        $crate::engine().hook_event($name, Some(event_hook));
+        $crate::instance::engine().hook_event($name, Some(event_hook));
     }};
 }
 #[doc(inline)]
@@ -68,7 +68,7 @@ macro_rules! spr_load {
         use core::fmt::Write;
         let buf = &mut csz::CStrArray::<256>::new();
         write!(buf.cursor(), $($args)+).ok();
-        $crate::engine().spr_load(buf.as_c_str())
+        $crate::instance::engine().spr_load(buf.as_c_str())
     });
 }
 #[doc(inline)]
@@ -81,7 +81,7 @@ macro_rules! spr_get_list {
         use core::fmt::Write;
         let buf = &mut csz::CStrArray::<256>::new();
         write!(buf.cursor(), $($args)+).ok();
-        $crate::engine().spr_get_list(buf.as_c_str())
+        $crate::instance::engine().spr_get_list(buf.as_c_str())
     });
 }
 #[doc(inline)]

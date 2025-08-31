@@ -1,6 +1,6 @@
 use sv::cvar::define;
 
-use sv::engine;
+use sv::prelude::*;
 
 #[allow(dead_code)]
 mod flags {
@@ -47,7 +47,7 @@ macro_rules! define_server {
             )*
 
             pub(super) fn init() {
-                let engine = sv::engine();
+                let engine = sv::instance::engine();
                 unsafe {
                     $(engine.cvar_register(&mut *core::ptr::addr_of_mut!($name));)*
                 }

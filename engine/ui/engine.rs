@@ -1,103 +1,28 @@
 use core::{
-    ffi::{c_char, c_int, c_uint, c_void, CStr},
+    ffi::{c_int, c_uint, c_void},
     fmt,
-    marker::PhantomData,
     mem::MaybeUninit,
-    ops::{Deref, DerefMut},
     ptr, slice,
 };
 
 use csz::{CStrArray, CStrThin};
 use shared::{
     borrow::{BorrowRef, Ref},
-    engine_private::{self, AsCStrPtr},
+    engine_private,
+    str::{AsCStrPtr, ToEngineStr},
 };
 
 use crate::{
     color::{RGB, RGBA},
     consts::{MAX_STRING, MAX_SYSPATH},
     cvar::{CVarFlags, CVarPtr},
+    engine_types::{ActiveMenu, Point, Size},
+    file::{Cursor, File, FileList},
+    game_info::GameInfo,
     raw::{self, kbutton_t, net_api_s, netadr_s, wrect_s, HIMAGE},
 };
 
-pub use shared::engine::*;
-
-#[derive(Copy, Clone, PartialEq, Eq)]
-pub struct Point {
-    pub x: c_int,
-    pub y: c_int,
-}
-
-impl Point {
-    pub const fn new(x: c_int, y: c_int) -> Self {
-        Self { x, y }
-    }
-
-    pub const fn components(&self) -> (c_int, c_int) {
-        (self.x, self.y)
-    }
-}
-
-impl From<Size> for Point {
-    fn from(size: Size) -> Self {
-        Self::new(size.width, size.height)
-    }
-}
-
-impl From<(c_int, c_int)> for Point {
-    fn from((x, y): (c_int, c_int)) -> Self {
-        Self::new(x, y)
-    }
-}
-
-#[derive(Copy, Clone, PartialEq, Eq)]
-pub struct Size {
-    pub width: c_int,
-    pub height: c_int,
-}
-
-impl Size {
-    pub const fn new(width: c_int, height: c_int) -> Self {
-        Self { width, height }
-    }
-
-    pub const fn components(&self) -> (c_int, c_int) {
-        (self.width, self.height)
-    }
-}
-
-impl From<Point> for Size {
-    fn from(point: Point) -> Self {
-        Self::new(point.x, point.y)
-    }
-}
-
-impl From<(c_int, c_int)> for Size {
-    fn from((w, h): (c_int, c_int)) -> Self {
-        Self::new(w, h)
-    }
-}
-
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-#[repr(C)]
-pub enum ActiveMenu {
-    Console,
-    Game,
-    Menu,
-}
-
-impl TryFrom<c_int> for ActiveMenu {
-    type Error = ();
-
-    fn try_from(value: c_int) -> Result<Self, Self::Error> {
-        match value {
-            0 => Ok(Self::Console),
-            1 => Ok(Self::Game),
-            2 => Ok(Self::Menu),
-            _ => Err(()),
-        }
-    }
-}
+pub use shared::engine::EngineCvar;
 
 #[derive(Default)]
 struct Borrows {
@@ -105,13 +30,13 @@ struct Borrows {
     addr_to_string: BorrowRef,
 }
 
-pub struct Engine {
+pub struct UiEngine {
     raw: raw::ui_enginefuncs_s,
     ext: raw::ui_extendedfuncs_s,
     borrows: Borrows,
 }
 
-shared::export::impl_unsync_global!(Engine);
+shared::export::impl_unsync_global!(UiEngine);
 
 macro_rules! unwrap {
     ($self:expr, ext.net.$name:ident) => {
@@ -134,7 +59,7 @@ macro_rules! unwrap {
     };
 }
 
-impl Engine {
+impl UiEngine {
     pub(crate) fn new(raw: &raw::ui_enginefuncs_s) -> Self {
         Self {
             raw: *raw,
@@ -277,38 +202,6 @@ impl Engine {
             Some(CVarPtr::from_ptr(ptr))
         } else {
             None
-        }
-    }
-
-    pub fn get_cvar_float(&self, name: impl ToEngineStr) -> f32 {
-        let name = name.to_engine_str();
-        unsafe { unwrap!(self, pfnGetCvarFloat)(name.as_ptr()) }
-    }
-
-    pub fn get_cvar_string(&self, name: impl ToEngineStr) -> &CStrThin {
-        engine_private::get_cvar_string(unwrap!(self, pfnGetCvarString), name)
-    }
-
-    pub fn cvar<'a, T: CVar<'a>>(&'a self, name: &CStr) -> T {
-        CVar::get(self, name)
-    }
-
-    pub fn cvar_set<'a, T: CVar<'a>>(&'a self, name: &CStr, value: T) {
-        CVar::set(&value, self, name)
-    }
-
-    pub fn set_cvar_string(&self, name: impl ToEngineStr, value: impl ToEngineStr) {
-        let name = name.to_engine_str();
-        let value = value.to_engine_str();
-        unsafe {
-            unwrap!(self, pfnCvarSetString)(name.as_ptr(), value.as_ptr());
-        }
-    }
-
-    pub fn set_cvar_float(&self, name: impl ToEngineStr, value: f32) {
-        let name = name.to_engine_str();
-        unsafe {
-            unwrap!(self, pfnCvarSetValue)(name.as_ptr(), value);
         }
     }
 
@@ -516,7 +409,7 @@ impl Engine {
     }
 
     pub fn client_is_active(&self) -> bool {
-        self.client_in_game() && self.cvar::<f32>(c"cl_background") == 0.0
+        self.client_in_game() && !self.get_cvar::<bool>(c"cl_background")
     }
 
     // pub pfnClientJoin: Option<unsafe extern "C" fn(adr: netadr_s)>,
@@ -526,10 +419,7 @@ impl Engine {
         let mut len = 0;
         let data = unsafe { unwrap!(self, COM_LoadFile)(path.as_ptr(), &mut len) };
         if !data.is_null() {
-            Some(File {
-                data: data.cast(),
-                len: len as usize,
-            })
+            Some(unsafe { File::new(data.cast(), len as usize) })
         } else {
             None
         }
@@ -612,9 +502,7 @@ impl Engine {
         let mut raw = MaybeUninit::uninit();
         let res = unsafe { unwrap!(self, pfnGetGameInfo)(raw.as_mut_ptr()) };
         if res != 0 {
-            Some(GameInfo {
-                raw: unsafe { raw.assume_init() },
-            })
+            Some(GameInfo::new(unsafe { raw.assume_init() }))
         } else {
             None
         }
@@ -640,7 +528,7 @@ impl Engine {
         } else {
             &[]
         };
-        FileList { raw }
+        unsafe { FileList::new(raw) }
     }
 
     pub fn get_save_comment(&self, savename: impl ToEngineStr, comment: &mut [u8; 256]) -> bool {
@@ -929,212 +817,11 @@ impl Engine {
     // >,
 }
 
-pub struct File {
-    data: *mut u8,
-    len: usize,
-}
-
-impl File {
-    pub fn as_slice(&self) -> &[u8] {
-        unsafe { slice::from_raw_parts(self.data, self.len) }
-    }
-
-    pub fn as_slice_mut(&mut self) -> &mut [u8] {
-        unsafe { slice::from_raw_parts_mut(self.data, self.len) }
-    }
-
-    pub fn cursor(&mut self) -> Cursor<'_> {
-        unsafe { Cursor::from_ptr(self.data) }
-    }
-}
-
-impl Deref for File {
-    type Target = [u8];
-
-    fn deref(&self) -> &Self::Target {
-        self.as_slice()
-    }
-}
-
-impl DerefMut for File {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        self.as_slice_mut()
-    }
-}
-
-impl Drop for File {
-    fn drop(&mut self) {
-        unsafe {
-            super::engine().free_file(self.data.cast());
-        }
-    }
-}
-
-pub struct Cursor<'a> {
-    data: *mut u8,
-    phantom: PhantomData<&'a [u8]>,
-}
-
-impl<'a> Cursor<'a> {
-    /// Creates cursor from a raw pointer.
-    ///
-    /// # Safety
-    ///
-    /// `data` must contain a nul-byte at the end.
-    pub unsafe fn from_ptr(data: *mut u8) -> Self {
-        Self {
-            data,
-            phantom: PhantomData,
-        }
-    }
-
-    pub fn from_slice(slice: &'a mut [u8]) -> Self {
-        assert_eq!(slice.last(), Some(&0));
-        unsafe { Self::from_ptr(slice.as_mut_ptr()) }
-    }
-}
-
-pub struct FileList<'a> {
-    raw: &'a [*const c_char],
-}
-
-impl<'a> FileList<'a> {
-    fn as_slice(&self) -> &'a [*const c_char] {
-        self.raw
-    }
-
-    pub fn iter(&self) -> impl Iterator<Item = &'a CStrThin> {
-        self.as_slice()
-            .iter()
-            .map(|i| unsafe { CStrThin::from_ptr(*i) })
-    }
-}
-
-#[derive(Clone)]
-pub struct GameInfo {
-    raw: raw::GAMEINFO,
-}
-
-impl GameInfo {
-    pub fn game_folder(&self) -> &str {
-        unsafe {
-            CStr::from_ptr(self.raw.gamefolder.as_ptr())
-                .to_str()
-                .unwrap()
-        }
-    }
-
-    pub fn start_map(&self) -> &str {
-        unsafe { CStr::from_ptr(self.raw.startmap.as_ptr()).to_str().unwrap() }
-    }
-
-    pub fn train_map(&self) -> &str {
-        unsafe { CStr::from_ptr(self.raw.trainmap.as_ptr()).to_str().unwrap() }
-    }
-
-    pub fn title(&self) -> &str {
-        unsafe { CStr::from_ptr(self.raw.title.as_ptr()).to_str().unwrap() }
-    }
-
-    pub fn version(&self) -> Option<&str> {
-        self.raw.version.to_str().ok()
-    }
-
-    #[inline(always)]
-    pub fn flags(&self) -> u16 {
-        self.raw.flags as u16
-    }
-
-    pub fn game_url(&self) -> &str {
-        unsafe { CStr::from_ptr(self.raw.game_url.as_ptr()).to_str().unwrap() }
-    }
-
-    pub fn update_url(&self) -> &str {
-        unsafe {
-            CStr::from_ptr(self.raw.update_url.as_ptr())
-                .to_str()
-                .unwrap()
-        }
-    }
-
-    pub fn type_(&self) -> &str {
-        unsafe { CStr::from_ptr(self.raw.type_.as_ptr()).to_str().unwrap() }
-    }
-
-    pub fn date(&self) -> &str {
-        unsafe { CStr::from_ptr(self.raw.date.as_ptr()).to_str().unwrap() }
-    }
-
-    pub fn size(&self) -> &str {
-        unsafe { CStr::from_ptr(self.raw.size.as_ptr()).to_str().unwrap() }
-    }
-
-    #[inline(always)]
-    pub fn game_mode(&self) -> u32 {
-        self.raw.gamemode as u32
-    }
-}
-
-impl fmt::Debug for GameInfo {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        fmt.debug_struct("GameInfo")
-            .field("gamefolder", &self.game_folder())
-            .field("startmap", &self.start_map())
-            .field("trainmap", &self.train_map())
-            .field("title", &self.title())
-            .field("version", &self.version())
-            .field("flags", &self.flags())
-            .field("game_url", &self.game_url())
-            .field("update_url", &self.update_url())
-            .field("type", &self.type_())
-            .field("date", &self.date())
-            .field("size", &self.size())
-            .field("gamemode", &self.game_mode())
-            .finish()
-    }
-}
-
-pub trait CVar<'a> {
-    fn get(eng: &'a Engine, name: &CStr) -> Self;
-    fn set(&self, eng: &Engine, name: &CStr);
-}
-
-impl<'a> CVar<'a> for bool {
-    fn get(eng: &'a Engine, name: &CStr) -> Self {
-        eng.get_cvar_float(name) != 0.0
-    }
-
-    fn set(&self, eng: &Engine, name: &CStr) {
-        eng.set_cvar_float(name, *self as u32 as f32);
-    }
-}
-
-impl<'a> CVar<'a> for usize {
-    fn get(eng: &'a Engine, name: &CStr) -> Self {
-        eng.get_cvar_float(name) as usize
-    }
-
-    fn set(&self, eng: &Engine, name: &CStr) {
-        eng.set_cvar_float(name, *self as f32);
-    }
-}
-
-impl<'a> CVar<'a> for f32 {
-    fn get(eng: &'a Engine, name: &CStr) -> Self {
-        eng.get_cvar_float(name)
-    }
-
-    fn set(&self, eng: &Engine, name: &CStr) {
-        eng.set_cvar_float(name, *self);
-    }
-}
-
-impl<'a> CVar<'a> for &'a CStr {
-    fn get(eng: &'a Engine, name: &CStr) -> Self {
-        eng.get_cvar_string(name).into()
-    }
-
-    fn set(&self, eng: &Engine, name: &CStr) {
-        eng.set_cvar_string(name, *self)
+engine_private::impl_engine_cvar! {
+    UiEngine {
+        pfnGetCvarFloat,
+        pfnCvarSetValue,
+        pfnGetCvarString,
+        pfnCvarSetString,
     }
 }

@@ -2,7 +2,7 @@ use core::ffi::{c_int, CStr};
 
 use cl::{
     consts::{ATTN_NORM, CHAN_STATIC, CHAN_WEAPON},
-    engine,
+    prelude::*,
     raw::{event_args_s, SoundFlags},
 };
 use res::valve::sound;

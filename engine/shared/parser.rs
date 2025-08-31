@@ -1,13 +1,16 @@
 use core::{fmt, mem};
 
+#[deprecated(note = "use TokenError instead")]
+pub type Error<'a> = TokenError<'a>;
+
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum Error<'a> {
+pub enum TokenError<'a> {
     InvalidData,
     UnexpectedToken(&'a str),
     UnexpectedEnd,
 }
 
-impl fmt::Display for Error<'_> {
+impl fmt::Display for TokenError<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::InvalidData => write!(f, "Invalid data"),
@@ -85,10 +88,10 @@ impl<'a> Tokens<'a> {
         }
     }
 
-    pub fn parse(&mut self) -> Result<&'a str, Error<'a>> {
+    pub fn parse(&mut self) -> Result<&'a str, TokenError<'a>> {
         self.skip_whitespace();
 
-        match self.data.chars().next().ok_or(Error::UnexpectedEnd)? {
+        match self.data.chars().next().ok_or(TokenError::UnexpectedEnd)? {
             '"' => {
                 let mut skip = false;
                 for (i, c) in self.data.char_indices().skip(1) {
@@ -102,7 +105,7 @@ impl<'a> Tokens<'a> {
                         return Ok(s);
                     }
                 }
-                Err(Error::InvalidData)
+                Err(TokenError::InvalidData)
             }
             c if self.is_single_char(c) => {
                 let s = &self.data[..1];
@@ -124,23 +127,23 @@ impl<'a> Tokens<'a> {
         }
     }
 
-    pub fn expect(&mut self, token: &str) -> Result<&'a str, Error<'a>> {
+    pub fn expect(&mut self, token: &str) -> Result<&'a str, TokenError<'a>> {
         let s = self.parse()?;
         if s == token {
             Ok(s)
         } else {
-            Err(Error::UnexpectedToken(s))
+            Err(TokenError::UnexpectedToken(s))
         }
     }
 }
 
 impl<'a> Iterator for Tokens<'a> {
-    type Item = Result<&'a str, Error<'a>>;
+    type Item = Result<&'a str, TokenError<'a>>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.parse() {
             Ok(s) => Some(Ok(s)),
-            Err(Error::UnexpectedEnd) => None,
+            Err(TokenError::UnexpectedEnd) => None,
             Err(e) => Some(Err(e)),
         }
     }
@@ -208,7 +211,7 @@ mod tests {
             println!("{i}");
             assert_eq!(iter.parse(), Ok(i));
         }
-        assert_eq!(iter.parse(), Err(Error::UnexpectedEnd));
+        assert_eq!(iter.parse(), Err(TokenError::UnexpectedEnd));
     }
 
     #[test]

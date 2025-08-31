@@ -1,6 +1,6 @@
 use core::ffi::c_int;
 
-use cl::engine;
+use cl::prelude::*;
 
 use crate::hud::{Fade, Hide, HudItem, State};
 

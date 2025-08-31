@@ -5,7 +5,7 @@ use core::{
 
 use sv::{
     consts::{EFLAG_SLERP, ENTITY_BEAM, ENTITY_NORMAL, SOLID_SLIDEBOX},
-    engine, globals,
+    prelude::*,
     raw::{
         clientdata_s, edict_s, entity_state_s, entvars_s, vec3_t, EdictFlags, Effects, MoveType,
     },

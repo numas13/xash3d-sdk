@@ -1,6 +1,10 @@
-#![cfg_attr(not(test), no_std)]
+#![no_std]
 
 extern crate alloc;
+
+#[cfg(any(test, feature = "std"))]
+#[macro_use]
+extern crate std;
 
 #[macro_use]
 extern crate log;
@@ -20,6 +24,7 @@ pub mod math;
 pub mod message;
 pub mod parser;
 pub mod raw;
+pub mod str;
 pub mod utils;
 
 pub use cell;

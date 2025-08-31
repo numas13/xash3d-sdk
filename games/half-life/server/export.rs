@@ -8,7 +8,7 @@ use core::{
 use csz::CStrThin;
 use pm::{VEC_DUCK_HULL_MIN, VEC_HULL_MIN};
 use sv::{
-    engine, globals,
+    prelude::*,
     raw::{
         self, clientdata_s, customization_s, edict_s, entity_state_s, netadr_s, playermove_s,
         qboolean, usercmd_s, vec3_t, weapon_data_s, EdictFlags, INTERFACE_VERSION,
@@ -621,6 +621,6 @@ unsafe extern "C" fn GiveFnptrsToDll(
     globals: *mut sv::raw::globalvars_t,
 ) {
     unsafe {
-        sv::init_engine(funcs.unwrap(), globals);
+        sv::instance::init_engine(funcs.unwrap(), globals);
     }
 }
