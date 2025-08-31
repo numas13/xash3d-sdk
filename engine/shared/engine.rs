@@ -78,3 +78,44 @@ pub trait EngineRng {
 pub trait EngineConsole {
     fn console_print(&self, msg: impl ToEngineStr);
 }
+
+/// Engine API to access command arguments.
+pub trait EngineCmdArgs {
+    #[doc(hidden)]
+    fn fn_cmd_argc(&self) -> unsafe extern "C" fn() -> c_int;
+
+    #[doc(hidden)]
+    fn fn_cmd_argv(&self) -> unsafe extern "C" fn(argc: c_int) -> *const c_char;
+
+    fn cmd_argc(&self) -> usize {
+        unsafe { self.fn_cmd_argc()() as usize }
+    }
+
+    fn cmd_argv(&self, index: usize) -> &CStrThin {
+        let ptr = unsafe { self.fn_cmd_argv()(index as c_int) };
+        // SAFETY: the engine returns an empty string if index is greater than
+        // arguments count
+        unsafe { CStrThin::from_ptr(ptr) }
+    }
+
+    /// Returns an iterator over command arguments.
+    fn cmd_args(&self) -> impl Iterator<Item = &CStrThin> {
+        (0..self.cmd_argc()).map(|i| self.cmd_argv(i))
+    }
+}
+
+/// Engine API to access a raw command arguments string.
+pub trait EngineCmdArgsRaw {
+    #[doc(hidden)]
+    fn fn_cmd_args_raw(&self) -> unsafe extern "C" fn() -> *const c_char;
+
+    /// Returns a raw command arguments string without command name.
+    fn cmd_args_raw(&self) -> Option<&CStrThin> {
+        let ptr = unsafe { self.fn_cmd_args_raw()() };
+        if !ptr.is_null() {
+            Some(unsafe { CStrThin::from_ptr(ptr) })
+        } else {
+            None
+        }
+    }
+}

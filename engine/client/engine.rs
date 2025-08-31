@@ -4,8 +4,6 @@ use core::{
     ptr,
 };
 
-use csz::CStrThin;
-
 use shared::str::{AsCStrPtr, ToEngineStr};
 
 use crate::{
@@ -17,7 +15,7 @@ use crate::{
     sprite::{SpriteHandle, SpriteList},
 };
 
-pub use shared::engine::{EngineConsole, EngineCvar, EngineRng};
+pub use shared::engine::{EngineCmdArgs, EngineConsole, EngineCvar, EngineRng};
 
 pub struct ClientEngine {
     raw: raw::cl_enginefuncs_s,
@@ -286,17 +284,6 @@ impl ClientEngine {
 
     pub fn get_max_clients(&self) -> c_int {
         unsafe { unwrap!(self, GetMaxClients)() }
-    }
-
-    pub fn cmd_argc(&self) -> usize {
-        unsafe { unwrap!(self, Cmd_Argc)() as usize }
-    }
-
-    pub fn cmd_argv(&self, n: usize) -> &CStrThin {
-        let ptr = unsafe { unwrap!(self, Cmd_Argv)(n as c_int) };
-
-        // SAFETY: the engine returns an empty string if cvar is not found
-        unsafe { CStrThin::from_ptr(ptr) }
     }
 
     // pub Con_Printf: Option<unsafe extern "C" fn(fmt: *const c_char, ...)>,
@@ -626,5 +613,15 @@ impl EngineConsole for ClientEngine {
     fn console_print(&self, msg: impl ToEngineStr) {
         let msg = msg.to_engine_str();
         unsafe { unwrap!(self, pfnConsolePrint)(msg.as_ptr()) }
+    }
+}
+
+impl EngineCmdArgs for ClientEngine {
+    fn fn_cmd_argc(&self) -> unsafe extern "C" fn() -> c_int {
+        unwrap!(self, Cmd_Argc)
+    }
+
+    fn fn_cmd_argv(&self) -> unsafe extern "C" fn(argc: c_int) -> *const c_char {
+        unwrap!(self, Cmd_Argv)
     }
 }

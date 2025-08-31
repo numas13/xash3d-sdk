@@ -20,7 +20,7 @@ use crate::{
     raw::{self, kbutton_t, net_api_s, netadr_s, wrect_s, HIMAGE},
 };
 
-pub use shared::engine::{EngineConsole, EngineCvar, EngineRng};
+pub use shared::engine::{EngineCmdArgs, EngineCmdArgsRaw, EngineConsole, EngineCvar, EngineRng};
 
 #[derive(Default)]
 struct Borrows {
@@ -225,25 +225,6 @@ impl UiEngine {
         let cmd_name = cmd_name.to_engine_str();
         unsafe {
             unwrap!(self, pfnDelCommand)(cmd_name.as_ptr());
-        }
-    }
-
-    pub fn cmd_argc(&self) -> usize {
-        unsafe { unwrap!(self, pfnCmdArgc)() as usize }
-    }
-
-    pub fn cmd_argv(&self, index: usize) -> &CStrThin {
-        let ptr = unsafe { unwrap!(self, pfnCmdArgv)(index as c_int) };
-        assert!(!ptr.is_null());
-        unsafe { CStrThin::from_ptr(ptr) }
-    }
-
-    pub fn cmd_args(&self) -> Option<&CStrThin> {
-        let ptr = unsafe { unwrap!(self, pfnCmd_Args)() };
-        if !ptr.is_null() {
-            Some(unsafe { CStrThin::from_ptr(ptr) })
-        } else {
-            None
         }
     }
 
@@ -794,5 +775,21 @@ impl EngineConsole for UiEngine {
     fn console_print(&self, msg: impl ToEngineStr) {
         let msg = msg.to_engine_str();
         unsafe { unwrap!(self, Con_Printf)(c"%s".as_ptr(), msg.as_ptr()) }
+    }
+}
+
+impl EngineCmdArgs for UiEngine {
+    fn fn_cmd_argc(&self) -> unsafe extern "C" fn() -> c_int {
+        unwrap!(self, pfnCmdArgc)
+    }
+
+    fn fn_cmd_argv(&self) -> unsafe extern "C" fn(argc: c_int) -> *const c_char {
+        unwrap!(self, pfnCmdArgv)
+    }
+}
+
+impl EngineCmdArgsRaw for UiEngine {
+    fn fn_cmd_args_raw(&self) -> unsafe extern "C" fn() -> *const c_char {
+        unwrap!(self, pfnCmd_Args)
     }
 }

@@ -11,7 +11,7 @@ use crate::{
     raw::{self, edict_s, string_t, vec3_t},
 };
 
-pub use shared::engine::{EngineConsole, EngineCvar, EngineRng};
+pub use shared::engine::{EngineCmdArgs, EngineCmdArgsRaw, EngineConsole, EngineCvar, EngineRng};
 
 pub struct ServerEngine {
     raw: raw::enginefuncs_s,
@@ -381,15 +381,6 @@ impl ServerEngine {
     // pub pfnClientPrintf:
     //     Option<unsafe extern "C" fn(pEdict: *mut edict_t, ptype: PRINT_TYPE, szMsg: *const c_char)>,
 
-    // pub pfnCmd_Args: Option<unsafe extern "C" fn() -> *const c_char>,
-
-    pub fn cmd_argv(&self, argc: c_int) -> &CStr {
-        let ptr = unsafe { unwrap!(self, pfnCmd_Argv)(argc) };
-        assert!(!ptr.is_null());
-        unsafe { CStr::from_ptr(ptr) }
-    }
-
-    // pub pfnCmd_Argc: Option<unsafe extern "C" fn() -> c_int>,
     // pub pfnGetAttachment: Option<
     //     unsafe extern "C" fn(
     //         pEdict: *const edict_t,
@@ -669,5 +660,21 @@ impl EngineConsole for ServerEngine {
     fn console_print(&self, msg: impl ToEngineStr) {
         let msg = msg.to_engine_str();
         unsafe { unwrap!(self, pfnServerPrint)(msg.as_ptr()) }
+    }
+}
+
+impl EngineCmdArgs for ServerEngine {
+    fn fn_cmd_argc(&self) -> unsafe extern "C" fn() -> c_int {
+        unwrap!(self, pfnCmd_Argc)
+    }
+
+    fn fn_cmd_argv(&self) -> unsafe extern "C" fn(argc: c_int) -> *const c_char {
+        unwrap!(self, pfnCmd_Argv)
+    }
+}
+
+impl EngineCmdArgsRaw for ServerEngine {
+    fn fn_cmd_args_raw(&self) -> unsafe extern "C" fn() -> *const c_char {
+        unwrap!(self, pfnCmd_Args)
     }
 }

@@ -15,7 +15,7 @@ use crate::{
     },
 };
 
-pub use shared::engine::{EngineConsole, EngineCvar, EngineRng};
+pub use shared::engine::{EngineCmdArgs, EngineCmdArgsRaw, EngineConsole, EngineCvar, EngineRng};
 
 pub struct RefEngine {
     raw: raw::ref_api_s,
@@ -65,6 +65,7 @@ impl RefEngine {
 
     // pub Cvar_FullSet:
     //     Option<unsafe extern "C" fn(var_name: *const c_char, value: *const c_char, flags: c_int)>,
+
     // pub Cmd_AddCommand: Option<
     //     unsafe extern "C" fn(
     //         cmd_name: *const c_char,
@@ -73,9 +74,7 @@ impl RefEngine {
     //     ) -> c_int,
     // >,
     // pub Cmd_RemoveCommand: Option<unsafe extern "C" fn(cmd_name: *const c_char)>,
-    // pub Cmd_Argc: Option<unsafe extern "C" fn() -> c_int>,
-    // pub Cmd_Argv: Option<unsafe extern "C" fn(arg: c_int) -> *const c_char>,
-    // pub Cmd_Args: Option<unsafe extern "C" fn() -> *const c_char>,
+
     // pub Cbuf_AddText: Option<unsafe extern "C" fn(commands: *const c_char)>,
     // pub Cbuf_InsertText: Option<unsafe extern "C" fn(commands: *const c_char)>,
     // pub Cbuf_Execute: Option<unsafe extern "C" fn()>,
@@ -431,5 +430,21 @@ impl EngineConsole for RefEngine {
     fn console_print(&self, msg: impl ToEngineStr) {
         let msg = msg.to_engine_str();
         unsafe { unwrap!(self, Con_Printf)(c"%s".as_ptr(), msg.as_ptr()) }
+    }
+}
+
+impl EngineCmdArgs for RefEngine {
+    fn fn_cmd_argc(&self) -> unsafe extern "C" fn() -> c_int {
+        unwrap!(self, Cmd_Argc)
+    }
+
+    fn fn_cmd_argv(&self) -> unsafe extern "C" fn(argc: c_int) -> *const c_char {
+        unwrap!(self, Cmd_Argv)
+    }
+}
+
+impl EngineCmdArgsRaw for RefEngine {
+    fn fn_cmd_args_raw(&self) -> unsafe extern "C" fn() -> *const c_char {
+        unwrap!(self, Cmd_Args)
     }
 }
