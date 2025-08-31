@@ -441,9 +441,8 @@ pub struct enginefuncs_s {
     pub pfnGetPlayerStats: Option<
         unsafe extern "C" fn(pClient: *const edict_s, ping: *mut c_int, packet_loss: *mut c_int),
     >,
-    pub pfnAddServerCommand: Option<
-        unsafe extern "C" fn(cmd_name: *const c_char, function: Option<unsafe extern "C" fn()>),
-    >,
+    pub pfnAddServerCommand:
+        Option<unsafe extern "C" fn(cmd_name: *const c_char, function: unsafe extern "C" fn())>,
     pub pfnVoice_GetClientListening:
         Option<unsafe extern "C" fn(iReceiver: c_int, iSender: c_int) -> qboolean>,
     pub pfnVoice_SetClientListening: Option<

@@ -1521,7 +1521,7 @@ pub struct ref_api_s {
     pub Cmd_AddCommand: Option<
         unsafe extern "C" fn(
             cmd_name: *const c_char,
-            function: Option<unsafe extern "C" fn()>,
+            function: unsafe extern "C" fn(),
             description: *const c_char,
         ) -> c_int,
     >,

@@ -20,7 +20,10 @@ use crate::{
     raw::{self, kbutton_t, net_api_s, netadr_s, wrect_s, HIMAGE},
 };
 
-pub use shared::engine::{EngineCmdArgs, EngineCmdArgsRaw, EngineConsole, EngineCvar, EngineRng};
+pub use shared::engine::{
+    AddCmdError, EngineAddCmd, EngineCmdArgs, EngineCmdArgsRaw, EngineConsole, EngineCvar,
+    EngineRng,
+};
 
 #[derive(Default)]
 struct Borrows {
@@ -66,8 +69,16 @@ impl UiEngine {
         }
     }
 
-    pub fn set_extended(&mut self, ext: raw::ui_extendedfuncs_s) {
+    pub(crate) fn set_extended(&mut self, ext: raw::ui_extendedfuncs_s) {
         self.ext = ext;
+    }
+
+    pub fn raw(&self) -> &raw::ui_enginefuncs_s {
+        &self.raw
+    }
+
+    pub fn raw_ext(&self) -> &raw::ui_extendedfuncs_s {
+        &self.ext
     }
 
     pub fn pic_load(
@@ -201,14 +212,6 @@ impl UiEngine {
         } else {
             None
         }
-    }
-
-    pub fn add_command(
-        &self,
-        cmd_name: impl ToEngineStr,
-        function: Option<unsafe extern "C" fn()>,
-    ) -> c_int {
-        unsafe { unwrap!(self, pfnAddCommand)(cmd_name.to_engine_str().as_ptr(), function) }
     }
 
     pub fn client_cmd(&self, cmd: impl ToEngineStr) {
@@ -791,5 +794,21 @@ impl EngineCmdArgs for UiEngine {
 impl EngineCmdArgsRaw for UiEngine {
     fn fn_cmd_args_raw(&self) -> unsafe extern "C" fn() -> *const c_char {
         unwrap!(self, pfnCmd_Args)
+    }
+}
+
+impl EngineAddCmd for UiEngine {
+    fn add_command(
+        &self,
+        name: impl ToEngineStr,
+        func: unsafe extern "C" fn(),
+    ) -> Result<(), AddCmdError> {
+        let name = name.to_engine_str();
+        let result = unsafe { unwrap!(self, pfnAddCommand)(name.as_ptr(), func) };
+        if result == 0 {
+            Err(AddCmdError)
+        } else {
+            Ok(())
+        }
     }
 }

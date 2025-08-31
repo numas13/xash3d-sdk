@@ -1,4 +1,7 @@
-use core::ffi::{c_char, c_int};
+use core::{
+    ffi::{c_char, c_int},
+    fmt,
+};
 
 use csz::CStrThin;
 
@@ -118,4 +121,22 @@ pub trait EngineCmdArgsRaw {
             None
         }
     }
+}
+
+#[derive(Debug)]
+pub struct AddCmdError;
+
+impl fmt::Display for AddCmdError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        "failed to add a console command".fmt(f)
+    }
+}
+
+/// Engine API to register custom console commands.
+pub trait EngineAddCmd {
+    fn add_command(
+        &self,
+        name: impl ToEngineStr,
+        func: unsafe extern "C" fn(),
+    ) -> Result<(), AddCmdError>;
 }

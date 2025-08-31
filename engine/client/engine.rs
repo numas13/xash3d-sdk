@@ -15,7 +15,9 @@ use crate::{
     sprite::{SpriteHandle, SpriteList},
 };
 
-pub use shared::engine::{EngineCmdArgs, EngineConsole, EngineCvar, EngineRng};
+pub use shared::engine::{
+    AddCmdError, EngineAddCmd, EngineCmdArgs, EngineConsole, EngineCvar, EngineRng,
+};
 
 pub struct ClientEngine {
     raw: raw::cl_enginefuncs_s,
@@ -167,11 +169,6 @@ impl ClientEngine {
                 None
             }
         }
-    }
-
-    pub fn add_command(&self, name: impl ToEngineStr, func: unsafe extern "C" fn()) -> c_int {
-        let name = name.to_engine_str();
-        unsafe { unwrap!(self, pfnAddCommand)(name.as_ptr(), func) }
     }
 
     pub fn hook_user_msg(&self, name: impl ToEngineStr, func: raw::pfnUserMsgHook) -> c_int {
@@ -623,5 +620,21 @@ impl EngineCmdArgs for ClientEngine {
 
     fn fn_cmd_argv(&self) -> unsafe extern "C" fn(argc: c_int) -> *const c_char {
         unwrap!(self, Cmd_Argv)
+    }
+}
+
+impl EngineAddCmd for ClientEngine {
+    fn add_command(
+        &self,
+        name: impl ToEngineStr,
+        func: unsafe extern "C" fn(),
+    ) -> Result<(), AddCmdError> {
+        let name = name.to_engine_str();
+        let result = unsafe { unwrap!(self, pfnAddCommand)(name.as_ptr(), func) };
+        if result == 0 {
+            Err(AddCmdError)
+        } else {
+            Ok(())
+        }
     }
 }

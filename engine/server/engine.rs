@@ -11,7 +11,10 @@ use crate::{
     raw::{self, edict_s, string_t, vec3_t},
 };
 
-pub use shared::engine::{EngineCmdArgs, EngineCmdArgsRaw, EngineConsole, EngineCvar, EngineRng};
+pub use shared::engine::{
+    AddCmdError, EngineAddCmd, EngineCmdArgs, EngineCmdArgsRaw, EngineConsole, EngineCvar,
+    EngineRng,
+};
 
 pub struct ServerEngine {
     raw: raw::enginefuncs_s,
@@ -32,6 +35,10 @@ macro_rules! unwrap {
 impl ServerEngine {
     pub(crate) fn new(raw: &raw::enginefuncs_s) -> Self {
         Self { raw: *raw }
+    }
+
+    pub fn raw(&self) -> &raw::enginefuncs_s {
+        &self.raw
     }
 
     pub fn precache_model(&self, name: impl ToEngineStr) -> c_int {
@@ -585,9 +592,6 @@ impl ServerEngine {
     // pub pfnGetPlayerStats: Option<
     //     unsafe extern "C" fn(pClient: *const edict_t, ping: *mut c_int, packet_loss: *mut c_int),
     // >,
-    // pub pfnAddServerCommand: Option<
-    //     unsafe extern "C" fn(cmd_name: *const c_char, function: Option<unsafe extern "C" fn()>),
-    // >,
     // pub pfnVoice_GetClientListening:
     //     Option<unsafe extern "C" fn(iReceiver: c_int, iSender: c_int) -> qboolean>,
     // pub pfnVoice_SetClientListening: Option<
@@ -676,5 +680,19 @@ impl EngineCmdArgs for ServerEngine {
 impl EngineCmdArgsRaw for ServerEngine {
     fn fn_cmd_args_raw(&self) -> unsafe extern "C" fn() -> *const c_char {
         unwrap!(self, pfnCmd_Args)
+    }
+}
+
+impl EngineAddCmd for ServerEngine {
+    fn add_command(
+        &self,
+        name: impl ToEngineStr,
+        func: unsafe extern "C" fn(),
+    ) -> Result<(), AddCmdError> {
+        let name = name.to_engine_str();
+        unsafe {
+            unwrap!(self, pfnAddServerCommand)(name.as_ptr(), func);
+        }
+        Ok(())
     }
 }

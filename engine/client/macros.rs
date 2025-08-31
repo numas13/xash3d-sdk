@@ -5,13 +5,19 @@ pub use shared::macros::*;
 macro_rules! hook_command {
     ($name:expr, $block:block) => ({
         unsafe extern "C" fn command_hook() $block
-        $crate::instance::engine().add_command($name, command_hook);
+        let engine = $crate::instance::engine();
+        if engine.add_command($name, command_hook).is_err() {
+            log::error!("failed to add console command {:?}", $name);
+        }
     });
     ($name:expr, $expr:expr) => ({
         unsafe extern "C" fn command_hook() {
             $expr;
         }
-        $crate::instance::engine().add_command($name, command_hook);
+        let engine = $crate::instance::engine();
+        if engine.add_command($name, command_hook).is_err() {
+            log::error!("failed to add console command {:?}", $name);
+        }
     });
 }
 #[doc(inline)]
@@ -34,8 +40,14 @@ macro_rules! hook_command_key {
         }
 
         let engine = $crate::instance::engine();
-        engine.add_command(concat!("+", $name), on_key_down);
-        engine.add_command(concat!("-", $name), on_key_up);
+        let name = concat!("+", $name);
+        if engine.add_command(name, on_key_down).is_err() {
+            log::error!("failed to add console command {name}");
+        }
+        let name = concat!("-", $name);
+        if engine.add_command(name, on_key_up).is_err() {
+            log::error!("failed to add console command {name}");
+        }
     }};
 }
 #[doc(inline)]

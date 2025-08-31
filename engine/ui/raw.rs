@@ -166,10 +166,7 @@ pub struct ui_enginefuncs_s {
         Option<unsafe extern "C" fn(szName: *const c_char, szValue: *const c_char)>,
     pub pfnCvarSetValue: Option<unsafe extern "C" fn(szName: *const c_char, flValue: f32)>,
     pub pfnAddCommand: Option<
-        unsafe extern "C" fn(
-            cmd_name: *const c_char,
-            function: Option<unsafe extern "C" fn()>,
-        ) -> c_int,
+        unsafe extern "C" fn(cmd_name: *const c_char, function: unsafe extern "C" fn()) -> c_int,
     >,
     pub pfnClientCmd: Option<unsafe extern "C" fn(execute_now: c_int, szCmdString: *const c_char)>,
     pub pfnDelCommand: Option<unsafe extern "C" fn(cmd_name: *const c_char)>,
