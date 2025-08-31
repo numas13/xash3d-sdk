@@ -1,11 +1,11 @@
 use csz::CStrThin;
-use shared::logger::EngineConsole;
+use shared::logger::EngineConsoleLogger;
 
 use crate::prelude::*;
 
 struct Console;
 
-impl EngineConsole for Console {
+impl EngineConsoleLogger for Console {
     fn get_cvar_float(name: &CStrThin) -> f32 {
         engine().get_cvar_float(name)
     }

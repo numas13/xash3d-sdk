@@ -21,7 +21,7 @@ use crate::{
     raw::{self, kbutton_t, net_api_s, netadr_s, wrect_s, HIMAGE},
 };
 
-pub use shared::engine::{EngineCvar, EngineRng};
+pub use shared::engine::{EngineConsole, EngineCvar, EngineRng};
 
 #[derive(Default)]
 struct Borrows {
@@ -258,19 +258,6 @@ impl UiEngine {
         }
     }
 
-    pub fn con_print(&self, msg: impl ToEngineStr) {
-        let msg = msg.to_engine_str();
-        unsafe {
-            unwrap!(self, Con_Printf)(c"%s".as_ptr(), msg.as_ptr());
-        }
-    }
-
-    #[deprecated(note = "use con_print instead")]
-    pub fn con_printf(&self, args: fmt::Arguments<'_>) -> fmt::Result {
-        self.con_print(args);
-        Ok(())
-    }
-
     pub fn con_dprint(&self, msg: impl ToEngineStr) {
         let msg = msg.to_engine_str();
         unsafe {
@@ -278,23 +265,11 @@ impl UiEngine {
         }
     }
 
-    #[deprecated(note = "use con_dprint instead")]
-    pub fn con_dprintf(&self, args: fmt::Arguments<'_>) -> fmt::Result {
-        self.con_dprint(args);
-        Ok(())
-    }
-
     pub fn con_nprint(&self, pos: c_int, msg: impl ToEngineStr) {
         let msg = msg.to_engine_str();
         unsafe {
             unwrap!(self, Con_NPrintf)(pos, c"%s".as_ptr(), msg.as_ptr());
         }
-    }
-
-    #[deprecated(note = "use con_nprint instead")]
-    pub fn con_nprintf(&self, pos: c_int, args: fmt::Arguments<'_>) -> fmt::Result {
-        self.con_nprint(pos, args);
-        Ok(())
     }
 
     // pub Con_NXPrintf:
@@ -823,5 +798,12 @@ impl EngineRng for UiEngine {
 
     fn fn_random_int(&self) -> unsafe extern "C" fn(min: c_int, max: c_int) -> c_int {
         unwrap!(self, pfnRandomLong)
+    }
+}
+
+impl EngineConsole for UiEngine {
+    fn console_print(&self, msg: impl ToEngineStr) {
+        let msg = msg.to_engine_str();
+        unsafe { unwrap!(self, Con_Printf)(c"%s".as_ptr(), msg.as_ptr()) }
     }
 }

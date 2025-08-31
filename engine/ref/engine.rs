@@ -1,10 +1,8 @@
 use core::{
     ffi::{c_char, c_int, c_void},
-    fmt::{self, Write},
     ptr,
 };
 
-use csz::CStrArray;
 use shared::str::{AsCStrPtr, ToEngineStr};
 
 use crate::{
@@ -17,7 +15,7 @@ use crate::{
     },
 };
 
-pub use shared::engine::{EngineCvar, EngineRng};
+pub use shared::engine::{EngineConsole, EngineCvar, EngineRng};
 
 pub struct RefEngine {
     raw: raw::ref_api_s,
@@ -81,22 +79,6 @@ impl RefEngine {
     // pub Cbuf_AddText: Option<unsafe extern "C" fn(commands: *const c_char)>,
     // pub Cbuf_InsertText: Option<unsafe extern "C" fn(commands: *const c_char)>,
     // pub Cbuf_Execute: Option<unsafe extern "C" fn()>,
-
-    pub fn con_print(&self, msg: impl ToEngineStr) {
-        let msg = msg.to_engine_str();
-        unsafe {
-            unwrap!(self, Con_Printf)(c"%s".as_ptr(), msg.as_ptr());
-        }
-    }
-
-    #[deprecated(note = "use con_print instead")]
-    pub fn con_printf(&self, args: fmt::Arguments) -> fmt::Result {
-        let mut buf = CStrArray::<8192>::new();
-        buf.cursor().write_fmt(args)?;
-        self.con_print(buf.as_thin());
-        Ok(())
-    }
-
     // pub Con_DPrintf: Option<unsafe extern "C" fn(fmt: *const c_char, ...)>,
     // pub Con_Reportf: Option<unsafe extern "C" fn(fmt: *const c_char, ...)>,
     // pub Con_NPrintf: Option<unsafe extern "C" fn(pos: c_int, fmt: *const c_char, ...)>,
@@ -464,5 +446,12 @@ impl EngineRng for RefEngine {
 
     fn fn_random_int(&self) -> unsafe extern "C" fn(min: c_int, max: c_int) -> c_int {
         unwrap!(self, COM_RandomLong)
+    }
+}
+
+impl EngineConsole for RefEngine {
+    fn console_print(&self, msg: impl ToEngineStr) {
+        let msg = msg.to_engine_str();
+        unsafe { unwrap!(self, Con_Printf)(c"%s".as_ptr(), msg.as_ptr()) }
     }
 }

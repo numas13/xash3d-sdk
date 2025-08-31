@@ -73,3 +73,8 @@ pub trait EngineRng {
         unsafe { self.fn_random_int()(min, max) }
     }
 }
+
+/// Engine API to print messages to the console.
+pub trait EngineConsole {
+    fn console_print(&self, msg: impl ToEngineStr);
+}

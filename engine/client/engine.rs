@@ -17,7 +17,7 @@ use crate::{
     sprite::{SpriteHandle, SpriteList},
 };
 
-pub use shared::engine::{EngineCvar, EngineRng};
+pub use shared::engine::{EngineConsole, EngineCvar, EngineRng};
 
 pub struct ClientEngine {
     raw: raw::cl_enginefuncs_s,
@@ -256,11 +256,6 @@ impl ClientEngine {
             unwrap!(self, pfnDrawConsoleStringLen)(s.as_ptr(), &mut w, &mut h);
             (w, h)
         }
-    }
-
-    pub fn console_print(&self, s: impl ToEngineStr) {
-        let s = s.to_engine_str();
-        unsafe { unwrap!(self, pfnConsolePrint)(s.as_ptr()) }
     }
 
     // pub pfnCenterPrint: Option<unsafe extern "C" fn(string: *const c_char)>,
@@ -624,5 +619,12 @@ impl EngineRng for ClientEngine {
 
     fn fn_random_int(&self) -> unsafe extern "C" fn(min: c_int, max: c_int) -> c_int {
         unwrap!(self, pfnRandomLong)
+    }
+}
+
+impl EngineConsole for ClientEngine {
+    fn console_print(&self, msg: impl ToEngineStr) {
+        let msg = msg.to_engine_str();
+        unsafe { unwrap!(self, pfnConsolePrint)(msg.as_ptr()) }
     }
 }

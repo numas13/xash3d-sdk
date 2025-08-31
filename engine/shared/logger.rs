@@ -9,7 +9,7 @@ use log::{Level, LevelFilter, Record};
 
 const STACK_SIZE: usize = 8192;
 
-pub trait EngineConsole: Send + Sync {
+pub trait EngineConsoleLogger: Send + Sync {
     fn get_cvar_float(name: &CStrThin) -> f32;
 
     fn console_print(s: &CStrThin);
@@ -17,7 +17,7 @@ pub trait EngineConsole: Send + Sync {
 
 struct ConsoleLogger<T>(PhantomData<T>);
 
-impl<T: EngineConsole> ConsoleLogger<T> {
+impl<T: EngineConsoleLogger> ConsoleLogger<T> {
     fn log_console_stack(&self, level: &str, args: &fmt::Arguments) -> fmt::Result {
         let mut buffer = CStrArray::<STACK_SIZE>::new();
         let mut cur = buffer.cursor();
@@ -45,7 +45,7 @@ impl<T: EngineConsole> ConsoleLogger<T> {
     }
 }
 
-impl<T: EngineConsole> log::Log for ConsoleLogger<T> {
+impl<T: EngineConsoleLogger> log::Log for ConsoleLogger<T> {
     fn enabled(&self, _: &log::Metadata) -> bool {
         true
     }
@@ -69,7 +69,7 @@ impl<T: EngineConsole> log::Log for ConsoleLogger<T> {
     fn flush(&self) {}
 }
 
-pub fn init_console_logger<T: 'static + EngineConsole>() {
+pub fn init_console_logger<T: 'static + EngineConsoleLogger>() {
     let level = match T::get_cvar_float(c"developer".into()) as i32 {
         2 => LevelFilter::Trace,
         1 => LevelFilter::Debug,

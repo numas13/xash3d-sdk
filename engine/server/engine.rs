@@ -11,7 +11,7 @@ use crate::{
     raw::{self, edict_s, string_t, vec3_t},
 };
 
-pub use shared::engine::{EngineCvar, EngineRng};
+pub use shared::engine::{EngineConsole, EngineCvar, EngineRng};
 
 pub struct ServerEngine {
     raw: raw::enginefuncs_s,
@@ -386,11 +386,6 @@ impl ServerEngine {
     // pub pfnClientPrintf:
     //     Option<unsafe extern "C" fn(pEdict: *mut edict_t, ptype: PRINT_TYPE, szMsg: *const c_char)>,
 
-    pub fn server_print(&self, s: impl ToEngineStr) {
-        let s = s.to_engine_str();
-        unsafe { unwrap!(self, pfnServerPrint)(s.as_ptr()) }
-    }
-
     // pub pfnCmd_Args: Option<unsafe extern "C" fn() -> *const c_char>,
 
     pub fn cmd_argv(&self, argc: c_int) -> &CStr {
@@ -672,5 +667,12 @@ impl EngineRng for ServerEngine {
 
     fn fn_random_int(&self) -> unsafe extern "C" fn(min: c_int, max: c_int) -> c_int {
         unwrap!(self, pfnRandomLong)
+    }
+}
+
+impl EngineConsole for ServerEngine {
+    fn console_print(&self, msg: impl ToEngineStr) {
+        let msg = msg.to_engine_str();
+        unsafe { unwrap!(self, pfnServerPrint)(msg.as_ptr()) }
     }
 }
