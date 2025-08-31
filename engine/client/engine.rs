@@ -1,11 +1,12 @@
-use core::{ffi::c_int, mem::MaybeUninit, ptr};
+use core::{
+    ffi::{c_char, c_int},
+    mem::MaybeUninit,
+    ptr,
+};
 
 use csz::CStrThin;
 
-use shared::{
-    engine_private,
-    str::{AsCStrPtr, ToEngineStr},
-};
+use shared::str::{AsCStrPtr, ToEngineStr};
 
 use crate::{
     color::{RGB, RGBA},
@@ -16,7 +17,7 @@ use crate::{
     sprite::{SpriteHandle, SpriteList},
 };
 
-pub use shared::engine::EngineCvar;
+pub use shared::engine::{EngineCvar, EngineRng};
 
 pub struct ClientEngine {
     raw: raw::cl_enginefuncs_s,
@@ -425,14 +426,7 @@ impl ClientEngine {
     // >,
     // pub pfnWeaponAnim: Option<unsafe extern "C" fn(iAnim: c_int, body: c_int)>,
 
-    pub fn random_float(&self, low: f32, high: f32) -> f32 {
-        unsafe { unwrap!(self, pfnRandomFloat)(low, high) }
-    }
-
-    pub fn random_int(&self, low: c_int, high: c_int) -> c_int {
-        unsafe { unwrap!(self, pfnRandomLong)(low, high) }
-    }
-
+    // TODO: move to EngineRng
     pub fn rand(&self) -> c_int {
         self.random_int(0, c_int::MAX)
     }
@@ -603,11 +597,32 @@ impl ClientEngine {
     }
 }
 
-engine_private::impl_engine_cvar! {
-    ClientEngine {
-        pfnGetCvarFloat,
-        Cvar_SetValue,
-        pfnGetCvarString,
-        Cvar_Set,
+impl EngineCvar for ClientEngine {
+    fn fn_get_cvar_float(&self) -> unsafe extern "C" fn(name: *const c_char) -> f32 {
+        unwrap!(self, pfnGetCvarFloat)
+    }
+
+    fn fn_set_cvar_float(&self) -> unsafe extern "C" fn(name: *const c_char, value: f32) {
+        unwrap!(self, Cvar_SetValue)
+    }
+
+    fn fn_get_cvar_string(&self) -> unsafe extern "C" fn(name: *const c_char) -> *const c_char {
+        unwrap!(self, pfnGetCvarString)
+    }
+
+    fn fn_set_cvar_string(
+        &self,
+    ) -> unsafe extern "C" fn(name: *const c_char, value: *const c_char) {
+        unwrap!(self, Cvar_Set)
+    }
+}
+
+impl EngineRng for ClientEngine {
+    fn fn_random_float(&self) -> unsafe extern "C" fn(min: f32, max: f32) -> f32 {
+        unwrap!(self, pfnRandomFloat)
+    }
+
+    fn fn_random_int(&self) -> unsafe extern "C" fn(min: c_int, max: c_int) -> c_int {
+        unwrap!(self, pfnRandomLong)
     }
 }

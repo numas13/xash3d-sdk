@@ -1,14 +1,11 @@
 use core::{
-    ffi::{c_int, c_void},
+    ffi::{c_char, c_int, c_void},
     fmt::{self, Write},
     ptr,
 };
 
-use csz::{CStrArray, CStrThin};
-use shared::{
-    engine_private,
-    str::{AsCStrPtr, ToEngineStr},
-};
+use csz::CStrArray;
+use shared::str::{AsCStrPtr, ToEngineStr};
 
 use crate::{
     consts::RefParm,
@@ -20,7 +17,7 @@ use crate::{
     },
 };
 
-pub use shared::engine::EngineCvar;
+pub use shared::engine::{EngineCvar, EngineRng};
 
 pub struct RefEngine {
     raw: raw::ref_api_s,
@@ -191,10 +188,12 @@ impl RefEngine {
         unsafe { unwrap!(self, COM_SetRandomSeed)(seed) }
     }
 
+    #[deprecated(note = "import EngineRng trait")]
     pub fn random_float(&self, min: f32, max: f32) -> f32 {
         unsafe { unwrap!(self, COM_RandomFloat)(min, max) }
     }
 
+    #[deprecated(note = "import EngineRng trait")]
     pub fn random_int(&self, min: c_int, max: c_int) -> c_int {
         assert!(min >= 0, "min must be greater than or equal to zero");
         assert!(min <= max, "min must be less than or equal to max");
@@ -438,11 +437,32 @@ impl RefEngine {
     // pub fsapi: *mut fs_api_t,
 }
 
-engine_private::impl_engine_cvar! {
-    RefEngine {
-        pfnGetCvarFloat,
-        Cvar_SetValue,
-        pfnGetCvarString,
-        Cvar_Set,
+impl EngineCvar for RefEngine {
+    fn fn_get_cvar_float(&self) -> unsafe extern "C" fn(name: *const c_char) -> f32 {
+        unwrap!(self, pfnGetCvarFloat)
+    }
+
+    fn fn_set_cvar_float(&self) -> unsafe extern "C" fn(name: *const c_char, value: f32) {
+        unwrap!(self, Cvar_SetValue)
+    }
+
+    fn fn_get_cvar_string(&self) -> unsafe extern "C" fn(name: *const c_char) -> *const c_char {
+        unwrap!(self, pfnGetCvarString)
+    }
+
+    fn fn_set_cvar_string(
+        &self,
+    ) -> unsafe extern "C" fn(name: *const c_char, value: *const c_char) {
+        unwrap!(self, Cvar_Set)
+    }
+}
+
+impl EngineRng for RefEngine {
+    fn fn_random_float(&self) -> unsafe extern "C" fn(min: f32, max: f32) -> f32 {
+        unwrap!(self, COM_RandomFloat)
+    }
+
+    fn fn_random_int(&self) -> unsafe extern "C" fn(min: c_int, max: c_int) -> c_int {
+        unwrap!(self, COM_RandomLong)
     }
 }

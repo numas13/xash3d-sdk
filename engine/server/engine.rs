@@ -1,13 +1,9 @@
 use core::{
-    ffi::{c_int, c_long, c_uchar, c_void, CStr},
+    ffi::{c_char, c_int, c_long, c_uchar, c_void, CStr},
     fmt, iter, ptr,
 };
 
-use csz::CStrThin;
-use shared::{
-    engine_private,
-    str::{AsCStrPtr, ToEngineStr},
-};
+use shared::str::{AsCStrPtr, ToEngineStr};
 
 use crate::{
     cvar::{cvar_s, CVarPtr},
@@ -15,7 +11,7 @@ use crate::{
     raw::{self, edict_s, string_t, vec3_t},
 };
 
-pub use shared::engine::EngineCvar;
+pub use shared::engine::{EngineCvar, EngineRng};
 
 pub struct ServerEngine {
     raw: raw::enginefuncs_s,
@@ -418,16 +414,6 @@ impl ServerEngine {
     // pub pfnCRC32_ProcessByte: Option<unsafe extern "C" fn(pulCRC: *mut CRC32_t, ch: c_uchar)>,
     // pub pfnCRC32_Final: Option<unsafe extern "C" fn(pulCRC: CRC32_t) -> CRC32_t>,
 
-    pub fn random_int(&self, min: c_int, max: c_int) -> c_int {
-        assert!(min >= 0, "min must be greater than or equal to zero");
-        assert!(min <= max, "min must be less than or equal to max");
-        unsafe { unwrap!(self, pfnRandomLong)(min, max) }
-    }
-
-    pub fn random_float(&self, min: f32, max: f32) -> f32 {
-        unsafe { unwrap!(self, pfnRandomFloat)(min, max) }
-    }
-
     // pub pfnSetView: Option<unsafe extern "C" fn(pClient: *const edict_t, pViewent: *const edict_t)>,
     // pub pfnTime: Option<unsafe extern "C" fn() -> f32>,
     // pub pfnCrosshairAngle:
@@ -659,11 +645,32 @@ impl ServerEngine {
     //     Option<unsafe extern "C" fn(iEntIndex: c_int) -> *mut edict_t>,
 }
 
-engine_private::impl_engine_cvar! {
-    ServerEngine {
-        pfnCVarGetFloat,
-        pfnCVarSetFloat,
-        pfnCVarGetString,
-        pfnCVarSetString,
+impl EngineCvar for ServerEngine {
+    fn fn_get_cvar_float(&self) -> unsafe extern "C" fn(name: *const c_char) -> f32 {
+        unwrap!(self, pfnCVarGetFloat)
+    }
+
+    fn fn_set_cvar_float(&self) -> unsafe extern "C" fn(name: *const c_char, value: f32) {
+        unwrap!(self, pfnCVarSetFloat)
+    }
+
+    fn fn_get_cvar_string(&self) -> unsafe extern "C" fn(name: *const c_char) -> *const c_char {
+        unwrap!(self, pfnCVarGetString)
+    }
+
+    fn fn_set_cvar_string(
+        &self,
+    ) -> unsafe extern "C" fn(name: *const c_char, value: *const c_char) {
+        unwrap!(self, pfnCVarSetString)
+    }
+}
+
+impl EngineRng for ServerEngine {
+    fn fn_random_float(&self) -> unsafe extern "C" fn(min: f32, max: f32) -> f32 {
+        unwrap!(self, pfnRandomFloat)
+    }
+
+    fn fn_random_int(&self) -> unsafe extern "C" fn(min: c_int, max: c_int) -> c_int {
+        unwrap!(self, pfnRandomLong)
     }
 }

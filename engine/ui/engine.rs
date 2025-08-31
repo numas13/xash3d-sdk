@@ -1,5 +1,5 @@
 use core::{
-    ffi::{c_int, c_uint, c_void},
+    ffi::{c_char, c_int, c_uint, c_void},
     fmt,
     mem::MaybeUninit,
     ptr, slice,
@@ -8,7 +8,6 @@ use core::{
 use csz::{CStrArray, CStrThin};
 use shared::{
     borrow::{BorrowRef, Ref},
-    engine_private,
     str::{AsCStrPtr, ToEngineStr},
 };
 
@@ -22,7 +21,7 @@ use crate::{
     raw::{self, kbutton_t, net_api_s, netadr_s, wrect_s, HIMAGE},
 };
 
-pub use shared::engine::EngineCvar;
+pub use shared::engine::{EngineCvar, EngineRng};
 
 #[derive(Default)]
 struct Borrows {
@@ -605,26 +604,6 @@ impl UiEngine {
         }
     }
 
-    pub fn random_float(&self, min: f32, max: f32) -> f32 {
-        unsafe { unwrap!(self, pfnRandomFloat)(min, max) }
-    }
-
-    pub fn random_int(&self, min: c_int, max: c_int) -> c_int {
-        assert!(min >= 0, "min must be greater than or equal to zero");
-        assert!(min <= max, "min must be less than or equal to max");
-        unsafe { unwrap!(self, pfnRandomLong)(min, max) }
-    }
-
-    #[deprecated(note = "use random_float instead")]
-    pub fn rand_f32(&self, start: f32, end: f32) -> f32 {
-        self.random_float(start, end)
-    }
-
-    #[deprecated(note = "use random_int instead")]
-    pub fn rand_int(&self, start: c_int, end: c_int) -> c_int {
-        self.random_int(start, end)
-    }
-
     // pub pfnSetCursor: Option<unsafe extern "C" fn(hCursor: *mut c_void)>,
 
     pub fn is_map_valid(&self, filename: impl ToEngineStr) -> bool {
@@ -817,11 +796,32 @@ impl UiEngine {
     // >,
 }
 
-engine_private::impl_engine_cvar! {
-    UiEngine {
-        pfnGetCvarFloat,
-        pfnCvarSetValue,
-        pfnGetCvarString,
-        pfnCvarSetString,
+impl EngineCvar for UiEngine {
+    fn fn_get_cvar_float(&self) -> unsafe extern "C" fn(name: *const c_char) -> f32 {
+        unwrap!(self, pfnGetCvarFloat)
+    }
+
+    fn fn_set_cvar_float(&self) -> unsafe extern "C" fn(name: *const c_char, value: f32) {
+        unwrap!(self, pfnCvarSetValue)
+    }
+
+    fn fn_get_cvar_string(&self) -> unsafe extern "C" fn(name: *const c_char) -> *const c_char {
+        unwrap!(self, pfnGetCvarString)
+    }
+
+    fn fn_set_cvar_string(
+        &self,
+    ) -> unsafe extern "C" fn(name: *const c_char, value: *const c_char) {
+        unwrap!(self, pfnCvarSetString)
+    }
+}
+
+impl EngineRng for UiEngine {
+    fn fn_random_float(&self) -> unsafe extern "C" fn(min: f32, max: f32) -> f32 {
+        unwrap!(self, pfnRandomFloat)
+    }
+
+    fn fn_random_int(&self) -> unsafe extern "C" fn(min: c_int, max: c_int) -> c_int {
+        unwrap!(self, pfnRandomLong)
     }
 }
