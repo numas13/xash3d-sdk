@@ -46,12 +46,3 @@ pub fn engine() -> &'static UiEngine {
 pub fn globals() -> &'static UiGlobals {
     unsafe { UiGlobals::global_assume_init_ref() }
 }
-
-/// Returns a mutable reference to the global [UiGlobals] instance.
-///
-/// # Safety
-///
-/// Must not be called before [init_engine].
-pub fn globals_mut() -> &'static mut UiGlobals {
-    unsafe { UiGlobals::global_assume_init_mut() }
-}

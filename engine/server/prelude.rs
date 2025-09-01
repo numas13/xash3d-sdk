@@ -1,5 +1,5 @@
 pub use crate::{
     engine::prelude::*,
     engine::ServerEngine,
-    instance::{engine, globals, globals_mut},
+    instance::{engine, globals},
 };

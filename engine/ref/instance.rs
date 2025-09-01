@@ -32,12 +32,3 @@ pub fn engine() -> &'static RefEngine {
 pub fn globals() -> &'static RefGlobals {
     unsafe { RefGlobals::global_assume_init_ref() }
 }
-
-/// Returns a mutable reference to the global [RefGlobals] instance.
-///
-/// # Safety
-///
-/// Must not be called before [init_engine].
-pub fn globals_mut() -> &'static mut RefGlobals {
-    unsafe { RefGlobals::global_assume_init_mut() }
-}

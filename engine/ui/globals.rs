@@ -1,4 +1,4 @@
-use core::ops::{Deref, DerefMut};
+use core::ops::Deref;
 
 use crate::raw;
 
@@ -19,11 +19,5 @@ impl Deref for UiGlobals {
 
     fn deref(&self) -> &Self::Target {
         unsafe { &*self.raw }
-    }
-}
-
-impl DerefMut for UiGlobals {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        unsafe { &mut *self.raw }
     }
 }

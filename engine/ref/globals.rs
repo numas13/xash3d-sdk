@@ -1,6 +1,6 @@
 use core::{
     ffi::c_int,
-    ops::{Deref, DerefMut},
+    ops::Deref,
 };
 
 use crate::raw;
@@ -26,11 +26,5 @@ impl Deref for RefGlobals {
 
     fn deref(&self) -> &Self::Target {
         unsafe { &*self.raw }
-    }
-}
-
-impl DerefMut for RefGlobals {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        unsafe { &mut *self.raw }
     }
 }

@@ -87,7 +87,9 @@ impl ChangeLevel {
         let mut next_spot = cstr!("");
         if !engine.is_null_ent(landmark) {
             next_spot = self.landmark_name.as_thin();
-            globals_mut().vecLandmarkOffset = unsafe { (*landmark).v.origin };
+            unsafe {
+                globals().set_landmark_offset((*landmark).v.origin);
+            }
         }
 
         info!("CHANGE LEVEL: {:?} {next_spot:?}", self.map_name);
