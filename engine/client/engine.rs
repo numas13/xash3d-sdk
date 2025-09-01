@@ -15,7 +15,9 @@ use crate::{
     sprite::{SpriteHandle, SpriteList},
 };
 
-pub use shared::engine::{AddCmdError, EngineCmd, EngineConsole, EngineCvar, EngineRng};
+pub use shared::engine::{
+    AddCmdError, EngineCmd, EngineConsole, EngineCvar, EngineRng, EngineSystemTime,
+};
 
 pub struct ClientEngine {
     raw: raw::cl_enginefuncs_s,
@@ -544,7 +546,6 @@ impl ClientEngine {
     // pub pfnPlaySoundVoiceByName:
     //     Option<unsafe extern "C" fn(szSound: *mut c_char, volume: f32, pitch: c_int)>,
     // pub pfnPrimeMusicStream: Option<unsafe extern "C" fn(filename: *mut c_char, looping: c_int)>,
-    // pub pfnSys_FloatTime: Option<unsafe extern "C" fn() -> f64>,
     // pub pfnProcessTutorMessageDecayBuffer:
     //     Option<unsafe extern "C" fn(buffer: *mut c_int, buflen: c_int)>,
     // pub pfnConstructTutorMessageDecayBuffer:
@@ -632,5 +633,11 @@ impl EngineCmd for ClientEngine {
         } else {
             Ok(())
         }
+    }
+}
+
+impl EngineSystemTime for ClientEngine {
+    fn system_time_f64(&self) -> f64 {
+        unsafe { unwrap!(self, pfnSys_FloatTime)() }
     }
 }

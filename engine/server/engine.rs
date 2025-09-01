@@ -13,6 +13,7 @@ use crate::{
 
 pub use shared::engine::{
     AddCmdError, EngineCmd, EngineCmdArgsRaw, EngineConsole, EngineCvar, EngineRng,
+    EngineSystemTime,
 };
 
 pub struct ServerEngine {
@@ -402,7 +403,6 @@ impl ServerEngine {
     // pub pfnCRC32_Final: Option<unsafe extern "C" fn(pulCRC: CRC32_t) -> CRC32_t>,
 
     // pub pfnSetView: Option<unsafe extern "C" fn(pClient: *const edict_t, pViewent: *const edict_t)>,
-    // pub pfnTime: Option<unsafe extern "C" fn() -> f32>,
     // pub pfnCrosshairAngle:
     //     Option<unsafe extern "C" fn(pClient: *const edict_t, pitch: f32, yaw: f32)>,
     // pub pfnLoadFileForMe:
@@ -691,5 +691,12 @@ impl EngineCmd for ServerEngine {
 impl EngineCmdArgsRaw for ServerEngine {
     fn fn_cmd_args_raw(&self) -> unsafe extern "C" fn() -> *const c_char {
         unwrap!(self, pfnCmd_Args)
+    }
+}
+
+impl EngineSystemTime for ServerEngine {
+    fn system_time_f64(&self) -> f64 {
+        // XXX: server dll has only f32 system time
+        unsafe { unwrap!(self, pfnTime)() as f64 }
     }
 }

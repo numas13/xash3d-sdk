@@ -22,6 +22,7 @@ use crate::{
 
 pub use shared::engine::{
     AddCmdError, EngineCmd, EngineCmdArgsRaw, EngineConsole, EngineCvar, EngineRng,
+    EngineSystemTime,
 };
 
 #[derive(Default)]
@@ -620,8 +621,9 @@ impl UiEngine {
         unsafe { unwrap!(self, ext.pfnGetRenderers)(index, s1, l1, s2, l2) != 0 }
     }
 
+    #[deprecated(note = "use EngineSystemTime::system_time_f64 instead")]
     pub fn time_f64(&self) -> f64 {
-        unsafe { unwrap!(self, ext.pfnDoubleTime)() }
+        self.system_time_f64()
     }
 
     pub fn parse_file<'a>(
@@ -807,5 +809,11 @@ impl EngineCmd for UiEngine {
 impl EngineCmdArgsRaw for UiEngine {
     fn fn_cmd_args_raw(&self) -> unsafe extern "C" fn() -> *const c_char {
         unwrap!(self, pfnCmd_Args)
+    }
+}
+
+impl EngineSystemTime for UiEngine {
+    fn system_time_f64(&self) -> f64 {
+        unsafe { unwrap!(self, ext.pfnDoubleTime)() }
     }
 }

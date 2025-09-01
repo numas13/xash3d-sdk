@@ -17,6 +17,7 @@ use crate::{
 
 pub use shared::engine::{
     AddCmdError, EngineCmd, EngineCmdArgsRaw, EngineConsole, EngineCvar, EngineRng,
+    EngineSystemTime,
 };
 
 pub struct RefEngine {
@@ -311,8 +312,9 @@ impl RefEngine {
         unsafe { &*ret }
     }
 
+    #[deprecated(note = "use EngineSystemTime::system_time_f64 instead")]
     pub fn time(&self) -> f64 {
-        unsafe { unwrap!(self, pfnTime)() }
+        self.system_time_f64()
     }
 
     // pub EV_GetPhysent: Option<unsafe extern "C" fn(idx: c_int) -> *mut physent_s>,
@@ -465,5 +467,11 @@ impl EngineCmd for RefEngine {
 impl EngineCmdArgsRaw for RefEngine {
     fn fn_cmd_args_raw(&self) -> unsafe extern "C" fn() -> *const c_char {
         unwrap!(self, Cmd_Args)
+    }
+}
+
+impl EngineSystemTime for RefEngine {
+    fn system_time_f64(&self) -> f64 {
+        unsafe { unwrap!(self, pfnTime)() }
     }
 }

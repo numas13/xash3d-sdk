@@ -1,6 +1,7 @@
 use core::{
     ffi::{c_char, c_int},
     fmt,
+    time::Duration,
 };
 
 use csz::CStrThin;
@@ -135,5 +136,16 @@ pub trait EngineCmdArgsRaw {
         } else {
             None
         }
+    }
+}
+
+/// Engine API to access the duration elapsed from the engine startup.
+pub trait EngineSystemTime {
+    /// Returns the number of seconds elapsed from the engine startup to the current time.
+    fn system_time_f64(&self) -> f64;
+
+    /// Returns the duration elapsed from the engine startup to the current time.
+    fn system_time(&self) -> Duration {
+        Duration::from_secs_f64(self.system_time_f64())
     }
 }
