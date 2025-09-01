@@ -10,15 +10,9 @@ macro_rules! hook_command {
             log::error!("failed to add console command {:?}", $name);
         }
     });
-    ($name:expr, $expr:expr) => ({
-        unsafe extern "C" fn command_hook() {
-            $expr;
-        }
-        let engine = $crate::instance::engine();
-        if engine.add_command($name, command_hook).is_err() {
-            log::error!("failed to add console command {:?}", $name);
-        }
-    });
+    ($name:expr, $expr:expr) => {
+        $crate::macros::hook_command!($name, { $expr; });
+    };
 }
 #[doc(inline)]
 pub use hook_command;
@@ -26,29 +20,18 @@ pub use hook_command;
 #[doc(hidden)]
 #[macro_export]
 macro_rules! hook_command_key {
-    ($name:expr, $expr:expr $(, down $down:block)? $(, up $up:block)?) => {{
-        use $crate::input::KeyButtonExt;
-
-        unsafe extern "C" fn on_key_down() {
-            $expr.key_down();
+    ($name:expr, $key:expr $(, down $down:block)? $(, up $up:block)?) => {
+        $crate::macros::hook_command!(concat!("+", $name), {
+            use $crate::input::KeyButtonExt;
+            $key.key_down();
             $($down)?
-        }
-
-        unsafe extern "C" fn on_key_up() {
-            $expr.key_up();
+        });
+        $crate::macros::hook_command!(concat!("-", $name), {
+            use $crate::input::KeyButtonExt;
+            $key.key_up();
             $($up)?
-        }
-
-        let engine = $crate::instance::engine();
-        let name = concat!("+", $name);
-        if engine.add_command(name, on_key_down).is_err() {
-            log::error!("failed to add console command {name}");
-        }
-        let name = concat!("-", $name);
-        if engine.add_command(name, on_key_up).is_err() {
-            log::error!("failed to add console command {name}");
-        }
-    }};
+        });
+    };
 }
 #[doc(inline)]
 pub use hook_command_key;
