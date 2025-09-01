@@ -82,13 +82,28 @@ pub trait EngineConsole {
     fn console_print(&self, msg: impl ToEngineStr);
 }
 
-/// Engine API to access command arguments.
-pub trait EngineCmdArgs {
+#[derive(Debug)]
+pub struct AddCmdError;
+
+impl fmt::Display for AddCmdError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        "failed to add a console command".fmt(f)
+    }
+}
+
+/// Engine API to register console commands and access arguments.
+pub trait EngineCmd {
     #[doc(hidden)]
     fn fn_cmd_argc(&self) -> unsafe extern "C" fn() -> c_int;
 
     #[doc(hidden)]
     fn fn_cmd_argv(&self) -> unsafe extern "C" fn(argc: c_int) -> *const c_char;
+
+    fn add_command(
+        &self,
+        name: impl ToEngineStr,
+        func: unsafe extern "C" fn(),
+    ) -> Result<(), AddCmdError>;
 
     fn cmd_argc(&self) -> usize {
         unsafe { self.fn_cmd_argc()() as usize }
@@ -121,22 +136,4 @@ pub trait EngineCmdArgsRaw {
             None
         }
     }
-}
-
-#[derive(Debug)]
-pub struct AddCmdError;
-
-impl fmt::Display for AddCmdError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        "failed to add a console command".fmt(f)
-    }
-}
-
-/// Engine API to register custom console commands.
-pub trait EngineAddCmd {
-    fn add_command(
-        &self,
-        name: impl ToEngineStr,
-        func: unsafe extern "C" fn(),
-    ) -> Result<(), AddCmdError>;
 }

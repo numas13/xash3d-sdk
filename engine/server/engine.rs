@@ -12,8 +12,7 @@ use crate::{
 };
 
 pub use shared::engine::{
-    AddCmdError, EngineAddCmd, EngineCmdArgs, EngineCmdArgsRaw, EngineConsole, EngineCvar,
-    EngineRng,
+    AddCmdError, EngineCmd, EngineCmdArgsRaw, EngineConsole, EngineCvar, EngineRng,
 };
 
 pub struct ServerEngine {
@@ -667,7 +666,7 @@ impl EngineConsole for ServerEngine {
     }
 }
 
-impl EngineCmdArgs for ServerEngine {
+impl EngineCmd for ServerEngine {
     fn fn_cmd_argc(&self) -> unsafe extern "C" fn() -> c_int {
         unwrap!(self, pfnCmd_Argc)
     }
@@ -675,15 +674,7 @@ impl EngineCmdArgs for ServerEngine {
     fn fn_cmd_argv(&self) -> unsafe extern "C" fn(argc: c_int) -> *const c_char {
         unwrap!(self, pfnCmd_Argv)
     }
-}
 
-impl EngineCmdArgsRaw for ServerEngine {
-    fn fn_cmd_args_raw(&self) -> unsafe extern "C" fn() -> *const c_char {
-        unwrap!(self, pfnCmd_Args)
-    }
-}
-
-impl EngineAddCmd for ServerEngine {
     fn add_command(
         &self,
         name: impl ToEngineStr,
@@ -694,5 +685,11 @@ impl EngineAddCmd for ServerEngine {
             unwrap!(self, pfnAddServerCommand)(name.as_ptr(), func);
         }
         Ok(())
+    }
+}
+
+impl EngineCmdArgsRaw for ServerEngine {
+    fn fn_cmd_args_raw(&self) -> unsafe extern "C" fn() -> *const c_char {
+        unwrap!(self, pfnCmd_Args)
     }
 }

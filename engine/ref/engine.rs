@@ -16,8 +16,7 @@ use crate::{
 };
 
 pub use shared::engine::{
-    AddCmdError, EngineAddCmd, EngineCmdArgs, EngineCmdArgsRaw, EngineConsole, EngineCvar,
-    EngineRng,
+    AddCmdError, EngineCmd, EngineCmdArgsRaw, EngineConsole, EngineCvar, EngineRng,
 };
 
 pub struct RefEngine {
@@ -445,7 +444,7 @@ impl EngineConsole for RefEngine {
     }
 }
 
-impl EngineCmdArgs for RefEngine {
+impl EngineCmd for RefEngine {
     fn fn_cmd_argc(&self) -> unsafe extern "C" fn() -> c_int {
         unwrap!(self, Cmd_Argc)
     }
@@ -453,20 +452,18 @@ impl EngineCmdArgs for RefEngine {
     fn fn_cmd_argv(&self) -> unsafe extern "C" fn(argc: c_int) -> *const c_char {
         unwrap!(self, Cmd_Argv)
     }
-}
 
-impl EngineCmdArgsRaw for RefEngine {
-    fn fn_cmd_args_raw(&self) -> unsafe extern "C" fn() -> *const c_char {
-        unwrap!(self, Cmd_Args)
-    }
-}
-
-impl EngineAddCmd for RefEngine {
     fn add_command(
         &self,
         name: impl ToEngineStr,
         func: unsafe extern "C" fn(),
     ) -> Result<(), AddCmdError> {
         self.add_command_with_desc(name, func, c"ref command")
+    }
+}
+
+impl EngineCmdArgsRaw for RefEngine {
+    fn fn_cmd_args_raw(&self) -> unsafe extern "C" fn() -> *const c_char {
+        unwrap!(self, Cmd_Args)
     }
 }

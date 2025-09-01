@@ -15,9 +15,7 @@ use crate::{
     sprite::{SpriteHandle, SpriteList},
 };
 
-pub use shared::engine::{
-    AddCmdError, EngineAddCmd, EngineCmdArgs, EngineConsole, EngineCvar, EngineRng,
-};
+pub use shared::engine::{AddCmdError, EngineCmd, EngineConsole, EngineCvar, EngineRng};
 
 pub struct ClientEngine {
     raw: raw::cl_enginefuncs_s,
@@ -613,7 +611,7 @@ impl EngineConsole for ClientEngine {
     }
 }
 
-impl EngineCmdArgs for ClientEngine {
+impl EngineCmd for ClientEngine {
     fn fn_cmd_argc(&self) -> unsafe extern "C" fn() -> c_int {
         unwrap!(self, Cmd_Argc)
     }
@@ -621,9 +619,7 @@ impl EngineCmdArgs for ClientEngine {
     fn fn_cmd_argv(&self) -> unsafe extern "C" fn(argc: c_int) -> *const c_char {
         unwrap!(self, Cmd_Argv)
     }
-}
 
-impl EngineAddCmd for ClientEngine {
     fn add_command(
         &self,
         name: impl ToEngineStr,

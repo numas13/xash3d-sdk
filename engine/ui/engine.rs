@@ -21,8 +21,7 @@ use crate::{
 };
 
 pub use shared::engine::{
-    AddCmdError, EngineAddCmd, EngineCmdArgs, EngineCmdArgsRaw, EngineConsole, EngineCvar,
-    EngineRng,
+    AddCmdError, EngineCmd, EngineCmdArgsRaw, EngineConsole, EngineCvar, EngineRng,
 };
 
 #[derive(Default)]
@@ -781,7 +780,7 @@ impl EngineConsole for UiEngine {
     }
 }
 
-impl EngineCmdArgs for UiEngine {
+impl EngineCmd for UiEngine {
     fn fn_cmd_argc(&self) -> unsafe extern "C" fn() -> c_int {
         unwrap!(self, pfnCmdArgc)
     }
@@ -789,15 +788,7 @@ impl EngineCmdArgs for UiEngine {
     fn fn_cmd_argv(&self) -> unsafe extern "C" fn(argc: c_int) -> *const c_char {
         unwrap!(self, pfnCmdArgv)
     }
-}
 
-impl EngineCmdArgsRaw for UiEngine {
-    fn fn_cmd_args_raw(&self) -> unsafe extern "C" fn() -> *const c_char {
-        unwrap!(self, pfnCmd_Args)
-    }
-}
-
-impl EngineAddCmd for UiEngine {
     fn add_command(
         &self,
         name: impl ToEngineStr,
@@ -810,5 +801,11 @@ impl EngineAddCmd for UiEngine {
         } else {
             Ok(())
         }
+    }
+}
+
+impl EngineCmdArgsRaw for UiEngine {
+    fn fn_cmd_args_raw(&self) -> unsafe extern "C" fn() -> *const c_char {
+        unwrap!(self, pfnCmd_Args)
     }
 }
