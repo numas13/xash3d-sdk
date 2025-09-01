@@ -357,12 +357,12 @@ impl State {
         }
     }
 
-    fn get_client_color(&self, _client: c_int) -> [f32; 3] {
-        const BLUE: [f32; 3] = [0.6, 0.8, 1.0];
-        const RED: [f32; 3] = [1.0, 0.25, 0.25];
-        const GREEN: [f32; 3] = [0.6, 1.0, 0.6];
-        const YELLOW: [f32; 3] = [1.0, 0.7, 0.0];
-        const GREY: [f32; 3] = [0.8, 0.8, 0.8];
+    fn get_client_color(&self, _client: c_int) -> RGB {
+        const BLUE: RGB = RGB::new(153, 204, 255);
+        const RED: RGB = RGB::new(255, 64, 64);
+        const GREEN: RGB = RGB::new(153, 255, 153);
+        const YELLOW: RGB = RGB::new(255, 178, 0);
+        const GREY: RGB = RGB::new(204, 204, 204);
 
         let teamnumber = 0; // TODO: extra player info
         match teamnumber {

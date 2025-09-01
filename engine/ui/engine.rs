@@ -21,8 +21,8 @@ use crate::{
 };
 
 pub use shared::engine::{
-    AddCmdError, EngineCmd, EngineCmdArgsRaw, EngineConsole, EngineCvar, EngineRng,
-    EngineSystemTime,
+    AddCmdError, EngineCmd, EngineCmdArgsRaw, EngineConsole, EngineCvar, EngineDrawConsoleString,
+    EngineRng, EngineSystemTime,
 };
 
 #[derive(Default)]
@@ -290,32 +290,26 @@ impl UiEngine {
     //     ),
     // >,
 
-    pub fn draw_console_string(&self, x: c_int, y: c_int, text: impl ToEngineStr) -> c_int {
-        let text = text.to_engine_str();
-        unsafe { unwrap!(self, pfnDrawConsoleString)(x, y, text.as_ptr()) }
-    }
-
-    pub fn draw_set_text_color(&self, color: impl Into<RGBA>) {
-        let [r, g, b, a] = color.into().to_bytes();
+    pub fn draw_set_text_color_with_alpha(&self, color: impl Into<RGBA>) {
+        let color = color.into();
         unsafe {
-            unwrap!(self, pfnDrawSetTextColor)(r as c_int, g as c_int, b as c_int, a as c_int);
+            unwrap!(self, pfnDrawSetTextColor)(
+                color.r() as c_int,
+                color.g() as c_int,
+                color.b() as c_int,
+                color.a() as c_int,
+            );
         }
-    }
-
-    pub fn draw_console_string_len(&self, text: impl ToEngineStr) -> (c_int, c_int) {
-        let text = text.to_engine_str();
-        let mut width = 0;
-        let mut height = 0;
-        unsafe {
-            unwrap!(self, pfnDrawConsoleStringLen)(text.as_ptr(), &mut width, &mut height);
-        }
-        (width, height)
     }
 
     pub fn set_console_default_color(&self, color: impl Into<RGB>) {
-        let [r, g, b] = color.into().to_bytes();
+        let color = color.into();
         unsafe {
-            unwrap!(self, pfnSetConsoleDefaultColor)(r as c_int, g as c_int, b as c_int);
+            unwrap!(self, pfnSetConsoleDefaultColor)(
+                color.r() as c_int,
+                color.g() as c_int,
+                color.b() as c_int,
+            );
         }
     }
 
@@ -815,5 +809,26 @@ impl EngineCmdArgsRaw for UiEngine {
 impl EngineSystemTime for UiEngine {
     fn system_time_f64(&self) -> f64 {
         unsafe { unwrap!(self, ext.pfnDoubleTime)() }
+    }
+}
+
+impl EngineDrawConsoleString for UiEngine {
+    fn set_text_color(&self, color: impl Into<RGB>) {
+        self.draw_set_text_color_with_alpha(color.into());
+    }
+
+    fn console_string_size(&self, text: impl ToEngineStr) -> (c_int, c_int) {
+        let text = text.to_engine_str();
+        let mut width = 0;
+        let mut height = 0;
+        unsafe {
+            unwrap!(self, pfnDrawConsoleStringLen)(text.as_ptr(), &mut width, &mut height);
+        }
+        (width, height)
+    }
+
+    fn draw_console_string(&self, x: c_int, y: c_int, text: impl ToEngineStr) -> c_int {
+        let text = text.to_engine_str();
+        unsafe { unwrap!(self, pfnDrawConsoleString)(x, y, text.as_ptr()) }
     }
 }

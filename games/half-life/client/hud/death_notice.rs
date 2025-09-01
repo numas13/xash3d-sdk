@@ -22,11 +22,11 @@ mod cvar {
 #[derive(Copy, Clone)]
 struct Player {
     name: CStrArray<{ MAX_PLAYER_NAME_LENGTH * 2 }>,
-    color: [f32; 3],
+    color: RGB,
 }
 
 impl Player {
-    fn new(name: &CStrThin, color: [f32; 3]) -> Self {
+    fn new(name: &CStrThin, color: RGB) -> Self {
         Self {
             name: name.try_into().unwrap(),
             color,
@@ -54,7 +54,7 @@ impl Victim {
         }
     }
 
-    fn color(&self) -> Option<[f32; 3]> {
+    fn color(&self) -> Option<RGB> {
         match self {
             Self::Player(p) => Some(p.color),
             Self::Object { .. } => None,
@@ -229,9 +229,8 @@ impl HudItem for DeathNotice {
 
             // draw victim
             let name = notice.victim.name();
-            x -= engine.draw_console_string_len(name).0;
-            let [r, g, b] = notice.victim.color().unwrap_or([1.0; 3]);
-            engine.draw_set_text_color(r, g, b);
+            x -= engine.console_string_width(name);
+            engine.set_text_color(notice.victim.color().unwrap_or(RGB::WHITE));
             engine.draw_console_string(x, y, name);
 
             // draw weapon
@@ -250,9 +249,8 @@ impl HudItem for DeathNotice {
             // draw killer name
             if let Some(killer) = notice.killer {
                 x -= 5;
-                x -= engine.draw_console_string_len(killer.name()).0;
-                let [r, g, b] = killer.color;
-                engine.draw_set_text_color(r, g, b);
+                x -= engine.console_string_width(killer.name());
+                engine.set_text_color(killer.color);
                 engine.draw_console_string(x, y, killer.name());
             }
 

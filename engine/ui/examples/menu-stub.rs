@@ -44,7 +44,7 @@ impl UiDll for Instance {
         let globals = globals();
         engine.fill_rgba((0, 0), (globals.scrWidth, globals.scrHeight), RGBA::BLACK);
         let text = c"Press Q to exit";
-        let (w, h) = engine.draw_console_string_len(text);
+        let (w, h) = engine.console_string_size(text);
         let x = (globals.scrWidth - w) / 2;
         let y = (globals.scrHeight - h) / 2;
         engine.draw_console_string(x, y, text);

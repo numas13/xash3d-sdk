@@ -27,7 +27,7 @@ pub trait UiDll: UnsyncGlobal {
         let globals = globals();
         engine.fill_rgba((0, 0), (globals.scrWidth, globals.scrHeight), RGBA::BLACK);
         let msg = c"UiDll::redraw is not implemented";
-        let (w, h) = engine.draw_console_string_len(msg);
+        let (w, h) = engine.console_string_size(msg);
         let x = (globals.scrWidth - w) / 2;
         let y = (globals.scrHeight - h) / 2;
         engine.draw_console_string(x, y, msg);

@@ -16,7 +16,8 @@ use crate::{
 };
 
 pub use shared::engine::{
-    AddCmdError, EngineCmd, EngineConsole, EngineCvar, EngineRng, EngineSystemTime,
+    AddCmdError, EngineCmd, EngineConsole, EngineCvar, EngineDrawConsoleString, EngineRng,
+    EngineSystemTime,
 };
 
 pub struct ClientEngine {
@@ -234,23 +235,11 @@ impl ClientEngine {
         unsafe { unwrap!(self, pfnDrawCharacter)(x, y, number, r, g, b) }
     }
 
-    pub fn draw_console_string(&self, x: c_int, y: c_int, s: impl ToEngineStr) -> c_int {
-        let s = s.to_engine_str();
-        unsafe { unwrap!(self, pfnDrawConsoleString)(x, y, s.as_ptr()) }
-    }
-
-    pub fn draw_set_text_color(&self, r: f32, g: f32, b: f32) {
+    /// Sets the color of the console text for drawing.
+    ///
+    /// Values must be in range [0..1] inclusive.
+    pub fn set_text_color_f32(&self, r: f32, g: f32, b: f32) {
         unsafe { unwrap!(self, pfnDrawSetTextColor)(r, g, b) }
-    }
-
-    pub fn draw_console_string_len(&self, s: impl ToEngineStr) -> (c_int, c_int) {
-        let s = s.to_engine_str();
-        unsafe {
-            let mut w = 0;
-            let mut h = 0;
-            unwrap!(self, pfnDrawConsoleStringLen)(s.as_ptr(), &mut w, &mut h);
-            (w, h)
-        }
     }
 
     // pub pfnCenterPrint: Option<unsafe extern "C" fn(string: *const c_char)>,
@@ -639,5 +628,31 @@ impl EngineCmd for ClientEngine {
 impl EngineSystemTime for ClientEngine {
     fn system_time_f64(&self) -> f64 {
         unsafe { unwrap!(self, pfnSys_FloatTime)() }
+    }
+}
+
+impl EngineDrawConsoleString for ClientEngine {
+    fn set_text_color(&self, color: impl Into<RGB>) {
+        let color = color.into();
+        self.set_text_color_f32(
+            color.r() as f32 * (1.0 / 255.0),
+            color.g() as f32 * (1.0 / 255.0),
+            color.b() as f32 * (1.0 / 255.0),
+        );
+    }
+
+    fn console_string_size(&self, text: impl ToEngineStr) -> (c_int, c_int) {
+        let text = text.to_engine_str();
+        let mut width = 0;
+        let mut height = 0;
+        unsafe {
+            unwrap!(self, pfnDrawConsoleStringLen)(text.as_ptr(), &mut width, &mut height);
+        }
+        (width, height)
+    }
+
+    fn draw_console_string(&self, x: c_int, y: c_int, text: impl ToEngineStr) -> c_int {
+        let text = text.to_engine_str();
+        unsafe { unwrap!(self, pfnDrawConsoleString)(x, y, text.as_ptr()) }
     }
 }

@@ -31,6 +31,8 @@ pub use self::vector::{vec2_t, vec3_t, vec4_t, Vector};
 
 pub type playermove_s = c_void;
 
+pub type HIMAGE = c_int;
+
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Default)]
 #[repr(C)]
 pub struct colorVec {

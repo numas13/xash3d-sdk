@@ -86,7 +86,7 @@ impl HudItem for ScoreBoard {
         let mut w = 0;
         let mut h = 0;
         for &i in &fields {
-            let (field_w, field_h) = engine.draw_console_string_len(i);
+            let (field_w, field_h) = engine.console_string_size(i);
             w = cmp::max(w, field_w);
             h = cmp::max(h, field_h);
         }
@@ -94,13 +94,11 @@ impl HudItem for ScoreBoard {
         let h = h + h / 4;
 
         let fields_x = right - gap - w * fields.len() as c_int;
-        let [r, g, b] = state.color.to_bytes();
-        let [r, g, b] = [r as f32, g as f32, b as f32];
         let mut x = fields_x;
         for &i in &fields {
             x += w;
-            engine.draw_set_text_color(r, g, b);
-            let (tw, th) = engine.draw_console_string_len(i);
+            engine.set_text_color(state.color);
+            let (tw, th) = engine.console_string_size(i);
             engine.draw_console_string(x - tw, y + (h - th) / 2, i);
         }
         y += h;
@@ -120,7 +118,7 @@ impl HudItem for ScoreBoard {
             }
 
             let name = info.name().unwrap();
-            let th = engine.draw_console_string_len(name).1;
+            let th = engine.console_string_height(name);
             engine.draw_console_string(name_x, y + (h - th) / 2, name);
 
             let mut x = fields_x;
@@ -128,7 +126,7 @@ impl HudItem for ScoreBoard {
                 x += w;
                 let mut buf = CStrArray::<256>::new();
                 write!(buf.cursor(), "{i}").ok();
-                let (tw, th) = engine.draw_console_string_len(buf.as_c_str());
+                let (tw, th) = engine.console_string_size(buf.as_c_str());
                 engine.draw_console_string(x - tw, y + (h - th) / 2, buf.as_c_str());
             }
             y += h;

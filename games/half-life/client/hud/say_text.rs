@@ -1,7 +1,7 @@
 use core::ffi::{c_int, CStr};
 
 use alloc::collections::vec_deque::VecDeque;
-use cl::{math::fminf, message::hook_message, prelude::*};
+use cl::{color::RGB, math::fminf, message::hook_message, prelude::*};
 use csz::CStrArray;
 
 use super::{hud, HudFlags, HudItem, State};
@@ -20,7 +20,7 @@ mod cvar {
 
 struct Line {
     name_len: usize,
-    color: [f32; 3],
+    color: RGB,
     data: CStrArray<MAX_CHARS_PER_LINE>,
 }
 
@@ -56,7 +56,7 @@ impl SayText {
         }
 
         let mut name_len = 0;
-        let mut color = [1.0; 3];
+        let mut color = RGB::WHITE;
 
         let engine = engine();
         if bytes[0] == SAY_MESSAGE && client > 0 {
@@ -100,7 +100,7 @@ impl HudItem for SayText {
     }
 
     fn vid_init(&mut self, _: &mut State) {
-        self.line_height = engine().draw_console_string_len(c"test").1;
+        self.line_height = engine().console_string_height(c"test");
     }
 
     fn draw(&mut self, state: &mut State) {
@@ -128,8 +128,7 @@ impl HudItem for SayText {
             let mut msg = unsafe { &mut line.data.inner_mut()[..] };
 
             if line.name_len != 0 {
-                let [r, g, b] = line.color;
-                engine.draw_set_text_color(r, g, b);
+                engine.set_text_color(line.color);
 
                 // numas13: I hate C strings...
                 let saved_c = msg[line.name_len];

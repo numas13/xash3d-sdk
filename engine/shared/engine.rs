@@ -7,6 +7,7 @@ use core::{
 use csz::CStrThin;
 
 use crate::{
+    color::RGB,
     cvar::{GetCvar, SetCvar},
     str::{AsCStrPtr, ToEngineStr},
 };
@@ -148,4 +149,30 @@ pub trait EngineSystemTime {
     fn system_time(&self) -> Duration {
         Duration::from_secs_f64(self.system_time_f64())
     }
+}
+
+/// Engine API to draw a text on the screen with a console font.
+pub trait EngineDrawConsoleString {
+    /// Sets the color for drawing text.
+    fn set_text_color(&self, color: impl Into<RGB>);
+
+    /// Returns the width and height of the text on the screen in pixels.
+    fn console_string_size(&self, text: impl ToEngineStr) -> (c_int, c_int);
+
+    /// Returns the width of the text on the screen in pixels.
+    fn console_string_width(&self, text: impl ToEngineStr) -> c_int {
+        let (width, _) = self.console_string_size(text);
+        width
+    }
+
+    /// Returns the height of the text on the screen in pixels.
+    fn console_string_height(&self, text: impl ToEngineStr) -> c_int {
+        let (_, height) = self.console_string_size(text);
+        height
+    }
+
+    /// Draw the text at given coordinates.
+    ///
+    /// Returns the x coordinate after the drawn text.
+    fn draw_console_string(&self, x: c_int, y: c_int, text: impl ToEngineStr) -> c_int;
 }
