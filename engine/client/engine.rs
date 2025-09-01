@@ -15,10 +15,15 @@ use crate::{
     sprite::{SpriteHandle, SpriteList},
 };
 
-pub use shared::engine::{
-    AddCmdError, EngineCmd, EngineConsole, EngineCvar, EngineDrawConsoleString, EngineRng,
-    EngineSystemTime,
-};
+pub use shared::engine::AddCmdError;
+
+pub(crate) mod prelude {
+    pub use shared::engine::{
+        EngineCmd, EngineConsole, EngineCvar, EngineDrawConsoleString, EngineRng, EngineSystemTime,
+    };
+}
+
+pub use self::prelude::*;
 
 pub struct ClientEngine {
     raw: raw::cl_enginefuncs_s,

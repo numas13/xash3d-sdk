@@ -20,10 +20,16 @@ use crate::{
     raw::{self, kbutton_t, net_api_s, netadr_s, wrect_s, HIMAGE},
 };
 
-pub use shared::engine::{
-    AddCmdError, EngineCmd, EngineCmdArgsRaw, EngineConsole, EngineCvar, EngineDrawConsoleString,
-    EngineRng, EngineSystemTime,
-};
+pub use shared::engine::AddCmdError;
+
+pub(crate) mod prelude {
+    pub use shared::engine::{
+        EngineCmd, EngineCmdArgsRaw, EngineConsole, EngineCvar, EngineDrawConsoleString, EngineRng,
+        EngineSystemTime,
+    };
+}
+
+pub use self::prelude::*;
 
 #[derive(Default)]
 struct Borrows {

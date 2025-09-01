@@ -1,4 +1,5 @@
 pub use crate::{
-    engine::*,
+    engine::prelude::*,
+    engine::ClientEngine,
     instance::{engine, studio},
 };

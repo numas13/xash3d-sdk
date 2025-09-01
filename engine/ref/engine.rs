@@ -15,10 +15,15 @@ use crate::{
     },
 };
 
-pub use shared::engine::{
-    AddCmdError, EngineCmd, EngineCmdArgsRaw, EngineConsole, EngineCvar, EngineRng,
-    EngineSystemTime,
-};
+pub use shared::engine::AddCmdError;
+
+pub(crate) mod prelude {
+    pub use shared::engine::{
+        EngineCmd, EngineCmdArgsRaw, EngineConsole, EngineCvar, EngineRng, EngineSystemTime,
+    };
+}
+
+pub use self::prelude::*;
 
 pub struct RefEngine {
     raw: raw::ref_api_s,

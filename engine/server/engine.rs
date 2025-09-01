@@ -11,10 +11,15 @@ use crate::{
     raw::{self, edict_s, string_t, vec3_t},
 };
 
-pub use shared::engine::{
-    AddCmdError, EngineCmd, EngineCmdArgsRaw, EngineConsole, EngineCvar, EngineRng,
-    EngineSystemTime,
-};
+pub use shared::engine::AddCmdError;
+
+pub(crate) mod prelude {
+    pub use shared::engine::{
+        EngineCmd, EngineCmdArgsRaw, EngineConsole, EngineCvar, EngineRng, EngineSystemTime,
+    };
+}
+
+pub use self::prelude::*;
 
 pub struct ServerEngine {
     raw: raw::enginefuncs_s,
