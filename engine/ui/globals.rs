@@ -1,6 +1,8 @@
-use core::ops::Deref;
+use core::{ffi::c_int, time::Duration};
 
-use crate::raw;
+use csz::CStrThin;
+
+use crate::{raw, Size};
 
 pub struct UiGlobals {
     raw: *mut raw::ui_globalvars_s,
@@ -12,12 +14,52 @@ impl UiGlobals {
     pub(crate) fn new(raw: *mut raw::ui_globalvars_s) -> Self {
         Self { raw }
     }
-}
 
-impl Deref for UiGlobals {
-    type Target = raw::ui_globalvars_s;
+    pub fn system_time_f32(&self) -> f32 {
+        unsafe { (*self.raw).time }
+    }
 
-    fn deref(&self) -> &Self::Target {
-        unsafe { &*self.raw }
+    pub fn system_time(&self) -> Duration {
+        Duration::from_secs_f32(self.system_time_f32())
+    }
+
+    pub fn frame_time_f32(&self) -> f32 {
+        unsafe { (*self.raw).frametime }
+    }
+
+    pub fn frame_time(&self) -> Duration {
+        Duration::from_secs_f32(self.frame_time_f32())
+    }
+
+    pub fn screen_width(&self) -> c_int {
+        unsafe { (*self.raw).scrWidth }
+    }
+
+    pub fn screen_height(&self) -> c_int {
+        unsafe { (*self.raw).scrHeight }
+    }
+
+    pub fn screen_size(&self) -> Size {
+        Size::new(self.screen_width(), self.screen_height())
+    }
+
+    pub fn max_clients(&self) -> c_int {
+        unsafe { (*self.raw).maxClients }
+    }
+
+    pub fn developer(&self) -> c_int {
+        unsafe { (*self.raw).developer }
+    }
+
+    // TODO: ui global demoplayback
+
+    // TODO: ui global demorecording
+
+    pub fn demo_name(&self) -> &CStrThin {
+        unsafe { (*self.raw).demoname.as_thin() }
+    }
+
+    pub fn map_title(&self) -> &CStrThin {
+        unsafe { (*self.raw).maptitle.as_thin() }
     }
 }
