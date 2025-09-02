@@ -153,7 +153,7 @@ pub trait Entity: EntityVars + Cast + Any {
             let mins = ev.mins;
             let maxs = ev.maxs;
             let engine = engine();
-            let model = globals().string(ev.model);
+            let model = ev.model;
             engine.precache_model(model);
             engine.set_model(self.ent_mut(), model);
             engine.set_size(self.ent_mut(), mins, maxs);
@@ -199,7 +199,7 @@ pub trait Entity: EntityVars + Cast + Any {
     }
 
     fn globalname(&self) -> &'static CStrThin {
-        globals().string(self.vars().globalname)
+        self.vars().globalname.as_thin()
     }
 
     fn is_globalname(&self, name: &CStrThin) -> bool {
@@ -207,7 +207,7 @@ pub trait Entity: EntityVars + Cast + Any {
     }
 
     fn classname(&self) -> &'static CStrThin {
-        globals().string(self.vars().classname)
+        self.vars().classname.as_thin()
     }
 
     fn is_classname(&self, name: &CStrThin) -> bool {

@@ -631,7 +631,7 @@ pub fn dispatch_restore(
         }
 
         let mut entities = global_state().entities.borrow_mut();
-        let global = entities.find_string(tmp_vars.globalname).unwrap();
+        let global = entities.find(tmp_vars.globalname).unwrap();
         if restore.data.current_map_name != *global.map_name() {
             return 0;
         }
@@ -671,20 +671,19 @@ pub fn dispatch_restore(
     } else if let Some(entity) = entity {
         if !entity.vars().globalname.is_null() {
             let mut entities = global_state().entities.borrow_mut();
-            if let Some(global) = entities.find_string(entity.vars().globalname) {
+            if let Some(global) = entities.find(entity.vars().globalname) {
                 if global.is_dead() {
                     return -1;
                 }
                 let globals = globals();
-                let map_name = globals.string(globals.mapname);
-                if map_name != global.map_name() {
+                if globals.mapname.as_thin() != global.map_name() {
                     entity.make_dormant();
                 }
             } else {
                 let globalname = entity.globalname();
                 let classname = entity.classname();
-                error!("Global entity {globalname:?} ({classname:?}) not in table!!!");
-                entities.add_string(entity.vars().globalname, globals().mapname, EntityState::On);
+                error!("Global entity \"{globalname}\" (\"{classname}\") not in table!!!");
+                entities.add(entity.vars().globalname, globals().mapname, EntityState::On);
             }
         }
     }
@@ -693,17 +692,14 @@ pub fn dispatch_restore(
 }
 
 fn find_global_entity(classname: string_t, globalname: string_t) -> Option<*mut edict_s> {
-    let globals = globals();
-    let globalname = globals.string(globalname);
-    let classname = globals.string(classname);
     engine()
         .find_ent_by_globalname_iter(globalname)
         .find(|&ent| {
             if let Some(private) = unsafe { *ent }.private_mut() {
-                if private.is_classname(classname) {
+                if private.is_classname(&classname) {
                     return true;
                 } else {
-                    debug!("Global entity found {globalname:?}, wrong class {classname:?}");
+                    debug!("Global entity found \"{globalname}\", wrong class \"{classname}\"");
                 }
             }
             false

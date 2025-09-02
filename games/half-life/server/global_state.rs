@@ -5,7 +5,6 @@ use csz::{CStrArray, CStrThin};
 use sv::{
     cell::SyncOnceCell,
     macros::define_field,
-    prelude::*,
     raw::{edict_s, string_t, FieldType, SAVERESTOREDATA, TYPEDESCRIPTION},
 };
 
@@ -82,42 +81,44 @@ impl Entities {
         }
     }
 
-    pub fn find(&self, name: &CStrThin) -> Option<&GlobalEntity> {
+    #[inline(never)]
+    fn find_impl(&self, name: &CStrThin) -> Option<&GlobalEntity> {
         self.list.iter().find(|i| i.name() == name)
     }
 
-    pub fn find_mut(&mut self, name: &CStrThin) -> Option<&mut GlobalEntity> {
+    #[inline(never)]
+    fn find_mut_impl(&mut self, name: &CStrThin) -> Option<&mut GlobalEntity> {
         self.list.iter_mut().find(|i| i.name() == name)
     }
 
-    pub fn find_string(&self, name: string_t) -> Option<&GlobalEntity> {
-        self.find(globals().string(name))
+    pub fn find(&self, name: impl AsRef<CStrThin>) -> Option<&GlobalEntity> {
+        self.find_impl(name.as_ref())
     }
 
-    pub fn find_string_mut(&mut self, name: string_t) -> Option<&mut GlobalEntity> {
-        self.find_mut(globals().string(name))
+    pub fn find_mut(&mut self, name: impl AsRef<CStrThin>) -> Option<&mut GlobalEntity> {
+        self.find_mut_impl(name.as_ref())
     }
 
-    pub fn add(&mut self, name: &CStrThin, map_name: &CStrThin, state: EntityState) {
+    #[inline(never)]
+    fn add_impl(&mut self, name: &CStrThin, map_name: &CStrThin, state: EntityState) {
         assert!(self.find(name).is_none());
         self.list
             .push_back(GlobalEntity::new(name, map_name, state));
     }
 
-    pub fn add_string(&mut self, name: string_t, map_name: string_t, state: EntityState) {
-        let globals = globals();
-        let name = globals.string(name);
-        let map_name = globals.string(map_name);
-        self.add(name, map_name, state)
+    pub fn add(
+        &mut self,
+        name: impl AsRef<CStrThin>,
+        map_name: impl AsRef<CStrThin>,
+        state: EntityState,
+    ) {
+        self.add_impl(name.as_ref(), map_name.as_ref(), state);
     }
 
     pub fn update(&mut self, name: string_t, map_name: string_t) {
-        if let Some(ent) = self.find_string_mut(name) {
+        if let Some(ent) = self.find_mut(name) {
             ent.map_name.clear();
-            ent.map_name
-                .cursor()
-                .write_c_str(globals().string(map_name))
-                .unwrap();
+            ent.map_name.cursor().write_c_str(&map_name).unwrap();
         }
     }
 

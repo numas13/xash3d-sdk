@@ -29,7 +29,7 @@ pub fn update_client_data(ent: &edict_s, sendweapons: bool, cd: &mut clientdata_
     cd.flags = ev.flags;
     cd.health = ev.health;
 
-    cd.viewmodel = engine.model_index(globals().string(ev.viewmodel));
+    cd.viewmodel = engine.model_index(ev.viewmodel);
 
     cd.waterlevel = ev.waterlevel;
     cd.watertype = ev.watertype;
@@ -81,7 +81,7 @@ pub fn add_to_full_pack(
         return false;
     }
 
-    if ent.v.modelindex == 0 || globals().string(ent.v.model).is_empty() {
+    if ent.v.modelindex == 0 || ent.v.model.is_empty() {
         return false;
     }
 
@@ -180,7 +180,7 @@ pub fn add_to_full_pack(
     if player {
         state.basevelocity = ent.v.basevelocity;
 
-        state.weaponmodel = engine.model_index(globals().string(ent.v.weaponmodel));
+        state.weaponmodel = engine.model_index(ent.v.weaponmodel);
         state.gaitsequence = ent.v.gaitsequence;
         state.spectator = ent.v.flags.intersects(EdictFlags::SPECTATOR).into();
         state.friction = ent.v.friction;

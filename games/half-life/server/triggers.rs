@@ -59,10 +59,7 @@ impl ChangeLevel {
         ev.solid = SOLID_TRIGGER;
         ev.movetype = MoveType::None;
         let engine = engine();
-        engine.set_model(
-            unsafe { &mut *ev.pContainingEntity },
-            globals().string(ev.model),
-        );
+        engine.set_model(unsafe { &mut *ev.pContainingEntity }, ev.model);
         if engine.get_cvar_float(c"showtriggers") == 0.0 {
             ev.effects.insert(Effects::NODRAW);
         }
@@ -169,8 +166,7 @@ impl Entity for ChangeLevel {
     }
 
     fn touch(&mut self, other: &mut dyn Entity) {
-        let classname = globals().string(other.vars().classname);
-        if classname == c"player" {
+        if other.vars().classname.as_thin() == c"player" {
             self.change_level_now(other);
         }
     }
@@ -238,7 +234,7 @@ fn find_landmark(landmark_name: &CStrThin) -> *mut edict_s {
     engine()
         .find_ent_by_targetname_iter(landmark_name)
         .find(|&ent| {
-            let classname = globals().string(unsafe { (*ent).v.classname });
+            let classname = unsafe { (*ent).v.classname }.as_thin();
             classname == c"info_landmark"
         })
         .unwrap_or(ptr::null_mut())

@@ -58,16 +58,15 @@ unsafe extern "C" fn DispatchSpawn(ent: *mut edict_s) -> c_int {
     if !ev.globalname.is_null() {
         let global_state = global_state();
         let mut entities = global_state.entities.borrow_mut();
-        if let Some(global) = entities.find_string(ev.globalname) {
+        if let Some(global) = entities.find(ev.globalname) {
             if global.is_dead() {
                 return -1;
             }
-            let map_name = globals().string(globals().mapname);
-            if map_name != global.map_name() {
+            if globals().mapname.as_thin() != global.map_name() {
                 entity.make_dormant();
             }
         } else {
-            entities.add_string(ev.globalname, globals().mapname, EntityState::On);
+            entities.add(ev.globalname, globals().mapname, EntityState::On);
         }
     }
     0

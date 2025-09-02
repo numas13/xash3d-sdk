@@ -40,8 +40,8 @@ impl Player {
         }
 
         let mut startspot = c"info_player_start".into();
-        if !globals().startspot.is_null() && !globals().string(globals().startspot).is_empty() {
-            startspot = globals().string(globals().startspot);
+        if !globals().startspot.is_null() && !globals().startspot.is_empty() {
+            startspot = globals().startspot.as_thin();
         }
         let spot = engine().find_ent_by_classname(ptr::null(), startspot);
 
@@ -112,7 +112,7 @@ impl Entity for Player {
             let mins = ev.mins;
             let maxs = ev.maxs;
             let engine = engine();
-            let model = globals().string(ev.model);
+            let model = ev.model;
             engine.precache_model(model);
             engine.set_model(self.ent_mut(), model);
             engine.set_size(self.ent_mut(), mins, maxs);

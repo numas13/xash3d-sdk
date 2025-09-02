@@ -15,7 +15,7 @@ impl ServerGlobals {
         Self { raw }
     }
 
-    pub fn string(&self, string: string_t) -> &'static CStrThin {
+    pub(crate) fn string(&self, string: string_t) -> &'static CStrThin {
         unsafe { CStrThin::from_ptr(self.pStringBase.wrapping_byte_add(string.0 as usize)) }
     }
 
