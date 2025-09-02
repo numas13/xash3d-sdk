@@ -9,6 +9,7 @@ use sv::{
     raw::{
         clientdata_s, edict_s, entity_state_s, entvars_s, vec3_t, EdictFlags, Effects, MoveType,
     },
+    str::MapString,
 };
 
 use crate::{
@@ -29,7 +30,7 @@ pub fn update_client_data(ent: &edict_s, sendweapons: bool, cd: &mut clientdata_
     cd.flags = ev.flags;
     cd.health = ev.health;
 
-    cd.viewmodel = engine.model_index(ev.viewmodel);
+    cd.viewmodel = engine.model_index(ev.viewmodel.as_ref().map_or(c"".into(), |s| s.as_thin()));
 
     cd.waterlevel = ev.waterlevel;
     cd.watertype = ev.watertype;
@@ -81,7 +82,7 @@ pub fn add_to_full_pack(
         return false;
     }
 
-    if ent.v.modelindex == 0 || ent.v.model.is_empty() {
+    if ent.v.modelindex == 0 || ent.v.model.unwrap().is_empty() {
         return false;
     }
 
@@ -180,7 +181,12 @@ pub fn add_to_full_pack(
     if player {
         state.basevelocity = ent.v.basevelocity;
 
-        state.weaponmodel = engine.model_index(ent.v.weaponmodel);
+        state.weaponmodel = engine.model_index(
+            ent.v
+                .weaponmodel
+                .as_ref()
+                .map_or(c"".into(), |s| s.as_thin()),
+        );
         state.gaitsequence = ent.v.gaitsequence;
         state.spectator = ent.v.flags.intersects(EdictFlags::SPECTATOR).into();
         state.friction = ent.v.friction;
@@ -293,9 +299,9 @@ impl EntityVars for Stub {
 
 impl Entity for Stub {
     fn spawn(&mut self) -> bool {
-        let classname = engine().alloc_string(self.name);
+        let classname = MapString::new(self.name);
         let ev = self.vars_mut();
-        ev.classname = classname;
+        ev.classname = Some(classname);
         true
     }
 }

@@ -4,6 +4,7 @@ use sv::{
     consts::{DAMAGE_AIM, DEAD_NO, SOLID_SLIDEBOX},
     prelude::*,
     raw::{edict_s, entvars_s, EdictFlags, Effects, MoveType},
+    str::MapString,
 };
 
 use crate::{
@@ -40,8 +41,10 @@ impl Player {
         }
 
         let mut startspot = c"info_player_start".into();
-        if !globals().startspot.is_null() && !globals().startspot.is_empty() {
-            startspot = globals().startspot.as_thin();
+        if let Some(spot) = globals().startspot.as_ref() {
+            if !spot.is_empty() {
+                startspot = spot.as_thin();
+            }
         }
         let spot = engine().find_ent_by_classname(ptr::null(), startspot);
 
@@ -68,7 +71,7 @@ impl Entity for Player {
 
     fn spawn(&mut self) -> bool {
         let ev = self.vars_mut();
-        ev.classname = engine().alloc_string(c"player");
+        ev.classname = Some(MapString::new(c"player"));
         ev.health = 100.0;
         ev.armorvalue = 0.0;
         ev.takedamage = DAMAGE_AIM as f32;
@@ -108,13 +111,12 @@ impl Entity for Player {
         restore.read_fields(c"BASE", self as *mut _ as *mut _, fields)?;
 
         let ev = self.vars_mut();
-        if ev.modelindex != 0 && !ev.model.is_null() {
+        if let (true, Some(model)) = (ev.modelindex != 0, ev.model) {
             let mins = ev.mins;
             let maxs = ev.maxs;
             let engine = engine();
-            let model = ev.model;
-            engine.precache_model(model);
-            engine.set_model(self.ent_mut(), model);
+            engine.precache_model(&model);
+            engine.set_model(self.ent_mut(), &model);
             engine.set_size(self.ent_mut(), mins, maxs);
         }
 

@@ -9,6 +9,7 @@ pub mod instance;
 mod logger;
 pub mod prelude;
 pub mod raw;
+pub mod str;
 pub mod utils;
 
 pub use shared::{cell, color, consts, cvar, math, str::ToEngineStr};

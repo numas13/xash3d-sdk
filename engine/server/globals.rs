@@ -1,8 +1,6 @@
 use core::ops::Deref;
 
-use csz::CStrThin;
-
-use crate::raw::{self, string_t, vec3_t};
+use crate::raw::{self, vec3_t};
 
 pub struct ServerGlobals {
     raw: *mut raw::globalvars_t,
@@ -13,10 +11,6 @@ shared::export::impl_unsync_global!(ServerGlobals);
 impl ServerGlobals {
     pub(crate) fn new(raw: *mut raw::globalvars_t) -> Self {
         Self { raw }
-    }
-
-    pub(crate) fn string(&self, string: string_t) -> &'static CStrThin {
-        unsafe { CStrThin::from_ptr(self.pStringBase.wrapping_byte_add(string.0 as usize)) }
     }
 
     pub fn set_landmark_offset(&self, landmark_offset: vec3_t) {

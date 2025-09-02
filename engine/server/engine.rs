@@ -3,12 +3,14 @@ use core::{
     iter, ptr,
 };
 
+use csz::CStrThin;
 use shared::str::{AsCStrPtr, ToEngineStr};
 
 use crate::{
     cvar::{cvar_s, CVarPtr},
     engine_types::*,
-    raw::{self, edict_s, string_t, vec3_t},
+    raw::{self, edict_s, vec3_t},
+    str::MapString,
 };
 
 pub use shared::engine::AddCmdError;
@@ -350,12 +352,19 @@ impl ServerEngine {
         unsafe { unwrap!(self, pfnFreeEntPrivateData)(edict) }
     }
 
-    // pub pfnSzFromIndex: Option<unsafe extern "C" fn(iString: c_int) -> *const c_char>,
-
-    pub fn alloc_string(&self, value: impl ToEngineStr) -> string_t {
+    pub(crate) fn alloc_map_string(&self, value: impl ToEngineStr) -> Option<MapString> {
         let value = value.to_engine_str();
-        let n = unsafe { unwrap!(self, pfnAllocString)(value.as_ptr()) };
-        string_t(n)
+        let index = unsafe { unwrap!(self, pfnAllocString)(value.as_ptr()) };
+        MapString::from_index(index)
+    }
+
+    pub(crate) fn find_map_string<'a>(&self, string: &'a MapString) -> Option<&'a CStrThin> {
+        let p = unsafe { unwrap!(self, pfnSzFromIndex)(string.index()) };
+        if p.is_null() {
+            None
+        } else {
+            Some(unsafe { CStrThin::from_ptr(p) })
+        }
     }
 
     // pub pfnGetVarsOfEnt: Option<unsafe extern "C" fn(pEdict: *mut edict_t) -> *mut entvars_s>,

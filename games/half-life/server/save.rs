@@ -11,9 +11,10 @@ use sv::{
     macros::define_entity_field,
     prelude::*,
     raw::{
-        edict_s, entvars_s, string_t, vec3_t, FieldType, FtypeDesc, KeyValueData, MoveType,
-        SAVERESTOREDATA, TYPEDESCRIPTION,
+        edict_s, entvars_s, vec3_t, FieldType, FtypeDesc, KeyValueData, MoveType, SAVERESTOREDATA,
+        TYPEDESCRIPTION,
     },
+    str::MapString,
     utils::array_from_slice,
 };
 
@@ -337,8 +338,8 @@ impl<'a> SaveRestore<'a> {
                                 let chunk = iter.next().unwrap();
                                 let str = CStr::from_bytes_with_nul(chunk).unwrap();
                                 if !str.is_empty() {
-                                    let id = engine.alloc_string(str);
-                                    dst.copy_from_slice(&id.raw().to_ne_bytes());
+                                    let id = MapString::new(str);
+                                    dst.copy_from_slice(&id.index().to_ne_bytes());
                                     if self.precache {
                                         match field.fieldType {
                                             F::MODELNAME => {
@@ -524,9 +525,9 @@ fn entvars_key_value(ev: &mut entvars_s, data: &mut KeyValueData) {
 
         match field.fieldType {
             FieldType::MODELNAME | FieldType::SOUNDNAME | FieldType::STRING => {
-                let s = engine().alloc_string(value);
+                let s = MapString::new(value);
                 unsafe {
-                    ptr::write(p.cast::<c_int>(), s.raw());
+                    ptr::write(p.cast::<c_int>(), s.index());
                 }
             }
             FieldType::TIME | FieldType::FLOAT => {
@@ -631,19 +632,24 @@ pub fn dispatch_restore(
         }
 
         let mut entities = global_state().entities.borrow_mut();
-        let global = entities.find(tmp_vars.globalname).unwrap();
+        let global = entities.find(tmp_vars.globalname.unwrap()).unwrap();
         if restore.data.current_map_name != *global.map_name() {
             return 0;
         }
 
         old_offset = restore.data.landmark_offset;
-        if let Some(new_ent) = find_global_entity(tmp_vars.classname, tmp_vars.globalname) {
+        if let Some(new_ent) =
+            find_global_entity(tmp_vars.classname.unwrap(), tmp_vars.globalname.unwrap())
+        {
             let new_ent = unsafe { &mut *new_ent };
             restore.global_mode(true);
             restore.data.landmark_offset -= new_ent.v.mins;
             restore.data.landmark_offset += tmp_vars.mins;
             ent = new_ent;
-            entities.update(unsafe { (*ent).v.globalname }, globals().mapname);
+            entities.update(
+                unsafe { (*ent).v.globalname }.unwrap(),
+                globals().mapname.unwrap(),
+            );
         } else {
             return 0;
         }
@@ -669,21 +675,21 @@ pub fn dispatch_restore(
             return 0;
         }
     } else if let Some(entity) = entity {
-        if !entity.vars().globalname.is_null() {
+        if let Some(globalname) = entity.vars().globalname {
             let mut entities = global_state().entities.borrow_mut();
-            if let Some(global) = entities.find(entity.vars().globalname) {
+            if let Some(global) = entities.find(globalname) {
                 if global.is_dead() {
                     return -1;
                 }
                 let globals = globals();
-                if globals.mapname.as_thin() != global.map_name() {
+                if globals.mapname.unwrap().as_thin() != global.map_name() {
                     entity.make_dormant();
                 }
             } else {
                 let globalname = entity.globalname();
                 let classname = entity.classname();
                 error!("Global entity \"{globalname}\" (\"{classname}\") not in table!!!");
-                entities.add(entity.vars().globalname, globals().mapname, EntityState::On);
+                entities.add(globalname, globals().mapname.unwrap(), EntityState::On);
             }
         }
     }
@@ -691,9 +697,9 @@ pub fn dispatch_restore(
     0
 }
 
-fn find_global_entity(classname: string_t, globalname: string_t) -> Option<*mut edict_s> {
+fn find_global_entity(classname: MapString, globalname: MapString) -> Option<*mut edict_s> {
     engine()
-        .find_ent_by_globalname_iter(globalname)
+        .find_ent_by_globalname_iter(&globalname)
         .find(|&ent| {
             if let Some(private) = unsafe { *ent }.private_mut() {
                 if private.is_classname(&classname) {

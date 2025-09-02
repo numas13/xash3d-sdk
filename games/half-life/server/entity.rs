@@ -12,6 +12,7 @@ use sv::{
     raw::{
         edict_s, entvars_s, vec3_t, EdictFlags, Effects, KeyValueData, MoveType, TYPEDESCRIPTION,
     },
+    str::MapString,
 };
 
 use crate::save::{self, SaveRestore};
@@ -149,13 +150,12 @@ pub trait Entity: EntityVars + Cast + Any {
         restore.read_fields(c"BASE", self as *mut _ as *mut _, fields)?;
 
         let ev = self.vars_mut();
-        if ev.modelindex != 0 && !ev.model.is_null() {
+        if let (true, Some(model)) = (ev.modelindex != 0, ev.model) {
             let mins = ev.mins;
             let maxs = ev.maxs;
             let engine = engine();
-            let model = ev.model;
-            engine.precache_model(model);
-            engine.set_model(self.ent_mut(), model);
+            engine.precache_model(&model);
+            engine.set_model(self.ent_mut(), &model);
             engine.set_size(self.ent_mut(), mins, maxs);
         }
 
@@ -198,20 +198,20 @@ pub trait Entity: EntityVars + Cast + Any {
         self.vars().flags.intersects(EdictFlags::DORMANT)
     }
 
-    fn globalname(&self) -> &'static CStrThin {
-        self.vars().globalname.as_thin()
+    fn globalname(&self) -> MapString {
+        self.vars().globalname.unwrap()
     }
 
     fn is_globalname(&self, name: &CStrThin) -> bool {
-        name == self.globalname()
+        name == self.globalname().as_thin()
     }
 
-    fn classname(&self) -> &'static CStrThin {
-        self.vars().classname.as_thin()
+    fn classname(&self) -> MapString {
+        self.vars().classname.unwrap()
     }
 
     fn is_classname(&self, name: &CStrThin) -> bool {
-        name == self.classname()
+        name == self.classname().as_thin()
     }
 
     fn intersects(&self, other: &dyn Entity) -> bool {

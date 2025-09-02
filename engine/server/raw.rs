@@ -4,17 +4,14 @@
 #![allow(clippy::type_complexity)]
 
 use core::{
-    ffi::{c_char, c_int, c_long, c_short, c_uchar, c_uint, c_ulong, c_ushort, c_void, CStr},
-    fmt,
-    ops::Deref,
+    ffi::{c_char, c_int, c_long, c_short, c_uchar, c_uint, c_ulong, c_ushort, c_void},
     slice,
 };
 
 use bitflags::bitflags;
 use csz::{CStrArray, CStrThin};
-use shared::str::ToEngineStr;
 
-use crate::{consts::MAX_LEVEL_CONNECTIONS, cvar::cvar_s, instance::globals};
+use crate::{consts::MAX_LEVEL_CONNECTIONS, cvar::cvar_s, str::MapString};
 
 pub use shared::raw::*;
 
@@ -60,8 +57,8 @@ pub struct edict_s {
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct entvars_s {
-    pub classname: string_t,
-    pub globalname: string_t,
+    pub classname: Option<MapString>,
+    pub globalname: Option<MapString>,
     pub origin: vec3_t,
     pub oldorigin: vec3_t,
     pub velocity: vec3_t,
@@ -82,9 +79,9 @@ pub struct entvars_s {
     pub ideal_yaw: f32,
     pub yaw_speed: f32,
     pub modelindex: c_int,
-    pub model: string_t,
-    pub viewmodel: string_t,
-    pub weaponmodel: string_t,
+    pub model: Option<MapString>,
+    pub viewmodel: Option<MapString>,
+    pub weaponmodel: Option<MapString>,
     pub absmin: vec3_t,
     pub absmax: vec3_t,
     pub mins: vec3_t,
@@ -136,18 +133,18 @@ pub struct entvars_s {
     pub armorvalue: f32,
     pub waterlevel: c_int,
     pub watertype: c_int,
-    pub target: string_t,
-    pub targetname: string_t,
-    pub netname: string_t,
-    pub message: string_t,
+    pub target: Option<MapString>,
+    pub targetname: Option<MapString>,
+    pub netname: Option<MapString>,
+    pub message: Option<MapString>,
     pub dmg_take: f32,
     pub dmg_save: f32,
     pub dmg: f32,
     pub dmgtime: f32,
-    pub noise: string_t,
-    pub noise1: string_t,
-    pub noise2: string_t,
-    pub noise3: string_t,
+    pub noise: Option<MapString>,
+    pub noise1: Option<MapString>,
+    pub noise2: Option<MapString>,
+    pub noise3: Option<MapString>,
     pub speed: f32,
     pub air_finished: f32,
     pub pain_finished: f32,
@@ -218,65 +215,9 @@ pub enum FORCE_TYPE {
     model_specifybounds = 2,
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
-#[repr(transparent)]
-pub struct string_t(pub(crate) c_int);
-
-impl string_t {
-    pub const fn raw(&self) -> c_int {
-        self.0
-    }
-
-    pub const fn null() -> Self {
-        Self(0)
-    }
-
-    pub const fn is_null(&self) -> bool {
-        self.0 == 0
-    }
-
-    pub fn as_thin(&self) -> &'static CStrThin {
-        globals().string(*self)
-    }
-
-    pub fn as_c_str(&self) -> &'static CStr {
-        self.as_thin().as_c_str()
-    }
-}
-
-impl Default for string_t {
-    fn default() -> Self {
-        Self::null()
-    }
-}
-
-impl Deref for string_t {
-    type Target = CStrThin;
-
-    fn deref(&self) -> &Self::Target {
-        self.as_thin()
-    }
-}
-
-impl AsRef<CStrThin> for string_t {
-    fn as_ref(&self) -> &CStrThin {
-        self.as_thin()
-    }
-}
-
-impl fmt::Display for string_t {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt::Display::fmt(self.as_thin(), f)
-    }
-}
-
-impl ToEngineStr for string_t {
-    type Output = &'static CStrThin;
-
-    fn to_engine_str(&self) -> Self::Output {
-        self.as_thin()
-    }
-}
+#[doc(hidden)]
+#[deprecated]
+pub type string_t = Option<crate::str::MapString>;
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -711,8 +652,8 @@ pub struct globalvars_t {
     pub time: f32,
     pub frametime: f32,
     pub force_retouch: f32,
-    pub mapname: string_t,
-    pub startspot: string_t,
+    pub mapname: Option<MapString>,
+    pub startspot: Option<MapString>,
     pub deathmatch: f32,
     pub coop: f32,
     pub teamplay: f32,
@@ -758,7 +699,7 @@ pub struct ENTITYTABLE {
     pub location: c_int,
     pub size: c_int,
     pub flags: c_int,
-    pub classname: string_t,
+    pub classname: Option<MapString>,
 }
 
 #[derive(Copy, Clone)]

@@ -5,7 +5,8 @@ use csz::{CStrArray, CStrThin};
 use sv::{
     cell::SyncOnceCell,
     macros::define_field,
-    raw::{edict_s, string_t, FieldType, SAVERESTOREDATA, TYPEDESCRIPTION},
+    raw::{edict_s, FieldType, SAVERESTOREDATA, TYPEDESCRIPTION},
+    str::MapString,
 };
 
 use crate::save::{self, SaveRestore};
@@ -115,7 +116,7 @@ impl Entities {
         self.add_impl(name.as_ref(), map_name.as_ref(), state);
     }
 
-    pub fn update(&mut self, name: string_t, map_name: string_t) {
+    pub fn update(&mut self, name: MapString, map_name: MapString) {
         if let Some(ent) = self.find_mut(name) {
             ent.map_name.clear();
             ent.map_name.cursor().write_c_str(&map_name).unwrap();

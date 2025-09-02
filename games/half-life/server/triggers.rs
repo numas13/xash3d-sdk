@@ -6,9 +6,10 @@ use sv::{
     macros::define_field,
     prelude::*,
     raw::{
-        edict_s, entvars_s, string_t, vec3_t, Effects, FieldType, KeyValueData, MoveType,
-        LEVELLIST, SAVERESTOREDATA, TYPEDESCRIPTION,
+        edict_s, entvars_s, vec3_t, Effects, FieldType, KeyValueData, MoveType, LEVELLIST,
+        SAVERESTOREDATA, TYPEDESCRIPTION,
     },
+    str::MapString,
 };
 
 use crate::{
@@ -36,7 +37,7 @@ pub struct ChangeLevel {
     vars: *mut entvars_s,
     map_name: CStrArray<MAP_NAME_MAX>,
     landmark_name: CStrArray<MAP_NAME_MAX>,
-    target: string_t,
+    target: Option<MapString>,
     change_target_delay: f32,
 }
 
@@ -46,7 +47,7 @@ impl ChangeLevel {
             vars,
             map_name: CStrArray::new(),
             landmark_name: CStrArray::new(),
-            target: string_t::null(),
+            target: None,
             change_target_delay: 0.0,
         }
     }
@@ -59,7 +60,7 @@ impl ChangeLevel {
         ev.solid = SOLID_TRIGGER;
         ev.movetype = MoveType::None;
         let engine = engine();
-        engine.set_model(unsafe { &mut *ev.pContainingEntity }, ev.model);
+        engine.set_model(unsafe { &mut *ev.pContainingEntity }, &ev.model.unwrap());
         if engine.get_cvar_float(c"showtriggers") == 0.0 {
             ev.effects.insert(Effects::NODRAW);
         }
@@ -128,7 +129,7 @@ impl Entity for ChangeLevel {
             self.landmark_name.cursor().write_c_str(value).unwrap();
             data.fHandled = 1;
         } else if name == c"changetarget" {
-            self.target = engine().alloc_string(value);
+            self.target = Some(MapString::new(value));
             data.fHandled = 1;
         } else if name == c"changedelay" {
             let s = value.to_str().ok();
@@ -151,7 +152,7 @@ impl Entity for ChangeLevel {
             );
         }
 
-        if !self.target.is_null() {
+        if let Some(_target) = self.target {
             // TODO: use target name
         }
 
@@ -166,7 +167,7 @@ impl Entity for ChangeLevel {
     }
 
     fn touch(&mut self, other: &mut dyn Entity) {
-        if other.vars().classname.as_thin() == c"player" {
+        if other.vars().classname.unwrap().as_thin() == c"player" {
             self.change_level_now(other);
         }
     }
@@ -234,8 +235,8 @@ fn find_landmark(landmark_name: &CStrThin) -> *mut edict_s {
     engine()
         .find_ent_by_targetname_iter(landmark_name)
         .find(|&ent| {
-            let classname = unsafe { (*ent).v.classname }.as_thin();
-            classname == c"info_landmark"
+            let classname = unsafe { *ent }.v.classname.unwrap();
+            classname.as_thin() == c"info_landmark"
         })
         .unwrap_or(ptr::null_mut())
 }
@@ -310,7 +311,7 @@ pub fn build_change_list(level_list: &mut [LEVELLIST]) -> usize {
                             if caps.intersects(ObjectCaps::ACROSS_TRANSITION) {
                                 flags |= FENTTABLE_MOVEABLE;
                             }
-                            if !entity.vars().globalname.is_null() && !entity.is_dormant() {
+                            if entity.vars().globalname.is_some() && !entity.is_dormant() {
                                 flags |= FENTTABLE_GLOBAL;
                             }
                             if flags != 0 {
