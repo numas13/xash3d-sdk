@@ -1,4 +1,4 @@
-use shared::{consts::PM_STUDIO_BOX, math::angle_vectors, raw::vec3_t};
+use shared::{consts::PM_STUDIO_BOX, raw::vec3_t};
 
 const BOX_GAP: f32 = 0.0;
 const BOX_POINTS: [[usize; 4]; 6] = [
@@ -66,12 +66,12 @@ impl super::PlayerMove<'_> {
             }
 
             if pe.angles != vec3_t::ZERO {
-                let (forward, right, up) = angle_vectors(pe.angles).transpose_all();
+                let av = pe.angles.angle_vectors().transpose_all();
                 for point in &mut points {
                     *point = vec3_t::new(
-                        point.dot_product(forward),
-                        point.dot_product(right),
-                        point.dot_product(up),
+                        point.dot_product(av.forward),
+                        point.dot_product(av.right),
+                        point.dot_product(av.up),
                     );
                 }
             }
@@ -111,7 +111,7 @@ impl super::PlayerMove<'_> {
 
     fn view_entity(&self, color: i32) {
         let raydist = 256.0;
-        let forward = angle_vectors(self.raw.angles).forward();
+        let forward = self.raw.angles.angle_vectors().forward();
         let start = self.raw.origin;
         let start = start.copy_with_z(self.raw.origin[2] + self.raw.view_ofs[2]);
         let end = start + forward * raydist;
@@ -176,7 +176,7 @@ impl super::PlayerMove<'_> {
 
         if true {
             let raydist = 256.0;
-            let forward = angle_vectors(self.raw.angles).forward();
+            let forward = self.raw.angles.angle_vectors().forward();
             let start = self.raw.origin;
             let end = start + forward * raydist;
             self.draw_particle_line(start, end, color);

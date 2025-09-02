@@ -2,7 +2,7 @@ use core::ops;
 
 use crate::{
     consts::{PITCH, ROLL, YAW},
-    math::sqrtf,
+    math::{sqrtf, AngleVectors},
 };
 
 #[allow(non_camel_case_types)]
@@ -116,6 +116,10 @@ impl Vector<3> {
 
     pub fn set_roll(&mut self, value: f32) {
         self.arr[ROLL] = value;
+    }
+
+    pub fn angle_vectors(&self) -> AngleVectors {
+        AngleVectors::new(*self)
     }
 }
 

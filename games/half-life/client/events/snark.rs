@@ -36,7 +36,7 @@ impl Events {
         let pm_states = ev.push_pm_states();
         ev.set_solid_players(idx - 1);
         ev.set_trace_hull(2);
-        let forward = cl::math::angle_vectors(angles).forward();
+        let forward = angles.angle_vectors().forward();
         let end = src + forward * 64.0;
         let src = src + forward * 20.0;
         let tr = ev.player_trace(src, end, PM_NORMAL, -1);

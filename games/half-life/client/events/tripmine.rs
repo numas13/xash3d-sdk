@@ -31,7 +31,7 @@ impl Events {
 
         let origin = args.origin;
         let angles = args.angles;
-        let forward = cl::math::angle_vectors(angles).forward();
+        let forward = angles.angle_vectors().forward();
 
         let view_ofs = ev.local_player_view_height();
         let src = origin + view_ofs;

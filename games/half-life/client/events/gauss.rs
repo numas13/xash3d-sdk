@@ -44,7 +44,7 @@ impl Events {
         let primary_fire = args.bparam1 != 0;
         let origin = args.origin;
         let angles = args.angles;
-        let (mut forward, _, _) = cl::math::angle_vectors(angles).all();
+        let mut forward = angles.angle_vectors().forward();
 
         let engine = engine();
         let ev = engine.event_api();

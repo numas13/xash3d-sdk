@@ -2,7 +2,6 @@ use core::ffi::c_int;
 
 use cl::{
     consts::{ATTN_NORM, CHAN_WEAPON, PITCH, TE_BOUNCE_SHELL, YAW},
-    math::angle_vectors,
     prelude::*,
     raw::{event_args_s, SoundFlags},
 };
@@ -35,7 +34,7 @@ impl Events {
         let origin = args.origin;
         let angles = args.angles;
         let velocity = args.velocity;
-        let av @ (forward, _, _) = angle_vectors(angles).all();
+        let av = angles.angle_vectors().all();
         let engine = engine();
         let ev = engine.event_api();
         let shell = ev.find_model_index(models::SHELL);
@@ -70,7 +69,7 @@ impl Events {
         );
 
         let src = get_gun_position(args, origin);
-        let aiming = forward;
+        let aiming = av.forward;
         let bullet = Bullet::PlayerMp5;
         let tracer = Some((2, &mut self.tracer_count[idx as usize - 1]));
         let spread = (args.fparam1, args.fparam2);

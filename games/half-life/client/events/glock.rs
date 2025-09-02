@@ -36,7 +36,7 @@ impl Events {
         let origin = args.origin;
         let angles = args.angles;
         let velocity = args.velocity;
-        let av @ (forward, _, _) = cl::math::angle_vectors(angles).all();
+        let av = angles.angle_vectors().all();
         let engine = engine();
         let ev = engine.event_api();
         let shell = ev.find_model_index(models::SHELL);
@@ -72,7 +72,7 @@ impl Events {
         );
 
         let src = get_gun_position(args, origin);
-        let aiming = forward;
+        let aiming = av.forward;
         let bullet = Bullet::Player9mm;
         let spread = (args.fparam1, args.fparam2);
         fire_bullets(idx, av, 1, src, aiming, 8192.0, bullet, None, spread);
@@ -83,7 +83,7 @@ impl Events {
         let origin = args.origin;
         let angles = args.angles;
         let velocity = args.velocity;
-        let av @ (forward, _, _) = cl::math::angle_vectors(angles).all();
+        let av = angles.angle_vectors().all();
         let engine = engine();
         let ev = engine.event_api();
         let shell = ev.find_model_index(models::SHELL);
@@ -114,7 +114,7 @@ impl Events {
         );
 
         let src = get_gun_position(args, origin);
-        let aiming = forward;
+        let aiming = av.forward;
         let bullet = Bullet::Player9mm;
         let spread = (args.fparam1, args.fparam2);
         fire_bullets(idx, av, 1, src, aiming, 8192.0, bullet, None, spread);

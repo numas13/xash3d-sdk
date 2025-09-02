@@ -1234,7 +1234,7 @@ impl<'a> PlayerMove<'a> {
         }
 
         if forward != 0.0 || side != 0.0 {
-            let av = math::angle_vectors(self.raw.angles);
+            let av = self.raw.angles.angle_vectors();
             let velocity = av.forward() * forward + av.right() * side;
             let perp = vec3_t::Z.cross_product(trace.plane.normal).normalize();
             let normal = velocity.dot_product(trace.plane.normal);
@@ -1740,10 +1740,10 @@ impl<'a> PlayerMove<'a> {
 
         self.reduce_timers();
 
-        let (forward, right, up) = math::angle_vectors(self.raw.angles).all();
-        self.raw.forward = forward;
-        self.raw.right = right;
-        self.raw.up = up;
+        let av = self.raw.angles.angle_vectors().all();
+        self.raw.forward = av.forward;
+        self.raw.right = av.right;
+        self.raw.up = av.up;
 
         #[cfg(feature = "debug")]
         if self.raw.is_client() {

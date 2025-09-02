@@ -262,7 +262,7 @@ impl Health {
         if dist_to_target <= 50.0 {
             self.attack = [1.0; 4];
         } else {
-            let av = cl::math::angle_vectors(state.angles);
+            let av = state.angles.angle_vectors();
             let from = from.normalize();
             let front = from.dot_product(av.right());
             let side = from.dot_product(av.forward());

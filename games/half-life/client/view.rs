@@ -380,11 +380,10 @@ impl View {
 
         calc_view_roll(params);
 
-        let angles = params.cl_viewangles;
-        let (forward, right, up) = cl::math::angle_vectors(angles).all();
-        params.forward = forward;
-        params.right = right;
-        params.up = up;
+        let av = params.cl_viewangles.angle_vectors().all();
+        params.forward = av.forward;
+        params.right = av.right;
+        params.up = av.up;
 
         if params.maxclients <= 1 {
             params.vieworg += params.forward * cvar::scr_ofsx.value();
@@ -400,7 +399,7 @@ impl View {
             cam_angles = ofs;
             cam_angles[2] = 0.0;
 
-            let cam_forward = cl::math::angle_vectors(cam_angles).forward();
+            let cam_forward = cam_angles.angle_vectors().forward();
             params.vieworg += cam_forward * -ofs[2];
         }
 

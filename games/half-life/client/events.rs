@@ -23,6 +23,7 @@ use cl::{
         ATTN_NORM, CHAN_STATIC, EFLAG_FLESH_SOUND, MAX_PLAYERS, PITCH_NORM, PM_NORMAL, SOLID_BSP,
     },
     macros::hook_event,
+    math::AngleVectorsAll,
     prelude::*,
     raw::{event_args_s, physent_s, pmtrace_s, vec3_t, Effects, MoveType, RenderMode, SoundFlags},
 };
@@ -95,11 +96,12 @@ fn get_default_shell_info(
     args: &mut event_args_s,
     origin: vec3_t,
     velocity: vec3_t,
-    (forward, right, up): (vec3_t, vec3_t, vec3_t),
+    av: AngleVectorsAll,
     forward_scale: f32,
     up_scale: f32,
     right_scale: f32,
 ) -> ShellInfo {
+    let AngleVectorsAll { forward, right, up } = av;
     let view_ofs = get_player_view_height(args);
 
     let engine = engine();
@@ -365,7 +367,7 @@ fn check_tracer(
 #[allow(clippy::too_many_arguments)]
 fn fire_bullets(
     idx: c_int,
-    (forward, right, up): (vec3_t, vec3_t, vec3_t),
+    av: AngleVectorsAll,
     shots: c_int,
     src: vec3_t,
     dir_shooting: vec3_t,
@@ -374,6 +376,7 @@ fn fire_bullets(
     mut tracer: Option<(c_int, &mut c_int)>,
     spread: (f32, f32),
 ) {
+    let AngleVectorsAll { forward, right, up } = av;
     let engine = engine();
     let ev = engine.event_api();
 

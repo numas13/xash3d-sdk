@@ -77,6 +77,14 @@ pub fn pow2(x: f32) -> f32 {
     x * x
 }
 
+/// All angle vectors.
+#[derive(Copy, Clone, Debug)]
+pub struct AngleVectorsAll {
+    pub forward: vec3_t,
+    pub right: vec3_t,
+    pub up: vec3_t,
+}
+
 pub struct AngleVectors {
     sp: f32,
     cp: f32,
@@ -119,8 +127,13 @@ impl AngleVectors {
         )
     }
 
-    pub fn all(&self) -> (vec3_t, vec3_t, vec3_t) {
-        (self.forward(), self.right(), self.up())
+    /// Returns all computed angle vectors.
+    pub fn all(&self) -> AngleVectorsAll {
+        AngleVectorsAll {
+            forward: self.forward(),
+            right: self.right(),
+            up: self.up(),
+        }
     }
 
     pub fn transpose_forward(&self) -> vec3_t {
@@ -143,21 +156,17 @@ impl AngleVectors {
         vec3_t::new(-self.sp, self.sr * self.cp, self.cr * self.cp)
     }
 
-    pub fn transpose_all(&self) -> (vec3_t, vec3_t, vec3_t) {
-        (
-            self.transpose_forward(),
-            self.transpose_right(),
-            self.transpose_up(),
-        )
+    pub fn transpose_all(&self) -> AngleVectorsAll {
+        AngleVectorsAll {
+            forward: self.transpose_forward(),
+            right: self.transpose_right(),
+            up: self.transpose_up(),
+        }
     }
 }
 
-pub fn angle_vectors(angles: vec3_t) -> AngleVectors {
-    AngleVectors::new(angles)
-}
-
 pub fn calc_roll(angles: vec3_t, velocity: vec3_t, roll_angle: f32, roll_speed: f32) -> f32 {
-    let right = angle_vectors(angles).right();
+    let right = angles.angle_vectors().right();
     let side = velocity.dot_product(right);
     let sign = copysignf(1.0, side);
     let side = fabsf(side);

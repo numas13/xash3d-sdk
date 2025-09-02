@@ -30,7 +30,7 @@ impl Events {
         let idx = args.entindex;
         let origin = args.origin;
         let angles = args.angles;
-        let av @ (forward, _, _) = cl::math::angle_vectors(angles).all();
+        let av = angles.angle_vectors().all();
         let engine = engine();
         let ev = engine.event_api();
 
@@ -58,7 +58,7 @@ impl Events {
         );
 
         let src = get_gun_position(args, origin);
-        let aiming = forward;
+        let aiming = av.forward;
         let bullet = Bullet::Player357;
         let spread = (args.fparam1, args.fparam2);
 

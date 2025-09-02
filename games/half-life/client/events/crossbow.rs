@@ -81,7 +81,7 @@ impl Events {
     pub(super) fn fire_crossbow2(&mut self, args: &mut event_args_s) {
         let idx = args.entindex;
         let origin = args.origin;
-        let forward = cl::math::angle_vectors(args.angles).forward();
+        let forward = args.angles.angle_vectors().forward();
         let engine = engine();
         let ev = engine.event_api();
         let efx = engine.efx_api();

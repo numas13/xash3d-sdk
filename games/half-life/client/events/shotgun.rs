@@ -36,7 +36,7 @@ impl Events {
         let origin = args.origin;
         let angles = args.angles;
         let velocity = args.velocity;
-        let av @ (forward, _, _) = cl::math::angle_vectors(angles).all();
+        let av = angles.angle_vectors().all();
         let engine = engine();
         let ev = engine.event_api();
         let shell = ev.find_model_index(models::SHOTGUNSHELL);
@@ -67,7 +67,7 @@ impl Events {
         );
 
         let src = get_gun_position(args, origin);
-        let aiming = forward;
+        let aiming = av.forward;
         let bullet = Bullet::PlayerBuckshot;
 
         if engine.is_multiplayer() {
@@ -84,7 +84,7 @@ impl Events {
         let origin = args.origin;
         let angles = args.angles;
         let velocity = args.velocity;
-        let av @ (forward, _, _) = cl::math::angle_vectors(angles).all();
+        let av = angles.angle_vectors().all();
         let engine = engine();
         let ev = engine.event_api();
         let shell = ev.find_model_index(models::SHOTGUNSHELL);
@@ -116,7 +116,7 @@ impl Events {
         );
 
         let src = get_gun_position(args, origin);
-        let aiming = forward;
+        let aiming = av.forward;
         let bullet = Bullet::PlayerBuckshot;
 
         if engine.is_multiplayer() {
