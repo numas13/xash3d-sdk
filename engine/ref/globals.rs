@@ -1,7 +1,4 @@
-use core::{
-    ffi::c_int,
-    ops::Deref,
-};
+use core::{ffi::c_int, ops::Deref};
 
 use crate::raw;
 

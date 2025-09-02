@@ -4,14 +4,17 @@
 #![allow(clippy::type_complexity)]
 
 use core::{
-    ffi::{c_char, c_int, c_long, c_short, c_uchar, c_uint, c_ulong, c_ushort, c_void},
+    ffi::{c_char, c_int, c_long, c_short, c_uchar, c_uint, c_ulong, c_ushort, c_void, CStr},
+    fmt,
+    ops::Deref,
     slice,
 };
 
 use bitflags::bitflags;
 use csz::{CStrArray, CStrThin};
+use shared::str::ToEngineStr;
 
-use crate::{consts::MAX_LEVEL_CONNECTIONS, cvar::cvar_s};
+use crate::{consts::MAX_LEVEL_CONNECTIONS, cvar::cvar_s, instance::globals};
 
 pub use shared::raw::*;
 
@@ -20,6 +23,167 @@ pub type CRC32_t = u32;
 
 pub const INTERFACE_VERSION: c_int = 140;
 pub const NEW_DLL_FUNCTIONS_VERSION: c_int = 1;
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct link_s {
+    pub prev: *mut link_s,
+    pub next: *mut link_s,
+}
+
+pub const MAX_ENT_LEAFS_32: usize = 24; // originally was 16
+pub const MAX_ENT_LEAFS_16: usize = 48;
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub union edits_s_leafnums {
+    pub leafnums32: [c_int; MAX_ENT_LEAFS_32],
+    pub leafnums16: [c_short; MAX_ENT_LEAFS_16],
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct edict_s {
+    pub free: qboolean,
+    pub serialnumber: c_int,
+    pub area: link_s,
+    pub headnode: c_int,
+    pub num_leafs: c_int,
+    pub leafnums: edits_s_leafnums,
+    pub freetime: f32,
+    pub pvPrivateData: *mut c_void,
+    pub v: entvars_s,
+}
+
+// pub type trace_t = shared::raw::trace_t<edict_s>;
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct entvars_s {
+    pub classname: string_t,
+    pub globalname: string_t,
+    pub origin: vec3_t,
+    pub oldorigin: vec3_t,
+    pub velocity: vec3_t,
+    pub basevelocity: vec3_t,
+    pub clbasevelocity: vec3_t,
+    pub movedir: vec3_t,
+    pub angles: vec3_t,
+    pub avelocity: vec3_t,
+    pub punchangle: vec3_t,
+    pub v_angle: vec3_t,
+    pub endpos: vec3_t,
+    pub startpos: vec3_t,
+    pub impacttime: f32,
+    pub starttime: f32,
+    pub fixangle: c_int,
+    pub idealpitch: f32,
+    pub pitch_speed: f32,
+    pub ideal_yaw: f32,
+    pub yaw_speed: f32,
+    pub modelindex: c_int,
+    pub model: string_t,
+    pub viewmodel: string_t,
+    pub weaponmodel: string_t,
+    pub absmin: vec3_t,
+    pub absmax: vec3_t,
+    pub mins: vec3_t,
+    pub maxs: vec3_t,
+    pub size: vec3_t,
+    pub ltime: f32,
+    pub nextthink: f32,
+    pub movetype: MoveType,
+    pub solid: c_int,
+    pub skin: c_int,
+    pub body: c_int,
+    pub effects: Effects,
+    pub gravity: f32,
+    pub friction: f32,
+    pub light_level: c_int,
+    pub sequence: c_int,
+    pub gaitsequence: c_int,
+    pub frame: f32,
+    pub animtime: f32,
+    pub framerate: f32,
+    pub controller: [byte; 4],
+    pub blending: [byte; 2],
+    pub scale: f32,
+    pub rendermode: RenderMode,
+    pub renderamt: f32,
+    pub rendercolor: vec3_t,
+    pub renderfx: RenderFx,
+    pub health: f32,
+    pub frags: f32,
+    pub weapons: c_int,
+    pub takedamage: f32,
+    pub deadflag: c_int,
+    pub view_ofs: vec3_t,
+    pub button: c_int,
+    pub impulse: c_int,
+    pub chain: *mut edict_s,
+    pub dmg_inflictor: *mut edict_s,
+    pub enemy: *mut edict_s,
+    pub aiment: *mut edict_s,
+    pub owner: *mut edict_s,
+    pub groundentity: *mut edict_s,
+    pub spawnflags: c_int,
+    pub flags: EdictFlags,
+    pub colormap: c_int,
+    pub team: c_int,
+    pub max_health: f32,
+    pub teleport_time: f32,
+    pub armortype: f32,
+    pub armorvalue: f32,
+    pub waterlevel: c_int,
+    pub watertype: c_int,
+    pub target: string_t,
+    pub targetname: string_t,
+    pub netname: string_t,
+    pub message: string_t,
+    pub dmg_take: f32,
+    pub dmg_save: f32,
+    pub dmg: f32,
+    pub dmgtime: f32,
+    pub noise: string_t,
+    pub noise1: string_t,
+    pub noise2: string_t,
+    pub noise3: string_t,
+    pub speed: f32,
+    pub air_finished: f32,
+    pub pain_finished: f32,
+    pub radsuit_finished: f32,
+    pub pContainingEntity: *mut edict_s,
+    pub playerclass: c_int,
+    pub maxspeed: f32,
+    pub fov: f32,
+    pub weaponanim: c_int,
+    pub pushmsec: c_int,
+    pub bInDuck: c_int,
+    pub flTimeStepSound: c_int,
+    pub flSwimTime: c_int,
+    pub flDuckTime: c_int,
+    pub iStepLeft: c_int,
+    pub flFallVelocity: f32,
+    pub gamestate: c_int,
+    pub oldbuttons: c_int,
+    pub groupinfo: c_int,
+    pub iuser1: c_int,
+    pub iuser2: c_int,
+    pub iuser3: c_int,
+    pub iuser4: c_int,
+    pub fuser1: f32,
+    pub fuser2: f32,
+    pub fuser3: f32,
+    pub fuser4: f32,
+    pub vuser1: vec3_t,
+    pub vuser2: vec3_t,
+    pub vuser3: vec3_t,
+    pub vuser4: vec3_t,
+    pub euser1: *mut edict_s,
+    pub euser2: *mut edict_s,
+    pub euser3: *mut edict_s,
+    pub euser4: *mut edict_s,
+}
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -52,6 +216,66 @@ pub enum FORCE_TYPE {
     exactfile = 0,
     model_samebounds = 1,
     model_specifybounds = 2,
+}
+
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
+#[repr(transparent)]
+pub struct string_t(pub(crate) c_int);
+
+impl string_t {
+    pub const fn raw(&self) -> c_int {
+        self.0
+    }
+
+    pub const fn null() -> Self {
+        Self(0)
+    }
+
+    pub const fn is_null(&self) -> bool {
+        self.0 == 0
+    }
+
+    pub fn as_thin(&self) -> &'static CStrThin {
+        globals().string(*self)
+    }
+
+    pub fn as_c_str(&self) -> &'static CStr {
+        self.as_thin().as_c_str()
+    }
+}
+
+impl Default for string_t {
+    fn default() -> Self {
+        Self::null()
+    }
+}
+
+impl Deref for string_t {
+    type Target = CStrThin;
+
+    fn deref(&self) -> &Self::Target {
+        self.as_thin()
+    }
+}
+
+impl AsRef<CStrThin> for string_t {
+    fn as_ref(&self) -> &CStrThin {
+        self.as_thin()
+    }
+}
+
+impl fmt::Display for string_t {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(self.as_thin(), f)
+    }
+}
+
+impl ToEngineStr for string_t {
+    type Output = &'static CStrThin;
+
+    fn to_engine_str(&self) -> Self::Output {
+        self.as_thin()
+    }
 }
 
 #[derive(Copy, Clone)]

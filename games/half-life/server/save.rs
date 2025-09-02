@@ -338,7 +338,7 @@ impl<'a> SaveRestore<'a> {
                                 let str = CStr::from_bytes_with_nul(chunk).unwrap();
                                 if !str.is_empty() {
                                     let id = engine.alloc_string(str);
-                                    dst.copy_from_slice(&id.0.to_ne_bytes());
+                                    dst.copy_from_slice(&id.raw().to_ne_bytes());
                                     if self.precache {
                                         match field.fieldType {
                                             F::MODELNAME => {
@@ -526,7 +526,7 @@ fn entvars_key_value(ev: &mut entvars_s, data: &mut KeyValueData) {
             FieldType::MODELNAME | FieldType::SOUNDNAME | FieldType::STRING => {
                 let s = engine().alloc_string(value);
                 unsafe {
-                    ptr::write(p.cast::<c_int>(), s.0);
+                    ptr::write(p.cast::<c_int>(), s.raw());
                 }
             }
             FieldType::TIME | FieldType::FLOAT => {
