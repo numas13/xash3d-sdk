@@ -85,7 +85,7 @@ pub fn install_game_rules() {
     engine.server_command(c"exec game.cfg\n");
     engine.server_execute();
 
-    if globals().deathmatch == 0.0 {
+    if !globals().is_deathmatch() {
         // TODO: g_teamplay = 0;
         unsafe {
             game_rules_set(Box::new(HalfLifeRules::new()));

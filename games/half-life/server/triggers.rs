@@ -7,7 +7,7 @@ use sv::{
     prelude::*,
     raw::{
         edict_s, entvars_s, vec3_t, Effects, FieldType, KeyValueData, MoveType, LEVELLIST,
-        SAVERESTOREDATA, TYPEDESCRIPTION,
+        TYPEDESCRIPTION,
     },
     str::MapString,
 };
@@ -74,11 +74,12 @@ impl ChangeLevel {
         }
 
         let ev = unsafe { &mut *self.vars };
-        if globals().time == ev.dmgtime {
+        let time = globals().map_time_f32();
+        if time == ev.dmgtime {
             return;
         }
 
-        ev.dmgtime = globals().time;
+        ev.dmgtime = time;
 
         let landmark = find_landmark(self.landmark_name.as_thin());
         let engine = engine();
@@ -226,7 +227,7 @@ fn set_move_dir(ev: &mut entvars_s) {
         ev.movedir = vec3_t::new(0.0, 0.0, -1.0);
     } else {
         engine().make_vectors(ev.angles);
-        ev.movedir = globals().v_forward;
+        ev.movedir = globals().forward();
     }
     ev.angles = vec3_t::ZERO;
 }
@@ -292,8 +293,8 @@ pub fn build_change_list(level_list: &mut [LEVELLIST]) -> usize {
         ent = engine.find_ent_by_classname(ent, c"trigger_changelevel");
     }
 
-    if !globals().pSaveData.is_null() {
-        let save_data = unsafe { &mut *globals().pSaveData.cast::<SAVERESTOREDATA>() };
+    if let Some(mut save_data) = globals().save_data() {
+        let save_data = unsafe { save_data.as_mut() };
         if !save_data.table().is_empty() {
             let mut save_helper = SaveRestore::new(save_data);
             for (i, level) in level_list.iter().enumerate().take(count) {

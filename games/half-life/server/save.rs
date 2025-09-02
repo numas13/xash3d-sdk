@@ -592,7 +592,7 @@ pub fn dispatch_save(ent: &mut edict_s, save_data: &mut SAVERESTOREDATA) {
 
     if entity.vars().movetype == MoveType::Push {
         let delta = entity.vars().nextthink - entity.vars().ltime;
-        entity.vars_mut().ltime = globals().time;
+        entity.vars_mut().ltime = globals().map_time_f32();
         entity.vars_mut().nextthink = entity.vars().ltime + delta;
     }
 
@@ -648,7 +648,7 @@ pub fn dispatch_restore(
             ent = new_ent;
             entities.update(
                 unsafe { (*ent).v.globalname }.unwrap(),
-                globals().mapname.unwrap(),
+                globals().map_name().unwrap(),
             );
         } else {
             return 0;
@@ -682,14 +682,14 @@ pub fn dispatch_restore(
                     return -1;
                 }
                 let globals = globals();
-                if globals.mapname.unwrap().as_thin() != global.map_name() {
+                if globals.map_name().unwrap().as_thin() != global.map_name() {
                     entity.make_dormant();
                 }
             } else {
                 let globalname = entity.globalname();
                 let classname = entity.classname();
                 error!("Global entity \"{globalname}\" (\"{classname}\") not in table!!!");
-                entities.add(globalname, globals().mapname.unwrap(), EntityState::On);
+                entities.add(globalname, globals().map_name().unwrap(), EntityState::On);
             }
         }
     }

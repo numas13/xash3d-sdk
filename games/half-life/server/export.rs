@@ -58,15 +58,16 @@ unsafe extern "C" fn DispatchSpawn(ent: *mut edict_s) -> c_int {
     if let Some(globalname) = &ev.globalname {
         let global_state = global_state();
         let mut entities = global_state.entities.borrow_mut();
+        let map_name = globals().map_name().unwrap();
         if let Some(global) = entities.find(globalname) {
             if global.is_dead() {
                 return -1;
             }
-            if globals().mapname.unwrap().as_thin() != global.map_name() {
+            if map_name.as_thin() != global.map_name() {
                 entity.make_dormant();
             }
         } else {
-            entities.add(globalname, globals().mapname.unwrap(), EntityState::On);
+            entities.add(globalname, map_name, EntityState::On);
         }
     }
     0
@@ -286,9 +287,8 @@ unsafe extern "C" fn ParmsNewLevel() {
 
 #[no_mangle]
 unsafe extern "C" fn ParmsChangeLevel() {
-    let save_data = globals().pSaveData.cast::<raw::SAVERESTOREDATA>();
-    if !save_data.is_null() {
-        let save_data = unsafe { &mut *save_data };
+    if let Some(mut save_data) = globals().save_data() {
+        let save_data = unsafe { save_data.as_mut() };
         save_data.connection_count =
             triggers::build_change_list(&mut save_data.level_list) as c_int;
     }

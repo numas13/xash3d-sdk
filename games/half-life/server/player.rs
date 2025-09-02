@@ -40,13 +40,12 @@ impl Player {
             todo!();
         }
 
-        let mut startspot = c"info_player_start".into();
-        if let Some(spot) = globals().startspot.as_ref() {
-            if !spot.is_empty() {
-                startspot = spot.as_thin();
-            }
+        let start_spot = globals().start_spot();
+        let mut start_spot = start_spot.as_ref().map_or(c"".into(), |s| s.as_thin());
+        if start_spot.is_empty() {
+            start_spot = c"info_player_start".into();
         }
-        let spot = engine().find_ent_by_classname(ptr::null(), startspot);
+        let spot = engine().find_ent_by_classname(ptr::null(), start_spot);
 
         if !spot.is_null() {
             *global_state().last_spawn.borrow_mut() = spot;
@@ -80,7 +79,7 @@ impl Entity for Player {
         ev.max_health = ev.health;
         ev.flags &= EdictFlags::PROXY;
         ev.flags |= EdictFlags::CLIENT;
-        ev.air_finished = globals().time + 12.0;
+        ev.air_finished = globals().map_time_f32() + 12.0;
         ev.dmg = 2.0;
         ev.effects = Effects::NONE;
         ev.deadflag = DEAD_NO;

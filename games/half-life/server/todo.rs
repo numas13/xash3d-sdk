@@ -169,7 +169,7 @@ pub fn add_to_full_pack(
     state.owner = 0;
     if !ent.v.owner.is_null() {
         let owner = engine.ent_index(unsafe { &*ent.v.owner });
-        if owner >= 1 && owner <= globals().maxClients {
+        if owner >= 1 && owner <= globals().max_clients() {
             state.owner = owner;
         }
     }
