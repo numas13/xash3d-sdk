@@ -464,4 +464,5 @@ macro_rules! export_dll {
         }
     };
 }
+#[doc(inline)]
 pub use export_dll;
