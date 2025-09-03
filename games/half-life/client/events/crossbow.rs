@@ -10,7 +10,7 @@ use cl::{
 };
 use res::valve::{models, sound};
 
-use crate::view::view_mut;
+use crate::export::view_mut;
 
 use super::{get_gun_position, is_local, Events};
 

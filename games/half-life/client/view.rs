@@ -1,7 +1,6 @@
-use core::{cell::RefCell, f32, ffi::c_int, ptr};
+use core::{f32, ffi::c_int, ptr};
 
 use cl::{
-    cell::SyncOnceCell,
     consts::{CONTENTS_WATER, PITCH, ROLL, YAW},
     macros::hook_command,
     math::{fabsf, fmaxf, fminf, sinf, sqrtf},
@@ -9,7 +8,11 @@ use cl::{
     raw::{cl_entity_s, ref_params_s, vec3_t, KeyState},
 };
 
-use crate::{camera::camera, helpers::*, input};
+use crate::{
+    export::{camera, view_mut},
+    helpers::*,
+    input,
+};
 
 mod cvar {
     cl::cvar::define! {
@@ -262,7 +265,7 @@ pub struct View {
 }
 
 impl View {
-    fn new() -> Self {
+    pub fn new() -> Self {
         hook_command!(c"centerview", view_mut().pitch_drift.start());
 
         Self {
@@ -534,18 +537,4 @@ fn drop_punch_angle(frametime: f32, punchangle: vec3_t) -> vec3_t {
     len -= (10.0 + len * 0.5) * frametime;
     len = fmaxf(len, 0.0);
     punchangle * len
-}
-
-static VIEW: SyncOnceCell<RefCell<View>> = unsafe { SyncOnceCell::new() };
-
-fn view_global() -> &'static RefCell<View> {
-    VIEW.get_or_init(|| RefCell::new(View::new()))
-}
-
-pub fn view_mut<'a>() -> core::cell::RefMut<'a, View> {
-    view_global().borrow_mut()
-}
-
-pub fn init() {
-    view_global();
 }

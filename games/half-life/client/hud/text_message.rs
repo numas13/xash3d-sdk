@@ -6,9 +6,7 @@ use cl::{
     prelude::*,
 };
 
-use crate::hud::say_text::SayText;
-
-use super::hud;
+use crate::{export::hud, hud::say_text::SayText};
 
 const HUD_PRINTNOTIFY: c_int = 1;
 const HUD_PRINTCONSOLE: c_int = 2;

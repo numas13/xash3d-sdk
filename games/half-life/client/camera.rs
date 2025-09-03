@@ -1,11 +1,6 @@
-use core::{
-    cell::{Ref, RefCell, RefMut},
-    cmp::Ordering,
-    ffi::c_int,
-};
+use core::{cmp::Ordering, ffi::c_int};
 
 use cl::{
-    cell::SyncOnceCell,
     consts::{PITCH, ROLL, YAW},
     input::KeyButtonExt,
     macros::{hook_command, hook_command_key},
@@ -14,7 +9,10 @@ use cl::{
     raw::{kbutton_t, vec3_t},
 };
 
-use crate::{helpers, input::input_mut};
+use crate::{
+    export::{camera_mut, input_mut},
+    helpers,
+};
 
 // const CAM_COMMAND_NONE: c_int = 0;
 const CAM_COMMAND_TOTHIRDPERSON: c_int = 1;
@@ -62,8 +60,14 @@ pub struct Camera {
     cam_out: kbutton_t,
 }
 
+impl Default for Camera {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Camera {
-    fn new() -> Self {
+    pub fn new() -> Self {
         hook_command_key!("campitchup", camera_mut().cam_pitchup);
         hook_command_key!("campitchdown", camera_mut().cam_pitchdown);
         hook_command_key!("camyawleft", camera_mut().cam_yawleft);
@@ -364,22 +368,4 @@ fn move_toward(mut cur: f32, goal: f32, _maxspeed: f32) -> f32 {
     }
 
     cur
-}
-
-static CAMERA: SyncOnceCell<RefCell<Camera>> = unsafe { SyncOnceCell::new() };
-
-fn camera_global() -> &'static RefCell<Camera> {
-    CAMERA.get_or_init(|| RefCell::new(Camera::new()))
-}
-
-pub fn camera<'a>() -> Ref<'a, Camera> {
-    camera_global().borrow()
-}
-
-pub fn camera_mut<'a>() -> RefMut<'a, Camera> {
-    camera_global().borrow_mut()
-}
-
-pub fn init() {
-    camera_global();
 }

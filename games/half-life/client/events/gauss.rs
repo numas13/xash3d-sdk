@@ -7,7 +7,7 @@ use cl::{
 };
 use res::valve::{self, sound, sprites};
 
-use crate::view::view_mut;
+use crate::export::view_mut;
 
 use super::{decal_gunshot, get_gun_position, is_local, muzzle_flash, Bullet, Events};
 

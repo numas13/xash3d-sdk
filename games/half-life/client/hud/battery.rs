@@ -2,7 +2,10 @@ use core::{cmp, ffi::c_int};
 
 use cl::{message::hook_message, prelude::*};
 
-use crate::hud::{hud, Fade, Hide, Sprite, State};
+use crate::{
+    export::hud,
+    hud::{Fade, Hide, Sprite, State},
+};
 
 pub struct Battery {
     fade: Fade,

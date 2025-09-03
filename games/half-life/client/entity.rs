@@ -1,11 +1,7 @@
-use core::{
-    cell::{Cell, Ref, RefCell, RefMut},
-    ffi::c_int,
-    iter, ptr,
-};
+use core::{cell::Cell, ffi::c_int};
 
 use cl::{
-    cell::SyncOnceCell,
+    collections::TempEntityList,
     consts::{DEAD_NO, PM_STUDIO_BOX, PM_WORLD_ONLY, YAW},
     math::sinf,
     prelude::*,
@@ -18,68 +14,18 @@ use csz::CStrThin;
 
 use crate::{helpers, hud::MAX_WEAPONS};
 
-pub struct TempEntityList {
-    list: *mut *mut TEMPENTITY,
-    free: *mut *mut TEMPENTITY,
-}
-
-impl TempEntityList {
-    pub unsafe fn new(list: *mut *mut TEMPENTITY, free: *mut *mut TEMPENTITY) -> Self {
-        Self { list, free }
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.list.is_null()
-    }
-
-    pub fn retain_mut<F>(&mut self, mut f: F)
-    where
-        F: FnMut(&mut TEMPENTITY) -> bool,
-    {
-        unsafe {
-            let mut prev = ptr::null_mut();
-            let mut temp = *self.list;
-            while !temp.is_null() {
-                let next = (*temp).next;
-                if f(&mut *temp) {
-                    // keep item
-                    prev = temp;
-                } else {
-                    // remove item
-                    (*temp).next = *self.free;
-                    *self.free = temp;
-                    if prev.is_null() {
-                        // remove from head
-                        *self.list = next;
-                    } else {
-                        (*prev).next = next;
-                    }
-                }
-                temp = next;
-            }
-        }
-    }
-
-    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut TEMPENTITY> {
-        let mut temp = unsafe { *self.list };
-        iter::from_fn(move || {
-            if !temp.is_null() {
-                let ret = unsafe { &mut *temp };
-                temp = ret.next;
-                Some(ret)
-            } else {
-                None
-            }
-        })
-    }
-}
-
 pub struct Entities {
     temp_ent_frame: Cell<c_int>,
 }
 
+impl Default for Entities {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Entities {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             temp_ent_frame: Cell::new(0),
         }
@@ -491,18 +437,4 @@ impl Entities {
             true
         });
     }
-}
-
-static ENTITYES: SyncOnceCell<RefCell<Entities>> = unsafe { SyncOnceCell::new() };
-
-fn entities_global() -> &'static RefCell<Entities> {
-    ENTITYES.get_or_init(|| RefCell::new(Entities::new()))
-}
-
-pub fn entities<'a>() -> Ref<'a, Entities> {
-    entities_global().borrow()
-}
-
-pub fn entities_mut<'a>() -> RefMut<'a, Entities> {
-    entities_global().borrow_mut()
 }

@@ -1,19 +1,21 @@
-use core::{
-    cell::{RefCell, RefMut},
-    ffi::c_uint,
-};
+use core::ffi::c_uint;
 
 use cl::{
-    cell::SyncOnceCell,
     cvar::CVarPtr,
     prelude::*,
     raw::{local_state_s, usercmd_s},
 };
 
-use crate::hud::{hud, hud_mut};
+use crate::export::{hud, hud_mut};
 
 pub struct Weapons {
     cl_lw: CVarPtr,
+}
+
+impl Default for Weapons {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Weapons {
@@ -54,18 +56,4 @@ impl Weapons {
 
         hud_mut().set_last_fov(to.client.fov as u8);
     }
-}
-
-static WEAPONS: SyncOnceCell<RefCell<Weapons>> = unsafe { SyncOnceCell::new() };
-
-fn weapons_global() -> &'static RefCell<Weapons> {
-    WEAPONS.get_or_init(|| RefCell::new(Weapons::new()))
-}
-
-// pub fn weapons<'a>() -> Ref<'a, Weapons> {
-//     weapons_global().borrow()
-// }
-
-pub fn weapons_mut<'a>() -> RefMut<'a, Weapons> {
-    weapons_global().borrow_mut()
 }

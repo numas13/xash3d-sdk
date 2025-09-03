@@ -12,7 +12,9 @@ use cl::{
     raw::{byte, client_textmessage_s, SCREENINFO},
 };
 
-use super::{hud, HudFlags, HudItem, Sprite, State};
+use crate::export::hud;
+
+use super::{HudFlags, HudItem, Sprite, State};
 
 const MAX_HUD_MESSAGES: usize = 16;
 

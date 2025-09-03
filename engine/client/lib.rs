@@ -2,9 +2,11 @@
 
 #[macro_use]
 pub mod macros;
+pub mod collections;
 mod efx;
 pub mod engine;
 mod event;
+pub mod export;
 pub mod input;
 pub mod instance;
 mod logger;

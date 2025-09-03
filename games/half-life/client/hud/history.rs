@@ -2,7 +2,10 @@ use core::ffi::c_int;
 
 use cl::{message::hook_message, prelude::*};
 
-use crate::hud::{hud, Hide, HudItem, State};
+use crate::{
+    export::hud,
+    hud::{Hide, HudItem, State},
+};
 
 const MAX_HISTORY: usize = 12;
 

@@ -8,7 +8,10 @@ use alloc::collections::vec_deque::VecDeque;
 use cl::{color::RGB, message::hook_message, prelude::*};
 use csz::{CStrArray, CStrThin};
 
-use super::{hud, HudItem, Sprite, State, MAX_PLAYER_NAME_LENGTH};
+use crate::{
+    export::hud,
+    hud::{HudItem, Sprite, State, MAX_PLAYER_NAME_LENGTH},
+};
 
 const MAX_DEATH_NOTICES: usize = 4;
 const DEATHNOTICE_TOP: c_int = 32;

@@ -4,7 +4,9 @@ use alloc::collections::vec_deque::VecDeque;
 use cl::{color::RGB, math::fminf, message::hook_message, prelude::*};
 use csz::CStrArray;
 
-use super::{hud, HudFlags, HudItem, State};
+use crate::export::hud;
+
+use super::{HudFlags, HudItem, State};
 
 const MAX_LINES: usize = 5;
 const MAX_CHARS_PER_LINE: usize = 256;

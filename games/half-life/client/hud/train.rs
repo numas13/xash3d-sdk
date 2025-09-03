@@ -2,7 +2,10 @@ use core::ffi::c_int;
 
 use cl::{macros::spr_load, message::hook_message, prelude::*, sprite::SpriteHandle};
 
-use crate::hud::{hud, try_spr_load, HudItem, State};
+use crate::{
+    export::hud,
+    hud::{try_spr_load, HudItem, State},
+};
 
 pub struct Train {
     pos: u8,

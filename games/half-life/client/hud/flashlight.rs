@@ -2,7 +2,10 @@ use core::ffi::c_int;
 
 use cl::{color::RGB, message::hook_message, prelude::*};
 
-use crate::hud::{hud, Hide, Sprite, State};
+use crate::{
+    export::hud,
+    hud::{Hide, Sprite, State},
+};
 
 pub struct Flashlight {
     battery_f: f32,

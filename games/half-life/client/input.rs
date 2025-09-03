@@ -1,5 +1,4 @@
 use core::{
-    cell::{Ref, RefCell, RefMut},
     ffi::{c_int, CStr},
     mem,
     ptr::addr_of_mut,
@@ -7,7 +6,6 @@ use core::{
 
 use alloc::vec::Vec;
 use cl::{
-    cell::SyncOnceCell,
     consts::{self, PITCH, ROLL, YAW},
     input::KeyButtonExt,
     macros::{hook_command, hook_command_key},
@@ -18,10 +16,10 @@ use cl::{
 use csz::{CStrBox, CStrThin};
 
 use crate::{
+    export::{hud, hud_mut, input, input_mut, view_mut},
     helpers,
-    hud::{hud, hud_mut, weapon_menu::WeaponMenu},
+    hud::weapon_menu::WeaponMenu,
     input,
-    view::view_mut,
 };
 
 const MOUSE_BUTTON_COUNT: c_int = 5;
@@ -158,8 +156,14 @@ pub struct Input {
     in_break: kbutton_t,
 }
 
+impl Default for Input {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Input {
-    fn new() -> Self {
+    pub fn new() -> Self {
         hook_command_key!("moveup", input_mut().in_up);
         hook_command_key!("movedown", input_mut().in_down);
         hook_command_key!("left", input_mut().in_left);
@@ -687,22 +691,4 @@ impl Input {
 
         cmd
     }
-}
-
-static INPUT: SyncOnceCell<RefCell<Input>> = unsafe { SyncOnceCell::new() };
-
-pub fn input_global() -> &'static RefCell<Input> {
-    INPUT.get_or_init(|| RefCell::new(Input::new()))
-}
-
-pub fn input<'a>() -> Ref<'a, Input> {
-    input_global().borrow()
-}
-
-pub fn input_mut<'a>() -> RefMut<'a, Input> {
-    input_global().borrow_mut()
-}
-
-pub fn init() {
-    input_global();
 }

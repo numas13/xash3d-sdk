@@ -7,7 +7,7 @@ use cl::{
 };
 use res::valve::{models, sound};
 
-use crate::view::view_mut;
+use crate::export::view_mut;
 
 use super::{
     eject_brass, fire_bullets, get_default_shell_info, get_gun_position, is_local, muzzle_flash,

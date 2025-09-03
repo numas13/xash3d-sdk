@@ -3,7 +3,10 @@ use core::fmt::Write;
 use cl::{message::hook_message, prelude::*};
 use csz::CStrArray;
 
-use crate::hud::{hud, HudItem, State};
+use crate::{
+    export::hud,
+    hud::{HudItem, State},
+};
 
 // cap geiger sounds by 60 fps
 const LIFE: f32 = 1.0 / 60.0;

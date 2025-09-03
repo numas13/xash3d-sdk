@@ -49,6 +49,7 @@ dependencies = [
  "bitflags",
  "csz",
  "log",
+ "xash3d-player-move",
  "xash3d-shared",
 ]
 

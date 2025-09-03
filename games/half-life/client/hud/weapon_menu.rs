@@ -2,10 +2,12 @@ use core::{cmp, ffi::c_int, mem};
 
 use cl::{color::RGB, consts, macros::hook_command, prelude::*};
 
-use crate::hud::{
-    hud, hud_mut,
-    inventory::{Weapon, MAX_WEAPON_POSITIONS, MAX_WEAPON_SLOTS},
-    Hide, HudItem, Sprite, State,
+use crate::{
+    export::{hud, hud_mut},
+    hud::{
+        inventory::{Weapon, MAX_WEAPON_POSITIONS, MAX_WEAPON_SLOTS},
+        Hide, HudItem, Sprite, State,
+    },
 };
 
 mod cvar {

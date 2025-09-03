@@ -8,7 +8,9 @@ use cl::{
 };
 use csz::CStrArray;
 
-use super::{hud, HudItem, State};
+use crate::export::hud;
+
+use super::{HudItem, State};
 
 const MAX_MENU_STRING: usize = 512;
 

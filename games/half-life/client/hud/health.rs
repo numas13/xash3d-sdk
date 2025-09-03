@@ -12,7 +12,10 @@ use cl::{
     sprite::SpriteHandle,
 };
 
-use crate::hud::{hud, hud_mut, try_spr_load, Fade, Hide, Sprite, State};
+use crate::{
+    export::{hud, hud_mut},
+    hud::{try_spr_load, Fade, Hide, Sprite, State},
+};
 
 // seconds that image is up
 const DMG_IMAGE_LIFE: f32 = 2.0;

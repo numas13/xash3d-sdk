@@ -26,7 +26,6 @@ use core::{
 use alloc::{boxed::Box, rc::Rc, string::String, vec::Vec};
 use bitflags::bitflags;
 use cl::{
-    cell::SyncOnceCell,
     color::RGB,
     consts::MAX_PLAYERS,
     macros::{hook_command, spr_load},
@@ -38,11 +37,11 @@ use cl::{
 use csz::{CStrArray, CStrBox};
 
 use crate::{
+    export::{hud_mut, input, input_mut},
     hud::{
         health::Health, inventory::Inventory, menu::Menu, scoreboard::ScoreBoard,
         text_message::TextMessage, weapon_menu::WeaponMenu,
     },
-    input::{input, input_mut},
 };
 
 pub const MAX_WEAPONS: usize = 32;
@@ -502,8 +501,14 @@ pub struct Hud {
     old_hud_color: String,
 }
 
+impl Default for Hud {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Hud {
-    fn new() -> Self {
+    pub fn new() -> Self {
         hook_messages_and_commands();
 
         let mut items = Items::default();
@@ -867,22 +872,4 @@ fn hook_messages_and_commands() {
     hook_command!(c"slot8", cmd_slot(8));
     hook_command!(c"slot9", cmd_slot(9));
     hook_command!(c"slot10", cmd_slot(10));
-}
-
-static HUD: SyncOnceCell<RefCell<Hud>> = unsafe { SyncOnceCell::new() };
-
-fn hud_global() -> &'static RefCell<Hud> {
-    HUD.get_or_init(|| RefCell::new(Hud::new()))
-}
-
-pub fn hud<'a>() -> Ref<'a, Hud> {
-    hud_global().borrow()
-}
-
-pub fn hud_mut<'a>() -> RefMut<'a, Hud> {
-    hud_global().borrow_mut()
-}
-
-pub fn init() {
-    hud_global();
 }

@@ -12,13 +12,9 @@ mod snark;
 mod train;
 mod tripmine;
 
-use core::{
-    cell::{RefCell, RefMut},
-    ffi::{c_int, CStr},
-};
+use core::ffi::{c_int, CStr};
 
 use cl::{
-    cell::SyncOnceCell,
     consts::{
         ATTN_NORM, CHAN_STATIC, EFLAG_FLESH_SOUND, MAX_PLAYERS, PITCH_NORM, PM_NORMAL, SOLID_BSP,
     },
@@ -29,6 +25,8 @@ use cl::{
 };
 use csz::CStrArray;
 use res::valve::{self, sound};
+
+use crate::export::events_mut;
 
 const DEFAULT_VIEWHEIGHT: f32 = 28.0;
 const VEC_DUCK_VIEW: f32 = 12.0;
@@ -49,13 +47,50 @@ enum Bullet {
     Monster12mm,
 }
 
-struct Events {
+pub struct Events {
     swing: u32,
     tracer_count: [c_int; MAX_PLAYERS],
 }
 
+impl Default for Events {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Events {
-    fn new() -> Self {
+    pub fn new() -> Self {
+        // FIXME: force cl_lw to 0.0 because it is not implemented
+        engine().set_cvar(c"cl_lw", false);
+
+        macro_rules! hook {
+            ($($event:expr => $func:ident),* $(,)?) => (
+                $(hook_event!($event, |args| events_mut().$func(args));)*
+            );
+        }
+
+        hook! {
+            valve::events::GLOCK1       => fire_glock1,
+            valve::events::GLOCK2       => fire_glock2,
+            valve::events::SHOTGUN1     => fire_shotgun_single,
+            valve::events::SHOTGUN2     => fire_shotgun_double,
+            valve::events::MP5          => fire_mp5,
+            valve::events::MP52         => fire_mp5_2,
+            valve::events::PYTHON       => fire_python,
+            valve::events::GAUSS        => fire_gauss,
+            valve::events::GAUSSSPIN    => spin_gauss,
+            valve::events::TRAIN        => train_pitch_adjust,
+            valve::events::CROWBAR      => crowbar,
+            valve::events::CROSSBOW1    => fire_crossbow,
+            valve::events::CROSSBOW2    => fire_crossbow2,
+            valve::events::RPG          => fire_rpg,
+            valve::events::EGON_FIRE    => fire_egon,
+            valve::events::EGON_STOP    => stop_egon,
+            valve::events::FIREHORNET   => fire_hornet_gun,
+            valve::events::TRIPFIRE     => fire_tripmine,
+            valve::events::SNARKFIRE    => fire_snark,
+        }
+
         Self {
             swing: 0,
             tracer_count: [0; MAX_PLAYERS],
@@ -431,51 +466,4 @@ fn fire_bullets(
 
         pm_states.pop();
     }
-}
-
-pub fn init() {
-    // FIXME: force cl_lw to 0.0 because it is not implemented
-    engine().set_cvar(c"cl_lw", false);
-
-    macro_rules! hook {
-        ($($event:expr => $func:ident),* $(,)?) => (
-            $(hook_event!($event, |args| events_mut().$func(args));)*
-        );
-    }
-
-    hook! {
-        valve::events::GLOCK1       => fire_glock1,
-        valve::events::GLOCK2       => fire_glock2,
-        valve::events::SHOTGUN1     => fire_shotgun_single,
-        valve::events::SHOTGUN2     => fire_shotgun_double,
-        valve::events::MP5          => fire_mp5,
-        valve::events::MP52         => fire_mp5_2,
-        valve::events::PYTHON       => fire_python,
-        valve::events::GAUSS        => fire_gauss,
-        valve::events::GAUSSSPIN    => spin_gauss,
-        valve::events::TRAIN        => train_pitch_adjust,
-        valve::events::CROWBAR      => crowbar,
-        valve::events::CROSSBOW1    => fire_crossbow,
-        valve::events::CROSSBOW2    => fire_crossbow2,
-        valve::events::RPG          => fire_rpg,
-        valve::events::EGON_FIRE    => fire_egon,
-        valve::events::EGON_STOP    => stop_egon,
-        valve::events::FIREHORNET   => fire_hornet_gun,
-        valve::events::TRIPFIRE     => fire_tripmine,
-        valve::events::SNARKFIRE    => fire_snark,
-    }
-}
-
-static EVENTS: SyncOnceCell<RefCell<Events>> = unsafe { SyncOnceCell::new() };
-
-fn events_global() -> &'static RefCell<Events> {
-    EVENTS.get_or_init(|| RefCell::new(Events::new()))
-}
-
-// fn events<'a>() -> Ref<'a, Events> {
-//     events_global().borrow()
-// }
-
-fn events_mut<'a>() -> RefMut<'a, Events> {
-    events_global().borrow_mut()
 }
