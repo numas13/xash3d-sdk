@@ -1,9 +1,8 @@
 use shared::export::UnsyncGlobal;
 
 use crate::{
-    engine::RefEngine,
-    globals::{ref_globals_s, RefGlobals},
-    raw::ref_api_s,
+    engine::{RefEngine, RefEngineFunctions},
+    globals::{RefGlobalsRaw, RefGlobals},
 };
 
 /// Initialize the global [RefEngine] and [RefGlobals] instances.
@@ -11,7 +10,7 @@ use crate::{
 /// # Safety
 ///
 /// Must be called only once.
-pub unsafe fn init_engine(engine_funcs: &ref_api_s, globals: *mut ref_globals_s) {
+pub unsafe fn init_engine(engine_funcs: &RefEngineFunctions, globals: *mut RefGlobalsRaw) {
     unsafe {
         (*RefEngine::global_as_mut_ptr()).write(RefEngine::new(engine_funcs));
         (*RefGlobals::global_as_mut_ptr()).write(RefGlobals::new(globals));
