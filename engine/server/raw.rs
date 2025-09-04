@@ -18,9 +18,6 @@ pub use shared::raw::*;
 pub type FILE = c_void;
 pub type CRC32_t = u32;
 
-pub const INTERFACE_VERSION: c_int = 140;
-pub const NEW_DLL_FUNCTIONS_VERSION: c_int = 1;
-
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct link_s {
@@ -685,10 +682,39 @@ pub struct globalvars_t {
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct KeyValueData {
-    pub szClassName: *mut c_char,
-    pub szKeyName: *mut c_char,
-    pub szValue: *mut c_char,
-    pub fHandled: c_int,
+    class_name: *mut c_char,
+    key_name: *mut c_char,
+    value: *mut c_char,
+    handled: c_int,
+}
+
+impl KeyValueData {
+    /// Returns the class name of an entity related to the data.
+    pub fn class_name(&self) -> Option<&CStrThin> {
+        if self.class_name.is_null() {
+            return None;
+        }
+        Some(unsafe { CStrThin::from_ptr(self.class_name) })
+    }
+
+    pub fn key_name(&self) -> &CStrThin {
+        assert!(!self.key_name.is_null());
+        unsafe { CStrThin::from_ptr(self.key_name) }
+    }
+
+    pub fn value(&self) -> &CStrThin {
+        assert!(!self.value.is_null());
+        unsafe { CStrThin::from_ptr(self.value) }
+    }
+
+    /// Returns `true` if the server DLL knows the key name.
+    pub fn handled(&self) -> bool {
+        self.handled != 0
+    }
+
+    pub fn set_handled(&mut self, handled: bool) {
+        self.handled = handled as c_int;
+    }
 }
 
 #[derive(Copy, Clone)]
@@ -823,168 +849,3 @@ impl TYPEDESCRIPTION {
         }
     }
 }
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct DLL_FUNCTIONS {
-    pub pfnGameInit: Option<unsafe extern "C" fn()>,
-    pub pfnSpawn: Option<unsafe extern "C" fn(pent: *mut edict_s) -> c_int>,
-    pub pfnThink: Option<unsafe extern "C" fn(pent: *mut edict_s)>,
-    pub pfnUse: Option<unsafe extern "C" fn(pentUsed: *mut edict_s, pentOther: *mut edict_s)>,
-    pub pfnTouch: Option<unsafe extern "C" fn(pentTouched: *mut edict_s, pentOther: *mut edict_s)>,
-    pub pfnBlocked:
-        Option<unsafe extern "C" fn(pentBlocked: *mut edict_s, pentOther: *mut edict_s)>,
-    pub pfnKeyValue:
-        Option<unsafe extern "C" fn(pentKeyvalue: *mut edict_s, pkvd: *mut KeyValueData)>,
-    pub pfnSave: Option<unsafe extern "C" fn(pent: *mut edict_s, pSaveData: *mut SAVERESTOREDATA)>,
-    pub pfnRestore: Option<
-        unsafe extern "C" fn(
-            pent: *mut edict_s,
-            pSaveData: *mut SAVERESTOREDATA,
-            globalEntity: c_int,
-        ) -> c_int,
-    >,
-    pub pfnSetAbsBox: Option<unsafe extern "C" fn(pent: *mut edict_s)>,
-    pub pfnSaveWriteFields: Option<
-        unsafe extern "C" fn(
-            save_data: *mut SAVERESTOREDATA,
-            name: *const c_char,
-            base_data: *mut c_void,
-            fields: *mut TYPEDESCRIPTION,
-            fields_count: c_int,
-        ),
-    >,
-    pub pfnSaveReadFields: Option<
-        unsafe extern "C" fn(
-            save_data: *mut SAVERESTOREDATA,
-            name: *const c_char,
-            base_data: *mut c_void,
-            fields: *mut TYPEDESCRIPTION,
-            fields_count: c_int,
-        ),
-    >,
-    pub pfnSaveGlobalState: Option<unsafe extern "C" fn(save_data: *mut SAVERESTOREDATA)>,
-    pub pfnRestoreGlobalState: Option<unsafe extern "C" fn(save_data: *mut SAVERESTOREDATA)>,
-    pub pfnResetGlobalState: Option<unsafe extern "C" fn()>,
-    pub pfnClientConnect: Option<
-        unsafe extern "C" fn(
-            pEntity: *mut edict_s,
-            pszName: *const c_char,
-            pszAddress: *const c_char,
-            szRejectReason: *mut [c_char; 128usize],
-        ) -> qboolean,
-    >,
-    pub pfnClientDisconnect: Option<unsafe extern "C" fn(pEntity: *mut edict_s)>,
-    pub pfnClientKill: Option<unsafe extern "C" fn(pEntity: *mut edict_s)>,
-    pub pfnClientPutInServer: Option<unsafe extern "C" fn(pEntity: *mut edict_s)>,
-    pub pfnClientCommand: Option<unsafe extern "C" fn(pEntity: *mut edict_s)>,
-    pub pfnClientUserInfoChanged:
-        Option<unsafe extern "C" fn(pEntity: *mut edict_s, infobuffer: *mut c_char)>,
-    pub pfnServerActivate:
-        Option<unsafe extern "C" fn(pEdictList: *mut edict_s, edictCount: c_int, clientMax: c_int)>,
-    pub pfnServerDeactivate: Option<unsafe extern "C" fn()>,
-    pub pfnPlayerPreThink: Option<unsafe extern "C" fn(pEntity: *mut edict_s)>,
-    pub pfnPlayerPostThink: Option<unsafe extern "C" fn(pEntity: *mut edict_s)>,
-    pub pfnStartFrame: Option<unsafe extern "C" fn()>,
-    pub pfnParmsNewLevel: Option<unsafe extern "C" fn()>,
-    pub pfnParmsChangeLevel: Option<unsafe extern "C" fn()>,
-    pub pfnGetGameDescription: Option<unsafe extern "C" fn() -> *const c_char>,
-    pub pfnPlayerCustomization:
-        Option<unsafe extern "C" fn(pEntity: *mut edict_s, pCustom: *mut customization_s)>,
-    pub pfnSpectatorConnect: Option<unsafe extern "C" fn(pEntity: *mut edict_s)>,
-    pub pfnSpectatorDisconnect: Option<unsafe extern "C" fn(pEntity: *mut edict_s)>,
-    pub pfnSpectatorThink: Option<unsafe extern "C" fn(pEntity: *mut edict_s)>,
-    pub pfnSys_Error: Option<unsafe extern "C" fn(error_string: *const c_char)>,
-    pub pfnPM_Move: Option<unsafe extern "C" fn(ppmove: *mut playermove_s, server: qboolean)>,
-    pub pfnPM_Init: Option<unsafe extern "C" fn(ppmove: *mut playermove_s)>,
-    pub pfnPM_FindTextureType: Option<unsafe extern "C" fn(name: *const c_char) -> c_char>,
-    pub pfnSetupVisibility: Option<
-        unsafe extern "C" fn(
-            pViewEntity: *mut edict_s,
-            pClient: *mut edict_s,
-            pvs: *mut *mut c_uchar,
-            pas: *mut *mut c_uchar,
-        ),
-    >,
-    pub pfnUpdateClientData: Option<
-        unsafe extern "C" fn(ent: *const edict_s, sendweapons: c_int, cd: *mut clientdata_s),
-    >,
-    pub pfnAddToFullPack: Option<
-        unsafe extern "C" fn(
-            state: *mut entity_state_s,
-            e: c_int,
-            ent: *mut edict_s,
-            host: *mut edict_s,
-            hostflags: c_int,
-            player: c_int,
-            pSet: *mut c_uchar,
-        ) -> c_int,
-    >,
-    pub pfnCreateBaseline: Option<
-        unsafe extern "C" fn(
-            player: c_int,
-            eindex: c_int,
-            baseline: *mut entity_state_s,
-            entity: *mut edict_s,
-            playermodelindex: c_int,
-            player_mins: *const vec3_t,
-            player_maxs: *const vec3_t,
-        ),
-    >,
-    pub pfnRegisterEncoders: Option<unsafe extern "C" fn()>,
-    pub pfnGetWeaponData:
-        Option<unsafe extern "C" fn(player: *mut edict_s, info: *mut weapon_data_s) -> c_int>,
-    pub pfnCmdStart: Option<
-        unsafe extern "C" fn(player: *mut edict_s, cmd: *const usercmd_s, random_seed: c_uint),
-    >,
-    pub pfnCmdEnd: Option<unsafe extern "C" fn(player: *mut edict_s)>,
-    pub pfnConnectionlessPacket: Option<
-        unsafe extern "C" fn(
-            net_from: *const netadr_s,
-            args: *const c_char,
-            response_buffer: *mut c_char,
-            response_buffer_size: *mut c_int,
-        ) -> c_int,
-    >,
-    pub pfnGetHullBounds: Option<
-        unsafe extern "C" fn(hullnumber: c_int, mins: *mut vec3_t, maxs: *mut vec3_t) -> c_int,
-    >,
-    pub pfnCreateInstancedBaselines: Option<unsafe extern "C" fn()>,
-    pub pfnInconsistentFile: Option<
-        unsafe extern "C" fn(
-            player: *const edict_s,
-            filename: *const c_char,
-            disconnect_message: *mut c_char,
-        ) -> c_int,
-    >,
-    pub pfnAllowLagCompensation: Option<unsafe extern "C" fn() -> c_int>,
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct NEW_DLL_FUNCTIONS {
-    pub pfnOnFreeEntPrivateData: Option<unsafe extern "C" fn(pEnt: *mut edict_s)>,
-    pub pfnGameShutdown: Option<unsafe extern "C" fn()>,
-    pub pfnShouldCollide:
-        Option<unsafe extern "C" fn(pentTouched: *mut edict_s, pentOther: *mut edict_s) -> c_int>,
-    pub pfnCvarValue: Option<unsafe extern "C" fn(pEnt: *const edict_s, value: *const c_char)>,
-    pub pfnCvarValue2: Option<
-        unsafe extern "C" fn(
-            pEnt: *const edict_s,
-            requestID: c_int,
-            cvarName: *const c_char,
-            value: *const c_char,
-        ),
-    >,
-}
-
-pub type NEW_DLL_FUNCTIONS_FN = unsafe extern "C" fn(
-    pFunctionTable: *mut NEW_DLL_FUNCTIONS,
-    interfaceVersion: *mut c_int,
-) -> c_int;
-
-pub type APIFUNCTION =
-    unsafe extern "C" fn(pFunctionTable: *mut DLL_FUNCTIONS, interfaceVersion: c_int) -> c_int;
-
-pub type APIFUNCTION2 =
-    unsafe extern "C" fn(pFunctionTable: *mut DLL_FUNCTIONS, interfaceVersion: *mut c_int) -> c_int;

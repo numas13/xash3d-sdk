@@ -114,28 +114,28 @@ impl Entity for ChangeLevel {
     }
 
     fn key_value(&mut self, data: &mut KeyValueData) {
-        let name = unsafe { CStrThin::from_ptr(data.szKeyName) };
-        let value = unsafe { CStrThin::from_ptr(data.szValue) };
+        let name = data.key_name();
+        let value = data.value();
 
         if name == c"map" {
             if value.to_bytes().len() >= MAP_NAME_MAX {
                 error!("Map name {value:?} too long ({MAP_NAME_MAX} chars)");
             }
             self.map_name.cursor().write_c_str(value).unwrap();
-            data.fHandled = 1;
+            data.set_handled(true);
         } else if name == c"landmark" {
             if value.to_bytes().len() >= MAP_NAME_MAX {
                 error!("Landmark name {value:?} too long ({MAP_NAME_MAX} chars)");
             }
             self.landmark_name.cursor().write_c_str(value).unwrap();
-            data.fHandled = 1;
+            data.set_handled(true);
         } else if name == c"changetarget" {
             self.target = Some(MapString::new(value));
-            data.fHandled = 1;
+            data.set_handled(true);
         } else if name == c"changedelay" {
             let s = value.to_str().ok();
             self.change_target_delay = s.and_then(|s| s.parse().ok()).unwrap_or(0.0);
-            data.fHandled = 1;
+            data.set_handled(true);
         } else {
             debug!("TODO: ChangeLevel::key_value({name:?}, {value:?})");
         }

@@ -8,7 +8,7 @@ use pm::{VEC_DUCK_HULL_MIN, VEC_HULL_MIN};
 use sv::{
     export::{export_dll, impl_unsync_global, RestoreResult, ServerDll, SpawnResult},
     prelude::*,
-    raw::{self, edict_s, vec3_t, EdictFlags},
+    raw::{self, edict_s, vec3_t, EdictFlags, KeyValueData, SAVERESTOREDATA, TYPEDESCRIPTION},
 };
 
 use crate::{
@@ -96,18 +96,18 @@ impl ServerDll for Instance {
 
     fn dispatch_blocked(&self, _blocked: &mut edict_s, _other: &mut edict_s) {}
 
-    fn dispatch_key_value(&self, ent: &mut edict_s, data: &mut raw::KeyValueData) {
+    fn dispatch_key_value(&self, ent: &mut edict_s, data: &mut KeyValueData) {
         save::dispatch_key_value(ent, data);
     }
 
-    fn dispatch_save(&self, ent: &mut edict_s, save_data: &mut raw::SAVERESTOREDATA) {
+    fn dispatch_save(&self, ent: &mut edict_s, save_data: &mut SAVERESTOREDATA) {
         save::dispatch_save(ent, save_data);
     }
 
     fn dispatch_restore(
         &self,
         ent: &mut edict_s,
-        save_data: &mut raw::SAVERESTOREDATA,
+        save_data: &mut SAVERESTOREDATA,
         global_entity: bool,
     ) -> RestoreResult {
         save::dispatch_restore(ent, save_data, global_entity)
@@ -119,31 +119,31 @@ impl ServerDll for Instance {
 
     fn save_write_fields(
         &self,
-        save_data: &mut raw::SAVERESTOREDATA,
+        save_data: &mut SAVERESTOREDATA,
         name: &CStrThin,
         base_data: *mut c_void,
-        fields: &mut [raw::TYPEDESCRIPTION],
+        fields: &mut [TYPEDESCRIPTION],
     ) {
         save::write_fields(save_data, name.as_c_str(), base_data, fields);
     }
 
     fn save_read_fields(
         &self,
-        save_data: &mut raw::SAVERESTOREDATA,
+        save_data: &mut SAVERESTOREDATA,
         name: &CStrThin,
         base_data: *mut c_void,
-        fields: &mut [raw::TYPEDESCRIPTION],
+        fields: &mut [TYPEDESCRIPTION],
     ) {
         save::read_fields(&mut *save_data, name.as_c_str(), base_data, fields);
     }
 
-    fn save_global_state(&self, save_data: &mut raw::SAVERESTOREDATA) {
+    fn save_global_state(&self, save_data: &mut SAVERESTOREDATA) {
         if let Err(e) = global_state().save(save_data) {
             error!("Failed to save global state: {e:?}");
         }
     }
 
-    fn restore_global_state(&self, save_data: &mut raw::SAVERESTOREDATA) {
+    fn restore_global_state(&self, save_data: &mut SAVERESTOREDATA) {
         if let Err(e) = global_state().restore(save_data) {
             error!("Failed to restore global state: {e:?}");
         }

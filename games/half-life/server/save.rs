@@ -6,7 +6,6 @@ use core::{
     ptr, slice,
 };
 
-use csz::CStrThin;
 use sv::{
     export::RestoreResult,
     macros::define_entity_field,
@@ -514,7 +513,7 @@ pub fn read_fields(
 }
 
 fn entvars_key_value(ev: &mut entvars_s, data: &mut KeyValueData) {
-    let key_name = unsafe { CStrThin::from_ptr(data.szKeyName) };
+    let key_name = data.key_name();
     let field = ENTVARS_DESCRIPTION
         .iter()
         .find(|i| i.name().unwrap().eq_ignore_case(key_name));
@@ -522,7 +521,7 @@ fn entvars_key_value(ev: &mut entvars_s, data: &mut KeyValueData) {
     if let Some(field) = field {
         let pev = ev as *mut _ as *mut u8;
         let p = unsafe { pev.offset(field.fieldOffset as isize) };
-        let value = unsafe { CStr::from_ptr(data.szValue) };
+        let value = data.value();
 
         match field.fieldType {
             FieldType::MODELNAME | FieldType::SOUNDNAME | FieldType::STRING => {
@@ -560,14 +559,14 @@ fn entvars_key_value(ev: &mut entvars_s, data: &mut KeyValueData) {
                 error!("Bad field({name:?}, {:?}) in entity", field.fieldType);
             }
         }
-        data.fHandled = 1;
+        data.set_handled(true);
     }
 }
 
 pub fn dispatch_key_value(ent: &mut edict_s, data: &mut KeyValueData) {
     entvars_key_value(&mut ent.v, data);
 
-    if data.fHandled != 0 || data.szClassName.is_null() {
+    if data.handled() || data.class_name().is_none() {
         return;
     }
 

@@ -10,7 +10,10 @@ use csz::{CStrArray, CStrThin};
 
 use crate::{
     prelude::*,
-    raw::{self, edict_s, netadr_s, qboolean, vec3_t, SAVERESTOREDATA},
+    raw::{
+        self, clientdata_s, customization_s, edict_s, entity_state_s, netadr_s, qboolean,
+        usercmd_s, vec3_t, weapon_data_s, KeyValueData, SAVERESTOREDATA, TYPEDESCRIPTION,
+    },
     utils::slice_from_raw_parts_or_empty_mut,
 };
 
@@ -61,7 +64,7 @@ pub trait ServerDll: UnsyncGlobal {
 
     fn dispatch_blocked(&self, blocked: &mut edict_s, other: &mut edict_s);
 
-    fn dispatch_key_value(&self, ent: &mut edict_s, data: &mut raw::KeyValueData);
+    fn dispatch_key_value(&self, ent: &mut edict_s, data: &mut KeyValueData);
 
     fn dispatch_save(&self, ent: &mut edict_s, save_data: &mut SAVERESTOREDATA);
 
@@ -79,7 +82,7 @@ pub trait ServerDll: UnsyncGlobal {
         save_data: &mut SAVERESTOREDATA,
         name: &CStrThin,
         base_data: *mut c_void,
-        fields: &mut [raw::TYPEDESCRIPTION],
+        fields: &mut [TYPEDESCRIPTION],
     );
 
     fn save_read_fields(
@@ -87,7 +90,7 @@ pub trait ServerDll: UnsyncGlobal {
         save_data: &mut SAVERESTOREDATA,
         name: &CStrThin,
         base_data: *mut c_void,
-        fields: &mut [raw::TYPEDESCRIPTION],
+        fields: &mut [TYPEDESCRIPTION],
     );
 
     fn save_global_state(&self, save_data: &mut SAVERESTOREDATA);
@@ -195,11 +198,11 @@ pub trait ServerDll: UnsyncGlobal {
 
     fn register_encoders(&self) {}
 
-    fn get_weapon_data(&self, player: &mut edict_s) -> Option<raw::weapon_data_s> {
+    fn get_weapon_data(&self, player: &mut edict_s) -> Option<weapon_data_s> {
         None
     }
 
-    fn command_start(&self, player: &mut edict_s, cmd: &raw::usercmd_s, random_seed: c_uint) {}
+    fn command_start(&self, player: &mut edict_s, cmd: &usercmd_s, random_seed: c_uint) {}
 
     fn command_end(&self, player: *const edict_s) {}
 
@@ -256,9 +259,181 @@ pub trait ServerDll: UnsyncGlobal {
     }
 }
 
+#[allow(non_snake_case)]
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct DllFunctions {
+    pub pfnGameInit: Option<unsafe extern "C" fn()>,
+    pub pfnSpawn: Option<unsafe extern "C" fn(pent: *mut edict_s) -> c_int>,
+    pub pfnThink: Option<unsafe extern "C" fn(pent: *mut edict_s)>,
+    pub pfnUse: Option<unsafe extern "C" fn(pentUsed: *mut edict_s, pentOther: *mut edict_s)>,
+    pub pfnTouch: Option<unsafe extern "C" fn(pentTouched: *mut edict_s, pentOther: *mut edict_s)>,
+    pub pfnBlocked:
+        Option<unsafe extern "C" fn(pentBlocked: *mut edict_s, pentOther: *mut edict_s)>,
+    pub pfnKeyValue:
+        Option<unsafe extern "C" fn(pentKeyvalue: *mut edict_s, pkvd: *mut KeyValueData)>,
+    pub pfnSave: Option<unsafe extern "C" fn(pent: *mut edict_s, pSaveData: *mut SAVERESTOREDATA)>,
+    pub pfnRestore: Option<
+        unsafe extern "C" fn(
+            pent: *mut edict_s,
+            pSaveData: *mut SAVERESTOREDATA,
+            globalEntity: c_int,
+        ) -> c_int,
+    >,
+    pub pfnSetAbsBox: Option<unsafe extern "C" fn(pent: *mut edict_s)>,
+    pub pfnSaveWriteFields: Option<
+        unsafe extern "C" fn(
+            save_data: *mut SAVERESTOREDATA,
+            name: *const c_char,
+            base_data: *mut c_void,
+            fields: *mut TYPEDESCRIPTION,
+            fields_count: c_int,
+        ),
+    >,
+    pub pfnSaveReadFields: Option<
+        unsafe extern "C" fn(
+            save_data: *mut SAVERESTOREDATA,
+            name: *const c_char,
+            base_data: *mut c_void,
+            fields: *mut TYPEDESCRIPTION,
+            fields_count: c_int,
+        ),
+    >,
+    pub pfnSaveGlobalState: Option<unsafe extern "C" fn(save_data: *mut SAVERESTOREDATA)>,
+    pub pfnRestoreGlobalState: Option<unsafe extern "C" fn(save_data: *mut SAVERESTOREDATA)>,
+    pub pfnResetGlobalState: Option<unsafe extern "C" fn()>,
+    pub pfnClientConnect: Option<
+        unsafe extern "C" fn(
+            pEntity: *mut edict_s,
+            pszName: *const c_char,
+            pszAddress: *const c_char,
+            szRejectReason: *mut [c_char; 128],
+        ) -> qboolean,
+    >,
+    pub pfnClientDisconnect: Option<unsafe extern "C" fn(pEntity: *mut edict_s)>,
+    pub pfnClientKill: Option<unsafe extern "C" fn(pEntity: *mut edict_s)>,
+    pub pfnClientPutInServer: Option<unsafe extern "C" fn(pEntity: *mut edict_s)>,
+    pub pfnClientCommand: Option<unsafe extern "C" fn(pEntity: *mut edict_s)>,
+    pub pfnClientUserInfoChanged:
+        Option<unsafe extern "C" fn(pEntity: *mut edict_s, infobuffer: *mut c_char)>,
+    pub pfnServerActivate:
+        Option<unsafe extern "C" fn(pEdictList: *mut edict_s, edictCount: c_int, clientMax: c_int)>,
+    pub pfnServerDeactivate: Option<unsafe extern "C" fn()>,
+    pub pfnPlayerPreThink: Option<unsafe extern "C" fn(pEntity: *mut edict_s)>,
+    pub pfnPlayerPostThink: Option<unsafe extern "C" fn(pEntity: *mut edict_s)>,
+    pub pfnStartFrame: Option<unsafe extern "C" fn()>,
+    pub pfnParmsNewLevel: Option<unsafe extern "C" fn()>,
+    pub pfnParmsChangeLevel: Option<unsafe extern "C" fn()>,
+    pub pfnGetGameDescription: Option<unsafe extern "C" fn() -> *const c_char>,
+    pub pfnPlayerCustomization:
+        Option<unsafe extern "C" fn(pEntity: *mut edict_s, pCustom: *mut customization_s)>,
+    pub pfnSpectatorConnect: Option<unsafe extern "C" fn(pEntity: *mut edict_s)>,
+    pub pfnSpectatorDisconnect: Option<unsafe extern "C" fn(pEntity: *mut edict_s)>,
+    pub pfnSpectatorThink: Option<unsafe extern "C" fn(pEntity: *mut edict_s)>,
+    pub pfnSys_Error: Option<unsafe extern "C" fn(error_string: *const c_char)>,
+    pub pfnPM_Move: Option<unsafe extern "C" fn(ppmove: *mut raw::playermove_s, server: qboolean)>,
+    pub pfnPM_Init: Option<unsafe extern "C" fn(ppmove: *mut raw::playermove_s)>,
+    pub pfnPM_FindTextureType: Option<unsafe extern "C" fn(name: *const c_char) -> c_char>,
+    pub pfnSetupVisibility: Option<
+        unsafe extern "C" fn(
+            pViewEntity: *mut edict_s,
+            pClient: *mut edict_s,
+            pvs: *mut *mut c_uchar,
+            pas: *mut *mut c_uchar,
+        ),
+    >,
+    pub pfnUpdateClientData: Option<
+        unsafe extern "C" fn(ent: *const edict_s, sendweapons: c_int, cd: *mut clientdata_s),
+    >,
+    pub pfnAddToFullPack: Option<
+        unsafe extern "C" fn(
+            state: *mut entity_state_s,
+            e: c_int,
+            ent: *mut edict_s,
+            host: *mut edict_s,
+            hostflags: c_int,
+            player: c_int,
+            pSet: *mut c_uchar,
+        ) -> c_int,
+    >,
+    pub pfnCreateBaseline: Option<
+        unsafe extern "C" fn(
+            player: c_int,
+            eindex: c_int,
+            baseline: *mut entity_state_s,
+            entity: *mut edict_s,
+            playermodelindex: c_int,
+            player_mins: *const vec3_t,
+            player_maxs: *const vec3_t,
+        ),
+    >,
+    pub pfnRegisterEncoders: Option<unsafe extern "C" fn()>,
+    pub pfnGetWeaponData:
+        Option<unsafe extern "C" fn(player: *mut edict_s, info: *mut weapon_data_s) -> c_int>,
+    pub pfnCmdStart: Option<
+        unsafe extern "C" fn(player: *mut edict_s, cmd: *const usercmd_s, random_seed: c_uint),
+    >,
+    pub pfnCmdEnd: Option<unsafe extern "C" fn(player: *mut edict_s)>,
+    pub pfnConnectionlessPacket: Option<
+        unsafe extern "C" fn(
+            net_from: *const netadr_s,
+            args: *const c_char,
+            response_buffer: *mut c_char,
+            response_buffer_size: *mut c_int,
+        ) -> c_int,
+    >,
+    pub pfnGetHullBounds: Option<
+        unsafe extern "C" fn(hullnumber: c_int, mins: *mut vec3_t, maxs: *mut vec3_t) -> c_int,
+    >,
+    pub pfnCreateInstancedBaselines: Option<unsafe extern "C" fn()>,
+    pub pfnInconsistentFile: Option<
+        unsafe extern "C" fn(
+            player: *const edict_s,
+            filename: *const c_char,
+            disconnect_message: *mut c_char,
+        ) -> c_int,
+    >,
+    pub pfnAllowLagCompensation: Option<unsafe extern "C" fn() -> c_int>,
+}
+
+impl DllFunctions {
+    pub const VERSION: c_int = 140;
+
+    pub fn new<T: ServerDll + Default>() -> DllFunctions {
+        Export::<T>::dll_functions()
+    }
+}
+
+#[allow(non_snake_case)]
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct DllFunctions2 {
+    pub pfnOnFreeEntPrivateData: Option<unsafe extern "C" fn(pEnt: *mut edict_s)>,
+    pub pfnGameShutdown: Option<unsafe extern "C" fn()>,
+    pub pfnShouldCollide:
+        Option<unsafe extern "C" fn(pentTouched: *mut edict_s, pentOther: *mut edict_s) -> c_int>,
+    pub pfnCvarValue: Option<unsafe extern "C" fn(pEnt: *const edict_s, value: *const c_char)>,
+    pub pfnCvarValue2: Option<
+        unsafe extern "C" fn(
+            pEnt: *const edict_s,
+            requestID: c_int,
+            cvarName: *const c_char,
+            value: *const c_char,
+        ),
+    >,
+}
+
+impl DllFunctions2 {
+    pub const VERSION: c_int = 1;
+
+    pub fn new<T: ServerDll + Default>() -> DllFunctions2 {
+        Export::<T>::new_dll_functions()
+    }
+}
+
 trait ServerDllExport {
-    fn server_functions() -> raw::DLL_FUNCTIONS {
-        raw::DLL_FUNCTIONS {
+    fn dll_functions() -> DllFunctions {
+        DllFunctions {
             pfnGameInit: Some(Self::init),
             pfnSpawn: Some(Self::dispatch_spawn),
             pfnThink: Some(Self::dispatch_think),
@@ -312,8 +487,8 @@ trait ServerDllExport {
         }
     }
 
-    fn new_server_functions() -> raw::NEW_DLL_FUNCTIONS {
-        raw::NEW_DLL_FUNCTIONS {
+    fn new_dll_functions() -> DllFunctions2 {
+        DllFunctions2 {
             pfnOnFreeEntPrivateData: Some(Self::on_free_entity_private_data),
             pfnGameShutdown: Some(Self::shutdown),
             pfnShouldCollide: Some(Self::should_collide),
@@ -336,7 +511,7 @@ trait ServerDllExport {
 
     unsafe extern "C" fn dispatch_blocked(blocked: *mut edict_s, other: *mut edict_s);
 
-    unsafe extern "C" fn dispatch_key_value(ent: *mut edict_s, data: *mut raw::KeyValueData);
+    unsafe extern "C" fn dispatch_key_value(ent: *mut edict_s, data: *mut KeyValueData);
 
     unsafe extern "C" fn dispatch_save(ent: *mut edict_s, save_data: *mut SAVERESTOREDATA);
 
@@ -352,7 +527,7 @@ trait ServerDllExport {
         save_data: *mut SAVERESTOREDATA,
         name: *const c_char,
         base_data: *mut c_void,
-        fields: *mut raw::TYPEDESCRIPTION,
+        fields: *mut TYPEDESCRIPTION,
         fields_count: c_int,
     );
 
@@ -360,7 +535,7 @@ trait ServerDllExport {
         save_data: *mut SAVERESTOREDATA,
         name: *const c_char,
         base_data: *mut c_void,
-        fields: *mut raw::TYPEDESCRIPTION,
+        fields: *mut TYPEDESCRIPTION,
         fields_count: c_int,
     );
 
@@ -407,7 +582,7 @@ trait ServerDllExport {
 
     unsafe extern "C" fn get_game_description() -> *const c_char;
 
-    unsafe extern "C" fn player_customization(ent: *mut edict_s, custom: *mut raw::customization_s);
+    unsafe extern "C" fn player_customization(ent: *mut edict_s, custom: *mut customization_s);
 
     unsafe extern "C" fn spectator_connect(ent: *mut edict_s);
 
@@ -433,7 +608,7 @@ trait ServerDllExport {
     unsafe extern "C" fn update_client_data(
         ent: *const edict_s,
         send_weapons: c_int,
-        cd: *mut raw::clientdata_s,
+        cd: *mut clientdata_s,
     );
 
     unsafe extern "C" fn add_to_full_pack(
@@ -561,7 +736,7 @@ impl<T: ServerDll + Default> ServerDllExport for Export<T> {
         }
     }
 
-    unsafe extern "C" fn dispatch_key_value(ent: *mut edict_s, data: *mut raw::KeyValueData) {
+    unsafe extern "C" fn dispatch_key_value(ent: *mut edict_s, data: *mut KeyValueData) {
         if !ent.is_null() && !data.is_null() {
             let ent = unsafe { &mut *ent };
             let data = unsafe { &mut *data };
@@ -604,7 +779,7 @@ impl<T: ServerDll + Default> ServerDllExport for Export<T> {
         save_data: *mut SAVERESTOREDATA,
         name: *const c_char,
         base_data: *mut c_void,
-        fields: *mut raw::TYPEDESCRIPTION,
+        fields: *mut TYPEDESCRIPTION,
         fields_count: c_int,
     ) {
         assert!(!save_data.is_null());
@@ -620,7 +795,7 @@ impl<T: ServerDll + Default> ServerDllExport for Export<T> {
         save_data: *mut SAVERESTOREDATA,
         name: *const c_char,
         base_data: *mut c_void,
-        fields: *mut raw::TYPEDESCRIPTION,
+        fields: *mut TYPEDESCRIPTION,
         fields_count: c_int,
     ) {
         assert!(!save_data.is_null());
@@ -743,10 +918,7 @@ impl<T: ServerDll + Default> ServerDllExport for Export<T> {
             .as_ptr()
     }
 
-    unsafe extern "C" fn player_customization(
-        ent: *mut edict_s,
-        custom: *mut raw::customization_s,
-    ) {
+    unsafe extern "C" fn player_customization(ent: *mut edict_s, custom: *mut customization_s) {
         assert!(!ent.is_null());
         assert!(!custom.is_null());
         let ent = unsafe { &mut *ent };
@@ -813,7 +985,7 @@ impl<T: ServerDll + Default> ServerDllExport for Export<T> {
     unsafe extern "C" fn update_client_data(
         ent: *const edict_s,
         send_weapons: c_int,
-        cd: *mut raw::clientdata_s,
+        cd: *mut clientdata_s,
     ) {
         assert!(!ent.is_null());
         assert!(!cd.is_null());
@@ -1014,18 +1186,19 @@ impl<T: ServerDll + Default> ServerDllExport for Export<T> {
     }
 }
 
-pub fn get_server_api<T: ServerDll + Default>() -> raw::DLL_FUNCTIONS {
-    Export::<T>::server_functions()
-}
-
-pub fn get_new_server_api<T: ServerDll + Default>() -> raw::NEW_DLL_FUNCTIONS {
-    Export::<T>::new_server_functions()
-}
+// pub type NewDllFunctionsFn =
+//     unsafe extern "C" fn(dll_funcs: *mut DllFunctions2, version: *mut c_int) -> c_int;
+//
+// pub type GetEntityApiFn =
+//     unsafe extern "C" fn(dll_funcs: *mut DllFunctions, version: c_int) -> c_int;
+//
+// pub type GetEntityApi2Fn =
+//     unsafe extern "C" fn(dll_funcs: *mut DllFunctions, version: *mut c_int) -> c_int;
 
 #[doc(hidden)]
 #[macro_export]
 macro_rules! export_dll {
-    ($instance:ty $(, pre $pre:block)? $(, post $post:block)?) => {
+    ($server_dll:ty $($init:block)?) => {
         #[no_mangle]
         unsafe extern "C" fn GiveFnptrsToDll(
             engine_funcs: Option<&$crate::raw::enginefuncs_s>,
@@ -1040,7 +1213,7 @@ macro_rules! export_dll {
 
         #[no_mangle]
         unsafe extern "C" fn GetEntityAPI(
-            dll_funcs: *mut $crate::raw::DLL_FUNCTIONS,
+            dll_funcs: *mut $crate::export::DllFunctions,
             mut version: core::ffi::c_int,
         ) -> core::ffi::c_int {
             unsafe { GetEntityAPI2(dll_funcs, &mut version) }
@@ -1048,36 +1221,35 @@ macro_rules! export_dll {
 
         #[no_mangle]
         unsafe extern "C" fn GetEntityAPI2(
-            dll_funcs: *mut $crate::raw::DLL_FUNCTIONS,
+            dll_funcs: *mut $crate::export::DllFunctions,
             version: *mut core::ffi::c_int,
         ) -> core::ffi::c_int {
-            use $crate::raw::INTERFACE_VERSION;
+            use $crate::export::DllFunctions;
             unsafe {
-                if dll_funcs.is_null() || *version != INTERFACE_VERSION {
-                    *version = INTERFACE_VERSION;
+                if dll_funcs.is_null() || *version != DllFunctions::VERSION {
+                    *version = DllFunctions::VERSION;
                     return 0;
                 }
             }
-            $($pre)?
             unsafe {
-                *dll_funcs = $crate::export::get_server_api::<$instance>();
+                *dll_funcs = DllFunctions::new::<$server_dll>();
             }
-            $($post)?
+            $($init)?
             1
         }
 
         #[no_mangle]
         unsafe extern "C" fn GetNewDLLFunctions(
-            dll_funcs: *mut $crate::raw::NEW_DLL_FUNCTIONS,
+            dll_funcs: *mut $crate::export::DllFunctions2,
             version: *mut core::ffi::c_int,
         ) -> core::ffi::c_int {
-            use $crate::raw::NEW_DLL_FUNCTIONS_VERSION;
+            use $crate::export::DllFunctions2;
             unsafe {
-                if dll_funcs.is_null() || *version != NEW_DLL_FUNCTIONS_VERSION {
-                    *version = NEW_DLL_FUNCTIONS_VERSION;
+                if dll_funcs.is_null() || *version != DllFunctions2::VERSION {
+                    *version = DllFunctions2::VERSION;
                     return 0;
                 }
-                *dll_funcs = $crate::export::get_new_server_api::<$instance>();
+                *dll_funcs = DllFunctions2::new::<$server_dll>();
                 1
             }
         }

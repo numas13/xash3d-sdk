@@ -1,7 +1,4 @@
-use core::{
-    any::Any,
-    ffi::{c_int, CStr},
-};
+use core::{any::Any, ffi::c_int};
 
 use bitflags::bitflags;
 use csz::CStrThin;
@@ -122,14 +119,14 @@ pub trait Entity: EntityVars + Cast + Any {
     fn precache(&mut self) {}
 
     fn key_value(&mut self, data: &mut KeyValueData) {
-        let class_name = unsafe { CStr::from_ptr(data.szClassName) };
-        let key_name = unsafe { CStr::from_ptr(data.szKeyName) };
-        let value = unsafe { CStr::from_ptr(data.szValue) };
+        let class_name = data.class_name();
+        let key_name = data.key_name();
+        let value = data.value();
         debug!(
-            "{:?}::key_value({class_name:?}, {key_name:?}, {value:?})",
+            "{}::key_value({class_name:?}, {key_name}, {value})",
             self.classname()
         );
-        data.fHandled = 1;
+        data.set_handled(true);
     }
 
     fn fields(&self) -> &'static [TYPEDESCRIPTION] {

@@ -1,5 +1,3 @@
-use core::ffi::CStr;
-
 use sv::{
     prelude::*,
     raw::{entvars_s, KeyValueData},
@@ -45,12 +43,12 @@ impl Entity for World {
     }
 
     fn key_value(&mut self, data: &mut KeyValueData) {
-        let class_name = unsafe { CStr::from_ptr(data.szClassName) };
-        let key_name = unsafe { CStr::from_ptr(data.szKeyName) };
-        let value = unsafe { CStr::from_ptr(data.szValue) };
-        let handled = data.fHandled;
-        debug!("World::key_value({class_name:?}, {key_name:?}, {value:?}, {handled})");
-        data.fHandled = 1;
+        let class_name = data.class_name();
+        let key_name = data.key_name();
+        let value = data.value();
+        let handled = data.handled();
+        debug!("World::key_value({class_name:?}, {key_name}, {value}, {handled})");
+        data.set_handled(true);
     }
 }
 
