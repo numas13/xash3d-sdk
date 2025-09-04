@@ -5,10 +5,7 @@ use core::{
     slice,
 };
 
-use crate::{
-    prelude::*,
-    raw,
-};
+use crate::{prelude::*, raw};
 
 #[derive(Default)]
 pub struct SwBuffer {

@@ -476,9 +476,7 @@ pub unsafe fn get_menu_api<T: UiDll + Default>(
     globals: *mut UiGlobalsRaw,
 ) -> c_int {
     let Some(dll_funcs) = dll_funcs else { return 0 };
-    let Some(eng_funcs) = eng_funcs else {
-        return 0;
-    };
+    let Some(eng_funcs) = eng_funcs else { return 0 };
     if globals.is_null() {
         return 0;
     }

@@ -1811,12 +1811,6 @@ pub struct grasshdr_s {
     pub _address: u8,
 }
 
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct mstudiotex_s {
-    pub _address: u8,
-}
-
 #[derive(Copy, Clone, PartialEq, Eq)]
 #[repr(transparent)]
 pub struct BeamEntity(c_int);

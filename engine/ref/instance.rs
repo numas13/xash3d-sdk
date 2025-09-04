@@ -2,7 +2,7 @@ use shared::export::UnsyncGlobal;
 
 use crate::{
     engine::{RefEngine, RefEngineFunctions},
-    globals::{RefGlobalsRaw, RefGlobals},
+    globals::{RefGlobals, RefGlobalsRaw},
 };
 
 /// Initialize the global [RefEngine] and [RefGlobals] instances.
