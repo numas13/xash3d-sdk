@@ -4,14 +4,14 @@
 #![allow(clippy::type_complexity)]
 
 use core::{
-    ffi::{c_char, c_int, c_short, c_uchar, c_uint, c_ushort, c_void},
+    ffi::{c_char, c_int, c_short, c_uchar, c_ushort},
     mem,
 };
 
 use bitflags::bitflags;
 use csz::CStrThin;
 
-use crate::{consts::MAX_LOCAL_WEAPONS, engine::cl_enginefuncs_s};
+use crate::consts::MAX_LOCAL_WEAPONS;
 
 pub use shared::raw::*;
 
@@ -825,148 +825,4 @@ pub struct local_state_s {
     pub playerstate: entity_state_s,
     pub client: clientdata_s,
     pub weapondata: [weapon_data_s; MAX_LOCAL_WEAPONS],
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct cldll_func_s {
-    pub pfnInitialize: Option<
-        unsafe extern "C" fn(pEnginefuncs: Option<&cl_enginefuncs_s>, iVersion: c_int) -> c_int,
-    >,
-    pub pfnInit: Option<unsafe extern "C" fn()>,
-    pub pfnVidInit: Option<unsafe extern "C" fn() -> c_int>,
-    pub pfnRedraw: Option<unsafe extern "C" fn(flTime: f32, intermission: c_int) -> c_int>,
-    pub pfnUpdateClientData:
-        Option<unsafe extern "C" fn(cdata: Option<&mut client_data_s>, flTime: f32) -> c_int>,
-    pub pfnReset: Option<unsafe extern "C" fn()>,
-    pub pfnPlayerMove: Option<unsafe extern "C" fn(ppmove: *mut playermove_s, server: c_int)>,
-    pub pfnPlayerMoveInit: Option<unsafe extern "C" fn(ppmove: *mut playermove_s)>,
-    pub pfnPlayerMoveTexture: Option<unsafe extern "C" fn(name: *const c_char) -> c_char>,
-    pub IN_ActivateMouse: Option<unsafe extern "C" fn()>,
-    pub IN_DeactivateMouse: Option<unsafe extern "C" fn()>,
-    pub IN_MouseEvent: Option<unsafe extern "C" fn(mstate: c_int)>,
-    pub IN_ClearStates: Option<unsafe extern "C" fn()>,
-    pub IN_Accumulate: Option<unsafe extern "C" fn()>,
-    pub CL_CreateMove:
-        Option<unsafe extern "C" fn(frametime: f32, cmd: *mut usercmd_s, active: c_int)>,
-    pub CL_IsThirdPerson: Option<unsafe extern "C" fn() -> c_int>,
-    pub CL_CameraOffset: Option<unsafe extern "C" fn(ofs: *mut vec3_t)>,
-    pub KB_Find: Option<unsafe extern "C" fn(name: *const c_char) -> *mut kbutton_t>,
-    pub CAM_Think: Option<unsafe extern "C" fn()>,
-    pub pfnCalcRefdef: Option<unsafe extern "C" fn(pparams: Option<&mut ref_params_s>)>,
-    pub pfnAddEntity: Option<
-        unsafe extern "C" fn(
-            entity_type: EntityType,
-            entity: Option<&mut cl_entity_s>,
-            model_name: *const c_char,
-        ) -> c_int,
-    >,
-    pub pfnCreateEntities: Option<unsafe extern "C" fn()>,
-    pub pfnDrawNormalTriangles: Option<unsafe extern "C" fn()>,
-    pub pfnDrawTransparentTriangles: Option<unsafe extern "C" fn()>,
-    pub pfnStudioEvent:
-        Option<unsafe extern "C" fn(event: *const mstudioevent_s, entity: *const cl_entity_s)>,
-    pub pfnPostRunCmd: Option<
-        unsafe extern "C" fn(
-            from: Option<&mut local_state_s>,
-            to: Option<&mut local_state_s>,
-            cmd: Option<&mut usercmd_s>,
-            runfuncs: c_int,
-            time: f64,
-            random_seed: c_uint,
-        ),
-    >,
-    pub pfnShutdown: Option<unsafe extern "C" fn()>,
-    pub pfnTxferLocalOverrides: Option<
-        unsafe extern "C" fn(state: Option<&mut entity_state_s>, client: Option<&clientdata_s>),
-    >,
-    pub pfnProcessPlayerState: Option<
-        unsafe extern "C" fn(dst: Option<&mut entity_state_s>, src: Option<&entity_state_s>),
-    >,
-    pub pfnTxferPredictionData: Option<
-        unsafe extern "C" fn(
-            ps: Option<&mut entity_state_s>,
-            pps: Option<&entity_state_s>,
-            pcd: Option<&mut clientdata_s>,
-            ppcd: Option<&clientdata_s>,
-            wd: *mut weapon_data_s,
-            pwd: *const weapon_data_s,
-        ),
-    >,
-    pub pfnDemo_ReadBuffer: Option<unsafe extern "C" fn(size: c_int, buffer: *mut byte)>,
-    pub pfnConnectionlessPacket: Option<
-        unsafe extern "C" fn(
-            net_from: *const netadr_s,
-            args: *const c_char,
-            buffer: *mut c_char,
-            size: *mut c_int,
-        ) -> c_int,
-    >,
-    pub pfnGetHullBounds: Option<
-        unsafe extern "C" fn(
-            hullnumber: c_int,
-            mins: Option<&mut vec3_t>,
-            maxs: Option<&mut vec3_t>,
-        ) -> c_int,
-    >,
-    pub pfnFrame: Option<unsafe extern "C" fn(time: f64)>,
-    pub pfnKey_Event: Option<
-        unsafe extern "C" fn(
-            eventcode: c_int,
-            keynum: c_int,
-            pszCurrentBinding: *const c_char,
-        ) -> c_int,
-    >,
-    pub pfnTempEntUpdate: Option<
-        unsafe extern "C" fn(
-            frametime: f64,
-            client_time: f64,
-            cl_gravity: f64,
-            ppTempEntFree: *mut *mut TEMPENTITY,
-            ppTempEntActive: *mut *mut TEMPENTITY,
-            AddVisibleEntity: unsafe extern "C" fn(pEntity: *mut cl_entity_s) -> c_int,
-            TempEntPlaySound: unsafe extern "C" fn(pTemp: *mut TEMPENTITY, damp: f32),
-        ),
-    >,
-    pub pfnGetUserEntity: Option<unsafe extern "C" fn(index: c_int) -> *mut cl_entity_s>,
-    pub pfnVoiceStatus: Option<unsafe extern "C" fn(entindex: c_int, bTalking: qboolean)>,
-    pub pfnDirectorMessage: Option<unsafe extern "C" fn(iSize: c_int, pbuf: *const c_void)>,
-    pub pfnGetStudioModelInterface: Option<
-        unsafe extern "C" fn(
-            version: c_int,
-            ppinterface: *mut *mut r_studio_interface_s,
-            pstudio: *mut engine_studio_api_s,
-        ) -> c_int,
-    >,
-    pub pfnChatInputPosition: Option<unsafe extern "C" fn(x: *mut c_int, y: *mut c_int)>,
-    // TODO:
-    // pub pfnGetRenderInterface: Option<
-    //     unsafe extern "C" fn(
-    //         version: c_int,
-    //         renderfuncs: *mut render_api_t,
-    //         callback: *mut render_interface_t,
-    //     ) -> c_int,
-    // >,
-    // pub pfnClipMoveToEntity: Option<
-    //     unsafe extern "C" fn(
-    //         pe: *mut physent_s,
-    //         start: *mut vec3_t,
-    //         mins: *mut vec3_t,
-    //         maxs: *mut vec3_t,
-    //         end: *mut vec3_t,
-    //         tr: *mut pmtrace_s,
-    //     ),
-    // >,
-    // pub pfnTouchEvent: Option<
-    //     unsafe extern "C" fn(
-    //         type_: c_int,
-    //         fingerID: c_int,
-    //         x: f32,
-    //         y: f32,
-    //         dx: f32,
-    //         dy: f32,
-    //     ) -> c_int,
-    // >,
-    // pub pfnMoveEvent: Option<unsafe extern "C" fn(forwardmove: f32, sidemove: f32)>,
-    // pub pfnLookEvent: Option<unsafe extern "C" fn(relyaw: f32, relpitch: f32)>,
 }
