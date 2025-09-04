@@ -7,12 +7,10 @@ use csz::CStrThin;
 
 use crate::{
     color::RGBA,
+    engine::{ui_enginefuncs_s, ui_extendedfuncs_s},
     globals::ui_globalvars_s,
     prelude::*,
-    raw::{
-        self, netadr_s, ui_enginefuncs_s, ui_extendedfuncs_s, MENU_EXTENDED_API_VERSION,
-        UI_EXTENDED_FUNCTIONS, UI_FUNCTIONS,
-    },
+    raw::{self, netadr_s, MENU_EXTENDED_API_VERSION, UI_EXTENDED_FUNCTIONS, UI_FUNCTIONS},
 };
 
 pub use shared::export::{impl_unsync_global, UnsyncGlobal};
@@ -391,7 +389,7 @@ impl<T: UiDll + Default> UiDllExport for T {
 /// Must be called only once.
 pub unsafe fn get_menu_api<T: UiDll + Default>(
     ret_funcs: Option<&mut raw::UI_FUNCTIONS>,
-    engine_funcs: Option<&raw::ui_enginefuncs_s>,
+    engine_funcs: Option<&ui_enginefuncs_s>,
     globals: *mut ui_globalvars_s,
 ) -> c_int {
     let Some(ret_funcs) = ret_funcs else { return 0 };
@@ -416,7 +414,7 @@ pub unsafe fn get_menu_api<T: UiDll + Default>(
 pub unsafe fn get_ext_api<T: UiDll + Default>(
     version: c_int,
     ret_funcs: Option<&mut raw::UI_EXTENDED_FUNCTIONS>,
-    engine_funcs: Option<&raw::ui_extendedfuncs_s>,
+    engine_funcs: Option<&ui_extendedfuncs_s>,
 ) -> c_int {
     if version != MENU_EXTENDED_API_VERSION {
         error!(
@@ -463,7 +461,7 @@ macro_rules! export_dll {
         #[no_mangle]
         pub unsafe extern "C" fn GetMenuAPI(
             ret: Option<&mut $crate::raw::UI_FUNCTIONS>,
-            funcs: Option<&$crate::raw::ui_enginefuncs_s>,
+            funcs: Option<&$crate::engine::ui_enginefuncs_s>,
             globals: *mut $crate::globals::ui_globalvars_s,
         ) -> core::ffi::c_int {
             $($pre)?
@@ -478,7 +476,7 @@ macro_rules! export_dll {
         pub unsafe extern "C" fn GetExtAPI(
             version: core::ffi::c_int,
             ret: Option<&mut $crate::raw::UI_EXTENDED_FUNCTIONS>,
-            funcs: Option<&$crate::raw::ui_extendedfuncs_s>,
+            funcs: Option<&$crate::engine::ui_extendedfuncs_s>,
         ) -> core::ffi::c_int {
             unsafe {
                 $crate::export::get_ext_api::<$instance>(version, ret, funcs)

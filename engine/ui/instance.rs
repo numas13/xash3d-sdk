@@ -1,8 +1,7 @@
 use crate::{
-    engine::UiEngine,
+    engine::{ui_enginefuncs_s, ui_extendedfuncs_s, UiEngine},
     export::UnsyncGlobal,
     globals::{ui_globalvars_s, UiGlobals},
-    raw::{ui_enginefuncs_s, ui_extendedfuncs_s},
 };
 
 /// Initialize the global [UiEngine] and [UiGlobals] instances.
