@@ -1222,21 +1222,6 @@ pub struct sortedface_s {
 }
 
 #[repr(C)]
-pub struct ref_globals_s {
-    pub developer: qboolean,
-    pub width: c_int,
-    pub height: c_int,
-    pub fullScreen: qboolean,
-    pub wideScreen: qboolean,
-    pub vieworg: vec3_t,
-    pub viewangles: vec3_t,
-    pub draw_surfaces: *mut sortedface_s,
-    pub max_surfaces: c_int,
-    pub visbytes: usize,
-    pub desktopBitsPixel: c_int,
-}
-
-#[repr(C)]
 pub struct ref_client_s {
     pub time: f64,
     pub oldtime: f64,
@@ -2034,14 +2019,3 @@ pub struct ref_interface_s {
     >,
 }
 pub type ref_interface_t = ref_interface_s;
-
-pub const GET_REF_API: &CStr = c"GetRefAPI";
-
-pub type REFAPI = Option<
-    unsafe extern "C" fn(
-        version: c_int,
-        exported_funcs: &mut ref_interface_t,
-        engine_funcs: &ref_api_t,
-        globals: *mut ref_globals_s,
-    ) -> c_int,
->;
