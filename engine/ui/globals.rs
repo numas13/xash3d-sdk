@@ -1,18 +1,45 @@
 use core::{ffi::c_int, time::Duration};
 
-use csz::CStrThin;
+use csz::{CStrArray, CStrThin};
+use shared::export::impl_unsync_global;
 
-use crate::{raw, Size};
+use crate::Size;
 
-pub struct UiGlobals {
-    raw: *mut raw::ui_globalvars_s,
+#[allow(non_camel_case_types)]
+pub type ui_globalvars_s = UiGlobalsRaw;
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct UiGlobalsRaw {
+    pub time: f32,
+    pub frametime: f32,
+    pub screen_width: c_int,
+    pub screen_height: c_int,
+    pub max_clients: c_int,
+    pub developer: c_int,
+    pub demo_playback: c_int,
+    pub demo_recording: c_int,
+    pub demo_name: CStrArray<64>,
+    pub map_title: CStrArray<64>,
 }
 
-shared::export::impl_unsync_global!(UiGlobals);
+pub struct UiGlobals {
+    raw: *mut UiGlobalsRaw,
+}
+
+impl_unsync_global!(UiGlobals);
 
 impl UiGlobals {
-    pub(crate) fn new(raw: *mut raw::ui_globalvars_s) -> Self {
+    pub(crate) fn new(raw: *mut UiGlobalsRaw) -> Self {
         Self { raw }
+    }
+
+    pub fn raw(&self) -> *const UiGlobalsRaw {
+        self.raw
+    }
+
+    pub fn raw_mut(&self) -> *mut UiGlobalsRaw {
+        self.raw
     }
 
     pub fn system_time_f32(&self) -> f32 {
@@ -32,11 +59,11 @@ impl UiGlobals {
     }
 
     pub fn screen_width(&self) -> c_int {
-        unsafe { (*self.raw).scrWidth }
+        unsafe { (*self.raw).screen_width }
     }
 
     pub fn screen_height(&self) -> c_int {
-        unsafe { (*self.raw).scrHeight }
+        unsafe { (*self.raw).screen_height }
     }
 
     pub fn screen_size(&self) -> Size {
@@ -44,7 +71,7 @@ impl UiGlobals {
     }
 
     pub fn max_clients(&self) -> c_int {
-        unsafe { (*self.raw).maxClients }
+        unsafe { (*self.raw).max_clients }
     }
 
     pub fn developer(&self) -> c_int {
@@ -56,10 +83,10 @@ impl UiGlobals {
     // TODO: ui global demorecording
 
     pub fn demo_name(&self) -> &CStrThin {
-        unsafe { (*self.raw).demoname.as_thin() }
+        unsafe { (*self.raw).demo_name.as_thin() }
     }
 
     pub fn map_title(&self) -> &CStrThin {
-        unsafe { (*self.raw).maptitle.as_thin() }
+        unsafe { (*self.raw).map_title.as_thin() }
     }
 }

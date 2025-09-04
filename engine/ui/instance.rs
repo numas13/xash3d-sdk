@@ -1,14 +1,16 @@
-use crate::{engine::UiEngine, export::UnsyncGlobal, globals::UiGlobals, raw};
+use crate::{
+    engine::UiEngine,
+    export::UnsyncGlobal,
+    globals::{ui_globalvars_s, UiGlobals},
+    raw::{ui_enginefuncs_s, ui_extendedfuncs_s},
+};
 
 /// Initialize the global [UiEngine] and [UiGlobals] instances.
 ///
 /// # Safety
 ///
 /// Must be called only once.
-pub unsafe fn init_engine(
-    engine_funcs: &raw::ui_enginefuncs_s,
-    globals: *mut raw::ui_globalvars_s,
-) {
+pub unsafe fn init_engine(engine_funcs: &ui_enginefuncs_s, globals: *mut ui_globalvars_s) {
     unsafe {
         (*UiEngine::global_as_mut_ptr()).write(UiEngine::new(engine_funcs));
         (*UiGlobals::global_as_mut_ptr()).write(UiGlobals::new(globals));
@@ -21,7 +23,7 @@ pub unsafe fn init_engine(
 /// # Safety
 ///
 /// Must be called only once after [init_engine].
-pub unsafe fn init_engine_ext(ext: &raw::ui_extendedfuncs_s) {
+pub unsafe fn init_engine_ext(ext: &ui_extendedfuncs_s) {
     unsafe {
         (*UiEngine::global_as_mut_ptr())
             .assume_init_mut()

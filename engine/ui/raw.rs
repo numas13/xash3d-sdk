@@ -97,21 +97,6 @@ pub struct gameinfo2_s {
 
 #[derive(Copy, Clone)]
 #[repr(C)]
-pub struct ui_globalvars_s {
-    pub time: f32,
-    pub frametime: f32,
-    pub scrWidth: c_int,
-    pub scrHeight: c_int,
-    pub maxClients: c_int,
-    pub developer: c_int,
-    pub demoplayback: c_int,
-    pub demorecording: c_int,
-    pub demoname: CStrArray<64>,
-    pub maptitle: CStrArray<64>,
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
 pub struct ui_enginefuncs_s {
     pub pfnPIC_Load: Option<
         unsafe extern "C" fn(
@@ -390,21 +375,3 @@ pub struct UI_EXTENDED_FUNCTIONS {
     pub pfnConnectionProgress_ChangeLevel: Option<unsafe extern "C" fn()>,
     pub pfnConnectionProgress_ParseServerInfo: Option<unsafe extern "C" fn(server: *const c_char)>,
 }
-
-pub type MENUAPI = Option<
-    unsafe extern "C" fn(
-        pFunctionTable: *mut UI_FUNCTIONS,
-        engfuncs: *mut ui_enginefuncs_s,
-        pGlobals: *mut ui_globalvars_s,
-    ) -> c_int,
->;
-
-pub type UIEXTENEDEDAPI = Option<
-    unsafe extern "C" fn(
-        version: c_int,
-        pFunctionTable: *mut UI_EXTENDED_FUNCTIONS,
-        engfuncs: *mut ui_extendedfuncs_s,
-    ) -> c_int,
->;
-
-pub type UITEXTAPI = Option<unsafe extern "C" fn(engfuncs: *mut ui_extendedfuncs_s) -> c_int>;

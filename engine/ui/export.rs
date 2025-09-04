@@ -7,8 +7,12 @@ use csz::CStrThin;
 
 use crate::{
     color::RGBA,
+    globals::ui_globalvars_s,
     prelude::*,
-    raw::{self, netadr_s, MENU_EXTENDED_API_VERSION, UI_EXTENDED_FUNCTIONS, UI_FUNCTIONS},
+    raw::{
+        self, netadr_s, ui_enginefuncs_s, ui_extendedfuncs_s, MENU_EXTENDED_API_VERSION,
+        UI_EXTENDED_FUNCTIONS, UI_FUNCTIONS,
+    },
 };
 
 pub use shared::export::{impl_unsync_global, UnsyncGlobal};
@@ -388,7 +392,7 @@ impl<T: UiDll + Default> UiDllExport for T {
 pub unsafe fn get_menu_api<T: UiDll + Default>(
     ret_funcs: Option<&mut raw::UI_FUNCTIONS>,
     engine_funcs: Option<&raw::ui_enginefuncs_s>,
-    globals: *mut raw::ui_globalvars_s,
+    globals: *mut ui_globalvars_s,
 ) -> c_int {
     let Some(ret_funcs) = ret_funcs else { return 0 };
     let Some(engine_funcs) = engine_funcs else {
@@ -434,6 +438,24 @@ pub unsafe fn get_ext_api<T: UiDll + Default>(
     1
 }
 
+pub type MENUAPI = Option<
+    unsafe extern "C" fn(
+        dll_funcs: *mut UI_FUNCTIONS,
+        eng_funcs: *mut ui_enginefuncs_s,
+        globals: *mut ui_globalvars_s,
+    ) -> c_int,
+>;
+
+pub type UIEXTENEDEDAPI = Option<
+    unsafe extern "C" fn(
+        version: c_int,
+        dll_funcs: *mut UI_EXTENDED_FUNCTIONS,
+        eng_funcs: *mut ui_extendedfuncs_s,
+    ) -> c_int,
+>;
+
+pub type UITEXTAPI = Option<unsafe extern "C" fn(eng_funcs: *mut ui_extendedfuncs_s) -> c_int>;
+
 #[doc(hidden)]
 #[macro_export]
 macro_rules! export_dll {
@@ -442,7 +464,7 @@ macro_rules! export_dll {
         pub unsafe extern "C" fn GetMenuAPI(
             ret: Option<&mut $crate::raw::UI_FUNCTIONS>,
             funcs: Option<&$crate::raw::ui_enginefuncs_s>,
-            globals: *mut $crate::raw::ui_globalvars_s,
+            globals: *mut $crate::globals::ui_globalvars_s,
         ) -> core::ffi::c_int {
             $($pre)?
             let result = unsafe {
