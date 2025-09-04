@@ -5,7 +5,7 @@ pub mod macros;
 pub mod engine;
 mod engine_types;
 pub mod export;
-mod globals;
+pub mod globals;
 pub mod instance;
 mod logger;
 pub mod prelude;
@@ -14,8 +14,6 @@ pub mod str;
 pub mod utils;
 
 pub use shared::{cell, color, consts, cvar, math, str::ToEngineStr};
-
-pub use crate::globals::ServerGlobals;
 
 // TODO: remove me
 pub use crate::engine_types::*;

@@ -645,42 +645,6 @@ pub struct enginefuncs_s {
 
 #[derive(Copy, Clone)]
 #[repr(C)]
-pub struct globalvars_t {
-    pub time: f32,
-    pub frametime: f32,
-    pub force_retouch: f32,
-    pub mapname: Option<MapString>,
-    pub startspot: Option<MapString>,
-    pub deathmatch: f32,
-    pub coop: f32,
-    pub teamplay: f32,
-    pub serverflags: f32,
-    pub found_secrets: f32,
-    pub v_forward: vec3_t,
-    pub v_up: vec3_t,
-    pub v_right: vec3_t,
-    pub trace_allsolid: f32,
-    pub trace_startsolid: f32,
-    pub trace_fraction: f32,
-    pub trace_endpos: vec3_t,
-    pub trace_plane_normal: vec3_t,
-    pub trace_plane_dist: f32,
-    pub trace_ent: *mut edict_s,
-    pub trace_inopen: f32,
-    pub trace_inwater: f32,
-    pub trace_hitgroup: c_int,
-    pub trace_flags: c_int,
-    pub changelevel: c_int,
-    pub cdAudioTrack: c_int,
-    pub maxClients: c_int,
-    pub maxEntities: c_int,
-    pub pStringBase: *const c_char,
-    pub pSaveData: *mut c_void,
-    pub vecLandmarkOffset: vec3_t,
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
 pub struct KeyValueData {
     class_name: *mut c_char,
     key_name: *mut c_char,

@@ -1202,7 +1202,7 @@ macro_rules! export_dll {
         #[no_mangle]
         unsafe extern "C" fn GiveFnptrsToDll(
             engine_funcs: Option<&$crate::raw::enginefuncs_s>,
-            globals: *mut $crate::raw::globalvars_t,
+            globals: *mut $crate::globals::globalvars_t,
         ) {
             let engine_funcs = engine_funcs.unwrap();
             unsafe {
