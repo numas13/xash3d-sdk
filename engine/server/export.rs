@@ -262,7 +262,7 @@ pub trait ServerDll: UnsyncGlobal {
 #[allow(non_snake_case)]
 #[derive(Copy, Clone)]
 #[repr(C)]
-pub struct DllFunctions {
+pub struct ServerDllFunctions {
     pub pfnGameInit: Option<unsafe extern "C" fn()>,
     pub pfnSpawn: Option<unsafe extern "C" fn(pent: *mut edict_s) -> c_int>,
     pub pfnThink: Option<unsafe extern "C" fn(pent: *mut edict_s)>,
@@ -396,10 +396,10 @@ pub struct DllFunctions {
     pub pfnAllowLagCompensation: Option<unsafe extern "C" fn() -> c_int>,
 }
 
-impl DllFunctions {
+impl ServerDllFunctions {
     pub const VERSION: c_int = 140;
 
-    pub fn new<T: ServerDll + Default>() -> DllFunctions {
+    pub fn new<T: ServerDll + Default>() -> ServerDllFunctions {
         Export::<T>::dll_functions()
     }
 }
@@ -407,7 +407,7 @@ impl DllFunctions {
 #[allow(non_snake_case)]
 #[derive(Copy, Clone)]
 #[repr(C)]
-pub struct DllFunctions2 {
+pub struct ServerDllFunctions2 {
     pub pfnOnFreeEntPrivateData: Option<unsafe extern "C" fn(pEnt: *mut edict_s)>,
     pub pfnGameShutdown: Option<unsafe extern "C" fn()>,
     pub pfnShouldCollide:
@@ -423,17 +423,17 @@ pub struct DllFunctions2 {
     >,
 }
 
-impl DllFunctions2 {
+impl ServerDllFunctions2 {
     pub const VERSION: c_int = 1;
 
-    pub fn new<T: ServerDll + Default>() -> DllFunctions2 {
+    pub fn new<T: ServerDll + Default>() -> ServerDllFunctions2 {
         Export::<T>::new_dll_functions()
     }
 }
 
 trait ServerDllExport {
-    fn dll_functions() -> DllFunctions {
-        DllFunctions {
+    fn dll_functions() -> ServerDllFunctions {
+        ServerDllFunctions {
             pfnGameInit: Some(Self::init),
             pfnSpawn: Some(Self::dispatch_spawn),
             pfnThink: Some(Self::dispatch_think),
@@ -487,8 +487,8 @@ trait ServerDllExport {
         }
     }
 
-    fn new_dll_functions() -> DllFunctions2 {
-        DllFunctions2 {
+    fn new_dll_functions() -> ServerDllFunctions2 {
+        ServerDllFunctions2 {
             pfnOnFreeEntPrivateData: Some(Self::on_free_entity_private_data),
             pfnGameShutdown: Some(Self::shutdown),
             pfnShouldCollide: Some(Self::should_collide),
@@ -1201,19 +1201,19 @@ macro_rules! export_dll {
     ($server_dll:ty $($init:block)?) => {
         #[no_mangle]
         unsafe extern "C" fn GiveFnptrsToDll(
-            engine_funcs: Option<&$crate::raw::enginefuncs_s>,
+            eng_funcs: Option<&$crate::engine::ServerEngineFunctions>,
             globals: *mut $crate::globals::globalvars_t,
         ) {
-            let engine_funcs = engine_funcs.unwrap();
+            let eng_funcs = eng_funcs.unwrap();
             unsafe {
-                $crate::instance::init_engine(engine_funcs, globals);
+                $crate::instance::init_engine(eng_funcs, globals);
             }
             $crate::cvar::init(|name, _, _| $crate::instance::engine().get_cvar_ptr(name));
         }
 
         #[no_mangle]
         unsafe extern "C" fn GetEntityAPI(
-            dll_funcs: *mut $crate::export::DllFunctions,
+            dll_funcs: *mut $crate::export::ServerDllFunctions,
             mut version: core::ffi::c_int,
         ) -> core::ffi::c_int {
             unsafe { GetEntityAPI2(dll_funcs, &mut version) }
@@ -1221,18 +1221,18 @@ macro_rules! export_dll {
 
         #[no_mangle]
         unsafe extern "C" fn GetEntityAPI2(
-            dll_funcs: *mut $crate::export::DllFunctions,
+            dll_funcs: *mut $crate::export::ServerDllFunctions,
             version: *mut core::ffi::c_int,
         ) -> core::ffi::c_int {
-            use $crate::export::DllFunctions;
+            use $crate::export::ServerDllFunctions;
             unsafe {
-                if dll_funcs.is_null() || *version != DllFunctions::VERSION {
-                    *version = DllFunctions::VERSION;
+                if dll_funcs.is_null() || *version != ServerDllFunctions::VERSION {
+                    *version = ServerDllFunctions::VERSION;
                     return 0;
                 }
             }
             unsafe {
-                *dll_funcs = DllFunctions::new::<$server_dll>();
+                *dll_funcs = ServerDllFunctions::new::<$server_dll>();
             }
             $($init)?
             1
@@ -1240,16 +1240,16 @@ macro_rules! export_dll {
 
         #[no_mangle]
         unsafe extern "C" fn GetNewDLLFunctions(
-            dll_funcs: *mut $crate::export::DllFunctions2,
+            dll_funcs: *mut $crate::export::ServerDllFunctions2,
             version: *mut core::ffi::c_int,
         ) -> core::ffi::c_int {
-            use $crate::export::DllFunctions2;
+            use $crate::export::ServerDllFunctions2;
             unsafe {
-                if dll_funcs.is_null() || *version != DllFunctions2::VERSION {
-                    *version = DllFunctions2::VERSION;
+                if dll_funcs.is_null() || *version != ServerDllFunctions2::VERSION {
+                    *version = ServerDllFunctions2::VERSION;
                     return 0;
                 }
-                *dll_funcs = DllFunctions2::new::<$server_dll>();
+                *dll_funcs = ServerDllFunctions2::new::<$server_dll>();
                 1
             }
         }
