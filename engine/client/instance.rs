@@ -1,13 +1,17 @@
 use shared::export::UnsyncGlobal;
 
-use crate::{engine::ClientEngine, raw, studio::Studio};
+use crate::{
+    engine::{ClientEngine, ClientEngineFunctions},
+    raw,
+    studio::Studio,
+};
 
 /// Initialize the global [ClientEngine] instance.
 ///
 /// # Safety
 ///
 /// Must be called only once.
-pub unsafe fn init_engine(engine_funcs: &raw::cl_enginefuncs_s) {
+pub unsafe fn init_engine(engine_funcs: &ClientEngineFunctions) {
     unsafe {
         (*ClientEngine::global_as_mut_ptr()).write(ClientEngine::new(engine_funcs));
     }

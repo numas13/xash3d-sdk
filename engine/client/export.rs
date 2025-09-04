@@ -10,7 +10,7 @@ use shared::{
     raw::{byte, kbutton_t, qboolean, vec3_t},
 };
 
-use crate::{collections::TempEntityList, prelude::*, raw};
+use crate::{collections::TempEntityList, engine::cl_enginefuncs_s, prelude::*, raw};
 
 pub use shared::export::{impl_unsync_global, UnsyncGlobal};
 
@@ -226,7 +226,7 @@ trait ClientDllExport {
     }
 
     unsafe extern "C" fn initialize(
-        engine_funcs: Option<&raw::cl_enginefuncs_s>,
+        engine_funcs: Option<&cl_enginefuncs_s>,
         version: c_int,
     ) -> c_int;
 
@@ -372,7 +372,7 @@ struct Export<T> {
 
 impl<T: ClientDll + Default> ClientDllExport for Export<T> {
     unsafe extern "C" fn initialize(
-        engine_funcs: Option<&raw::cl_enginefuncs_s>,
+        engine_funcs: Option<&cl_enginefuncs_s>,
         version: c_int,
     ) -> c_int {
         if version != crate::CLDLL_INTERFACE_VERSION {

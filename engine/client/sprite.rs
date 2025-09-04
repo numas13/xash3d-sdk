@@ -1,8 +1,20 @@
 use core::{ffi::c_int, num::NonZeroI32, ops::Deref, slice};
 
-use csz::CStrThin;
+use csz::{CStrArray, CStrThin};
+use shared::raw::wrect_s;
 
-use crate::raw::{client_sprite_s, HSPRITE};
+pub type HSPRITE = c_int;
+
+#[allow(non_camel_case_types)]
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct client_sprite_s {
+    pub name: CStrArray<64>,
+    pub sprite: CStrArray<64>,
+    pub hspr: c_int,
+    pub res: c_int,
+    pub rc: wrect_s,
+}
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(transparent)]
