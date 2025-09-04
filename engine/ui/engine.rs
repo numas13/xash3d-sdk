@@ -208,12 +208,12 @@ pub struct UiEngineFunctions {
 }
 
 #[allow(non_camel_case_types)]
-pub type ui_extendedfuncs_s = UiEngineExtendedFunctions;
+pub type ui_extendedfuncs_s = UiEngineFunctionsExtended;
 
 #[allow(non_snake_case)]
 #[derive(Copy, Clone)]
 #[repr(C)]
-pub struct UiEngineExtendedFunctions {
+pub struct UiEngineFunctionsExtended {
     pub pfnEnableTextInput: Option<unsafe extern "C" fn(enable: c_int)>,
     pub pfnUtfProcessChar: Option<unsafe extern "C" fn(ch: c_int) -> c_int>,
     pub pfnUtfMoveLeft: Option<unsafe extern "C" fn(str_: *mut c_char, pos: c_int) -> c_int>,
@@ -248,7 +248,7 @@ pub struct UiEngineExtendedFunctions {
 }
 
 // TODO: use derive(Default) when MSRV >= 1.88
-impl Default for UiEngineExtendedFunctions {
+impl Default for UiEngineFunctionsExtended {
     fn default() -> Self {
         Self {
             pfnEnableTextInput: None,
@@ -276,7 +276,7 @@ struct Borrows {
 
 pub struct UiEngine {
     raw: UiEngineFunctions,
-    ext: UiEngineExtendedFunctions,
+    ext: UiEngineFunctionsExtended,
     borrows: Borrows,
 }
 
@@ -312,7 +312,7 @@ impl UiEngine {
         }
     }
 
-    pub(crate) fn set_extended(&mut self, ext: UiEngineExtendedFunctions) {
+    pub(crate) fn set_extended(&mut self, ext: UiEngineFunctionsExtended) {
         self.ext = ext;
     }
 
@@ -320,7 +320,7 @@ impl UiEngine {
         &self.raw
     }
 
-    pub fn raw_ext(&self) -> &UiEngineExtendedFunctions {
+    pub fn raw_ext(&self) -> &UiEngineFunctionsExtended {
         &self.ext
     }
 

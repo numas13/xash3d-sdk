@@ -4,7 +4,7 @@
 #![allow(clippy::missing_safety_doc)]
 #![allow(clippy::type_complexity)]
 
-use core::ffi::{c_char, c_int, c_short, c_uchar};
+use core::ffi::{c_int, c_short};
 
 use bitflags::bitflags;
 use csz::CStrArray;
@@ -12,8 +12,6 @@ use csz::CStrArray;
 pub use shared::raw::*;
 
 pub type HIMAGE = c_int;
-
-pub const MENU_EXTENDED_API_VERSION: c_int = 1;
 
 pub const GAMEINFO_VERSION: c_int = 2;
 
@@ -88,60 +86,4 @@ pub struct gameinfo2_s {
     pub date: CStrArray<64>,
     pub size: u64,
     pub gamemode: GameType,
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct UI_FUNCTIONS {
-    pub pfnVidInit: Option<unsafe extern "C" fn() -> c_int>,
-    pub pfnInit: Option<unsafe extern "C" fn()>,
-    pub pfnShutdown: Option<unsafe extern "C" fn()>,
-    pub pfnRedraw: Option<unsafe extern "C" fn(flTime: f32)>,
-    pub pfnKeyEvent: Option<unsafe extern "C" fn(key: c_int, down: c_int)>,
-    pub pfnMouseMove: Option<unsafe extern "C" fn(x: c_int, y: c_int)>,
-    pub pfnSetActiveMenu: Option<unsafe extern "C" fn(active: c_int)>,
-    pub pfnAddServerToList: Option<unsafe extern "C" fn(adr: netadr_s, info: *const c_char)>,
-    pub pfnGetCursorPos: Option<unsafe extern "C" fn(pos_x: *mut c_int, pos_y: *mut c_int)>,
-    pub pfnSetCursorPos: Option<unsafe extern "C" fn(pos_x: c_int, pos_y: c_int)>,
-    pub pfnShowCursor: Option<unsafe extern "C" fn(show: c_int)>,
-    pub pfnCharEvent: Option<unsafe extern "C" fn(key: c_int)>,
-    pub pfnMouseInRect: Option<unsafe extern "C" fn() -> c_int>,
-    pub pfnIsVisible: Option<unsafe extern "C" fn() -> c_int>,
-    pub pfnCreditsActive: Option<unsafe extern "C" fn() -> c_int>,
-    pub pfnFinalCredits: Option<unsafe extern "C" fn()>,
-}
-
-pub type ADDTOUCHBUTTONTOLIST = Option<
-    unsafe extern "C" fn(
-        name: *const c_char,
-        texture: *const c_char,
-        command: *const c_char,
-        color: *mut c_uchar,
-        flags: c_int,
-    ),
->;
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct UI_EXTENDED_FUNCTIONS {
-    pub pfnAddTouchButtonToList: ADDTOUCHBUTTONTOLIST,
-    pub pfnResetPing: Option<unsafe extern "C" fn()>,
-    pub pfnShowConnectionWarning: Option<unsafe extern "C" fn()>,
-    pub pfnShowUpdateDialog: Option<unsafe extern "C" fn(preferStore: c_int)>,
-    pub pfnShowMessageBox: Option<unsafe extern "C" fn(text: *const c_char)>,
-    pub pfnConnectionProgress_Disconnect: Option<unsafe extern "C" fn()>,
-    pub pfnConnectionProgress_Download: Option<
-        unsafe extern "C" fn(
-            pszFileName: *const c_char,
-            pszServerName: *const c_char,
-            iCurrent: c_int,
-            iTotal: c_int,
-            comment: *const c_char,
-        ),
-    >,
-    pub pfnConnectionProgress_DownloadEnd: Option<unsafe extern "C" fn()>,
-    pub pfnConnectionProgress_Precache: Option<unsafe extern "C" fn()>,
-    pub pfnConnectionProgress_Connect: Option<unsafe extern "C" fn(server: *const c_char)>,
-    pub pfnConnectionProgress_ChangeLevel: Option<unsafe extern "C" fn()>,
-    pub pfnConnectionProgress_ParseServerInfo: Option<unsafe extern "C" fn(server: *const c_char)>,
 }
