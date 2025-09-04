@@ -457,7 +457,7 @@ pub struct sv_blending_interface_s {
             pcontroller: *const byte,
             pblending: *const byte,
             iBone: c_int,
-            pEdict: *const edict_s,
+            pEdict: *const fake_edict_s,
         ),
     >,
 }

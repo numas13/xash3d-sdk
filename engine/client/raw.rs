@@ -549,7 +549,7 @@ pub struct event_api_s {
     pub EV_PlaybackEvent: Option<
         unsafe extern "C" fn(
             flags: c_int,
-            pInvoker: *const edict_s,
+            pInvoker: *const fake_edict_s,
             eventindex: c_ushort,
             delay: f32,
             origin: *mut f32,
@@ -901,7 +901,7 @@ pub struct cl_enginefuncs_s {
     pub pfnPlaybackEvent: Option<
         unsafe extern "C" fn(
             flags: c_int,
-            pInvoker: *const edict_s,
+            pInvoker: *const fake_edict_s,
             eventindex: c_ushort,
             delay: f32,
             origin: *mut f32,

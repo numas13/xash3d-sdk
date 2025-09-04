@@ -318,11 +318,11 @@ pub struct plane_t {
     pub dist: f32,
 }
 
-pub type edict_s = c_void;
+pub type fake_edict_s = c_void;
 
 #[derive(Copy, Clone)]
 #[repr(C)]
-pub struct trace_t<E = edict_s> {
+pub struct trace_t<E = fake_edict_s> {
     pub allsolid: qboolean,
     pub startsolid: qboolean,
     pub inopen: qboolean,
