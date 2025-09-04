@@ -8,6 +8,7 @@ use core::{
 
 use csz::CStrThin;
 use sv::{
+    export::RestoreResult,
     macros::define_entity_field,
     prelude::*,
     raw::{
@@ -609,7 +610,7 @@ pub fn dispatch_restore(
     mut ent: *mut edict_s,
     save_data: &mut SAVERESTOREDATA,
     global_entity: bool,
-) -> c_int {
+) -> RestoreResult {
     let mut global_vars = MaybeUninit::<entvars_s>::uninit();
 
     if global_entity {
@@ -634,7 +635,7 @@ pub fn dispatch_restore(
         let mut entities = global_state().entities.borrow_mut();
         let global = entities.find(tmp_vars.globalname.unwrap()).unwrap();
         if restore.data.current_map_name != *global.map_name() {
-            return 0;
+            return RestoreResult::Ok;
         }
 
         old_offset = restore.data.landmark_offset;
@@ -651,12 +652,12 @@ pub fn dispatch_restore(
                 globals().map_name().unwrap(),
             );
         } else {
-            return 0;
+            return RestoreResult::Ok;
         }
     }
 
     let Some(entity) = (unsafe { (*ent).private_mut() }) else {
-        return 0;
+        return RestoreResult::Ok;
     };
     entity.restore(&mut restore).unwrap();
     if entity.object_caps().intersects(ObjectCaps::MUST_SPAWN) {
@@ -672,14 +673,14 @@ pub fn dispatch_restore(
             let origin = entity.vars().origin;
             engine().set_origin(entity.ent_mut(), origin);
             entity.override_reset();
-            return 0;
+            return RestoreResult::Ok;
         }
     } else if let Some(entity) = entity {
         if let Some(globalname) = entity.vars().globalname {
             let mut entities = global_state().entities.borrow_mut();
             if let Some(global) = entities.find(globalname) {
                 if global.is_dead() {
-                    return -1;
+                    return RestoreResult::Delete;
                 }
                 let globals = globals();
                 if globals.map_name().unwrap().as_thin() != global.map_name() {
@@ -694,7 +695,7 @@ pub fn dispatch_restore(
         }
     }
 
-    0
+    RestoreResult::Ok
 }
 
 fn find_global_entity(classname: MapString, globalname: MapString) -> Option<*mut edict_s> {

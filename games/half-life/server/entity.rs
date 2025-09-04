@@ -198,16 +198,16 @@ pub trait Entity: EntityVars + Cast + Any {
         self.vars().flags.intersects(EdictFlags::DORMANT)
     }
 
-    fn globalname(&self) -> MapString {
-        self.vars().globalname.unwrap()
+    fn globalname(&self) -> &MapString {
+        self.vars().globalname.as_ref().unwrap()
     }
 
     fn is_globalname(&self, name: &CStrThin) -> bool {
         name == self.globalname().as_thin()
     }
 
-    fn classname(&self) -> MapString {
-        self.vars().classname.unwrap()
+    fn classname(&self) -> &MapString {
+        self.vars().classname.as_ref().unwrap()
     }
 
     fn is_classname(&self, name: &CStrThin) -> bool {

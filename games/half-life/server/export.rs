@@ -1,19 +1,14 @@
-#![allow(non_snake_case)]
-
 use core::{
-    ffi::{c_char, c_int, c_uchar, c_uint, c_void, CStr},
-    ptr, slice,
+    ffi::{c_int, c_uchar, c_void, CStr},
+    ptr,
 };
 
 use csz::CStrThin;
 use pm::{VEC_DUCK_HULL_MIN, VEC_HULL_MIN};
 use sv::{
+    export::{export_dll, impl_unsync_global, RestoreResult, ServerDll, SpawnResult},
     prelude::*,
-    raw::{
-        self, clientdata_s, customization_s, edict_s, entity_state_s, netadr_s, playermove_s,
-        qboolean, usercmd_s, vec3_t, weapon_data_s, EdictFlags, INTERFACE_VERSION,
-        NEW_DLL_FUNCTIONS_VERSION,
-    },
+    raw::{self, edict_s, vec3_t, EdictFlags},
 };
 
 use crate::{
@@ -24,599 +19,235 @@ use crate::{
     save, triggers,
 };
 
-#[no_mangle]
-unsafe extern "C" fn GameDLLInit() {
-    crate::cvar::init();
+struct Instance {}
+
+impl Default for Instance {
+    fn default() -> Self {
+        crate::cvar::init();
+        Self {}
+    }
 }
 
-#[no_mangle]
-unsafe extern "C" fn DispatchSpawn(ent: *mut edict_s) -> c_int {
-    if ent.is_null() {
-        return 0;
-    }
+impl_unsync_global!(Instance);
 
-    let Some(entity) = (unsafe { (*ent).private_mut() }) else {
-        return 0;
-    };
-    let ev = unsafe { &mut (*ent).v };
+impl ServerDll for Instance {
+    fn dispatch_spawn(&self, ent: &mut edict_s) -> SpawnResult {
+        let Some(ent) = ent.private_mut() else {
+            return SpawnResult::Delete;
+        };
 
-    ev.absmin = ev.origin - vec3_t::splat(1.0);
-    ev.absmax = ev.origin + vec3_t::splat(1.0);
+        let ev = ent.vars_mut();
+        ev.absmin = ev.origin - vec3_t::splat(1.0);
+        ev.absmax = ev.origin + vec3_t::splat(1.0);
 
-    if !entity.spawn() {
-        return -1;
-    }
-
-    if let Some(false) = game_rules().map(|rules| rules.is_allowed_to_spawn(&**entity)) {
-        return -1;
-    }
-
-    if ev.flags.intersects(EdictFlags::KILLME) {
-        return -1;
-    }
-
-    if let Some(globalname) = &ev.globalname {
-        let global_state = global_state();
-        let mut entities = global_state.entities.borrow_mut();
-        let map_name = globals().map_name().unwrap();
-        if let Some(global) = entities.find(globalname) {
-            if global.is_dead() {
-                return -1;
-            }
-            if map_name.as_thin() != global.map_name() {
-                entity.make_dormant();
-            }
-        } else {
-            entities.add(globalname, map_name, EntityState::On);
+        if !ent.spawn() {
+            return SpawnResult::Delete;
         }
-    }
-    0
-}
 
-#[no_mangle]
-unsafe extern "C" fn DispatchThink(ent: *mut edict_s) {
-    if !ent.is_null() {
-        let ent = unsafe { &mut *ent };
+        if let Some(false) = game_rules().map(|rules| rules.is_allowed_to_spawn(&**ent)) {
+            return SpawnResult::Delete;
+        }
+
+        if ent.vars().flags.intersects(EdictFlags::KILLME) {
+            return SpawnResult::Delete;
+        }
+
+        if let Some(globalname) = &ent.vars().globalname {
+            let global_state = global_state();
+            let mut entities = global_state.entities.borrow_mut();
+            let map_name = globals().map_name().unwrap();
+            if let Some(global) = entities.find(globalname) {
+                if global.is_dead() {
+                    return SpawnResult::Delete;
+                }
+                if map_name.as_thin() != global.map_name() {
+                    ent.make_dormant();
+                }
+            } else {
+                entities.add(globalname, map_name, EntityState::On);
+            }
+        }
+
+        SpawnResult::Ok
+    }
+
+    fn dispatch_think(&self, ent: &mut edict_s) {
         if let Some(entity) = ent.private_mut() {
             if entity.vars().flags.intersects(EdictFlags::DORMANT) {
                 let classname = entity.classname();
-                error!("Dormant entity {classname:?} is thinkng");
+                warn!("Dormant entity {classname:?} is thinkng");
             }
             entity.think();
         }
     }
-}
 
-#[no_mangle]
-unsafe extern "C" fn DispatchUse(_ent_used: *mut edict_s, _ent_other: *mut edict_s) {
-    todo!();
-}
+    fn dispatch_use(&self, _used: &mut edict_s, _other: &mut edict_s) {}
 
-#[no_mangle]
-unsafe extern "C" fn DispatchTouch(touched: *mut edict_s, other: *mut edict_s) {
-    let touched = unsafe { &mut *touched };
-    let other = unsafe { &mut *other };
-    crate::todo::dispatch_touch(touched, other);
-}
-
-#[no_mangle]
-unsafe extern "C" fn DispatchBlocked(_ent_blocked: *mut edict_s, _ent_other: *mut edict_s) {
-    debug!("TODO: DispatchBlocked");
-}
-
-#[no_mangle]
-unsafe extern "C" fn DispatchKeyValue(ent: *mut edict_s, data: *mut raw::KeyValueData) {
-    if !ent.is_null() && !data.is_null() {
-        unsafe {
-            save::dispatch_key_value(&mut *ent, &mut *data);
-        }
+    fn dispatch_touch(&self, touched: &mut edict_s, other: &mut edict_s) {
+        crate::todo::dispatch_touch(touched, other);
+        let touched = touched.private().unwrap();
+        let other = other.private().unwrap();
+        trace!(
+            "Touch entity {} by {}",
+            touched.classname(),
+            other.classname()
+        );
     }
-}
 
-#[no_mangle]
-unsafe extern "C" fn DispatchSave(ent: *mut edict_s, save_data: *mut raw::SAVERESTOREDATA) {
-    if !ent.is_null() && !save_data.is_null() {
-        let ent = unsafe { &mut *ent };
-        let save_data = unsafe { &mut *save_data };
+    fn dispatch_blocked(&self, _blocked: &mut edict_s, _other: &mut edict_s) {}
+
+    fn dispatch_key_value(&self, ent: &mut edict_s, data: &mut raw::KeyValueData) {
+        save::dispatch_key_value(ent, data);
+    }
+
+    fn dispatch_save(&self, ent: &mut edict_s, save_data: &mut raw::SAVERESTOREDATA) {
         save::dispatch_save(ent, save_data);
     }
-}
 
-#[no_mangle]
-unsafe extern "C" fn DispatchRestore(
-    ent: *mut edict_s,
-    save_data: *mut raw::SAVERESTOREDATA,
-    global_entity: c_int,
-) -> c_int {
-    if !ent.is_null() && !save_data.is_null() {
-        let save_data = unsafe { &mut *save_data };
-        save::dispatch_restore(ent, save_data, global_entity != 0)
-    } else {
-        0
+    fn dispatch_restore(
+        &self,
+        ent: &mut edict_s,
+        save_data: &mut raw::SAVERESTOREDATA,
+        global_entity: bool,
+    ) -> RestoreResult {
+        save::dispatch_restore(ent, save_data, global_entity)
     }
-}
 
-#[no_mangle]
-unsafe extern "C" fn DispatchObjectCollsionBox(ent: *mut edict_s) {
-    crate::todo::dispatch_object_collision_box(unsafe { &mut *ent });
-}
-
-#[no_mangle]
-unsafe extern "C" fn SaveWriteFields(
-    save_data: *mut raw::SAVERESTOREDATA,
-    name: *const c_char,
-    base_data: *mut c_void,
-    fields: *mut raw::TYPEDESCRIPTION,
-    fields_count: c_int,
-) {
-    assert!(!save_data.is_null());
-
-    unsafe {
-        save::write_fields(
-            &mut *save_data,
-            CStr::from_ptr(name),
-            base_data,
-            if !fields.is_null() {
-                slice::from_raw_parts(fields, fields_count as usize)
-            } else {
-                &mut []
-            },
-        );
+    fn dispatch_object_collsion_box(&self, ent: &mut edict_s) {
+        crate::todo::dispatch_object_collision_box(ent);
     }
-}
 
-#[no_mangle]
-unsafe extern "C" fn SaveReadFields(
-    save_data: *mut raw::SAVERESTOREDATA,
-    name: *const c_char,
-    base_data: *mut c_void,
-    fields: *mut raw::TYPEDESCRIPTION,
-    fields_count: c_int,
-) {
-    assert!(!save_data.is_null());
-
-    unsafe {
-        save::read_fields(
-            &mut *save_data,
-            CStr::from_ptr(name),
-            base_data,
-            if !fields.is_null() {
-                slice::from_raw_parts(fields, fields_count as usize)
-            } else {
-                &mut []
-            },
-        );
+    fn save_write_fields(
+        &self,
+        save_data: &mut raw::SAVERESTOREDATA,
+        name: &CStrThin,
+        base_data: *mut c_void,
+        fields: &mut [raw::TYPEDESCRIPTION],
+    ) {
+        save::write_fields(save_data, name.as_c_str(), base_data, fields);
     }
-}
 
-#[no_mangle]
-unsafe extern "C" fn SaveGlobalState(save_data: *mut raw::SAVERESTOREDATA) {
-    if !save_data.is_null() {
-        if let Err(e) = global_state().save(unsafe { &mut *save_data }) {
+    fn save_read_fields(
+        &self,
+        save_data: &mut raw::SAVERESTOREDATA,
+        name: &CStrThin,
+        base_data: *mut c_void,
+        fields: &mut [raw::TYPEDESCRIPTION],
+    ) {
+        save::read_fields(&mut *save_data, name.as_c_str(), base_data, fields);
+    }
+
+    fn save_global_state(&self, save_data: &mut raw::SAVERESTOREDATA) {
+        if let Err(e) = global_state().save(save_data) {
             error!("Failed to save global state: {e:?}");
         }
     }
-}
 
-#[no_mangle]
-unsafe extern "C" fn RestoreGlobalState(save_data: *mut raw::SAVERESTOREDATA) {
-    if !save_data.is_null() {
-        if let Err(e) = global_state().restore(unsafe { &mut *save_data }) {
+    fn restore_global_state(&self, save_data: &mut raw::SAVERESTOREDATA) {
+        if let Err(e) = global_state().restore(save_data) {
             error!("Failed to restore global state: {e:?}");
         }
     }
-}
 
-#[no_mangle]
-unsafe extern "C" fn ResetGlobalState() {
-    global_state().reset();
-}
-
-#[no_mangle]
-unsafe extern "C" fn ClientConnect(
-    _pEntity: *mut edict_s,
-    _pszName: *const c_char,
-    _pszAddress: *const c_char,
-    _szRejectReason: *mut [c_char; 128usize],
-) -> qboolean {
-    debug!("TODO: ClientConnect");
-    qboolean::TRUE
-}
-
-#[no_mangle]
-unsafe extern "C" fn ClientDisconnect(_ent: *mut edict_s) {
-    todo!();
-}
-
-#[no_mangle]
-unsafe extern "C" fn ClientKill(_ent: *mut edict_s) {
-    todo!();
-}
-
-#[no_mangle]
-unsafe extern "C" fn ClientPutInServer(ent: *mut edict_s) {
-    let ent = unsafe { &mut *ent };
-    player::client_put_in_server(ent);
-}
-
-#[no_mangle]
-unsafe extern "C" fn ClientCommand(_ent: *mut edict_s) {
-    let engine = engine();
-    let cmd = engine.cmd_argv(0);
-    debug!("client command {cmd:?}");
-}
-
-#[no_mangle]
-unsafe extern "C" fn ClientUserInfoChanged(_ent: *mut edict_s, _infobuffer: *mut c_char) {
-    debug!("TODO: ClientUserInfoChanged");
-}
-
-#[no_mangle]
-unsafe extern "C" fn ServerActivate(
-    _pEdictList: *mut edict_s,
-    _edictCount: c_int,
-    _clientMax: c_int,
-) {
-    debug!("TODO: ServerActivate");
-}
-
-#[no_mangle]
-unsafe extern "C" fn ServerDeactivate() {
-    debug!("TODO: ServerDeactivate");
-}
-
-#[no_mangle]
-unsafe extern "C" fn PlayerPreThink(_pEntity: *mut edict_s) {
-    // debug!("TODO: PlayerPreThink");
-}
-
-#[no_mangle]
-unsafe extern "C" fn PlayerPostThink(_pEntity: *mut edict_s) {
-    // debug!("TODO: PlayerPostThink");
-}
-
-#[no_mangle]
-unsafe extern "C" fn StartFrame() {
-    // debug!("TODO: StartFrame");
-}
-
-#[no_mangle]
-unsafe extern "C" fn ParmsNewLevel() {
-    debug!("TODO: ParmsNewLevel");
-}
-
-#[no_mangle]
-unsafe extern "C" fn ParmsChangeLevel() {
-    if let Some(mut save_data) = globals().save_data() {
-        let save_data = unsafe { save_data.as_mut() };
-        save_data.connection_count =
-            triggers::build_change_list(&mut save_data.level_list) as c_int;
+    fn reset_global_state(&self) {
+        global_state().reset();
     }
-}
 
-#[no_mangle]
-unsafe extern "C" fn GetGameDescription() -> *const c_char {
-    game_rules()
-        .map_or(c"Half-Life", |rules| rules.get_game_description())
-        .as_ptr()
-}
+    fn client_put_in_server(&self, ent: &mut edict_s) {
+        player::client_put_in_server(ent);
+    }
 
-#[no_mangle]
-unsafe extern "C" fn PlayerCustomization(_pEntity: *mut edict_s, _pCustom: *mut customization_s) {
-    debug!("TODO: PlayerCustomization");
-}
+    fn client_command(&self, ent: &mut edict_s) {
+        let classname = ent
+            .private()
+            .map_or(c"unknown".into(), |p| p.classname().as_thin());
+        let engine = engine();
+        let cmd = engine.cmd_argv(0);
+        let args = engine.cmd_args_raw().unwrap_or_default();
+        debug!("{classname}: client command \"{cmd} {args}\"");
+    }
 
-#[no_mangle]
-unsafe extern "C" fn SpectatorConnect(_pEntity: *mut edict_s) {
-    todo!();
-}
+    fn parms_change_level(&self) {
+        if let Some(mut save_data) = globals().save_data() {
+            let save_data = unsafe { save_data.as_mut() };
+            save_data.connection_count =
+                triggers::build_change_list(&mut save_data.level_list) as c_int;
+        }
+    }
 
-#[no_mangle]
-unsafe extern "C" fn SpectatorDisconnect(_pEntity: *mut edict_s) {
-    todo!();
-}
+    fn get_game_description(&self) -> &'static CStr {
+        game_rules().map_or(c"Half-Life", |rules| rules.get_game_description())
+    }
 
-#[no_mangle]
-unsafe extern "C" fn SpectatorThink(_pEntity: *mut edict_s) {
-    todo!();
-}
+    fn setup_visibility(
+        &self,
+        view_entity: Option<&mut edict_s>,
+        client: &mut edict_s,
+        pvs: *mut *mut c_uchar,
+        pas: *mut *mut c_uchar,
+    ) {
+        if client.v.flags.intersects(EdictFlags::PROXY) {
+            unsafe {
+                *pvs = ptr::null_mut();
+                *pas = ptr::null_mut();
+            }
+            return;
+        }
 
-#[no_mangle]
-unsafe extern "C" fn Sys_Error(_error_string: *const c_char) {
-    todo!();
-}
+        let view = view_entity.unwrap_or(client);
+        let mut org = view.v.origin + view.v.view_ofs;
+        if view.v.flags.intersects(EdictFlags::DUCKING) {
+            org += VEC_HULL_MIN - VEC_DUCK_HULL_MIN;
+        }
 
-#[no_mangle]
-unsafe extern "C" fn PM_Move(pm: *mut playermove_s, is_server: qboolean) {
-    pm::player_move(unsafe { &mut *pm.cast() }, is_server.to_bool());
-}
-
-#[no_mangle]
-unsafe extern "C" fn PM_Init(pm: *mut playermove_s) {
-    pm::player_move_init(unsafe { &mut *pm.cast() });
-}
-
-#[no_mangle]
-unsafe extern "C" fn PM_FindTextureType(name: *const c_char) -> c_char {
-    pm::find_texture_type(unsafe { CStrThin::from_ptr(name) })
-}
-
-#[no_mangle]
-unsafe extern "C" fn SetupVisibility(
-    view_entity: *mut edict_s,
-    client: *mut edict_s,
-    pvs: *mut *mut c_uchar,
-    pas: *mut *mut c_uchar,
-) {
-    let client = unsafe { &mut *client };
-    if client.v.flags.intersects(EdictFlags::PROXY) {
+        let engine = engine();
         unsafe {
-            *pvs = ptr::null_mut();
-            *pas = ptr::null_mut();
-        }
-        return;
-    }
-
-    let view = if !view_entity.is_null() {
-        unsafe { &mut *view_entity }
-    } else {
-        client
-    };
-
-    let mut org = view.v.origin + view.v.view_ofs;
-    if view.v.flags.intersects(EdictFlags::DUCKING) {
-        org += VEC_HULL_MIN - VEC_DUCK_HULL_MIN;
-    }
-
-    let engine = engine();
-    unsafe {
-        *pvs = engine.set_pvs(org);
-        *pas = engine.set_pas(org);
-    }
-}
-
-#[no_mangle]
-unsafe extern "C" fn UpdateClientData(
-    ent: *const edict_s,
-    sendweapons: c_int,
-    cd: *mut clientdata_s,
-) {
-    if !ent.is_null() {
-        unsafe {
-            crate::todo::update_client_data(&*ent, sendweapons != 0, &mut *cd);
+            *pvs = engine.set_pvs(org);
+            *pas = engine.set_pas(org);
         }
     }
-}
 
-#[no_mangle]
-unsafe extern "C" fn AddToFullPack(
-    state: *mut entity_state_s,
-    e: c_int,
-    ent: *mut edict_s,
-    host: *mut edict_s,
-    hostflags: c_int,
-    player: c_int,
-    set: *mut c_uchar,
-) -> c_int {
-    let state = unsafe { &mut *state };
-    let ent = unsafe { &*ent };
-    let host = unsafe { &*host };
-    let player = player != 0;
-    let set = unsafe { &mut *set };
-    crate::todo::add_to_full_pack(state, e, ent, host, hostflags, player, set) as c_int
-}
+    fn update_client_data(&self, ent: &edict_s, send_weapons: bool, cd: &mut raw::clientdata_s) {
+        crate::todo::update_client_data(ent, send_weapons, cd);
+    }
 
-#[no_mangle]
-unsafe extern "C" fn CreateBaseline(
-    player: c_int,
-    eindex: c_int,
-    baseline: *mut entity_state_s,
-    entity: *mut edict_s,
-    playermodelindex: c_int,
-    player_mins: *const vec3_t,
-    player_maxs: *const vec3_t,
-) {
-    crate::todo::create_baseline(
-        player != 0,
-        eindex,
-        unsafe { &mut *baseline },
-        unsafe { &*entity },
-        playermodelindex,
-        unsafe { *player_mins },
-        unsafe { *player_maxs },
-    );
-}
+    fn add_to_full_pack(
+        &self,
+        state: &mut raw::entity_state_s,
+        e: c_int,
+        ent: &edict_s,
+        host: &edict_s,
+        hostflags: c_int,
+        player: bool,
+        set: *mut c_uchar,
+    ) -> bool {
+        crate::todo::add_to_full_pack(state, e, ent, host, hostflags, player, set)
+    }
 
-#[no_mangle]
-unsafe extern "C" fn RegisterEncoders() {
-    debug!("TODO: RegisterEncoders");
-}
+    fn create_baseline(
+        &self,
+        player: bool,
+        eindex: c_int,
+        baseline: &mut raw::entity_state_s,
+        entity: &mut edict_s,
+        player_model_index: c_int,
+        player_mins: vec3_t,
+        player_maxs: vec3_t,
+    ) {
+        crate::todo::create_baseline(
+            player,
+            eindex,
+            baseline,
+            entity,
+            player_model_index,
+            player_mins,
+            player_maxs,
+        );
+    }
 
-#[no_mangle]
-unsafe extern "C" fn GetWeaponData(_player: *mut edict_s, _info: *mut weapon_data_s) -> c_int {
-    todo!();
-}
-
-#[no_mangle]
-unsafe extern "C" fn CmdStart(_player: *mut edict_s, _cmd: *const usercmd_s, _random_seed: c_uint) {
-    // debug!("TODO: CmdStart");
-}
-
-#[no_mangle]
-unsafe extern "C" fn CmdEnd(_player: *mut edict_s) {
-    // debug!("TODO: CmdEnd");
-}
-
-#[no_mangle]
-unsafe extern "C" fn ConnectionlessPacket(
-    _net_from: *const netadr_s,
-    _args: *const c_char,
-    _response_buffer: *mut c_char,
-    _response_buffer_size: *mut c_int,
-) -> c_int {
-    todo!();
-}
-
-#[no_mangle]
-extern "C" fn GetHullBounds(hullnumber: c_int, mins: *mut vec3_t, maxs: *mut vec3_t) -> c_int {
-    unsafe { pm::get_hull_bounds_ffi(hullnumber, &mut *mins, &mut *maxs) }
-}
-
-#[no_mangle]
-unsafe extern "C" fn CreateInstancedBaselines() {
-    debug!("TODO: CreateInstancedBaselines");
-}
-
-#[no_mangle]
-unsafe extern "C" fn InconsistentFile(
-    _player: *const edict_s,
-    _filename: *const c_char,
-    _disconnect_message: *mut c_char,
-) -> c_int {
-    todo!();
-}
-
-#[no_mangle]
-unsafe extern "C" fn AllowLagCompensation() -> c_int {
-    todo!();
-}
-
-static DLL_FUNCTIONS: raw::DLL_FUNCTIONS = raw::DLL_FUNCTIONS {
-    pfnGameInit: Some(GameDLLInit),
-    pfnSpawn: Some(DispatchSpawn),
-    pfnThink: Some(DispatchThink),
-    pfnUse: Some(DispatchUse),
-    pfnTouch: Some(DispatchTouch),
-    pfnBlocked: Some(DispatchBlocked),
-    pfnKeyValue: Some(DispatchKeyValue),
-    pfnSave: Some(DispatchSave),
-    pfnRestore: Some(DispatchRestore),
-    pfnSetAbsBox: Some(DispatchObjectCollsionBox),
-    pfnSaveWriteFields: Some(SaveWriteFields),
-    pfnSaveReadFields: Some(SaveReadFields),
-    pfnSaveGlobalState: Some(SaveGlobalState),
-    pfnRestoreGlobalState: Some(RestoreGlobalState),
-    pfnResetGlobalState: Some(ResetGlobalState),
-    pfnClientConnect: Some(ClientConnect),
-    pfnClientDisconnect: Some(ClientDisconnect),
-    pfnClientKill: Some(ClientKill),
-    pfnClientPutInServer: Some(ClientPutInServer),
-    pfnClientCommand: Some(ClientCommand),
-    pfnClientUserInfoChanged: Some(ClientUserInfoChanged),
-    pfnServerActivate: Some(ServerActivate),
-    pfnServerDeactivate: Some(ServerDeactivate),
-    pfnPlayerPreThink: Some(PlayerPreThink),
-    pfnPlayerPostThink: Some(PlayerPostThink),
-    pfnStartFrame: Some(StartFrame),
-    pfnParmsNewLevel: Some(ParmsNewLevel),
-    pfnParmsChangeLevel: Some(ParmsChangeLevel),
-    pfnGetGameDescription: Some(GetGameDescription),
-    pfnPlayerCustomization: Some(PlayerCustomization),
-    pfnSpectatorConnect: Some(SpectatorConnect),
-    pfnSpectatorDisconnect: Some(SpectatorDisconnect),
-    pfnSpectatorThink: Some(SpectatorThink),
-    pfnSys_Error: Some(Sys_Error),
-    pfnPM_Move: Some(PM_Move),
-    pfnPM_Init: Some(PM_Init),
-    pfnPM_FindTextureType: Some(PM_FindTextureType),
-    pfnSetupVisibility: Some(SetupVisibility),
-    pfnUpdateClientData: Some(UpdateClientData),
-    pfnAddToFullPack: Some(AddToFullPack),
-    pfnCreateBaseline: Some(CreateBaseline),
-    pfnRegisterEncoders: Some(RegisterEncoders),
-    pfnGetWeaponData: Some(GetWeaponData),
-    pfnCmdStart: Some(CmdStart),
-    pfnCmdEnd: Some(CmdEnd),
-    pfnConnectionlessPacket: Some(ConnectionlessPacket),
-    pfnGetHullBounds: Some(GetHullBounds),
-    pfnCreateInstancedBaselines: Some(CreateInstancedBaselines),
-    pfnInconsistentFile: Some(InconsistentFile),
-    pfnAllowLagCompensation: Some(AllowLagCompensation),
-};
-
-#[no_mangle]
-unsafe extern "C" fn pfnOnFreeEntPrivateData(ent: *mut edict_s) {
-    unsafe {
-        PrivateDataRef::free(ent);
+    unsafe fn on_free_entity_private_data(&self, ent: *mut edict_s) {
+        unsafe { PrivateDataRef::free(ent) }
     }
 }
 
-#[no_mangle]
-unsafe extern "C" fn GameShutdown() {
-    debug!("TODO: GameShutdown");
-}
-
-#[no_mangle]
-unsafe extern "C" fn ShouldCollide(_pentTouched: *mut edict_s, _pentOther: *mut edict_s) -> c_int {
-    debug!("TODO: ShouldCollide");
-    0
-}
-
-#[no_mangle]
-unsafe extern "C" fn CvarValue(_pEnt: *const edict_s, _value: *const c_char) {
-    todo!();
-}
-
-#[no_mangle]
-unsafe extern "C" fn CvarValue2(
-    _pEnt: *const edict_s,
-    _requestID: c_int,
-    _cvarName: *const c_char,
-    _value: *const c_char,
-) {
-    todo!();
-}
-
-static NEW_DLL_FUNCTIONS: raw::NEW_DLL_FUNCTIONS = raw::NEW_DLL_FUNCTIONS {
-    pfnOnFreeEntPrivateData: Some(pfnOnFreeEntPrivateData),
-    pfnGameShutdown: Some(GameShutdown),
-    // TODO: pfnShouldCollide: Some(ShouldCollide),
-    // TODO: pfnCvarValue: Some(CvarValue),
-    // TODO: pfnCvarValue2: Some(CvarValue2),
-    pfnShouldCollide: None,
-    pfnCvarValue: None,
-    pfnCvarValue2: None,
-};
-
-#[no_mangle]
-unsafe extern "C" fn GetEntityAPI(funcs: *mut raw::DLL_FUNCTIONS, mut version: c_int) -> c_int {
-    unsafe { GetEntityAPI2(funcs, &mut version) }
-}
-
-#[no_mangle]
-unsafe extern "C" fn GetEntityAPI2(funcs: *mut raw::DLL_FUNCTIONS, version: *mut c_int) -> c_int {
-    unsafe {
-        if funcs.is_null() || *version != INTERFACE_VERSION {
-            *version = INTERFACE_VERSION;
-            return 0;
-        }
-        *funcs = DLL_FUNCTIONS;
-        1
-    }
-}
-
-#[no_mangle]
-unsafe extern "C" fn GetNewDLLFunctions(
-    funcs: *mut raw::NEW_DLL_FUNCTIONS,
-    version: *mut c_int,
-) -> c_int {
-    unsafe {
-        if funcs.is_null() || *version != NEW_DLL_FUNCTIONS_VERSION {
-            *version = NEW_DLL_FUNCTIONS_VERSION;
-            return 0;
-        }
-        *funcs = NEW_DLL_FUNCTIONS;
-        1
-    }
-}
-
-#[no_mangle]
-unsafe extern "C" fn GiveFnptrsToDll(
-    funcs: Option<&sv::raw::enginefuncs_s>,
-    globals: *mut sv::raw::globalvars_t,
-) {
-    unsafe {
-        sv::instance::init_engine(funcs.unwrap(), globals);
-    }
-    sv::cvar::init(|name, _, _| engine().get_cvar_ptr(name));
-}
+export_dll!(Instance);
