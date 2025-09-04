@@ -4,6 +4,7 @@
 pub mod macros;
 pub mod engine;
 mod engine_types;
+pub mod export;
 mod globals;
 pub mod instance;
 mod logger;

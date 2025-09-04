@@ -71,9 +71,9 @@ impl<T: EngineConsoleLogger> log::Log for ConsoleLogger<T> {
 
 pub fn init_console_logger<T: 'static + EngineConsoleLogger>() {
     let level = match T::get_cvar_float(c"developer".into()) as i32 {
-        2 => LevelFilter::Trace,
+        0 => LevelFilter::Info,
         1 => LevelFilter::Debug,
-        _ => LevelFilter::Info,
+        _ => LevelFilter::Trace,
     };
     if log::set_logger(&ConsoleLogger(PhantomData::<T>)).is_err() {
         T::console_print(c"^1Error:^7 Failed initialize console logger".into());

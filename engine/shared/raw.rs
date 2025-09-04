@@ -528,8 +528,8 @@ pub struct clientdata_s {
     pub vuser4: vec3_t,
 }
 
+#[derive(Copy, Clone, Default)]
 #[repr(C)]
-#[derive(Copy, Clone)]
 pub struct weapon_data_s {
     pub m_iId: c_int,
     pub m_iClip: c_int,

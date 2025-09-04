@@ -413,8 +413,8 @@ unsafe extern "C" fn CreateBaseline(
     baseline: *mut entity_state_s,
     entity: *mut edict_s,
     playermodelindex: c_int,
-    player_mins: *mut vec3_t,
-    player_maxs: *mut vec3_t,
+    player_mins: *const vec3_t,
+    player_maxs: *const vec3_t,
 ) {
     crate::todo::create_baseline(
         player != 0,
@@ -438,16 +438,12 @@ unsafe extern "C" fn GetWeaponData(_player: *mut edict_s, _info: *mut weapon_dat
 }
 
 #[no_mangle]
-unsafe extern "C" fn CmdStart(
-    _player: *const edict_s,
-    _cmd: *const usercmd_s,
-    _random_seed: c_uint,
-) {
+unsafe extern "C" fn CmdStart(_player: *mut edict_s, _cmd: *const usercmd_s, _random_seed: c_uint) {
     // debug!("TODO: CmdStart");
 }
 
 #[no_mangle]
-unsafe extern "C" fn CmdEnd(_player: *const edict_s) {
+unsafe extern "C" fn CmdEnd(_player: *mut edict_s) {
     // debug!("TODO: CmdEnd");
 }
 
@@ -622,4 +618,5 @@ unsafe extern "C" fn GiveFnptrsToDll(
     unsafe {
         sv::instance::init_engine(funcs.unwrap(), globals);
     }
+    sv::cvar::init(|name, _, _| engine().get_cvar_ptr(name));
 }

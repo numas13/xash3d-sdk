@@ -927,17 +927,17 @@ pub struct DLL_FUNCTIONS {
             baseline: *mut entity_state_s,
             entity: *mut edict_s,
             playermodelindex: c_int,
-            player_mins: *mut vec3_t,
-            player_maxs: *mut vec3_t,
+            player_mins: *const vec3_t,
+            player_maxs: *const vec3_t,
         ),
     >,
     pub pfnRegisterEncoders: Option<unsafe extern "C" fn()>,
     pub pfnGetWeaponData:
         Option<unsafe extern "C" fn(player: *mut edict_s, info: *mut weapon_data_s) -> c_int>,
     pub pfnCmdStart: Option<
-        unsafe extern "C" fn(player: *const edict_s, cmd: *const usercmd_s, random_seed: c_uint),
+        unsafe extern "C" fn(player: *mut edict_s, cmd: *const usercmd_s, random_seed: c_uint),
     >,
-    pub pfnCmdEnd: Option<unsafe extern "C" fn(player: *const edict_s)>,
+    pub pfnCmdEnd: Option<unsafe extern "C" fn(player: *mut edict_s)>,
     pub pfnConnectionlessPacket: Option<
         unsafe extern "C" fn(
             net_from: *const netadr_s,

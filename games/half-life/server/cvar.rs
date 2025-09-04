@@ -406,8 +406,6 @@ define_server! {
 }
 
 pub fn init() {
-    sv::cvar::init(|name, _, _| engine().get_cvar(name));
-
     sv_gravity.get_ptr();
     sv_aim.get_ptr();
     sv_allow_autoaim.get_ptr();

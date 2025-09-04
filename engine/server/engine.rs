@@ -502,7 +502,7 @@ impl ServerEngine {
         unsafe { unwrap!(self, pfnIsDedicatedServer)() != 0 }
     }
 
-    pub fn get_cvar(&self, name: impl ToEngineStr) -> CVarPtr {
+    pub fn get_cvar_ptr(&self, name: impl ToEngineStr) -> CVarPtr {
         let name = name.to_engine_str();
         let ptr = unsafe { unwrap!(self, pfnCVarGetPointer)(name.as_ptr()) };
         CVarPtr::from_ptr(ptr)
