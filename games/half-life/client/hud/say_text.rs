@@ -127,7 +127,7 @@ impl HudItem for SayText {
 
         for line in self.lines.iter_mut().rev() {
             let mut x = 10;
-            let mut msg = unsafe { &mut line.data.inner_mut()[..] };
+            let mut msg = unsafe { &mut line.data.inner_slice_mut()[..] };
 
             if line.name_len != 0 {
                 engine.set_text_color(line.color);
