@@ -5,7 +5,7 @@ use core::{
     slice,
 };
 
-use csz::CStrThin;
+use csz::{CStrSlice, CStrThin};
 use shared::{
     color::RGBA,
     consts::RefParm,
@@ -390,8 +390,7 @@ pub trait RefDll: UnsyncGlobal {
 
     fn gl_ortho_bounds(&self, mins: vec2_t, maxs: vec2_t) {}
 
-    // TODO: add CStrSlice to csz (like CStrArray but in a slice)?
-    fn speeds_message(&self, out: &mut [c_char]) -> bool {
+    fn speeds_message(&self, out: &mut CStrSlice) -> bool {
         false
     }
 
@@ -1951,9 +1950,9 @@ impl<T: RefDll> RefDllExport for Export<T> {
         if out.is_null() || size == 0 {
             return qboolean::FALSE;
         }
-        let out = unsafe { slice::from_raw_parts_mut(out, size) };
+        let out = unsafe { slice::from_raw_parts_mut(out.cast(), size) };
         let dll = unsafe { T::global_assume_init_ref() };
-        dll.speeds_message(out).into()
+        dll.speeds_message(CStrSlice::new_in(out)).into()
     }
 
     unsafe extern "C" fn mod_get_current_vis() -> *mut byte {
