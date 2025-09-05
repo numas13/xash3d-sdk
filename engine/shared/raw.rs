@@ -18,6 +18,7 @@ use bitflags::bitflags;
 use csz::CStrArray;
 
 use crate::{
+    color::RGBA,
     consts::{
         self, HISTORY_MAX, MAXLIGHTMAPS, MAX_MAP_HULLS, MAX_MOVEENTS, MAX_PHYSINFO_STRING,
         MAX_SKINS, NUM_GLYPHS, VERTEXSIZE,
@@ -40,6 +41,17 @@ pub struct colorVec {
     pub g: c_uint,
     pub b: c_uint,
     pub a: c_uint,
+}
+
+impl From<RGBA> for colorVec {
+    fn from(value: RGBA) -> Self {
+        Self {
+            r: value.r() as c_uint,
+            g: value.g() as c_uint,
+            b: value.b() as c_uint,
+            a: value.a() as c_uint,
+        }
+    }
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Default)]
@@ -1427,6 +1439,8 @@ impl usercmd_s {
     }
 }
 
+pub const MAX_LIGHTSTYLES: usize = 256;
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct lightstyle_t {
@@ -1556,6 +1570,9 @@ pub struct modelstate_s {
     pub skin: byte,
     pub scale: c_short,
 }
+
+/// Max rendering decals per a level.
+pub const MAX_RENDER_DECALS: usize = 4096;
 
 #[derive(Copy, Clone)]
 #[repr(C)]

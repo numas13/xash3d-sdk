@@ -18,3 +18,7 @@ libc.workspace = true
 
 [lints]
 workspace = true
+
+[[example]]
+name = "ref-stub"
+crate-type = ["cdylib"]

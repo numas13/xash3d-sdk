@@ -1,4 +1,6 @@
-use core::slice;
+use core::{ffi::c_char, slice};
+
+use csz::CStrThin;
 
 pub fn array_from_slice<T: Copy + Default, const N: usize>(slice: &[T]) -> [T; N] {
     let mut arr = [T::default(); N];
@@ -32,5 +34,18 @@ pub unsafe fn slice_from_raw_parts_or_empty_mut<'a, T>(data: *mut T, len: usize)
         &mut []
     } else {
         unsafe { slice::from_raw_parts_mut(data, len) }
+    }
+}
+
+/// Creates a `CStrThin` reference from a raw C string pointer.
+///
+/// # Safety
+///
+/// The pointer must point to a valid C string with nul terminator.
+pub unsafe fn cstr_or_none<'a>(ptr: *const c_char) -> Option<&'a CStrThin> {
+    if !ptr.is_null() {
+        Some(unsafe { CStrThin::from_ptr(ptr) })
+    } else {
+        None
     }
 }

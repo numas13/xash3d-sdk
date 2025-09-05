@@ -249,9 +249,6 @@ pub const MAX_USER_MESSAGES: u32 = 197;
 pub const MAX_DLIGHTS: u32 = 32;
 /// Entity only point lights.
 pub const MAX_ELIGHTS: u32 = 128;
-pub const MAX_LIGHTSTYLES: u32 = 256;
-/// Max rendering decals per a level.
-pub const MAX_RENDER_DECALS: u32 = 4096;
 
 // sound proto
 pub const MAX_SND_FLAGS_BITS: u32 = 14;

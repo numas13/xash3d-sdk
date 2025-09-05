@@ -807,7 +807,6 @@ pub struct studiohdr_s {
     pub numtransitions: i32,
     pub transitionindex: i32,
 }
-pub type studiohdr_t = studiohdr_s;
 
 #[repr(C)]
 pub struct studiohdr2_t {
