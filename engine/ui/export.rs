@@ -5,13 +5,13 @@ use core::{
 };
 
 use csz::CStrThin;
+use shared::engine::net::netadr_s;
 
 use crate::{
     color::RGBA,
     engine::{UiEngineFunctions, UiEngineFunctionsExtended},
     globals::UiGlobalsRaw,
     prelude::*,
-    raw::netadr_s,
 };
 
 pub use shared::export::{impl_unsync_global, UnsyncGlobal};

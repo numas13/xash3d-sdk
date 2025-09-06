@@ -11,10 +11,9 @@ use core::{
 
 use shared::{
     cvar::cvar_s,
+    engine::net::{net_api_s, NetApi},
     export::impl_unsync_global,
-    raw::{
-        byte, con_nprint_s, fake_edict_s, model_s, net_api_s, pmtrace_s, qboolean, screenfade_s,
-    },
+    raw::{byte, con_nprint_s, fake_edict_s, model_s, pmtrace_s, qboolean, screenfade_s},
     str::{AsCStrPtr, ToEngineStr},
 };
 
@@ -34,11 +33,12 @@ use crate::{
     sprite::{client_sprite_s, SpriteHandle, SpriteList, HSPRITE},
 };
 
-pub use shared::engine::AddCmdError;
+pub use shared::engine::{net, AddCmdError};
 
 pub(crate) mod prelude {
     pub use shared::engine::{
-        EngineCmd, EngineConsole, EngineCvar, EngineDrawConsoleString, EngineRng, EngineSystemTime,
+        net::EngineNet, EngineCmd, EngineConsole, EngineCvar, EngineDrawConsoleString, EngineRng,
+        EngineSystemTime,
     };
 }
 
@@ -356,6 +356,7 @@ pub struct ClientEngineFunctions {
 
 pub struct ClientEngine {
     raw: ClientEngineFunctions,
+    net_api: NetApi,
 }
 
 impl_unsync_global!(ClientEngine);
@@ -371,7 +372,10 @@ macro_rules! unwrap {
 
 impl ClientEngine {
     pub(crate) fn new(raw: &ClientEngineFunctions) -> Self {
-        Self { raw: *raw }
+        Self {
+            raw: *raw,
+            net_api: NetApi::new(raw.pNetAPI),
+        }
     }
 
     pub fn raw(&self) -> &ClientEngineFunctions {
@@ -989,5 +993,11 @@ impl EngineDrawConsoleString for ClientEngine {
     fn draw_console_string(&self, x: c_int, y: c_int, text: impl ToEngineStr) -> c_int {
         let text = text.to_engine_str();
         unsafe { unwrap!(self, pfnDrawConsoleString)(x, y, text.as_ptr()) }
+    }
+}
+
+impl EngineNet for ClientEngine {
+    fn net_api(&self) -> &NetApi {
+        &self.net_api
     }
 }

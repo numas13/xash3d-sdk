@@ -8,6 +8,7 @@ use csz::{CStrArray, CStrThin};
 use shared::{
     borrow::{BorrowRef, Ref},
     cvar::cvar_s,
+    engine::net::{net_api_s, netadr_s, NetApi},
     export::impl_unsync_global,
     raw::{byte, cl_entity_s, con_nprint_s, ref_viewpass_s},
     str::{AsCStrPtr, ToEngineStr},
@@ -20,15 +21,15 @@ use crate::{
     engine_types::{ActiveMenu, Point, Size},
     file::{Cursor, File, FileList},
     game_info::GameInfo,
-    raw::{self, gameinfo2_s, kbutton_t, net_api_s, netadr_s, wrect_s, GAMEINFO, HIMAGE},
+    raw::{self, gameinfo2_s, kbutton_t, wrect_s, GAMEINFO, HIMAGE},
 };
 
-pub use shared::engine::AddCmdError;
+pub use shared::engine::{net, AddCmdError};
 
 pub(crate) mod prelude {
     pub use shared::engine::{
-        EngineCmd, EngineCmdArgsRaw, EngineConsole, EngineCvar, EngineDrawConsoleString, EngineRng,
-        EngineSystemTime,
+        net::EngineNet, EngineCmd, EngineCmdArgsRaw, EngineConsole, EngineCvar,
+        EngineDrawConsoleString, EngineRng, EngineSystemTime,
     };
 }
 
@@ -271,24 +272,18 @@ impl Default for UiEngineFunctionsExtended {
 #[derive(Default)]
 struct Borrows {
     keynum_to_str: BorrowRef,
-    addr_to_string: BorrowRef,
 }
 
 pub struct UiEngine {
     raw: UiEngineFunctions,
     ext: UiEngineFunctionsExtended,
+    net_api: NetApi,
     borrows: Borrows,
 }
 
 impl_unsync_global!(UiEngine);
 
 macro_rules! unwrap {
-    ($self:expr, ext.net.$name:ident) => {
-        match $self.net_api().unwrap().$name {
-            Some(func) => func,
-            None => panic!("ui_extendedfuncs_s.net_api.{} is null", stringify!($name)),
-        }
-    };
     ($self:expr, ext.$name:ident) => {
         match $self.ext.$name {
             Some(func) => func,
@@ -309,10 +304,12 @@ impl UiEngine {
             raw: *raw,
             ext: Default::default(),
             borrows: Default::default(),
+            net_api: NetApi::new(ptr::null_mut()),
         }
     }
 
     pub(crate) fn set_extended(&mut self, ext: UiEngineFunctionsExtended) {
+        self.net_api = NetApi::new(ext.pNetAPI);
         self.ext = ext;
     }
 
@@ -888,12 +885,7 @@ impl UiEngine {
     }
 
     pub fn addr_to_string(&self, addr: netadr_s) -> Ref<'_, CStrThin> {
-        // SAFETY: The returned string is allocated in a private static buffer
-        // in that function. Never returns a null pointer.
-        unsafe {
-            let s = unwrap!(self, ext.pfnAdrToString)(addr);
-            self.borrows.addr_to_string.borrow(s as *mut CStrThin)
-        }
+        self.addr_to_string_ref(&addr)
     }
 
     // pub pfnCompareAdr: Option<unsafe extern "C" fn(a: *const c_void, b: *const c_void) -> c_int>,
@@ -920,66 +912,6 @@ impl UiEngine {
     pub fn get_mod_info_iter(&self) -> impl Iterator<Item = &raw::gameinfo2_s> {
         (0..).map_while(|i| self.get_mod_info(i))
     }
-
-    fn net_api(&self) -> Option<&net_api_s> {
-        if !self.ext.pNetAPI.is_null() {
-            Some(unsafe { &*self.ext.pNetAPI })
-        } else {
-            None
-        }
-    }
-
-    // pub InitNetworking: Option<unsafe extern "C" fn()>,
-    // pub Status: Option<unsafe extern "C" fn(status: *mut net_status_s)>,
-    // pub SendRequest: Option<
-    //     unsafe extern "C" fn(
-    //         context: c_int,
-    //         request: c_int,
-    //         flags: c_int,
-    //         timeout: f64,
-    //         remote_address: *mut netadr_s,
-    //         response: net_api_response_func_t,
-    //     ),
-    // >,
-    // pub CancelRequest: Option<unsafe extern "C" fn(context: c_int)>,
-    // pub CancelAllRequests: Option<unsafe extern "C" fn()>,
-
-    pub fn addr_to_string_ref(&self, addr: &netadr_s) -> Ref<'_, CStrThin> {
-        // SAFETY: The returned string is allocated in a private static buffer
-        // in that function. Never returns a null pointer.
-        unsafe {
-            // XXX: uses pfnAdrToString under the hood
-            let s = unwrap!(self, ext.net.AdrToString)(addr);
-            self.borrows.addr_to_string.borrow(s as *mut CStrThin)
-        }
-    }
-
-    pub fn compare_addr(&self, a: &netadr_s, b: &netadr_s) -> bool {
-        unsafe { unwrap!(self, ext.net.CompareAdr)(a, b) != 0 }
-    }
-
-    pub fn string_to_addr(&self, s: impl ToEngineStr) -> Option<netadr_s> {
-        let s = s.to_engine_str();
-        let mut netadr_s = MaybeUninit::uninit();
-        let res = unsafe { unwrap!(self, ext.net.StringToAdr)(s.as_ptr(), netadr_s.as_mut_ptr()) };
-        if res != 0 {
-            Some(unsafe { netadr_s.assume_init() })
-        } else {
-            None
-        }
-    }
-
-    // pub ValueForKey:
-    //     Option<unsafe extern "C" fn(s: *const c_char, key: *const c_char) -> *const c_char>,
-    // pub RemoveKey: Option<unsafe extern "C" fn(s: *mut c_char, key: *const c_char)>,
-    // pub SetValueForKey: Option<
-    //     unsafe extern "C" fn(
-    //         s: *mut c_char,
-    //         key: *const c_char,
-    //         value: *const c_char,
-    //         maxsize: c_int,
-    //     ),
-    // >,
 }
 
 impl EngineCvar for UiEngine {
@@ -1073,5 +1005,11 @@ impl EngineDrawConsoleString for UiEngine {
     fn draw_console_string(&self, x: c_int, y: c_int, text: impl ToEngineStr) -> c_int {
         let text = text.to_engine_str();
         unsafe { unwrap!(self, pfnDrawConsoleString)(x, y, text.as_ptr()) }
+    }
+}
+
+impl EngineNet for UiEngine {
+    fn net_api(&self) -> &NetApi {
+        &self.net_api
     }
 }

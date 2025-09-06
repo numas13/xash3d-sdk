@@ -7,12 +7,13 @@ use core::{
 };
 
 use csz::{CStrArray, CStrThin};
+use shared::{engine::net::netadr_s, raw::playermove_s};
 
 use crate::{
     prelude::*,
     raw::{
-        self, clientdata_s, customization_s, edict_s, entity_state_s, netadr_s, qboolean,
-        usercmd_s, vec3_t, weapon_data_s, KeyValueData, SAVERESTOREDATA, TYPEDESCRIPTION,
+        self, clientdata_s, customization_s, edict_s, entity_state_s, qboolean, usercmd_s, vec3_t,
+        weapon_data_s, KeyValueData, SAVERESTOREDATA, TYPEDESCRIPTION,
     },
     utils::slice_from_raw_parts_or_empty_mut,
 };
@@ -208,7 +209,7 @@ pub trait ServerDll: UnsyncGlobal {
 
     fn connectionless_packet(
         &self,
-        from: &raw::netadr_s,
+        from: &netadr_s,
         args: &CStrThin,
         buffer: &mut [u8],
     ) -> Result<usize, ()> {
@@ -331,8 +332,8 @@ pub struct ServerDllFunctions {
     pub pfnSpectatorDisconnect: Option<unsafe extern "C" fn(pEntity: *mut edict_s)>,
     pub pfnSpectatorThink: Option<unsafe extern "C" fn(pEntity: *mut edict_s)>,
     pub pfnSys_Error: Option<unsafe extern "C" fn(error_string: *const c_char)>,
-    pub pfnPM_Move: Option<unsafe extern "C" fn(ppmove: *mut raw::playermove_s, server: qboolean)>,
-    pub pfnPM_Init: Option<unsafe extern "C" fn(ppmove: *mut raw::playermove_s)>,
+    pub pfnPM_Move: Option<unsafe extern "C" fn(ppmove: *mut playermove_s, server: qboolean)>,
+    pub pfnPM_Init: Option<unsafe extern "C" fn(ppmove: *mut playermove_s)>,
     pub pfnPM_FindTextureType: Option<unsafe extern "C" fn(name: *const c_char) -> c_char>,
     pub pfnSetupVisibility: Option<
         unsafe extern "C" fn(
@@ -592,9 +593,9 @@ trait ServerDllExport {
 
     unsafe extern "C" fn system_error(error_string: *const c_char);
 
-    unsafe extern "C" fn player_move_init(pm: *mut raw::playermove_s);
+    unsafe extern "C" fn player_move_init(pm: *mut playermove_s);
 
-    unsafe extern "C" fn player_move(pm: *mut raw::playermove_s, is_server: qboolean);
+    unsafe extern "C" fn player_move(pm: *mut playermove_s, is_server: qboolean);
 
     unsafe extern "C" fn player_move_find_texture_type(name: *const c_char) -> c_char;
 
@@ -612,7 +613,7 @@ trait ServerDllExport {
     );
 
     unsafe extern "C" fn add_to_full_pack(
-        state: *mut raw::entity_state_s,
+        state: *mut entity_state_s,
         e: c_int,
         ent: *mut edict_s,
         host: *mut edict_s,
@@ -624,7 +625,7 @@ trait ServerDllExport {
     unsafe extern "C" fn create_baseline(
         player: c_int,
         eindex: c_int,
-        baseline: *mut raw::entity_state_s,
+        baseline: *mut entity_state_s,
         entity: *mut edict_s,
         player_model_index: c_int,
         player_mins: *const vec3_t,
@@ -633,21 +634,18 @@ trait ServerDllExport {
 
     unsafe extern "C" fn register_encoders();
 
-    unsafe extern "C" fn get_weapon_data(
-        player: *mut edict_s,
-        info: *mut raw::weapon_data_s,
-    ) -> c_int;
+    unsafe extern "C" fn get_weapon_data(player: *mut edict_s, info: *mut weapon_data_s) -> c_int;
 
     unsafe extern "C" fn command_start(
         player: *mut edict_s,
-        cmd: *const raw::usercmd_s,
+        cmd: *const usercmd_s,
         random_seed: c_uint,
     );
 
     unsafe extern "C" fn command_end(player: *mut edict_s);
 
     unsafe extern "C" fn connectionless_packet(
-        from: *const raw::netadr_s,
+        from: *const netadr_s,
         args: *const c_char,
         response_buffer: *mut c_char,
         response_buffer_size: *mut c_int,
@@ -950,12 +948,12 @@ impl<T: ServerDll + Default> ServerDllExport for Export<T> {
         unsafe { T::global_assume_init_ref() }.system_error(error_string);
     }
 
-    unsafe extern "C" fn player_move_init(pm: *mut raw::playermove_s) {
+    unsafe extern "C" fn player_move_init(pm: *mut playermove_s) {
         let pm = NonNull::new(pm).unwrap();
         unsafe { T::global_assume_init_ref() }.player_move_init(pm);
     }
 
-    unsafe extern "C" fn player_move(pm: *mut raw::playermove_s, is_server: qboolean) {
+    unsafe extern "C" fn player_move(pm: *mut playermove_s, is_server: qboolean) {
         let pm = NonNull::new(pm).unwrap();
         unsafe { T::global_assume_init_ref() }.player_move(pm, is_server.to_bool());
     }
@@ -996,7 +994,7 @@ impl<T: ServerDll + Default> ServerDllExport for Export<T> {
     }
 
     unsafe extern "C" fn add_to_full_pack(
-        state: *mut raw::entity_state_s,
+        state: *mut entity_state_s,
         e: c_int,
         ent: *mut edict_s,
         host: *mut edict_s,
@@ -1018,7 +1016,7 @@ impl<T: ServerDll + Default> ServerDllExport for Export<T> {
     unsafe extern "C" fn create_baseline(
         player: c_int,
         eindex: c_int,
-        baseline: *mut raw::entity_state_s,
+        baseline: *mut entity_state_s,
         entity: *mut edict_s,
         player_model_index: c_int,
         player_mins: *const vec3_t,
@@ -1047,10 +1045,7 @@ impl<T: ServerDll + Default> ServerDllExport for Export<T> {
         unsafe { T::global_assume_init_ref() }.register_encoders();
     }
 
-    unsafe extern "C" fn get_weapon_data(
-        player: *mut edict_s,
-        info: *mut raw::weapon_data_s,
-    ) -> c_int {
+    unsafe extern "C" fn get_weapon_data(player: *mut edict_s, info: *mut weapon_data_s) -> c_int {
         assert!(!player.is_null());
         assert!(!info.is_null());
         let player = unsafe { &mut *player };
@@ -1061,7 +1056,7 @@ impl<T: ServerDll + Default> ServerDllExport for Export<T> {
                 1
             }
             None => {
-                *info = raw::weapon_data_s::default();
+                *info = weapon_data_s::default();
                 0
             }
         }
@@ -1069,7 +1064,7 @@ impl<T: ServerDll + Default> ServerDllExport for Export<T> {
 
     unsafe extern "C" fn command_start(
         player: *mut edict_s,
-        cmd: *const raw::usercmd_s,
+        cmd: *const usercmd_s,
         random_seed: c_uint,
     ) {
         assert!(!player.is_null());

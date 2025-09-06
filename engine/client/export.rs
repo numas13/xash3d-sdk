@@ -7,9 +7,10 @@ use core::{
 use csz::CStrThin;
 use shared::{
     cvar::CVarPtr,
+    engine::net::netadr_s,
     raw::{
         byte, cl_entity_s, clientdata_s, engine_studio_api_s, entity_state_s, kbutton_t,
-        mstudioevent_s, netadr_s, playermove_s, qboolean, r_studio_interface_s, usercmd_s, vec3_t,
+        mstudioevent_s, playermove_s, qboolean, r_studio_interface_s, usercmd_s, vec3_t,
         weapon_data_s,
     },
 };

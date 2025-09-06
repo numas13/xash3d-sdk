@@ -1,3 +1,5 @@
+pub mod net;
+
 use core::{
     ffi::{c_char, c_int},
     fmt,
