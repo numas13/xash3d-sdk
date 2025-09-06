@@ -21,6 +21,7 @@ use crate::{
     engine::RefEngineFunctions,
     globals::RefGlobalsRaw,
     raw::{mstudioseqdesc_t, mstudiotex_s, ref_screen_rotation_t, rgbdata_t, SKYBOX_MAX_SIDES},
+    texture::TextureId,
 };
 
 pub use shared::export::{impl_unsync_global, UnsyncGlobal};
@@ -85,7 +86,7 @@ pub trait RefDll: UnsyncGlobal {
 
     fn show_textures(&self) {}
 
-    fn get_texture_original_buffer(&self, texture: c_int) -> *const byte {
+    fn get_texture_original_buffer(&self, texture: TextureId) -> *const byte {
         ptr::null()
     }
 
@@ -95,20 +96,22 @@ pub trait RefDll: UnsyncGlobal {
         pic: *mut rgbdata_t,
         flags: TextureFlags,
         update: bool,
-    ) -> c_int {
-        0
+    ) -> Option<TextureId> {
+        None
     }
 
     fn gl_process_texture(
         &self,
-        texture: c_int,
+        texture: TextureId,
         gamma: f32,
         top_color: c_int,
         bottom_color: c_int,
     ) {
     }
 
-    fn setup_sky(&self, skybox_textures: &mut [c_int; SKYBOX_MAX_SIDES]) {}
+    fn setup_skybox(&self, skybox_textures: &[Option<TextureId>; SKYBOX_MAX_SIDES]) {}
+
+    fn unload_skybox(&self) {}
 
     fn set_2d_mode(&self, enable: bool) {}
 
@@ -137,7 +140,7 @@ pub trait RefDll: UnsyncGlobal {
         t1: f32,
         s2: f32,
         t2: f32,
-        texture: c_int,
+        texture: TextureId,
     ) {
     }
 
@@ -170,7 +173,7 @@ pub trait RefDll: UnsyncGlobal {
 
     fn decal_shoot(
         &self,
-        texture_index: c_int,
+        texture: TextureId,
         entity_index: c_int,
         model_index: c_int,
         pos: &mut vec3_t,
@@ -179,9 +182,9 @@ pub trait RefDll: UnsyncGlobal {
     ) {
     }
 
-    fn decal_remove_all(&self, texture: c_int) {}
+    fn decal_remove_all(&self, texture: TextureId) {}
 
-    fn create_decal_list(&self, list: &mut [decallist_s]) -> c_int {
+    fn create_decal_list(&self, list: &mut [decallist_s]) -> usize {
         0
     }
 
@@ -207,7 +210,12 @@ pub trait RefDll: UnsyncGlobal {
 
     fn init_studio_api(&self) {}
 
-    fn set_sky_clouds_textures(&self, solid_sky_texture: c_int, alpha_sky_texture: c_int) {}
+    fn set_sky_clouds_textures(
+        &self,
+        solid_sky_texture: Option<TextureId>,
+        alpha_sky_texture: Option<TextureId>,
+    ) {
+    }
 
     fn gl_subdivide_surface(&self, model: &mut model_s, fa: &mut msurface_s) {}
 
@@ -232,8 +240,8 @@ pub trait RefDll: UnsyncGlobal {
         }
     }
 
-    fn get_sprite_texture(&self, sprite_model: &model_s, frame: c_int) -> c_int {
-        0
+    fn get_sprite_texture(&self, sprite_model: &model_s, frame: c_int) -> Option<TextureId> {
+        None
     }
 
     fn mod_process_render_data(
@@ -254,7 +262,7 @@ pub trait RefDll: UnsyncGlobal {
     fn draw_tracers(&self, frame_time: f64, tracers: *mut particle_s) {}
 
     // TODO: wrapper for beams list
-    fn draw_beams(&self, trans: c_int, beams: *mut BEAM) {}
+    fn draw_beams(&self, trans: bool, beams: *mut BEAM) {}
 
     fn beam_cull(&self, start: &vec3_t, end: &vec3_t, pvs_only: bool) -> bool {
         false
@@ -264,11 +272,11 @@ pub trait RefDll: UnsyncGlobal {
         0
     }
 
-    fn get_detail_scale_for_texture(&self, texture: c_int) -> (f32, f32) {
+    fn get_detail_scale_for_texture(&self, texture: TextureId) -> (f32, f32) {
         (1.0, 1.0)
     }
 
-    fn get_extra_parms_for_texture(&self, texture: c_int) -> RGBA {
+    fn get_extra_parms_for_texture(&self, texture: TextureId) -> RGBA {
         RGBA::splat(0)
     }
 
@@ -280,20 +288,20 @@ pub trait RefDll: UnsyncGlobal {
 
     fn set_current_model(&self, model: &mut model_s) {}
 
-    fn gl_find_texture(&self, name: &CStrThin) -> c_int {
-        0
+    fn gl_find_texture(&self, name: &CStrThin) -> Option<TextureId> {
+        None
     }
 
-    fn gl_texture_name(&self, texture: c_int) -> *const c_char {
+    fn gl_texture_name(&self, texture: TextureId) -> *const c_char {
         ptr::null()
     }
 
-    fn gl_texture_data(&self, texture: c_int) -> *const byte {
+    fn gl_texture_data(&self, texture: TextureId) -> *const byte {
         ptr::null()
     }
 
-    fn gl_load_texture(&self, name: &CStrThin, buf: &[byte], flags: c_int) -> c_int {
-        0
+    fn gl_load_texture(&self, name: &CStrThin, buf: &[byte], flags: c_int) -> Option<TextureId> {
+        None
     }
 
     fn gl_create_texture(
@@ -303,12 +311,12 @@ pub trait RefDll: UnsyncGlobal {
         height: c_int,
         buffer: &[RGBA],
         flags: TextureFlags,
-    ) -> c_int {
-        0
+    ) -> Option<TextureId> {
+        None
     }
 
-    fn gl_load_texture_array(&self, names: *mut *const c_char, flags: c_int) -> c_int {
-        0
+    fn gl_load_texture_array(&self, names: *mut *const c_char, flags: c_int) -> Option<TextureId> {
+        None
     }
 
     fn gl_create_texture_array(
@@ -319,13 +327,19 @@ pub trait RefDll: UnsyncGlobal {
         depth: c_int,
         buffer: *const c_void,
         flags: TextureFlags,
-    ) -> c_int {
-        0
+    ) -> Option<TextureId> {
+        None
     }
 
-    fn gl_free_texture(&self, texture: c_int) {}
+    fn gl_free_texture(&self, texture: TextureId) {}
 
-    fn override_texture_source_size(&self, texture: c_int, src_width: c_uint, src_height: c_uint) {}
+    fn override_texture_source_size(
+        &self,
+        texture: TextureId,
+        src_width: c_uint,
+        src_height: c_uint,
+    ) {
+    }
 
     fn draw_single_decal(&self, decal: &mut decal_s, fa: &mut msurface_s) {}
 
@@ -343,7 +357,7 @@ pub trait RefDll: UnsyncGlobal {
 
     fn avi_upload_raw_frame(
         &self,
-        texture: c_int,
+        texture: TextureId,
         cols: c_int,
         rows: c_int,
         width: c_int,
@@ -352,7 +366,7 @@ pub trait RefDll: UnsyncGlobal {
     ) {
     }
 
-    fn gl_bind(&self, tmu: c_int, texture: c_int) {}
+    fn gl_bind(&self, tmu: c_int, texture: Option<TextureId>) {}
 
     fn gl_select_texture(&self, tmu: c_int) {}
 
@@ -368,7 +382,7 @@ pub trait RefDll: UnsyncGlobal {
 
     fn gl_tex_coord_array_mode(&self, mode: c_uint) {}
 
-    fn gl_update_tex_size(&self, texture: c_int, width: c_int, height: c_int, depth: c_int) {}
+    fn gl_update_tex_size(&self, texture: TextureId, width: c_int, height: c_int, depth: c_int) {}
 
     fn gl_draw_particles(&self, rvp: &ref_viewpass_s, trans_pass: bool, frame_time: f32) {}
 
@@ -502,7 +516,7 @@ pub struct RefDllFunctions {
     pub GL_ProcessTexture: Option<
         unsafe extern "C" fn(texture: c_int, gamma: f32, top_color: c_int, bottom_color: c_int),
     >,
-    pub R_SetupSky: Option<unsafe extern "C" fn(skybox_textures: *mut c_int)>,
+    pub R_SetupSky: Option<unsafe extern "C" fn(skybox_textures: *const [c_int; SKYBOX_MAX_SIDES])>,
     pub R_Set2DMode: Option<unsafe extern "C" fn(enable: qboolean)>,
     pub R_DrawStretchRaw: Option<
         unsafe extern "C" fn(
@@ -557,7 +571,7 @@ pub struct RefDllFunctions {
     pub R_LightPoint: Option<unsafe extern "C" fn(p: *const vec3_t) -> colorVec>,
     pub R_DecalShoot: Option<
         unsafe extern "C" fn(
-            texture_index: c_int,
+            texture: c_int,
             entity_index: c_int,
             model_index: c_int,
             pos: *mut vec3_t,
@@ -941,7 +955,7 @@ trait RefDllExport {
         bottom_color: c_int,
     );
 
-    unsafe extern "C" fn setup_sky(skybox_textures: *mut c_int);
+    unsafe extern "C" fn setup_sky(skybox_textures: *const [c_int; SKYBOX_MAX_SIDES]);
 
     unsafe extern "C" fn set_2d_mode(enable: qboolean);
 
@@ -994,7 +1008,7 @@ trait RefDllExport {
     unsafe extern "C" fn light_point(point: *const vec3_t) -> colorVec;
 
     unsafe extern "C" fn decal_shoot(
-        texture_index: c_int,
+        texture: c_int,
         entity_index: c_int,
         model_index: c_int,
         pos: *mut vec3_t,
@@ -1387,8 +1401,12 @@ impl<T: RefDll> RefDllExport for Export<T> {
     }
 
     unsafe extern "C" fn get_texture_original_buffer(texture: c_int) -> *const byte {
-        let dll = unsafe { T::global_assume_init_ref() };
-        dll.get_texture_original_buffer(texture)
+        if let Some(texture) = TextureId::new(texture) {
+            let dll = unsafe { T::global_assume_init_ref() };
+            dll.get_texture_original_buffer(texture)
+        } else {
+            ptr::null()
+        }
     }
 
     unsafe extern "C" fn gl_load_texture_from_buffer(
@@ -1399,7 +1417,8 @@ impl<T: RefDll> RefDllExport for Export<T> {
     ) -> c_int {
         let name = unsafe { cstr_or_none(name).unwrap() };
         let dll = unsafe { T::global_assume_init_ref() };
-        dll.gl_load_texture_from_buffer(name, pic, flags, update.into())
+        let res = dll.gl_load_texture_from_buffer(name, pic, flags, update.into());
+        TextureId::to_ffi(res)
     }
 
     unsafe extern "C" fn gl_process_texture(
@@ -1408,17 +1427,19 @@ impl<T: RefDll> RefDllExport for Export<T> {
         top_color: c_int,
         bottom_color: c_int,
     ) {
-        let dll = unsafe { T::global_assume_init_ref() };
-        dll.gl_process_texture(texture, gamma, top_color, bottom_color);
+        if let Some(texture) = TextureId::new(texture) {
+            let dll = unsafe { T::global_assume_init_ref() };
+            dll.gl_process_texture(texture, gamma, top_color, bottom_color);
+        }
     }
 
-    unsafe extern "C" fn setup_sky(skybox_textures: *mut c_int) {
-        if skybox_textures.is_null() {
-            return;
-        }
-        let skybox_textures = unsafe { &mut *skybox_textures.cast() };
+    unsafe extern "C" fn setup_sky(skybox_textures: *const [c_int; SKYBOX_MAX_SIDES]) {
         let dll = unsafe { T::global_assume_init_ref() };
-        dll.setup_sky(skybox_textures);
+        dll.unload_skybox();
+        let skybox_textures = skybox_textures.cast::<[Option<TextureId>; SKYBOX_MAX_SIDES]>();
+        if let Some(skybox_textures) = unsafe { skybox_textures.as_ref() } {
+            dll.setup_skybox(skybox_textures);
+        }
     }
 
     unsafe extern "C" fn set_2d_mode(enable: qboolean) {
@@ -1451,8 +1472,10 @@ impl<T: RefDll> RefDllExport for Export<T> {
         t2: f32,
         texture: c_int,
     ) {
-        let dll = unsafe { T::global_assume_init_ref() };
-        dll.draw_stretch_pic(x, y, w, h, s1, t1, s2, t2, texture);
+        if let Some(texture) = TextureId::new(texture) {
+            let dll = unsafe { T::global_assume_init_ref() };
+            dll.draw_stretch_pic(x, y, w, h, s1, t1, s2, t2, texture);
+        }
     }
 
     unsafe extern "C" fn fill_rgba(
@@ -1515,28 +1538,32 @@ impl<T: RefDll> RefDllExport for Export<T> {
     }
 
     unsafe extern "C" fn decal_shoot(
-        texture_index: c_int,
+        texture: c_int,
         entity_index: c_int,
         model_index: c_int,
         pos: *mut vec3_t,
         flags: c_int,
         scale: f32,
     ) {
-        let pos = unsafe { pos.as_mut().unwrap() };
-        let dll = unsafe { T::global_assume_init_ref() };
-        dll.decal_shoot(texture_index, entity_index, model_index, pos, flags, scale);
+        if let Some(texture) = TextureId::new(texture) {
+            let pos = unsafe { pos.as_mut().unwrap() };
+            let dll = unsafe { T::global_assume_init_ref() };
+            dll.decal_shoot(texture, entity_index, model_index, pos, flags, scale);
+        }
     }
 
     unsafe extern "C" fn decal_remove_all(texture: c_int) {
-        let dll = unsafe { T::global_assume_init_ref() };
-        dll.decal_remove_all(texture);
+        if let Some(texture) = TextureId::new(texture) {
+            let dll = unsafe { T::global_assume_init_ref() };
+            dll.decal_remove_all(texture);
+        }
     }
 
     unsafe extern "C" fn create_decal_list(list: *mut decallist_s) -> c_int {
         assert!(!list.is_null());
         let list = unsafe { slice::from_raw_parts_mut(list, MAX_RENDER_DECALS * 2) };
         let dll = unsafe { T::global_assume_init_ref() };
-        dll.create_decal_list(list)
+        dll.create_decal_list(list) as c_int
     }
 
     unsafe extern "C" fn clear_all_decals() {
@@ -1577,6 +1604,8 @@ impl<T: RefDll> RefDllExport for Export<T> {
         solid_sky_texture: c_int,
         alpha_sky_texture: c_int,
     ) {
+        let solid_sky_texture = TextureId::new(solid_sky_texture);
+        let alpha_sky_texture = TextureId::new(alpha_sky_texture);
         let dll = unsafe { T::global_assume_init_ref() };
         dll.set_sky_clouds_textures(solid_sky_texture, alpha_sky_texture);
     }
@@ -1614,7 +1643,8 @@ impl<T: RefDll> RefDllExport for Export<T> {
     unsafe extern "C" fn get_sprite_texture(model: *const model_s, frame: c_int) -> c_int {
         if let Some(model) = unsafe { model.as_ref() } {
             let dll = unsafe { T::global_assume_init_ref() };
-            dll.get_sprite_texture(model, frame)
+            let res = dll.get_sprite_texture(model, frame);
+            TextureId::to_ffi(res)
         } else {
             0
         }
@@ -1656,7 +1686,7 @@ impl<T: RefDll> RefDllExport for Export<T> {
 
     unsafe extern "C" fn draw_beams(trans: c_int, beams: *mut BEAM) {
         let dll = unsafe { T::global_assume_init_ref() };
-        dll.draw_beams(trans, beams);
+        dll.draw_beams(trans != 0, beams);
     }
 
     unsafe extern "C" fn beam_cull(
@@ -1680,8 +1710,12 @@ impl<T: RefDll> RefDllExport for Export<T> {
         x_scale: *mut f32,
         y_scale: *mut f32,
     ) {
-        let dll = unsafe { T::global_assume_init_ref() };
-        let (x, y) = dll.get_detail_scale_for_texture(texture);
+        let (x, y) = if let Some(texture) = TextureId::new(texture) {
+            let dll = unsafe { T::global_assume_init_ref() };
+            dll.get_detail_scale_for_texture(texture)
+        } else {
+            (1.0, 1.0)
+        };
         if let Some(x_scale) = unsafe { x_scale.as_mut() } {
             *x_scale = x;
         }
@@ -1697,8 +1731,12 @@ impl<T: RefDll> RefDllExport for Export<T> {
         blue: *mut byte,
         alpha: *mut byte,
     ) {
-        let dll = unsafe { T::global_assume_init_ref() };
-        let color = dll.get_extra_parms_for_texture(texture);
+        let color = if let Some(texture) = TextureId::new(texture) {
+            let dll = unsafe { T::global_assume_init_ref() };
+            dll.get_extra_parms_for_texture(texture)
+        } else {
+            RGBA::splat(0)
+        };
         if let Some(r) = unsafe { red.as_mut() } {
             *r = color.r();
         }
@@ -1735,17 +1773,26 @@ impl<T: RefDll> RefDllExport for Export<T> {
             return 0;
         };
         let dll = unsafe { T::global_assume_init_ref() };
-        dll.gl_find_texture(name)
+        let res = dll.gl_find_texture(name);
+        TextureId::to_ffi(res)
     }
 
     unsafe extern "C" fn gl_texture_name(texture: c_int) -> *const c_char {
-        let dll = unsafe { T::global_assume_init_ref() };
-        dll.gl_texture_name(texture)
+        if let Some(texture) = TextureId::new(texture) {
+            let dll = unsafe { T::global_assume_init_ref() };
+            dll.gl_texture_name(texture)
+        } else {
+            c"*unused*".as_ptr()
+        }
     }
 
     unsafe extern "C" fn gl_texture_data(texture: c_int) -> *const byte {
-        let dll = unsafe { T::global_assume_init_ref() };
-        dll.gl_texture_data(texture)
+        if let Some(texture) = TextureId::new(texture) {
+            let dll = unsafe { T::global_assume_init_ref() };
+            dll.gl_texture_data(texture)
+        } else {
+            ptr::null()
+        }
     }
 
     unsafe extern "C" fn gl_load_texture(
@@ -1759,7 +1806,8 @@ impl<T: RefDll> RefDllExport for Export<T> {
         };
         let buf = unsafe { slice_from_raw_parts_or_empty(buf, size) };
         let dll = unsafe { T::global_assume_init_ref() };
-        dll.gl_load_texture(name, buf, flags)
+        let res = dll.gl_load_texture(name, buf, flags);
+        TextureId::to_ffi(res)
     }
 
     unsafe extern "C" fn gl_create_texture(
@@ -1776,12 +1824,14 @@ impl<T: RefDll> RefDllExport for Export<T> {
         let len = width as usize * height as usize;
         let buffer = unsafe { slice::from_raw_parts(buffer.cast(), len) };
         let dll = unsafe { T::global_assume_init_ref() };
-        dll.gl_create_texture(name, width, height, buffer, flags)
+        let res = dll.gl_create_texture(name, width, height, buffer, flags);
+        TextureId::to_ffi(res)
     }
 
     unsafe extern "C" fn gl_load_texture_array(names: *mut *const c_char, flags: c_int) -> c_int {
         let dll = unsafe { T::global_assume_init_ref() };
-        dll.gl_load_texture_array(names, flags)
+        let res = dll.gl_load_texture_array(names, flags);
+        TextureId::to_ffi(res)
     }
 
     unsafe extern "C" fn gl_create_texture_array(
@@ -1796,12 +1846,15 @@ impl<T: RefDll> RefDllExport for Export<T> {
             return 0;
         };
         let dll = unsafe { T::global_assume_init_ref() };
-        dll.gl_create_texture_array(name, width, height, depth, buffer, flags)
+        let res = dll.gl_create_texture_array(name, width, height, depth, buffer, flags);
+        TextureId::to_ffi(res)
     }
 
     unsafe extern "C" fn gl_free_texture(texture: c_int) {
-        let dll = unsafe { T::global_assume_init_ref() };
-        dll.gl_free_texture(texture);
+        if let Some(texture) = TextureId::new(texture) {
+            let dll = unsafe { T::global_assume_init_ref() };
+            dll.gl_free_texture(texture);
+        }
     }
 
     unsafe extern "C" fn override_texture_source_size(
@@ -1809,8 +1862,10 @@ impl<T: RefDll> RefDllExport for Export<T> {
         src_width: c_uint,
         src_height: c_uint,
     ) {
-        let dll = unsafe { T::global_assume_init_ref() };
-        dll.override_texture_source_size(texture, src_width, src_height);
+        if let Some(texture) = TextureId::new(texture) {
+            let dll = unsafe { T::global_assume_init_ref() };
+            dll.override_texture_source_size(texture, src_width, src_height);
+        }
     }
 
     unsafe extern "C" fn draw_single_decal(decal: *mut decal_s, fa: *mut msurface_s) {
@@ -1848,11 +1903,14 @@ impl<T: RefDll> RefDllExport for Export<T> {
         height: c_int,
         data: *const byte,
     ) {
-        let dll = unsafe { T::global_assume_init_ref() };
-        dll.avi_upload_raw_frame(texture, cols, rows, width, height, data);
+        if let Some(texture) = TextureId::new(texture) {
+            let dll = unsafe { T::global_assume_init_ref() };
+            dll.avi_upload_raw_frame(texture, cols, rows, width, height, data);
+        }
     }
 
     unsafe extern "C" fn gl_bind(tmu: c_int, texture: c_int) {
+        let texture = TextureId::new(texture);
         let dll = unsafe { T::global_assume_init_ref() };
         dll.gl_bind(tmu, texture);
     }
@@ -1899,8 +1957,10 @@ impl<T: RefDll> RefDllExport for Export<T> {
         height: c_int,
         depth: c_int,
     ) {
-        let dll = unsafe { T::global_assume_init_ref() };
-        dll.gl_update_tex_size(texture, width, height, depth);
+        if let Some(texture) = TextureId::new(texture) {
+            let dll = unsafe { T::global_assume_init_ref() };
+            dll.gl_update_tex_size(texture, width, height, depth);
+        }
     }
 
     unsafe extern "C" fn gl_draw_particles(

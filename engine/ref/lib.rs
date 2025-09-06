@@ -12,6 +12,7 @@ pub mod instance;
 mod logger;
 pub mod prelude;
 pub mod raw;
+pub mod texture;
 pub mod utils;
 
 pub use shared::{cell, color, cvar, math, parser, str::ToEngineStr};
