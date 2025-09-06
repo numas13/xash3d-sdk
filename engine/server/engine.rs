@@ -81,6 +81,7 @@ pub struct TraceResult {
 pub type enginefuncs_s = ServerEngineFunctions;
 
 #[allow(non_snake_case)]
+#[allow(clippy::type_complexity)]
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct ServerEngineFunctions {
@@ -394,7 +395,6 @@ pub struct ServerEngineFunctions {
         Option<unsafe extern "C" fn(pClient: *const edict_s) -> *const c_char>,
     pub pfnPrecacheEvent:
         Option<unsafe extern "C" fn(type_: c_int, psz: *const c_char) -> c_ushort>,
-    #[allow(clippy::type_complexity)]
     pub pfnPlaybackEvent: Option<
         unsafe extern "C" fn(
             flags: c_int,

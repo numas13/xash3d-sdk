@@ -2,8 +2,9 @@ use core::ffi::c_int;
 
 use cl::{
     consts::{ATTN_NORM, CHAN_WEAPON, PITCH},
+    engine::event::EventArgs,
     prelude::*,
-    raw::{event_args_s, SoundFlags},
+    raw::SoundFlags,
 };
 use res::valve::sound;
 
@@ -24,7 +25,7 @@ enum Hgun {
 }
 
 impl Events {
-    pub(super) fn fire_hornet_gun(&mut self, args: &mut event_args_s) {
+    pub(super) fn fire_hornet_gun(&mut self, args: &mut EventArgs) {
         let engine = engine();
         let ev = engine.event_api();
 

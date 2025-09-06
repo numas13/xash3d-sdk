@@ -1,6 +1,6 @@
 use core::ffi::c_int;
 
-use cl::{consts::PM_NORMAL, prelude::*, raw::event_args_s};
+use cl::{consts::PM_NORMAL, engine::event::EventArgs, prelude::*};
 use pm::{VEC_DUCK_HULL_MIN, VEC_HULL_MIN};
 
 use super::{is_local, Events};
@@ -18,7 +18,7 @@ enum Squeak {
 }
 
 impl Events {
-    pub(super) fn fire_snark(&mut self, args: &mut event_args_s) {
+    pub(super) fn fire_snark(&mut self, args: &mut EventArgs) {
         let idx = args.entindex;
         if !is_local(idx) {
             return;

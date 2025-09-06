@@ -5,8 +5,9 @@ use cl::{
         ATTN_NORM, CHAN_BODY, CHAN_ITEM, CHAN_WEAPON, CONTENTS_WATER, PITCH, PITCH_NORM, PM_NORMAL,
         SOLID_BSP, TE_BOUNCE_NULL,
     },
+    engine::event::EventArgs,
     prelude::*,
-    raw::{event_args_s, vec3_t, RenderMode, SoundFlags, TempEntFlags, TEMPENTITY},
+    raw::{vec3_t, RenderMode, SoundFlags, TempEntFlags, TEMPENTITY},
 };
 use res::valve::{models, sound};
 
@@ -33,7 +34,7 @@ enum Crossbow {
 }
 
 impl Events {
-    pub(super) fn fire_crossbow(&mut self, args: &mut event_args_s) {
+    pub(super) fn fire_crossbow(&mut self, args: &mut EventArgs) {
         let idx = args.entindex;
         let origin = args.origin;
 
@@ -78,7 +79,7 @@ impl Events {
         }
     }
 
-    pub(super) fn fire_crossbow2(&mut self, args: &mut event_args_s) {
+    pub(super) fn fire_crossbow2(&mut self, args: &mut EventArgs) {
         let idx = args.entindex;
         let origin = args.origin;
         let forward = args.angles.angle_vectors().forward();

@@ -1,3 +1,8 @@
+pub mod demo;
+pub mod efx;
+pub mod event;
+pub mod tri;
+
 use core::{
     ffi::{c_char, c_int, c_uint, c_ushort, c_void},
     mem::MaybeUninit,
@@ -16,12 +21,15 @@ use shared::{
 use crate::{
     color::{RGB, RGBA},
     cvar::{CVarFlags, CVarPtr},
-    efx::EfxApi,
-    event::EventApi,
+    engine::{
+        demo::{DemoApi, DemoApiFunctions},
+        efx::{EfxApi, EfxApiFunctions},
+        event::{EventApi, EventApiFunctions, EventArgs},
+        tri::{TriangleApi, TriangleApiFunctions},
+    },
     raw::{
-        cl_entity_s, client_textmessage_s, cmdalias_s, demo_api_s, efx_api_s, event_api_s,
-        event_args_s, hud_player_info_s, tagPOINT, triangleapi_s, vec3_t, wrect_s, IVoiceTweak,
-        SCREENINFO,
+        cl_entity_s, client_textmessage_s, cmdalias_s, hud_player_info_s, tagPOINT, vec3_t,
+        wrect_s, IVoiceTweak, SCREENINFO,
     },
     sprite::{client_sprite_s, SpriteHandle, SpriteList, HSPRITE},
 };
@@ -43,6 +51,7 @@ pub type UserMsgHookFn =
 pub type cl_enginefuncs_s = ClientEngineFunctions;
 
 #[allow(non_snake_case)]
+#[allow(clippy::type_complexity)]
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct ClientEngineFunctions {
@@ -174,7 +183,6 @@ pub struct ClientEngineFunctions {
         Option<unsafe extern "C" fn(szSound: *mut c_char, volume: f32, origin: *mut f32)>,
     pub pfnPrecacheEvent:
         Option<unsafe extern "C" fn(type_: c_int, psz: *const c_char) -> c_ushort>,
-    #[allow(clippy::type_complexity)]
     pub pfnPlaybackEvent: Option<
         unsafe extern "C" fn(
             flags: c_int,
@@ -197,7 +205,7 @@ pub struct ClientEngineFunctions {
     pub pfnHookEvent: Option<
         unsafe extern "C" fn(
             name: *const c_char,
-            pfnEvent: Option<unsafe extern "C" fn(args: *mut event_args_s)>,
+            pfnEvent: Option<unsafe extern "C" fn(args: *mut EventArgs)>,
         ),
     >,
     pub Con_IsVisible: Option<unsafe extern "C" fn() -> c_int>,
@@ -215,10 +223,10 @@ pub struct ClientEngineFunctions {
     pub COM_ParseFile:
         Option<unsafe extern "C" fn(data: *mut c_char, token: *mut c_char) -> *mut c_char>,
     pub COM_FreeFile: Option<unsafe extern "C" fn(buffer: *mut c_void)>,
-    pub pTriAPI: *mut triangleapi_s,
-    pub pEfxAPI: *mut efx_api_s,
-    pub pEventAPI: *mut event_api_s,
-    pub pDemoAPI: *mut demo_api_s,
+    pub pTriAPI: *mut TriangleApiFunctions,
+    pub pEfxAPI: *mut EfxApiFunctions,
+    pub pEventAPI: *mut EventApiFunctions,
+    pub pDemoAPI: *mut DemoApiFunctions,
     pub pNetAPI: *mut net_api_s,
     pub pVoiceTweak: *mut IVoiceTweak,
     pub IsSpectateOnly: Option<unsafe extern "C" fn() -> c_int>,
@@ -370,7 +378,9 @@ impl ClientEngine {
         &self.raw
     }
 
-    // pub pTriAPI: *mut triangleapi_s,
+    pub fn tri_api(&self) -> TriangleApi<'_> {
+        TriangleApi::new(unsafe { &*self.raw.pTriAPI })
+    }
 
     pub fn efx_api(&self) -> EfxApi<'_> {
         EfxApi::new(unsafe { &*self.raw.pEfxAPI })
@@ -380,7 +390,9 @@ impl ClientEngine {
         EventApi::new(unsafe { &*self.raw.pEventAPI })
     }
 
-    // pub pDemoAPI: *mut demo_api_s,
+    pub fn demo_api(&self) -> DemoApi<'_> {
+        DemoApi::new(unsafe { &*self.raw.pDemoAPI })
+    }
 
     // pub pNetAPI: *mut net_api_s,
 
@@ -725,7 +737,7 @@ impl ClientEngine {
     pub fn hook_event(
         &self,
         name: impl ToEngineStr,
-        event: Option<unsafe extern "C" fn(args: *mut event_args_s)>,
+        event: Option<unsafe extern "C" fn(args: *mut EventArgs)>,
     ) {
         let name = name.to_engine_str();
         unsafe { unwrap!(self, pfnHookEvent)(name.as_ptr(), event) }

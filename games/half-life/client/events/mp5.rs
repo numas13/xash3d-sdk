@@ -2,8 +2,9 @@ use core::ffi::c_int;
 
 use cl::{
     consts::{ATTN_NORM, CHAN_WEAPON, PITCH, TE_BOUNCE_SHELL, YAW},
+    engine::event::EventArgs,
     prelude::*,
-    raw::{event_args_s, SoundFlags},
+    raw::SoundFlags,
 };
 use res::valve::{models, sound};
 
@@ -29,7 +30,7 @@ enum Mp5 {
 }
 
 impl Events {
-    pub(super) fn fire_mp5(&mut self, args: &mut event_args_s) {
+    pub(super) fn fire_mp5(&mut self, args: &mut EventArgs) {
         let idx = args.entindex;
         let origin = args.origin;
         let angles = args.angles;
@@ -76,7 +77,7 @@ impl Events {
         fire_bullets(idx, av, 1, src, aiming, 8192.0, bullet, tracer, spread);
     }
 
-    pub(super) fn fire_mp5_2(&mut self, args: &mut event_args_s) {
+    pub(super) fn fire_mp5_2(&mut self, args: &mut EventArgs) {
         let idx = args.entindex;
         let origin = args.origin;
         let engine = engine();

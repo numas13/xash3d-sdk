@@ -2,8 +2,9 @@ use core::ffi::c_int;
 
 use cl::{
     consts::{ATTN_NORM, CHAN_WEAPON, PITCH_NORM},
+    engine::event::EventArgs,
     prelude::*,
-    raw::{event_args_s, SoundFlags},
+    raw::SoundFlags,
 };
 use res::valve::sound;
 
@@ -25,7 +26,7 @@ enum Crowbar {
 }
 
 impl Events {
-    pub(super) fn crowbar(&mut self, args: &mut event_args_s) {
+    pub(super) fn crowbar(&mut self, args: &mut EventArgs) {
         let idx = args.entindex;
         let origin = args.origin;
         let engine = engine();

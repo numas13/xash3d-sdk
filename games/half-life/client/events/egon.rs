@@ -2,8 +2,9 @@ use core::ffi::{c_int, CStr};
 
 use cl::{
     consts::{ATTN_NORM, CHAN_STATIC, CHAN_WEAPON},
+    engine::event::EventArgs,
     prelude::*,
-    raw::{event_args_s, SoundFlags},
+    raw::SoundFlags,
 };
 use res::valve::sound;
 
@@ -33,7 +34,7 @@ const EGON_SOUND_RUN: &CStr = sound::weapons::EGON_RUN3;
 const EGON_SOUND_STARTUP: &CStr = sound::weapons::EGON_WINDUP2;
 
 impl Events {
-    pub(super) fn fire_egon(&mut self, args: &mut event_args_s) {
+    pub(super) fn fire_egon(&mut self, args: &mut EventArgs) {
         let engine = engine();
         let ev = engine.event_api();
 
@@ -105,7 +106,7 @@ impl Events {
         }
     }
 
-    pub(super) fn stop_egon(&mut self, args: &mut event_args_s) {
+    pub(super) fn stop_egon(&mut self, args: &mut EventArgs) {
         let engine = engine();
         let ev = engine.event_api();
 

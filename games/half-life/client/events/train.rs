@@ -2,15 +2,16 @@ use core::ffi::c_int;
 
 use cl::{
     consts::{ATTN_NORM, CHAN_STATIC},
+    engine::event::EventArgs,
     prelude::*,
-    raw::{event_args_s, SoundFlags},
+    raw::SoundFlags,
 };
 use res::valve::sound;
 
 use super::Events;
 
 impl Events {
-    pub(super) fn train_pitch_adjust(&mut self, args: &mut event_args_s) {
+    pub(super) fn train_pitch_adjust(&mut self, args: &mut EventArgs) {
         let idx = args.entindex;
         let origin = args.origin;
         let us_params = args.iparam1 as u16;

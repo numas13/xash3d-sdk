@@ -2,8 +2,9 @@ use core::ffi::c_int;
 
 use cl::{
     consts::{ATTN_NORM, CHAN_WEAPON, PITCH, PM_NORMAL, SOLID_BSP, TE_SPRITETRAIL},
+    engine::event::EventArgs,
     prelude::*,
-    raw::{event_args_s, vec3_t, BeamEntity, RenderFx, RenderMode, SoundFlags, TempEntFlags},
+    raw::{vec3_t, BeamEntity, RenderFx, RenderMode, SoundFlags, TempEntFlags},
 };
 use res::valve::{self, sound, sprites};
 
@@ -34,7 +35,7 @@ impl Events {
         ev.stop_sound(idx, CHAN_WEAPON, sound::ambience::PULSEMACHINE);
     }
 
-    pub(super) fn fire_gauss(&mut self, args: &mut event_args_s) {
+    pub(super) fn fire_gauss(&mut self, args: &mut EventArgs) {
         let idx = args.entindex;
         if args.bparam2 != 0 {
             self.stop_previous_gauss(idx);
@@ -298,7 +299,7 @@ impl Events {
         }
     }
 
-    pub(super) fn spin_gauss(&mut self, args: &mut event_args_s) {
+    pub(super) fn spin_gauss(&mut self, args: &mut EventArgs) {
         let idx = args.entindex;
         let origin = args.origin;
         let sample = sound::ambience::PULSEMACHINE;

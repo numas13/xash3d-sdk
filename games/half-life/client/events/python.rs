@@ -2,8 +2,9 @@ use core::ffi::c_int;
 
 use cl::{
     consts::{ATTN_NORM, CHAN_WEAPON, PITCH, PITCH_NORM},
+    engine::event::EventArgs,
     prelude::*,
-    raw::{event_args_s, SoundFlags},
+    raw::SoundFlags,
 };
 use res::valve::sound;
 
@@ -26,7 +27,7 @@ enum Python {
 }
 
 impl Events {
-    pub(super) fn fire_python(&mut self, args: &mut event_args_s) {
+    pub(super) fn fire_python(&mut self, args: &mut EventArgs) {
         let idx = args.entindex;
         let origin = args.origin;
         let angles = args.angles;

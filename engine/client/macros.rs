@@ -43,7 +43,7 @@ macro_rules! hook_event {
         $crate::macros::hook_event!($name, |_| $block);
     }};
     ($name:expr, $handle:expr) => {{
-        use $crate::raw::event_args_s;
+        use $crate::engine::event::event_args_s;
 
         unsafe extern "C" fn event_hook(args: *mut event_args_s) {
             let handle: fn(&mut event_args_s) -> _ = $handle;

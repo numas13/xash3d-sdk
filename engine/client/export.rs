@@ -180,6 +180,7 @@ pub trait ClientDll: UnsyncGlobal {
 pub type cldll_func_s = ClientDllFunctions;
 
 #[allow(non_snake_case)]
+#[allow(clippy::type_complexity)]
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct ClientDllFunctions {
@@ -236,7 +237,6 @@ pub struct ClientDllFunctions {
     pub pfnProcessPlayerState: Option<
         unsafe extern "C" fn(dst: Option<&mut entity_state_s>, src: Option<&entity_state_s>),
     >,
-    #[allow(clippy::type_complexity)]
     pub pfnTxferPredictionData: Option<
         unsafe extern "C" fn(
             ps: Option<&mut entity_state_s>,
