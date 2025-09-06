@@ -21,7 +21,7 @@ use crate::{
     engine::RefEngineFunctions,
     globals::RefGlobalsRaw,
     raw::{mstudioseqdesc_t, mstudiotex_s, ref_screen_rotation_t, rgbdata_t, SKYBOX_MAX_SIDES},
-    texture::TextureId,
+    texture::{TextureId, UNUSED_TEXTURE_NAME},
 };
 
 pub use shared::export::{impl_unsync_global, UnsyncGlobal};
@@ -1782,7 +1782,7 @@ impl<T: RefDll> RefDllExport for Export<T> {
             let dll = unsafe { T::global_assume_init_ref() };
             dll.gl_texture_name(texture)
         } else {
-            c"*unused*".as_ptr()
+            UNUSED_TEXTURE_NAME.as_ptr()
         }
     }
 
