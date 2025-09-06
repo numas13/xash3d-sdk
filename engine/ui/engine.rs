@@ -1,7 +1,9 @@
 use core::{
     ffi::{c_char, c_int, c_uint, c_void},
+    fmt,
     mem::MaybeUninit,
     ptr, slice,
+    str::FromStr,
 };
 
 use csz::{CStrArray, CStrSlice, CStrThin};
@@ -34,6 +36,66 @@ pub(crate) mod prelude {
 }
 
 pub use self::prelude::*;
+
+#[derive(Copy, Clone, PartialEq, Eq)]
+pub enum Protocol {
+    GoldSrc,
+    Xash48,
+    /// Same as [Protocol::Xash48].
+    Legacy,
+    Xash49,
+    /// Same as [Protocol::Xash49].
+    Current,
+}
+
+impl Protocol {
+    pub fn is_current(&self) -> bool {
+        matches!(self, Self::Current | Self::Xash49)
+    }
+
+    pub fn is_legacy(&self) -> bool {
+        matches!(self, Self::Legacy | Self::Xash48)
+    }
+
+    pub fn is_goldsrc(&self) -> bool {
+        matches!(self, Self::GoldSrc)
+    }
+}
+
+impl Default for Protocol {
+    fn default() -> Self {
+        Self::Current
+    }
+}
+
+pub struct InvalidProtocolError;
+
+impl FromStr for Protocol {
+    type Err = InvalidProtocolError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "gs" | "goldsrc" => Ok(Self::GoldSrc),
+            "48" => Ok(Self::Xash48),
+            "legacy" => Ok(Self::Legacy),
+            "49" => Ok(Self::Xash49),
+            "current" => Ok(Self::Current),
+            _ => Err(InvalidProtocolError),
+        }
+    }
+}
+
+impl fmt::Display for Protocol {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::GoldSrc => "gs".fmt(f),
+            Self::Xash48 => "48".fmt(f),
+            Self::Legacy => "legacy".fmt(f),
+            Self::Xash49 => "49".fmt(f),
+            Self::Current => "current".fmt(f),
+        }
+    }
+}
 
 #[allow(non_camel_case_types)]
 pub type ui_enginefuncs_s = UiEngineFunctions;
@@ -593,7 +655,15 @@ impl UiEngine {
         self.client_in_game() && !self.get_cvar::<bool>(c"cl_background")
     }
 
-    // pub pfnClientJoin: Option<unsafe extern "C" fn(adr: netadr_s)>,
+    pub fn client_join(&self, address: netadr_s, protocol: Protocol) {
+        match protocol {
+            Protocol::Current => unsafe { unwrap!(self, pfnClientJoin)(address) },
+            _ => {
+                let address = self.addr_to_string(address);
+                self.client_cmd(format_args!("connect {address} {protocol}"));
+            }
+        }
+    }
 
     pub fn load_file(&self, path: impl ToEngineStr) -> Option<File> {
         let path = path.to_engine_str();
