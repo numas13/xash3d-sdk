@@ -4,7 +4,7 @@ use core::{
     ptr, slice,
 };
 
-use csz::{CStrArray, CStrThin};
+use csz::{CStrArray, CStrSlice, CStrThin};
 use shared::{
     borrow::{BorrowRef, Ref},
     cvar::cvar_s,
@@ -24,7 +24,7 @@ use crate::{
     raw::{self, gameinfo2_s, kbutton_t, wrect_s, GAMEINFO, HIMAGE},
 };
 
-pub use shared::engine::{net, AddCmdError};
+pub use shared::engine::{net, AddCmdError, BufferError};
 
 pub(crate) mod prelude {
     pub use shared::engine::{
@@ -628,6 +628,7 @@ impl UiEngine {
         }
     }
 
+    #[deprecated(note = "use keynum_to_str_buffer instead")]
     pub fn keynum_to_str(&self, keynum: c_int) -> Ref<'_, CStrThin> {
         // SAFETY: The returned string is allocated in a private static buffer
         // in that function. Never returns a null pointer.
@@ -635,6 +636,21 @@ impl UiEngine {
             let s = unwrap!(self, pfnKeynumToString)(keynum);
             self.borrows.keynum_to_str.borrow(s as *mut CStrThin)
         }
+    }
+
+    /// Returns a string for the given key number. The buffer is used as storage for the string.
+    ///
+    /// Returns an error if the string length is greater than the buffer capacity.
+    pub fn keynum_to_str_buffer<'a>(
+        &self,
+        keynum: c_int,
+        buffer: &'a mut CStrSlice,
+    ) -> Result<&'a CStrThin, BufferError> {
+        let s = unsafe { unwrap!(self, pfnKeynumToString)(keynum) };
+        assert!(!s.is_null());
+        let s = unsafe { CStrThin::from_ptr(s) }.to_bytes();
+        buffer.cursor().write_bytes(s).map_err(|_| BufferError)?;
+        Ok(buffer.as_thin())
     }
 
     pub fn key_get_binding(&self, keynum: c_int) -> Option<&CStrThin> {

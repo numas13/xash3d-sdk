@@ -14,6 +14,16 @@ use crate::{
     str::{AsCStrPtr, ToEngineStr},
 };
 
+/// The error type which is returned if a buffer capacity is no sufficient to hold all data.
+#[derive(Debug)]
+pub struct BufferError;
+
+impl fmt::Display for BufferError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fmt::Display::fmt("buffer capacity is too low", f)
+    }
+}
+
 /// Engine API to read and modify console variables.
 pub trait EngineCvar: Sized {
     #[doc(hidden)]
