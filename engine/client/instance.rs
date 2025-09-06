@@ -13,8 +13,9 @@ fn check_version(engine: &ClientEngine, name: &str, version: c_int, expected: c_
     if version == expected {
         return true;
     }
-    let msg = format_args!("^1Error:^7 {name} version is {version} (expected {expected})\n");
-    engine.console_print(msg);
+    engine.console_print(format_args!(
+        "^1Error:^7 {name} version is {version} (expected {expected})\n"
+    ));
     false
 }
 
