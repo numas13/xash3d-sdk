@@ -13,26 +13,26 @@ pub struct DemoApiFunctions {
     pub WriteBuffer: Option<unsafe extern "C" fn(size: c_int, buffer: *const c_uchar)>,
 }
 
-pub struct DemoApi<'a> {
-    raw: &'a DemoApiFunctions,
+pub struct DemoApi {
+    raw: *mut DemoApiFunctions,
 }
 
 macro_rules! unwrap {
     ($self:expr, $name:ident) => {
-        match $self.raw.$name {
+        match $self.raw().$name {
             Some(func) => func,
             None => panic!("demo_api_s.{} is null", stringify!($name)),
         }
     };
 }
 
-impl<'a> DemoApi<'a> {
-    pub(super) fn new(raw: &'a DemoApiFunctions) -> Self {
+impl DemoApi {
+    pub(super) fn new(raw: *mut DemoApiFunctions) -> Self {
         Self { raw }
     }
 
-    pub fn raw(&'a self) -> &'a DemoApiFunctions {
-        self.raw
+    pub fn raw(&self) -> &DemoApiFunctions {
+        unsafe { self.raw.as_ref().unwrap() }
     }
 
     pub fn is_recording(&self) -> bool {

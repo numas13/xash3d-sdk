@@ -37,30 +37,30 @@ pub struct TriangleApiFunctions {
     pub FogParams: Option<unsafe extern "C" fn(flDensity: f32, iFogSkybox: c_int)>,
 }
 
-pub struct TriangleApi<'a> {
-    raw: &'a TriangleApiFunctions,
+pub struct TriangleApi {
+    raw: *mut TriangleApiFunctions,
 }
 
 macro_rules! unwrap {
     ($self:expr, $name:ident) => {
-        match $self.raw.$name {
+        match $self.raw().$name {
             Some(func) => func,
             None => panic!("triangleapi_s.{} is null", stringify!($name)),
         }
     };
 }
 
-impl<'a> TriangleApi<'a> {
-    pub(super) fn new(raw: &'a TriangleApiFunctions) -> Self {
+impl TriangleApi {
+    pub(super) fn new(raw: *mut TriangleApiFunctions) -> Self {
         Self { raw }
     }
 
-    pub fn raw(&'a self) -> &'a TriangleApiFunctions {
-        self.raw
+    pub fn raw(&self) -> &TriangleApiFunctions {
+        unsafe { self.raw.as_ref().unwrap() }
     }
 
     pub fn version(&self) -> c_int {
-        self.raw.version
+        self.raw().version
     }
 
     // pub RenderMode: Option<unsafe extern "C" fn(mode: c_int)>,

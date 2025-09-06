@@ -356,6 +356,10 @@ pub struct ClientEngineFunctions {
 
 pub struct ClientEngine {
     raw: ClientEngineFunctions,
+    tri_api: TriangleApi,
+    efx_api: EfxApi,
+    event_api: EventApi,
+    demo_api: DemoApi,
     net_api: NetApi,
 }
 
@@ -374,6 +378,10 @@ impl ClientEngine {
     pub(crate) fn new(raw: &ClientEngineFunctions) -> Self {
         Self {
             raw: *raw,
+            tri_api: TriangleApi::new(raw.pTriAPI),
+            efx_api: EfxApi::new(raw.pEfxAPI),
+            event_api: EventApi::new(raw.pEventAPI),
+            demo_api: DemoApi::new(raw.pDemoAPI),
             net_api: NetApi::new(raw.pNetAPI),
         }
     }
@@ -382,23 +390,21 @@ impl ClientEngine {
         &self.raw
     }
 
-    pub fn tri_api(&self) -> TriangleApi<'_> {
-        TriangleApi::new(unsafe { &*self.raw.pTriAPI })
+    pub fn tri_api(&self) -> &TriangleApi {
+        &self.tri_api
     }
 
-    pub fn efx_api(&self) -> EfxApi<'_> {
-        EfxApi::new(unsafe { &*self.raw.pEfxAPI })
+    pub fn efx_api(&self) -> &EfxApi {
+        &self.efx_api
     }
 
-    pub fn event_api(&self) -> EventApi<'_> {
-        EventApi::new(unsafe { &*self.raw.pEventAPI })
+    pub fn event_api(&self) -> &EventApi {
+        &self.event_api
     }
 
-    pub fn demo_api(&self) -> DemoApi<'_> {
-        DemoApi::new(unsafe { &*self.raw.pDemoAPI })
+    pub fn demo_api(&self) -> &DemoApi {
+        &self.demo_api
     }
-
-    // pub pNetAPI: *mut net_api_s,
 
     pub fn spr_load(&self, pic_name: impl ToEngineStr) -> Option<SpriteHandle> {
         let pic_name = pic_name.to_engine_str();

@@ -128,7 +128,7 @@ pub struct EventApiFunctions {
     pub EV_PopTraceBounds: Option<unsafe extern "C" fn()>,
 }
 
-pub struct PmStates<'a>(&'a EventApi<'a>);
+pub struct PmStates<'a>(&'a EventApi);
 
 impl PmStates<'_> {
     pub fn pop(self) {}
@@ -140,13 +140,13 @@ impl Drop for PmStates<'_> {
     }
 }
 
-pub struct EventApi<'a> {
-    raw: &'a EventApiFunctions,
+pub struct EventApi {
+    raw: *mut EventApiFunctions,
 }
 
 macro_rules! unwrap {
     ($self:expr, $name:ident) => {
-        match $self.raw.$name {
+        match $self.raw().$name {
             Some(func) => func,
             None => panic!("event_api_s.{} is null", stringify!($name)),
         }
@@ -154,17 +154,17 @@ macro_rules! unwrap {
 }
 
 #[allow(dead_code)]
-impl<'a> EventApi<'a> {
-    pub(super) fn new(raw: &'a EventApiFunctions) -> Self {
+impl EventApi {
+    pub(super) fn new(raw: *mut EventApiFunctions) -> Self {
         Self { raw }
     }
 
-    pub fn raw(&'a self) -> &'a EventApiFunctions {
-        self.raw
+    pub fn raw(&self) -> &EventApiFunctions {
+        unsafe { self.raw.as_ref().unwrap() }
     }
 
     pub fn version(&self) -> c_int {
-        self.raw.version
+        self.raw().version
     }
 
     #[allow(clippy::too_many_arguments)]

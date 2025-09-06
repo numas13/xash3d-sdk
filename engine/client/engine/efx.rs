@@ -418,27 +418,26 @@ pub struct EfxApiFunctions {
     >,
 }
 
-pub struct EfxApi<'a> {
-    raw: &'a EfxApiFunctions,
+pub struct EfxApi {
+    raw: *mut EfxApiFunctions,
 }
 
 macro_rules! unwrap {
     ($self:expr, $name:ident) => {
-        match $self.raw.$name {
+        match $self.raw().$name {
             Some(func) => func,
             None => panic!("efx_api_s.{} is null", stringify!($name)),
         }
     };
 }
 
-#[allow(dead_code)]
-impl<'a> EfxApi<'a> {
-    pub(super) fn new(raw: &'a EfxApiFunctions) -> Self {
+impl EfxApi {
+    pub(super) fn new(raw: *mut EfxApiFunctions) -> Self {
         Self { raw }
     }
 
-    pub fn raw(&'a self) -> &'a EfxApiFunctions {
-        self.raw
+    pub fn raw(&self) -> &EfxApiFunctions {
+        unsafe { self.raw.as_ref().unwrap() }
     }
 
     // pub R_AllocParticle: Option<
