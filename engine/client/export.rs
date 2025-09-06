@@ -534,8 +534,8 @@ impl<T: ClientDll + Default> ClientDllExport for Export<T> {
         let Some(engine_funcs) = engine_funcs else {
             return 0;
         };
-        unsafe {
-            crate::instance::init_engine(engine_funcs);
+        if !unsafe { crate::instance::init_engine(engine_funcs) } {
+            return 0;
         }
 
         crate::cvar::init(|name, value, flags| {

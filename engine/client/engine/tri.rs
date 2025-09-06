@@ -59,6 +59,10 @@ impl<'a> TriangleApi<'a> {
         self.raw
     }
 
+    pub fn version(&self) -> c_int {
+        self.raw.version
+    }
+
     // pub RenderMode: Option<unsafe extern "C" fn(mode: c_int)>,
     // pub Begin: Option<unsafe extern "C" fn(primitiveCode: c_int)>,
 
