@@ -9,6 +9,7 @@ use core::{
     ptr,
 };
 
+use csz::{CStrSlice, CStrThin};
 use shared::{
     cvar::cvar_s,
     engine::net::{net_api_s, NetApi},
@@ -33,7 +34,7 @@ use crate::{
     sprite::{client_sprite_s, SpriteHandle, SpriteList, HSPRITE},
 };
 
-pub use shared::engine::{net, AddCmdError};
+pub use shared::engine::{net, AddCmdError, BufferError};
 
 pub(crate) mod prelude {
     pub use shared::engine::{
@@ -762,7 +763,19 @@ impl ClientEngine {
         CVarPtr::from_ptr(ptr)
     }
 
-    // pub Key_LookupBinding: Option<unsafe extern "C" fn(pBinding: *const c_char) -> *const c_char>,
+    pub fn key_lookup_binding<'a>(
+        &self,
+        binding: impl ToEngineStr,
+        buffer: &'a mut CStrSlice,
+    ) -> Result<&'a CStrThin, BufferError> {
+        let binding = binding.to_engine_str();
+        let s = unsafe { unwrap!(self, Key_LookupBinding)(binding.as_ptr()) };
+        assert!(!s.is_null());
+        let s = unsafe { CStrThin::from_ptr(s) }.to_bytes();
+        buffer.cursor().write_bytes(s).map_err(|_| BufferError)?;
+        Ok(buffer.as_thin())
+    }
+
     // pub pfnGetLevelName: Option<unsafe extern "C" fn() -> *const c_char>,
     // pub pfnGetScreenFade: Option<unsafe extern "C" fn(fade: *mut screenfade_s)>,
     // pub pfnSetScreenFade: Option<unsafe extern "C" fn(fade: *mut screenfade_s)>,
