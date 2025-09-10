@@ -165,6 +165,16 @@ impl AngleVectors {
     }
 }
 
+pub trait ToAngleVectors {
+    fn angle_vectors(&self) -> AngleVectors;
+}
+
+impl ToAngleVectors for vec3_t {
+    fn angle_vectors(&self) -> AngleVectors {
+        AngleVectors::new(*self)
+    }
+}
+
 pub fn calc_roll(angles: vec3_t, velocity: vec3_t, roll_angle: f32, roll_speed: f32) -> f32 {
     let right = angles.angle_vectors().right();
     let side = velocity.dot_product(right);

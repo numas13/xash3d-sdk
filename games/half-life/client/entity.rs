@@ -216,8 +216,8 @@ impl Entities {
             if life < 0.0 {
                 if temp.flags.intersects(F::FADEOUT) {
                     let cs = &mut temp.entity.curstate;
-                    if cs.rendermode == RenderMode::Normal {
-                        cs.rendermode = RenderMode::TransTexture;
+                    if cs.rendermode == RenderMode::Normal as c_int {
+                        cs.rendermode = RenderMode::TransTexture as c_int;
                     }
                     let tmp = 1.0 + life * temp.fadeSpeed;
                     cs.renderamt = (temp.entity.baseline.renderamt as f32 * tmp) as c_int;
@@ -395,7 +395,7 @@ impl Entities {
             }
 
             if temp.flags.intersects(F::FLICKER)
-                && self.temp_ent_frame.get() == temp.entity.curstate.effects.bits()
+                && self.temp_ent_frame.get() == temp.entity.curstate.effects
             {
                 let dl = efx.alloc_dlight(0);
                 assert!(!dl.is_null());

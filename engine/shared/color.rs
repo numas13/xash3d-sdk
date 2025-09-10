@@ -1,6 +1,10 @@
-use core::{ffi::c_int, fmt, str::FromStr};
+use core::{
+    ffi::{c_int, c_uint},
+    fmt,
+    str::FromStr,
+};
 
-use crate::raw::color24;
+use xash3d_ffi::common::{color24, colorVec};
 
 macro_rules! define_colors {
     ($($value:expr => $name:ident),* $(,)?) => {
@@ -160,6 +164,33 @@ impl From<color24> for RGB {
     }
 }
 
+impl From<RGB> for color24 {
+    fn from(value: RGB) -> Self {
+        Self {
+            r: value.r(),
+            g: value.g(),
+            b: value.b(),
+        }
+    }
+}
+
+impl From<colorVec> for RGB {
+    fn from(value: colorVec) -> Self {
+        Self::new(value.r as u8, value.g as u8, value.b as u8)
+    }
+}
+
+impl From<RGB> for colorVec {
+    fn from(value: RGB) -> Self {
+        Self {
+            r: value.r() as c_uint,
+            g: value.g() as c_uint,
+            b: value.b() as c_uint,
+            a: 255,
+        }
+    }
+}
+
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Default)]
 #[repr(transparent)]
 pub struct RGBA(u32);
@@ -271,6 +302,33 @@ impl From<RGB> for RGBA {
 impl From<color24> for RGBA {
     fn from(color: color24) -> RGBA {
         RGBA::rgb(color.r, color.g, color.b)
+    }
+}
+
+impl From<RGBA> for color24 {
+    fn from(value: RGBA) -> Self {
+        Self {
+            r: value.r(),
+            g: value.g(),
+            b: value.b(),
+        }
+    }
+}
+
+impl From<colorVec> for RGBA {
+    fn from(value: colorVec) -> Self {
+        Self::new(value.r as u8, value.g as u8, value.g as u8, value.a as u8)
+    }
+}
+
+impl From<RGBA> for colorVec {
+    fn from(value: RGBA) -> Self {
+        Self {
+            r: value.r() as c_uint,
+            g: value.g() as c_uint,
+            b: value.b() as c_uint,
+            a: value.a() as c_uint,
+        }
     }
 }
 

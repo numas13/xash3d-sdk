@@ -14,7 +14,7 @@ use shared::{
     cvar::cvar_s,
     engine::net::{net_api_s, NetApi},
     export::impl_unsync_global,
-    raw::{byte, con_nprint_s, fake_edict_s, model_s, pmtrace_s, qboolean, screenfade_s},
+    raw::{byte, con_nprint_s, edict_s, model_s, pmtrace_s, qboolean, screenfade_s, WRectExt},
     str::{AsCStrPtr, ToEngineStr},
 };
 
@@ -187,7 +187,7 @@ pub struct ClientEngineFunctions {
     pub pfnPlaybackEvent: Option<
         unsafe extern "C" fn(
             flags: c_int,
-            pInvoker: *const fake_edict_s,
+            pInvoker: *const edict_s,
             eventindex: c_ushort,
             delay: f32,
             origin: *mut f32,

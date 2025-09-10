@@ -75,7 +75,7 @@ impl Draw<'_> {
     pub fn r_speeds_message(&self, out: &mut [c_char]) -> Option<bool> {
         self.raw
             .R_SpeedsMessage
-            .map(|f| unsafe { f(out.as_mut_ptr(), out.len()).to_bool() })
+            .map(|f| unsafe { f(out.as_mut_ptr(), out.len()) != 0 })
     }
 
     // XXX: temporary silence clippy

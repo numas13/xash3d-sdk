@@ -11,7 +11,7 @@ use cl::{
     macros::{hook_command, hook_command_key},
     math::{angle_mod, pow, sqrt, sqrtf},
     prelude::*,
-    raw::{kbutton_t, usercmd_s, vec3_t, KeyState},
+    raw::{kbutton_t, usercmd_s, vec3_t, KeyState, UserCmdExt},
 };
 use csz::{CStrBox, CStrThin};
 
@@ -56,11 +56,11 @@ mod cvar {
 }
 
 #[allow(non_upper_case_globals)]
-static mut in_graph: kbutton_t = kbutton_t::new();
+static mut in_graph: kbutton_t = unsafe { mem::zeroed() };
 #[allow(non_upper_case_globals)]
-pub static mut in_mlook: kbutton_t = kbutton_t::new();
+pub static mut in_mlook: kbutton_t = unsafe { mem::zeroed() };
 #[allow(non_upper_case_globals)]
-static mut in_jlook: kbutton_t = kbutton_t::new();
+static mut in_jlook: kbutton_t = unsafe { mem::zeroed() };
 
 struct Mouse {}
 
@@ -184,7 +184,7 @@ impl Input {
         hook_command_key!("jump", input_mut().in_jump);
         hook_command_key!("klook", input_mut().in_klook);
         hook_command_key!("mlook", unsafe { &mut *addr_of_mut!(in_mlook) }, up {
-            let state = unsafe { in_mlook.state };
+            let state = KeyState::from_bits_retain(unsafe { in_mlook.state });
             if !state.contains(KeyState::DOWN) && cvar::lookspring.value() != 0.0 {
                 view_mut().start_pitch_drift();
             }
@@ -332,7 +332,7 @@ impl Input {
 
         macro_rules! set {
             ($($name:expr => $bits:expr),* $(,)?) => (
-                $(if $name.state.intersects(KeyState::ANY_DOWN) {
+                $(if $name.state().intersects(KeyState::ANY_DOWN) {
                     bits |= $bits;
                 })*
             );
@@ -366,7 +366,7 @@ impl Input {
         if reset_state {
             macro_rules! reset {
                 ($($name:expr),* $(,)?) => (
-                    $($name.state.remove(KeyState::IMPULSE_DOWN);)*
+                    $($name.state_mut().remove(KeyState::IMPULSE_DOWN);)*
                 );
             }
             reset! {
@@ -397,7 +397,7 @@ impl Input {
             if bits & consts::IN_ATTACK != 0 {
                 self.in_attack.key_down();
             } else {
-                self.in_attack.state = KeyState::empty();
+                self.in_attack.state = 0;
             }
         }
     }
@@ -502,7 +502,7 @@ impl Input {
         let engine = engine();
         let mut viewangles = engine.get_view_angles();
 
-        let state = unsafe { input::in_mlook.state };
+        let state = KeyState::from_bits_retain(unsafe { input::in_mlook.state });
         if state.contains(KeyState::DOWN) {
             view_mut().stop_pitch_drift();
         }
@@ -529,7 +529,7 @@ impl Input {
 
             self.scale_mouse();
 
-            let in_mlook_state = unsafe { in_mlook.state };
+            let in_mlook_state = KeyState::from_bits_retain(unsafe { in_mlook.state });
             if self.in_strafe.is_down()
                 || cvar::lookstrafe.value() != 0.0 && in_mlook_state.contains(KeyState::DOWN)
             {

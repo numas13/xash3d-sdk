@@ -5,101 +5,77 @@
 #![allow(clippy::type_complexity)]
 
 pub mod bsp;
-mod vector;
 
-use core::{
-    ffi::{c_char, c_int, c_short, c_uchar, c_uint, c_ushort, c_void},
-    fmt,
-    marker::PhantomData,
-    slice, str,
-};
+use core::{ffi::c_int, mem, str};
 
 use bitflags::bitflags;
-use csz::CStrArray;
 
-use crate::{
-    color::RGBA,
-    consts::{
-        self, HISTORY_MAX, MAXLIGHTMAPS, MAX_MAP_HULLS, MAX_MOVEENTS, MAX_PHYSINFO_STRING,
-        MAX_SKINS, NUM_GLYPHS, VERTEXSIZE,
-    },
-    cvar::cvar_s,
+use crate::consts::{self, MAX_MOVEENTS};
+
+// TODO: remove me
+#[rustfmt::skip]
+pub use xash3d_ffi::{
+    common::BEAM,
+    common::alight_s,
+    common::auxvert_s,
+    common::byte,
+    common::cache_user_s,
+    common::cl_entity_s,
+    common::clientdata_s,
+    common::color24,
+    common::colorVec,
+    common::con_nprint_s,
+    common::customization_s,
+    common::decal_s,
+    common::dlight_s,
+    common::edict_s,
+    common::efrag_s,
+    common::entity_state_s,
+    common::hull_s,
+    common::kbutton_t,
+    common::latchedvars_t,
+    common::mleaf_s,
+    common::mnode_s,
+    common::model_s,
+    common::mouth_t,
+    common::movevars_s,
+    common::msurface_s,
+    common::particle_s,
+    common::player_info_s,
+    common::pmtrace_s,
+    common::poolhandle_t,
+    common::position_history_t,
+    common::qboolean,
+    common::ref_overview_s,
+    common::ref_viewpass_s,
+    common::screenfade_s,
+    common::texture_s,
+    common::texture_t,
+    common::trace_t,
+    common::usercmd_s,
+    common::vec2_t,
+    common::vec3_t,
+    common::vec4_t,
+    common::weapon_data_s,
+    common::wrect_s,
+
+    api::studio::engine_studio_api_s,
+    api::studio::engine_studio_api_t,
+    api::studio::mstudioevent_s,
+    api::studio::r_studio_interface_s,
+    api::studio::r_studio_interface_t,
+
+    api::render::decallist_s,
+    api::render::lightstyle_t,
+
+    api::tri::TRICULLSTYLE,
+
+    player_move::physent_s,
+    player_move::playermove_s,
 };
 
-use self::bsp::dmodel_t;
-
-pub use self::vector::{vec2_t, vec3_t, vec4_t, Vector};
-
-pub type playermove_s = c_void;
-
-pub type HIMAGE = c_int;
-
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Default)]
-#[repr(C)]
-pub struct colorVec {
-    pub r: c_uint,
-    pub g: c_uint,
-    pub b: c_uint,
-    pub a: c_uint,
-}
-
-impl From<RGBA> for colorVec {
-    fn from(value: RGBA) -> Self {
-        Self {
-            r: value.r() as c_uint,
-            g: value.g() as c_uint,
-            b: value.b() as c_uint,
-            a: value.a() as c_uint,
-        }
-    }
-}
-
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Default)]
-#[repr(C)]
-pub struct color24 {
-    pub r: byte,
-    pub g: byte,
-    pub b: byte,
-}
-
-#[derive(Default)]
-#[repr(C)]
-pub struct DynArray<T>(PhantomData<T>, [T; 0]);
-
-impl<T> DynArray<T> {
-    #[inline]
-    pub const fn new() -> Self {
-        DynArray(PhantomData, [])
-    }
-
-    #[inline]
-    pub fn as_ptr(&self) -> *const T {
-        self as *const _ as *const T
-    }
-
-    #[inline]
-    pub fn as_mut_ptr(&mut self) -> *mut T {
-        self as *mut _ as *mut T
-    }
-
-    #[inline]
-    pub unsafe fn as_slice(&self, len: usize) -> &[T] {
-        unsafe { slice::from_raw_parts(self.as_ptr(), len) }
-    }
-
-    #[inline]
-    pub unsafe fn as_mut_slice(&mut self, len: usize) -> &mut [T] {
-        unsafe { slice::from_raw_parts_mut(self.as_mut_ptr(), len) }
-    }
-}
-
-impl<T> fmt::Debug for DynArray<T> {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("DynArray")
-    }
-}
-
 bitflags! {
+    /// kbutton_t.state
     #[derive(Debug, Copy, Clone, Default, PartialEq, Eq)]
     #[repr(transparent)]
     pub struct KeyState: c_int {
@@ -110,35 +86,44 @@ bitflags! {
     }
 }
 
-#[derive(Copy, Clone, Default)]
-#[repr(C)]
-pub struct kbutton_t {
-    pub down: [c_int; 2],
-    pub state: KeyState,
-}
+pub trait KButtonExt {
+    fn new() -> Self;
 
-impl kbutton_t {
-    pub const fn new() -> Self {
-        kbutton_t {
-            down: [0; 2],
-            state: KeyState::empty(),
-        }
+    fn state(&self) -> &KeyState;
+
+    fn state_mut(&mut self) -> &mut KeyState;
+
+    fn is_down(&self) -> bool {
+        self.state().contains(KeyState::DOWN)
     }
 
-    pub fn is_down(&self) -> bool {
-        self.state.contains(KeyState::DOWN)
-    }
-
-    pub fn is_up(&self) -> bool {
+    fn is_up(&self) -> bool {
         !self.is_down()
     }
 
-    pub fn is_impulse_down(&self) -> bool {
-        self.state.intersects(KeyState::IMPULSE_DOWN)
+    fn is_impulse_down(&self) -> bool {
+        self.state().intersects(KeyState::IMPULSE_DOWN)
     }
 
-    pub fn is_impulse_up(&self) -> bool {
-        self.state.intersects(KeyState::IMPULSE_UP)
+    fn is_impulse_up(&self) -> bool {
+        self.state().intersects(KeyState::IMPULSE_UP)
+    }
+}
+
+impl KButtonExt for kbutton_t {
+    fn new() -> Self {
+        kbutton_t {
+            down: [0; 2],
+            state: 0,
+        }
+    }
+
+    fn state(&self) -> &KeyState {
+        unsafe { mem::transmute(&self.state) }
+    }
+
+    fn state_mut(&mut self) -> &mut KeyState {
+        unsafe { mem::transmute(&mut self.state) }
     }
 }
 
@@ -187,6 +172,7 @@ bitflags! {
     }
 }
 
+/// entity_state_s.rendermode
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
 #[repr(i32)]
 pub enum RenderMode {
@@ -229,8 +215,7 @@ impl RenderMode {
     }
 }
 
-// FIXME: not FFI-safe on current MSRV (1.77)
-// #[non_exhaustive]
+/// entity_state_s.renderfx
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(C)]
 pub enum RenderFx {
@@ -266,7 +251,12 @@ pub enum RenderFx {
 const_assert_size_eq!(RenderFx, c_int);
 
 impl RenderFx {
+    #[deprecated]
     pub fn from_u32(value: u32) -> Option<RenderFx> {
+        Self::from_raw(value as c_int)
+    }
+
+    pub fn from_raw(value: c_int) -> Option<RenderFx> {
         Some(match value {
             0 => Self::None,
             1 => Self::PulseSlow,
@@ -295,119 +285,8 @@ impl RenderFx {
     }
 }
 
-pub type byte = c_uchar;
-pub type poolhandle_t = u32;
-
-#[derive(Copy, Clone, Hash, PartialEq, Eq, Debug)]
-#[repr(transparent)]
-pub struct qboolean(pub c_uint);
-
-impl qboolean {
-    pub const FALSE: qboolean = qboolean(0);
-    pub const TRUE: qboolean = qboolean(1);
-
-    pub const fn to_bool(self) -> bool {
-        self.0 != Self::FALSE.0
-    }
-}
-
-impl From<bool> for qboolean {
-    fn from(value: bool) -> Self {
-        qboolean(value as c_uint)
-    }
-}
-
-impl From<qboolean> for bool {
-    fn from(value: qboolean) -> Self {
-        value != qboolean::FALSE
-    }
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct plane_t {
-    pub normal: vec3_t,
-    pub dist: f32,
-}
-
-pub type fake_edict_s = c_void;
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct trace_t<E = fake_edict_s> {
-    pub allsolid: qboolean,
-    pub startsolid: qboolean,
-    pub inopen: qboolean,
-    pub inwater: qboolean,
-    pub fraction: f32,
-    pub endpos: vec3_t,
-    pub plane: plane_t,
-    pub ent: *mut E,
-    pub hitgroup: c_int,
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct pmplane_t {
-    pub normal: vec3_t,
-    pub dist: f32,
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct pmtrace_s {
-    pub allsolid: qboolean,
-    pub startsolid: qboolean,
-    pub inopen: qboolean,
-    pub inwater: qboolean,
-    pub fraction: f32,
-    pub endpos: vec3_t,
-    pub plane: pmplane_t,
-    pub ent: c_int,
-    pub deltavelocity: vec3_t,
-    pub hitgroup: c_int,
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct efrag_s {
-    pub leaf: *mut mleaf_s,
-    pub leafnext: *mut efrag_s,
-    pub entity: *mut cl_entity_s,
-    pub entnext: *mut efrag_s,
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct mouth_t {
-    pub mouthopen: byte,
-    pub sndcount: byte,
-    pub sndavg: c_int,
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct latchedvars_t {
-    pub prevanimtime: f32,
-    pub sequencetime: f32,
-    pub prevseqblending: [byte; 2],
-    pub prevorigin: vec3_t,
-    pub prevangles: vec3_t,
-    pub prevsequence: c_int,
-    pub prevframe: f32,
-    pub prevcontroller: [byte; 4],
-    pub prevblending: [byte; 2],
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct position_history_t {
-    pub animtime: f32,
-    pub origin: vec3_t,
-    pub angles: vec3_t,
-}
-
 bitflags! {
+    /// entity_state_s.effects
     #[derive(Copy, Clone, Debug)]
     #[repr(transparent)]
     pub struct Effects: c_int {
@@ -428,188 +307,7 @@ bitflags! {
     }
 }
 
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct entity_state_s {
-    pub entityType: c_int,
-    pub number: c_int,
-    pub msg_time: f32,
-    pub messagenum: c_int,
-    pub origin: vec3_t,
-    pub angles: vec3_t,
-    pub modelindex: c_int,
-    pub sequence: c_int,
-    pub frame: f32,
-    pub colormap: c_int,
-    pub skin: c_short,
-    pub solid: c_short,
-    pub effects: Effects,
-    pub scale: f32,
-    pub eflags: byte,
-    pub rendermode: RenderMode,
-    pub renderamt: c_int,
-    pub rendercolor: color24,
-    pub renderfx: RenderFx,
-    pub movetype: MoveType,
-    pub animtime: f32,
-    pub framerate: f32,
-    pub body: c_int,
-    pub controller: [byte; 4],
-    pub blending: [byte; 4],
-    pub velocity: vec3_t,
-    pub mins: vec3_t,
-    pub maxs: vec3_t,
-    pub aiment: c_int,
-    pub owner: c_int,
-    pub friction: f32,
-    pub gravity: f32,
-    pub team: c_int,
-    pub playerclass: c_int,
-    pub health: c_int,
-    pub spectator: qboolean,
-    pub weaponmodel: c_int,
-    pub gaitsequence: c_int,
-    pub basevelocity: vec3_t,
-    pub usehull: c_int,
-    pub oldbuttons: c_int,
-    pub onground: c_int,
-    pub iStepLeft: c_int,
-    pub flFallVelocity: f32,
-    pub fov: f32,
-    pub weaponanim: c_int,
-    pub startpos: vec3_t,
-    pub endpos: vec3_t,
-    pub impacttime: f32,
-    pub starttime: f32,
-    pub iuser1: c_int,
-    pub iuser2: c_int,
-    pub iuser3: c_int,
-    pub iuser4: c_int,
-    pub fuser1: f32,
-    pub fuser2: f32,
-    pub fuser3: f32,
-    pub fuser4: f32,
-    pub vuser1: vec3_t,
-    pub vuser2: vec3_t,
-    pub vuser3: vec3_t,
-    pub vuser4: vec3_t,
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct clientdata_s {
-    pub origin: vec3_t,
-    pub velocity: vec3_t,
-    pub viewmodel: c_int,
-    pub punchangle: vec3_t,
-    pub flags: EdictFlags,
-    pub waterlevel: c_int,
-    pub watertype: c_int,
-    pub view_ofs: vec3_t,
-    pub health: f32,
-    pub bInDuck: c_int,
-    pub weapons: c_int,
-    pub flTimeStepSound: c_int,
-    pub flDuckTime: c_int,
-    pub flSwimTime: c_int,
-    pub waterjumptime: c_int,
-    pub maxspeed: f32,
-    pub fov: f32,
-    pub weaponanim: c_int,
-    pub m_iId: c_int,
-    pub ammo_shells: c_int,
-    pub ammo_nails: c_int,
-    pub ammo_cells: c_int,
-    pub ammo_rockets: c_int,
-    pub m_flNextAttack: f32,
-    pub tfstate: c_int,
-    pub pushmsec: c_int,
-    pub deadflag: c_int,
-    pub physinfo: CStrArray<MAX_PHYSINFO_STRING>,
-    pub iuser1: c_int,
-    pub iuser2: c_int,
-    pub iuser3: c_int,
-    pub iuser4: c_int,
-    pub fuser1: f32,
-    pub fuser2: f32,
-    pub fuser3: f32,
-    pub fuser4: f32,
-    pub vuser1: vec3_t,
-    pub vuser2: vec3_t,
-    pub vuser3: vec3_t,
-    pub vuser4: vec3_t,
-}
-
-#[derive(Copy, Clone, Default)]
-#[repr(C)]
-pub struct weapon_data_s {
-    pub m_iId: c_int,
-    pub m_iClip: c_int,
-    pub m_flNextPrimaryAttack: f32,
-    pub m_flNextSecondaryAttack: f32,
-    pub m_flTimeWeaponIdle: f32,
-    pub m_fInReload: c_int,
-    pub m_fInSpecialReload: c_int,
-    pub m_flNextReload: f32,
-    pub m_flPumpTime: f32,
-    pub m_fReloadTime: f32,
-    pub m_fAimedDamage: f32,
-    pub m_fNextAimBonus: f32,
-    pub m_fInZoom: c_int,
-    pub m_iWeaponState: c_int,
-    pub iuser1: c_int,
-    pub iuser2: c_int,
-    pub iuser3: c_int,
-    pub iuser4: c_int,
-    pub fuser1: f32,
-    pub fuser2: f32,
-    pub fuser3: f32,
-    pub fuser4: f32,
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct cl_entity_s {
-    pub index: c_int,
-    pub player: qboolean,
-    pub baseline: entity_state_s,
-    pub prevstate: entity_state_s,
-    pub curstate: entity_state_s,
-    pub current_position: c_int,
-    pub ph: [position_history_t; HISTORY_MAX],
-    pub mouth: mouth_t,
-    pub latched: latchedvars_t,
-    pub lastmove: f32,
-    pub origin: vec3_t,
-    pub angles: vec3_t,
-    pub attachment: [vec3_t; 4],
-    pub trivial_accept: c_int,
-    pub model: *mut model_s,
-    pub efrag: *mut efrag_s,
-    pub topnode: *mut mnode_s,
-    pub syncbase: f32,
-    pub visframe: c_int,
-    pub cvFloorColor: colorVec,
-}
-
-impl cl_entity_s {
-    pub fn model(&self) -> Option<&model_s> {
-        if !self.model.is_null() {
-            Some(unsafe { &*self.model })
-        } else {
-            None
-        }
-    }
-
-    pub fn model_mut(&mut self) -> Option<&mut model_s> {
-        if !self.model.is_null() {
-            Some(unsafe { &mut *self.model })
-        } else {
-            None
-        }
-    }
-}
-
+/// model_s.type_
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
 #[repr(C)]
 pub enum modtype_t {
@@ -620,6 +318,20 @@ pub enum modtype_t {
     Studio = 3,
 }
 
+impl modtype_t {
+    pub fn from_raw(raw: c_int) -> Option<Self> {
+        match raw {
+            -1 => Some(Self::Bad),
+            0 => Some(Self::Brush),
+            1 => Some(Self::Sprite),
+            2 => Some(Self::Alias),
+            3 => Some(Self::Studio),
+            _ => None,
+        }
+    }
+}
+
+/// used in mplane_s.type_
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Default)]
 #[repr(transparent)]
 pub struct PlaneType(pub byte);
@@ -633,242 +345,8 @@ impl PlaneType {
     pub const NONAXIAL: Self = Self(3);
 }
 
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct mplane_s {
-    pub normal: vec3_t,
-    pub dist: f32,
-    pub type_: PlaneType,
-    pub signbits: byte,
-    pub pad: [byte; 2],
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct mvertex_t {
-    pub position: vec3_t,
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct mclipnode_t {
-    pub planenum: c_int,
-    pub children: [c_short; 2],
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct medge_t {
-    pub v: [c_ushort; 2],
-    pub cachededgeoffset: c_uint,
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct texture_s {
-    pub name: [c_char; 16],
-    pub width: c_uint,
-    pub height: c_uint,
-    pub gl_texturenum: c_int,
-    pub texturechain: *mut msurface_s,
-    pub anim_total: c_int,
-    pub anim_min: c_int,
-    pub anim_max: c_int,
-    pub anim_next: *mut texture_s,
-    pub alternate_anims: *mut texture_s,
-    pub fb_texturenum: c_ushort,
-    pub dt_texturenum: c_ushort,
-    pub unused: [c_uint; 3],
-}
-pub type texture_t = texture_s;
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct mfaceinfo_t {
-    pub landname: [c_char; 16],
-    pub texture_step: c_ushort,
-    pub max_extent: c_ushort,
-    pub groupid: c_short,
-    pub mins: vec3_t,
-    pub maxs: vec3_t,
-    pub reserved: [isize; 32],
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct mfacebevel_t {
-    pub edges: *mut mplane_s,
-    pub numedges: c_int,
-    pub origin: vec3_t,
-    pub radius: f32,
-    pub contents: c_int,
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct mtexinfo_t {
-    pub vecs: [vec4_t; 2],
-    pub faceinfo: *mut mfaceinfo_t,
-    pub texture: *mut texture_t,
-    pub flags: c_int,
-}
-
-#[repr(C)]
-pub struct glpoly2_s {
-    pub next: *mut glpoly2_s,
-    pub chain: *mut glpoly2_s,
-    numverts: c_int,
-    pub flags: c_int,
-    verts: DynArray<[f32; VERTEXSIZE]>,
-}
-
-impl glpoly2_s {
-    pub fn verts(&self) -> &[[f32; VERTEXSIZE]] {
-        unsafe { self.verts.as_slice(self.numverts as usize) }
-    }
-
-    pub fn verts_mut(&mut self) -> &mut [[f32; VERTEXSIZE]] {
-        unsafe { self.verts.as_mut_slice(self.numverts as usize) }
-    }
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct mnode_s {
-    pub contents: c_int,
-    pub visframe: c_int,
-    pub minmaxs: [f32; 6],
-    pub parent: *mut mnode_s,
-    pub plane: *mut mplane_s,
-    pub children: [*mut mnode_s; 2],
-    pub firstsurface_0: c_ushort,
-    pub numsurfaces_0: c_ushort,
-    #[cfg(target_pointer_width = "64")]
-    pub firstsurface_1: c_ushort,
-    #[cfg(target_pointer_width = "64")]
-    pub numsurfaces_1: c_ushort,
-}
-
-impl mnode_s {
-    #[cfg(target_pointer_width = "32")]
-    pub fn children(&self, model: &model_s, side: usize) -> *mut mnode_s {
-        if model.flags.intersects(ModelFlags::QBSP2) {
-            let raw = self.children[side] as usize;
-            let offset = (raw & 0xfffffe) >> 1;
-            if raw & 1 == 0 {
-                return model.leafs.wrapping_add(offset) as *mut mnode_s;
-            } else {
-                return model.nodes.wrapping_add(offset);
-            }
-        }
-        self.children[side]
-    }
-
-    fn firstsurface_0(&self) -> u32 {
-        self.firstsurface_0 as u32
-    }
-
-    fn numsurfaces_0(&self) -> u32 {
-        self.numsurfaces_0 as u32
-    }
-
-    #[cfg(target_pointer_width = "32")]
-    fn firstsurface_1(&self) -> u32 {
-        (self.children[0] as u32) >> 24
-    }
-
-    #[cfg(target_pointer_width = "32")]
-    fn numsurfaces_1(&self) -> u32 {
-        (self.children[1] as u32) >> 24
-    }
-
-    #[cfg(not(target_pointer_width = "32"))]
-    fn firstsurface_1(&self) -> u32 {
-        self.firstsurface_1 as u32
-    }
-
-    #[cfg(not(target_pointer_width = "32"))]
-    fn numsurfaces_1(&self) -> u32 {
-        self.numsurfaces_1 as u32
-    }
-
-    pub fn first_surface(&self, model: &model_s) -> u32 {
-        if model.flags.intersects(ModelFlags::QBSP2) {
-            self.firstsurface_0() + (self.firstsurface_1() << 16)
-        } else {
-            self.firstsurface_0()
-        }
-    }
-
-    pub fn num_surfaces(&self, model: &model_s) -> u32 {
-        if model.flags.intersects(ModelFlags::QBSP2) {
-            self.numsurfaces_0() + (self.numsurfaces_1() << 16)
-        } else {
-            self.numsurfaces_0()
-        }
-    }
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct decal_s {
-    pub pnext: *mut decal_s,
-    pub psurface: *mut msurface_s,
-    pub dx: f32,
-    pub dy: f32,
-    pub scale: f32,
-    pub texture: c_short,
-    pub flags: c_short,
-    pub entityIndex: c_short,
-    pub position: vec3_t,
-    pub polys: *mut glpoly2_s,
-    pub reserved: [isize; 4],
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct mleaf_s {
-    pub contents: c_int,
-    pub visframe: c_int,
-    pub minmaxs: [f32; 6],
-    pub parent: *mut mnode_s,
-    pub compressed_vis: *mut byte,
-    pub efrags: *mut efrag_s,
-    pub firstmarksurface: *mut *mut msurface_s,
-    pub nummarksurfaces: c_int,
-    pub cluster: c_int,
-    pub ambient_sound_level: [byte; 4],
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct mextrasurf_s {
-    pub mins: vec3_t,
-    pub maxs: vec3_t,
-    pub origin: vec3_t,
-    pub surf: *mut msurface_s,
-    pub dlight_s: c_int,
-    pub dlight_t: c_int,
-    pub lightmapmins: [c_short; 2],
-    pub lightextents: [c_short; 2],
-    pub lmvecs: [vec4_t; 2],
-    pub deluxemap: *mut color24,
-    pub shadowmap: *mut byte,
-    pub lightmapchain: *mut msurface_s,
-    pub detailchain: *mut mextrasurf_s,
-    pub bevel: *mut mfacebevel_t,
-    pub lumachain: *mut mextrasurf_s,
-    pub parent: *mut cl_entity_s,
-    pub mirrortexturenum: c_int,
-    pub mirrormatrix: [[f32; 4]; 4],
-    pub grass: *mut grasshdr_s,
-    pub grasscount: c_ushort,
-    pub numverts: c_ushort,
-    pub firstvertex: c_int,
-    pub reserved: [isize; 32],
-}
-
 bitflags! {
+    /// msurface_s.flags
     #[derive(Copy, Clone, PartialEq, Eq, Debug, Default)]
     #[repr(transparent)]
     pub struct SurfaceFlags: c_int {
@@ -884,97 +362,8 @@ bitflags! {
     }
 }
 
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct msurface_s {
-    pub visframe: c_int,
-    pub plane: *mut mplane_s,
-    pub flags: SurfaceFlags,
-    pub firstedge: c_int,
-    pub numedges: c_int,
-    pub texturemins: [c_short; 2],
-    pub extents: [c_short; 2],
-    pub light_s: c_int,
-    pub light_t: c_int,
-    pub polys: *mut glpoly2_s,
-    pub texturechain: *mut msurface_s,
-    pub texinfo: *mut mtexinfo_t,
-    pub dlightframe: c_int,
-    pub dlightbits: c_int,
-    pub lightmaptexturenum: c_int,
-    pub styles: [byte; MAXLIGHTMAPS],
-    pub cached_light: [c_int; MAXLIGHTMAPS],
-    pub info: *mut mextrasurf_s,
-    pub samples: *mut color24,
-    pub pdecals: *mut decal_s,
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct mclipnode32_s {
-    pub planenum: c_int,
-    pub children: [c_int; 2],
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct mclipnode16_s {
-    pub planenum: c_int,
-    pub children: [c_short; 2],
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub union hull_s_clipnodes {
-    pub clipnodes16: *mut mclipnode16_s,
-    pub clipnodes32: *mut mclipnode32_s,
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct hull_s {
-    pub clipnodes: hull_s_clipnodes,
-    pub planes: *mut mplane_s,
-    pub firstclipnode: c_int,
-    pub lastclipnode: c_int,
-    pub clip_mins: vec3_t,
-    pub clip_maxs: vec3_t,
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct cache_user_s {
-    pub data: *mut c_void,
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct medge32_s {
-    pub v: [c_uint; 2],
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct medge16_s {
-    pub v: [c_ushort; 2],
-    pub cachededgeoffset: c_uint,
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub union medges {
-    pub edges16: *mut medge16_s,
-    pub edges32: *mut medge32_s,
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub union mclipnodes {
-    pub clipnodes16: *mut mclipnode16_s,
-    pub clipnodes32: *mut mclipnode32_s,
-}
-
 bitflags! {
+    /// model_s.flags
     #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
     #[repr(transparent)]
     pub struct ModelFlags: c_int {
@@ -996,284 +385,8 @@ bitflags! {
     }
 }
 
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct model_s {
-    pub name: CStrArray<64>,
-    pub needload: qboolean,
-    pub type_: modtype_t,
-    pub numframes: c_int,
-    pub mempool: poolhandle_t,
-    pub flags: ModelFlags,
-    pub mins: vec3_t,
-    pub maxs: vec3_t,
-    pub radius: f32,
-    pub firstmodelsurface: c_int,
-    pub nummodelsurfaces: c_int,
-    pub numsubmodels: c_int,
-    pub submodels: *mut dmodel_t,
-    pub numplanes: c_int,
-    pub planes: *mut mplane_s,
-    pub numleafs: c_int,
-    pub leafs: *mut mleaf_s,
-    pub numvertexes: c_int,
-    pub vertexes: *mut mvertex_t,
-    pub numedges: c_int,
-    pub edges: medges,
-    pub numnodes: c_int,
-    pub nodes: *mut mnode_s,
-    pub numtexinfo: c_int,
-    pub texinfo: *mut mtexinfo_t,
-    pub numsurfaces: c_int,
-    pub surfaces: *mut msurface_s,
-    pub numsurfedges: c_int,
-    pub surfedges: *mut c_int,
-    pub numclipnodes: c_int,
-    pub clipnodes: mclipnodes,
-    pub nummarksurfaces: c_int,
-    pub marksurfaces: *mut *mut msurface_s,
-    pub hulls: [hull_s; MAX_MAP_HULLS],
-    pub numtextures: c_int,
-    pub textures: *mut *mut texture_t,
-    pub visdata: *mut byte,
-    pub lightdata: *mut color24,
-    pub entities: *mut c_char,
-    pub cache: cache_user_s,
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct auxvert_s {
-    pub fv: [f32; 3],
-}
-
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-#[repr(C)]
-pub enum resourcetype_t {
-    Sound = 0,
-    Skin = 1,
-    Model = 2,
-    Decal = 3,
-    Generic = 4,
-    Eventscript = 5,
-    World = 6,
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct _resourceinfo_t {
-    pub size: c_int,
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct resourceinfo_s {
-    pub info: [_resourceinfo_t; 8],
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct resource_s {
-    pub szFileName: [c_char; 64],
-    pub type_: resourcetype_t,
-    pub nIndex: c_int,
-    pub nDownloadSize: c_int,
-    pub ucFlags: c_uchar,
-    pub rgucMD5_hash: [c_uchar; 16],
-    pub playernum: c_uchar,
-    pub rguc_reserved: [c_uchar; 32],
-    pub ucExtraFlags: c_ushort,
-    pub pNext: *mut resource_s,
-    pub pPrev: *mut resource_s,
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct customization_s {
-    pub bInUse: qboolean,
-    pub resource: resource_s,
-    pub bTranslated: qboolean,
-    pub nUserData1: c_int,
-    pub nUserData2: c_int,
-    pub pInfo: *mut c_void,
-    pub pBuffer: *mut c_void,
-    pub pNext: *mut customization_s,
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct player_info_s {
-    pub userid: c_int,
-    pub userinfo: [c_char; 256],
-    pub name: [c_char; 32],
-    pub spectator: c_int,
-    pub ping: c_int,
-    pub packet_loss: c_int,
-    pub model: [c_char; 64],
-    pub topcolor: c_int,
-    pub bottomcolor: c_int,
-    pub renderframe: c_int,
-    pub gaitsequence: c_int,
-    pub gaitframe: f32,
-    pub gaityaw: f32,
-    pub prevgaitorigin: vec3_t,
-    pub customdata: customization_s,
-    pub hashedcdkey: [c_char; 16],
-}
-
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-#[repr(C)]
-pub enum spriteframetype_t {
-    Single = 0,
-    Group = 1,
-    Angled = 2,
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct mspriteframe_s {
-    pub width: c_int,
-    pub height: c_int,
-    pub up: f32,
-    pub down: f32,
-    pub left: f32,
-    pub right: f32,
-    pub gl_texturenum: c_int,
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct mspritegroup_t {
-    pub numframes: c_int,
-    pub intervals: *mut f32,
-    pub frames: [*mut mspriteframe_s; 1],
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct mspriteframedesc_t {
-    pub type_: spriteframetype_t,
-    pub frameptr: *mut mspriteframe_s,
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct msprite_t {
-    pub type_: c_short,
-    pub texFormat: c_short,
-    pub maxwidth: c_int,
-    pub maxheight: c_int,
-    pub numframes: c_int,
-    pub radius: c_int,
-    pub facecull: c_int,
-    pub synctype: c_int,
-    pub frames: [mspriteframedesc_t; 1],
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct trivertex_t {
-    pub v: [byte; 3],
-    pub lightnormalindex: byte,
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct maliasframedesc_t {
-    pub firstpose: c_int,
-    pub numposes: c_int,
-    pub bboxmin: trivertex_t,
-    pub bboxmax: trivertex_t,
-    pub interval: f32,
-    pub name: [c_char; 16],
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct aliashdr_t {
-    pub ident: c_int,
-    pub version: c_int,
-    pub scale: vec3_t,
-    pub scale_origin: vec3_t,
-    pub boundingradius: f32,
-    pub eyeposition: vec3_t,
-    pub numskins: c_int,
-    pub skinwidth: c_int,
-    pub skinheight: c_int,
-    pub numverts: c_int,
-    pub numtris: c_int,
-    pub numframes: c_int,
-    pub synctype: c_int,
-    pub flags: c_int,
-    pub size: f32,
-    pub pposeverts: *mut *const trivertex_t,
-    pub reserved: [isize; 7],
-    pub numposes: c_int,
-    pub poseverts: c_int,
-    pub posedata: *mut trivertex_t,
-    pub commands: *mut c_int,
-    pub gl_texturenum: [[c_ushort; 4]; MAX_SKINS],
-    pub fb_texturenum: [[c_ushort; 4]; MAX_SKINS],
-    pub gl_reserved0: [[c_ushort; 4]; MAX_SKINS],
-    pub gl_reserved1: [[c_ushort; 4]; MAX_SKINS],
-    pub gl_reserved2: [[c_ushort; 4]; MAX_SKINS],
-    pub frames: [maliasframedesc_t; 1],
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct con_nprint_s {
-    pub index: c_int,
-    pub time_to_live: f32,
-    pub color: [f32; 3],
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct dlight_s {
-    pub origin: vec3_t,
-    pub radius: f32,
-    pub color: color24,
-    pub die: f32,
-    pub decay: f32,
-    pub minlight: f32,
-    pub key: c_int,
-    pub dark: qboolean,
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct charinfo {
-    pub startoffset: c_short,
-    pub charwidth: c_short,
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct qfont_s {
-    pub width: c_int,
-    pub height: c_int,
-    pub rowcount: c_int,
-    pub rowheight: c_int,
-    pub fontinfo: [charinfo; NUM_GLYPHS],
-    pub data: [byte; 4],
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct ref_overview_s {
-    pub origin: vec3_t,
-    pub rotated: qboolean,
-    pub xLeft: f32,
-    pub xRight: f32,
-    pub yTop: f32,
-    pub yBottom: f32,
-    pub zFar: f32,
-    pub zNear: f32,
-    pub flZoom: f32,
-}
-
 bitflags! {
+    /// ref_viewpass_s.flags
     #[derive(Copy, Clone, PartialEq, Eq, Debug, Default)]
     #[repr(transparent)]
     pub struct RefFlags: c_int {
@@ -1288,63 +401,37 @@ bitflags! {
     }
 }
 
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct ref_viewpass_s {
-    pub viewport: [c_int; 4],
-    pub vieworigin: vec3_t,
-    pub viewangles: vec3_t,
-    pub viewentity: c_int,
-    pub fov_x: f32,
-    pub fov_y: f32,
-    pub flags: RefFlags,
+pub trait UserCmdExt {
+    fn default() -> Self;
+
+    fn move_vector(&self) -> vec3_t;
+
+    fn move_vector_set(&mut self, vec: vec3_t);
+
+    fn is_button(&self, button: u32) -> bool;
 }
 
-#[derive(Copy, Clone, Default)]
-#[repr(C)]
-pub struct usercmd_s {
-    pub lerp_msec: c_short,
-    pub msec: byte,
-    pub viewangles: vec3_t,
-    pub forwardmove: f32,
-    pub sidemove: f32,
-    pub upmove: f32,
-    pub lightlevel: byte,
-    pub buttons: c_ushort,
-    pub impulse: byte,
-    pub weaponselect: byte,
-    pub impact_index: c_int,
-    pub impact_position: vec3_t,
-}
+impl UserCmdExt for usercmd_s {
+    fn default() -> Self {
+        unsafe { mem::zeroed() }
+    }
 
-impl usercmd_s {
-    pub fn move_vector(&self) -> vec3_t {
+    fn move_vector(&self) -> vec3_t {
         vec3_t::new(self.forwardmove, self.sidemove, self.upmove)
     }
 
-    pub fn move_vector_set(&mut self, vec: vec3_t) {
+    fn move_vector_set(&mut self, vec: vec3_t) {
         self.forwardmove = vec[0];
         self.sidemove = vec[1];
         self.upmove = vec[2];
     }
 
-    pub fn is_button(&self, button: u32) -> bool {
+    fn is_button(&self, button: u32) -> bool {
         self.buttons as u32 & button != 0
     }
 }
 
 pub const MAX_LIGHTSTYLES: usize = 256;
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct lightstyle_t {
-    pub pattern: [c_char; 256],
-    pub map: [f32; 256],
-    pub length: c_int,
-    pub value: f32,
-    pub interp: qboolean,
-    pub time: f32,
-}
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(C)]
@@ -1434,92 +521,11 @@ impl TextureFlags {
     pub const DECAL: Self = Self::CLAMP;
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-#[repr(C)]
-pub enum gl_context_type_t {
-    GL = 0,
-    GLES_1_X = 1,
-    GLES_2_X = 2,
-    GL_CORE = 3,
-}
-
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-#[repr(C)]
-pub enum gles_wrapper_t {
-    None = 0,
-    NanoGL = 1,
-    WES = 2,
-    GL4ES = 3,
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct modelstate_s {
-    pub sequence: c_short,
-    pub frame: c_short,
-    pub blending: [byte; 2],
-    pub controller: [byte; 4],
-    pub poseparam: [byte; 16],
-    pub body: byte,
-    pub skin: byte,
-    pub scale: c_short,
-}
-
 /// Max rendering decals per a level.
 pub const MAX_RENDER_DECALS: usize = 4096;
 
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct decallist_s {
-    pub position: vec3_t,
-    pub name: [c_char; 64],
-    pub entityIndex: c_short,
-    pub depth: byte,
-    pub flags: byte,
-    pub scale: f32,
-    pub impactPlaneNormal: vec3_t,
-    pub studio_state: modelstate_s,
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct physent_s {
-    pub name: [c_char; 32],
-    pub player: c_int,
-    pub origin: vec3_t,
-    pub model: *mut model_s,
-    pub studiomodel: *mut model_s,
-    pub mins: vec3_t,
-    pub maxs: vec3_t,
-    pub info: c_int,
-    pub angles: vec3_t,
-    pub solid: c_int,
-    pub skin: c_int,
-    pub rendermode: RenderMode,
-    pub frame: f32,
-    pub sequence: c_int,
-    pub controller: [byte; 4],
-    pub blending: [byte; 2],
-    pub movetype: c_int,
-    pub takedamage: c_int,
-    pub blooddecal: c_int,
-    pub team: c_int,
-    pub classnumber: c_int,
-    pub iuser1: c_int,
-    pub iuser2: c_int,
-    pub iuser3: c_int,
-    pub iuser4: c_int,
-    pub fuser1: f32,
-    pub fuser2: f32,
-    pub fuser3: f32,
-    pub fuser4: f32,
-    pub vuser1: vec3_t,
-    pub vuser2: vec3_t,
-    pub vuser3: vec3_t,
-    pub vuser4: vec3_t,
-}
-
 bitflags! {
+    /// clientdata_s.flags
     #[derive(Copy, Clone, PartialEq, Eq)]
     #[repr(transparent)]
     pub struct EdictFlags: c_int {
@@ -1596,8 +602,7 @@ bitflags! {
     }
 }
 
-// FIXME: not FFI-safe on current MSRV (1.77)
-// #[non_exhaustive]
+/// entity_state_s.movetype
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 #[repr(C)]
 pub enum MoveType {
@@ -1619,7 +624,6 @@ pub enum MoveType {
 }
 const_assert_size_eq!(MoveType, c_int);
 
-#[derive(Clone)]
 #[repr(C)]
 pub struct MoveEnts {
     pub num: c_int,
@@ -1636,90 +640,30 @@ impl MoveEnts {
     }
 }
 
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct movevars_s {
-    pub gravity: f32,
-    pub stopspeed: f32,
-    pub maxspeed: f32,
-    pub spectatormaxspeed: f32,
-    pub accelerate: f32,
-    pub airaccelerate: f32,
-    pub wateraccelerate: f32,
-    pub friction: f32,
-    pub edgefriction: f32,
-    pub waterfriction: f32,
-    pub entgravity: f32,
-    pub bounce: f32,
-    pub stepsize: f32,
-    pub maxvelocity: f32,
-    pub zmax: f32,
-    pub waveHeight: f32,
-    pub footsteps: qboolean,
-    pub skyName: [c_char; 32],
-    pub rollangle: f32,
-    pub rollspeed: f32,
-    pub skycolor_r: f32,
-    pub skycolor_g: f32,
-    pub skycolor_b: f32,
-    pub skyvec_x: f32,
-    pub skyvec_y: f32,
-    pub skyvec_z: f32,
-    pub features: c_int,
-    pub fog_settings: c_int,
-    pub wateralpha: f32,
-    pub skydir_x: f32,
-    pub skydir_y: f32,
-    pub skydir_z: f32,
-    pub skyangle: f32,
-}
+pub trait WRectExt {
+    fn default() -> Self;
 
-impl movevars_s {
-    pub fn is_footsteps(&self) -> bool {
-        self.footsteps != qboolean::FALSE
-    }
-}
+    fn width(&self) -> c_int;
 
-#[derive(Copy, Clone, Debug, Default)]
-#[repr(C)]
-pub struct wrect_s {
-    pub left: c_int,
-    pub right: c_int,
-    pub top: c_int,
-    pub bottom: c_int,
-}
+    fn height(&self) -> c_int;
 
-impl wrect_s {
-    pub const fn width(&self) -> c_int {
-        self.right - self.left
-    }
-
-    pub const fn height(&self) -> c_int {
-        self.bottom - self.top
-    }
-
-    pub const fn size(&self) -> (c_int, c_int) {
+    fn size(&self) -> (c_int, c_int) {
         (self.width(), self.height())
     }
 }
 
-// #[derive(Copy, Clone)]
-// #[repr(C)]
-// pub struct CDStatus {
-//     pub fPlaying: c_int,
-//     pub fWasPlaying: c_int,
-//     pub fInitialized: c_int,
-//     pub fEnabled: c_int,
-//     pub fPlayLooping: c_int,
-//     pub cdvolume: f32,
-//     pub fCDRom: c_int,
-//     pub fPlayTrack: c_int,
-// }
+impl WRectExt for wrect_s {
+    fn default() -> Self {
+        unsafe { mem::zeroed() }
+    }
 
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct grasshdr_s {
-    pub _address: u8,
+    fn width(&self) -> c_int {
+        self.right - self.left
+    }
+
+    fn height(&self) -> c_int {
+        self.bottom - self.top
+    }
 }
 
 #[derive(Copy, Clone, PartialEq, Eq)]
@@ -1746,46 +690,7 @@ impl BeamEntity {
     }
 }
 
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct beam_s {
-    pub next: *mut beam_s,
-    pub type_: c_int,
-    pub flags: c_int,
-    pub source: vec3_t,
-    pub target: vec3_t,
-    pub delta: vec3_t,
-    pub t: f32,
-    pub freq: f32,
-    pub die: f32,
-    pub width: f32,
-    pub amplitude: f32,
-    pub r: f32,
-    pub g: f32,
-    pub b: f32,
-    pub brightness: f32,
-    pub speed: f32,
-    pub frameRate: f32,
-    pub frame: f32,
-    pub segments: c_int,
-    pub startEntity: c_int,
-    pub endEntity: c_int,
-    pub modelIndex: c_int,
-    pub frameCount: c_int,
-    pub pFollowModel: *mut model_s,
-    pub particles: *mut particle_s,
-}
-pub type BEAM = beam_s;
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct mstudioevent_s {
-    pub frame: i32,
-    pub event: i32,
-    pub unused: i32,
-    pub options: [c_char; 64],
-}
-
+/// particle_s.type_
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(C)]
 pub enum ptype_t {
@@ -1802,129 +707,44 @@ pub enum ptype_t {
     ClientCustom = 10,
 }
 
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct particle_s {
-    pub org: vec3_t,
-    pub color: c_short,
-    pub packedColor: c_short,
-    pub next: *mut particle_s,
-    pub vel: vec3_t,
-    pub ramp: f32,
-    pub die: f32,
-    pub type_: ptype_t,
-    pub deathfunc: Option<unsafe extern "C" fn(particle: *mut particle_s)>,
-    pub callback: Option<unsafe extern "C" fn(particle: *mut particle_s, frametime: f32)>,
-    pub context: c_uchar,
+pub trait ModelExt {
+    fn model_type(&self) -> modtype_t;
 }
 
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct screenfade_s {
-    pub fadeSpeed: f32,
-    pub fadeEnd: f32,
-    pub fadeTotalEnd: f32,
-    pub fadeReset: f32,
-    pub fader: byte,
-    pub fadeg: byte,
-    pub fadeb: byte,
-    pub fadealpha: byte,
-    pub fadeFlags: c_int,
+impl ModelExt for model_s {
+    fn model_type(&self) -> modtype_t {
+        modtype_t::from_raw(self.type_).unwrap()
+    }
 }
 
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct r_studio_interface_s {
-    pub version: c_int,
-    pub StudioDrawModel: Option<unsafe extern "C" fn(flags: c_int) -> c_int>,
-    pub StudioDrawPlayer:
-        Option<unsafe extern "C" fn(flags: c_int, pplayer: *mut entity_state_s) -> c_int>,
-}
-pub type r_studio_interface_t = r_studio_interface_s;
+pub trait EntityStateExt {
+    fn renderfx(&self) -> RenderFx;
 
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct alight_s {
-    pub ambientlight: c_int,
-    pub shadelight: c_int,
-    pub color: vec3_t,
-    pub plightvec: *mut f32,
+    fn rendermode(&self) -> RenderMode;
+
+    fn effects(&self) -> &Effects;
 }
 
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct engine_studio_api_s {
-    pub Mem_Calloc: Option<unsafe extern "C" fn(number: c_int, size: usize) -> *mut c_void>,
-    pub Cache_Check: Option<unsafe extern "C" fn(c: *mut cache_user_s) -> *mut c_void>,
-    pub LoadCacheFile: Option<unsafe extern "C" fn(path: *const c_char, cu: *mut cache_user_s)>,
-    pub Mod_ForName:
-        Option<unsafe extern "C" fn(name: *const c_char, crash_if_missing: c_int) -> *mut model_s>,
-    pub Mod_Extradata: Option<unsafe extern "C" fn(mod_: *mut model_s) -> *mut c_void>,
-    pub GetModelByIndex: Option<unsafe extern "C" fn(index: c_int) -> *mut model_s>,
-    pub GetCurrentEntity: Option<unsafe extern "C" fn() -> *mut cl_entity_s>,
-    pub PlayerInfo: Option<unsafe extern "C" fn(index: c_int) -> *mut player_info_s>,
-    pub GetPlayerState: Option<unsafe extern "C" fn(index: c_int) -> *mut entity_state_s>,
-    pub GetViewEntity: Option<unsafe extern "C" fn() -> *mut cl_entity_s>,
-    pub GetTimes:
-        Option<unsafe extern "C" fn(framecount: *mut c_int, current: *mut f64, old: *mut f64)>,
-    pub GetCvar: Option<unsafe extern "C" fn(name: *const c_char) -> *mut cvar_s>,
-    pub GetViewInfo: Option<
-        unsafe extern "C" fn(origin: *mut f32, upv: *mut f32, rightv: *mut f32, vpnv: *mut f32),
-    >,
-    pub GetChromeSprite: Option<unsafe extern "C" fn() -> *mut model_s>,
-    pub GetModelCounters: Option<unsafe extern "C" fn(s: *mut *mut c_int, a: *mut *mut c_int)>,
-    pub GetAliasScale: Option<unsafe extern "C" fn(x: *mut f32, y: *mut f32)>,
-    pub StudioGetBoneTransform: Option<unsafe extern "C" fn() -> *mut *mut *mut *mut f32>,
-    pub StudioGetLightTransform: Option<unsafe extern "C" fn() -> *mut *mut *mut *mut f32>,
-    pub StudioGetAliasTransform: Option<unsafe extern "C" fn() -> *mut *mut *mut f32>,
-    pub StudioGetRotationMatrix: Option<unsafe extern "C" fn() -> *mut *mut *mut f32>,
-    pub StudioSetupModel: Option<
-        unsafe extern "C" fn(
-            bodypart: c_int,
-            ppbodypart: *mut *mut c_void,
-            ppsubmodel: *mut *mut c_void,
-        ),
-    >,
-    pub StudioCheckBBox: Option<unsafe extern "C" fn() -> c_int>,
-    pub StudioDynamicLight:
-        Option<unsafe extern "C" fn(ent: *mut cl_entity_s, plight: *mut alight_s)>,
-    pub StudioEntityLight: Option<unsafe extern "C" fn(plight: *mut alight_s)>,
-    pub StudioSetupLighting: Option<unsafe extern "C" fn(plighting: *mut alight_s)>,
-    pub StudioDrawPoints: Option<unsafe extern "C" fn()>,
-    pub StudioDrawHulls: Option<unsafe extern "C" fn()>,
-    pub StudioDrawAbsBBox: Option<unsafe extern "C" fn()>,
-    pub StudioDrawBones: Option<unsafe extern "C" fn()>,
-    pub StudioSetupSkin: Option<unsafe extern "C" fn(ptexturehdr: *mut c_void, index: c_int)>,
-    pub StudioSetRemapColors: Option<unsafe extern "C" fn(top: c_int, bottom: c_int)>,
-    pub SetupPlayerModel: Option<unsafe extern "C" fn(index: c_int) -> *mut model_s>,
-    pub StudioClientEvents: Option<unsafe extern "C" fn()>,
-    pub GetForceFaceFlags: Option<unsafe extern "C" fn() -> c_int>,
-    pub SetForceFaceFlags: Option<unsafe extern "C" fn(flags: c_int)>,
-    pub StudioSetHeader: Option<unsafe extern "C" fn(header: *mut c_void)>,
-    pub SetRenderModel: Option<unsafe extern "C" fn(model: *mut model_s)>,
-    pub SetupRenderer: Option<unsafe extern "C" fn(rendermode: c_int)>,
-    pub RestoreRenderer: Option<unsafe extern "C" fn()>,
-    pub SetChromeOrigin: Option<unsafe extern "C" fn()>,
-    pub IsHardware: Option<unsafe extern "C" fn() -> c_int>,
-    pub GL_StudioDrawShadow: Option<unsafe extern "C" fn()>,
-    pub GL_SetRenderMode: Option<unsafe extern "C" fn(mode: c_int)>,
-    pub StudioSetRenderamt: Option<unsafe extern "C" fn(iRenderamt: c_int)>,
-    pub StudioSetCullState: Option<unsafe extern "C" fn(iCull: c_int)>,
-    pub StudioRenderShadow: Option<
-        unsafe extern "C" fn(
-            iSprite: c_int,
-            p1: *mut f32,
-            p2: *mut f32,
-            p3: *mut f32,
-            p4: *mut f32,
-        ),
-    >,
-}
-pub type engine_studio_api_t = engine_studio_api_s;
+impl EntityStateExt for entity_state_s {
+    fn renderfx(&self) -> RenderFx {
+        RenderFx::from_raw(self.renderfx).unwrap()
+    }
 
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-#[repr(C)]
-pub enum TRICULLSTYLE {
-    Front = 0,
-    None = 1,
+    fn rendermode(&self) -> RenderMode {
+        RenderMode::from_raw(self.rendermode).unwrap()
+    }
+
+    fn effects(&self) -> &Effects {
+        unsafe { mem::transmute(&self.effects) }
+    }
+}
+
+pub trait RefViewpassExt {
+    fn flags(&self) -> &RefFlags;
+}
+
+impl RefViewpassExt for ref_viewpass_s {
+    fn flags(&self) -> &RefFlags {
+        unsafe { mem::transmute(&self.flags) }
+    }
 }

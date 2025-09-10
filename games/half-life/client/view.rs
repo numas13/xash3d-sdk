@@ -132,7 +132,7 @@ impl PitchDrift {
         }
 
         if !self.drift {
-            let state = unsafe { input::in_mlook.state };
+            let state = KeyState::from_bits_retain(unsafe { input::in_mlook.state });
             if cvar::v_centermove.value() > 0.0 && !state.contains(KeyState::DOWN) {
                 if fabsf(params.cmd().forwardmove) < cvar::cl_forwardspeed.value() {
                     self.driftmove = 0.0;

@@ -11,7 +11,7 @@ use shared::{
     raw::{
         byte, cl_entity_s, clientdata_s, engine_studio_api_s, entity_state_s, kbutton_t,
         mstudioevent_s, playermove_s, qboolean, r_studio_interface_s, usercmd_s, vec3_t,
-        weapon_data_s,
+        weapon_data_s, UserCmdExt,
     },
 };
 
@@ -821,7 +821,7 @@ impl<T: ClientDll + Default> ClientDllExport for Export<T> {
     }
 
     unsafe extern "C" fn voice_status(ent_index: c_int, talking: qboolean) {
-        unsafe { T::global_assume_init_ref() }.voice_status(ent_index, talking.to_bool())
+        unsafe { T::global_assume_init_ref() }.voice_status(ent_index, talking != 0)
     }
 
     unsafe extern "C" fn director_message(size: c_int, buf: *const c_void) {

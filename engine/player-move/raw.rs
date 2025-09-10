@@ -40,7 +40,6 @@ impl Drop for MemFile {
     }
 }
 
-#[derive(Clone)]
 #[repr(C)]
 pub struct playermove_s {
     pub player_index: c_int,
@@ -258,7 +257,7 @@ impl playermove_s {
     }
 
     pub fn is_server(&self) -> bool {
-        self.server.to_bool()
+        self.server != 0
     }
 
     pub fn is_client(&self) -> bool {
@@ -266,7 +265,7 @@ impl playermove_s {
     }
 
     pub fn is_multiplayer(&self) -> bool {
-        self.multiplayer.to_bool()
+        self.multiplayer != 0
     }
 
     pub fn is_singleplayer(&self) -> bool {
@@ -274,7 +273,7 @@ impl playermove_s {
     }
 
     pub fn is_dead(&self) -> bool {
-        self.dead != qboolean::FALSE
+        self.dead != 0
     }
 
     pub fn is_alive(&self) -> bool {

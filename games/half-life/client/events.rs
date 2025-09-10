@@ -109,7 +109,7 @@ fn is_local(idx: c_int) -> bool {
 
 fn muzzle_flash() {
     let ent = unsafe { &mut *engine().get_view_entity() };
-    ent.curstate.effects.insert(Effects::MUZZLEFLASH);
+    ent.curstate.effects |= Effects::MUZZLEFLASH.bits();
 }
 
 fn get_player_view_height(args: &EventArgs) -> vec3_t {
@@ -303,7 +303,7 @@ fn damage_decal(pe: &physent_s) -> &'static CStr {
             1 => c"{break2",
             _ => c"{break3",
         }
-    } else if pe.rendermode != RenderMode::Normal {
+    } else if pe.rendermode != RenderMode::Normal as c_int {
         c"{bproof1"
     } else {
         match engine().random_int(0, 4) {

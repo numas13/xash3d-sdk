@@ -40,7 +40,7 @@ impl Events {
         let end = src + forward * 64.0;
         let src = src + forward * 20.0;
         let tr = ev.player_trace(src, end, PM_NORMAL, -1);
-        if !tr.allsolid.to_bool() && !tr.startsolid.to_bool() && tr.fraction > 0.25 {
+        if tr.allsolid == 0 && tr.startsolid == 0 && tr.fraction > 0.25 {
             ev.weapon_animation(Squeak::Throw as c_int, 0);
         }
         pm_states.pop();

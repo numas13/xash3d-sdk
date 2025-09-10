@@ -5,7 +5,6 @@ extern crate alloc;
 #[macro_use]
 extern crate log;
 
-#[cfg(feature = "debug")]
 mod debug;
 
 pub mod raw;
@@ -28,8 +27,11 @@ use shared::{
         IN_FORWARD, IN_JUMP, IN_MOVELEFT, IN_MOVERIGHT, IN_USE, MAX_CLIP_PLANES, MAX_PHYSENTS,
         PITCH, PITCH_NORM, PM_NORMAL, ROLL, YAW,
     },
-    math::{self, fabsf, fmaxf, fminf, pow2, sqrtf},
-    raw::{modtype_t, physent_s, pmtrace_s, qboolean, vec3_t, EdictFlags, MoveType, SoundFlags},
+    math::{self, fabsf, fmaxf, fminf, pow2, sqrtf, ToAngleVectors},
+    raw::{
+        modtype_t, physent_s, pmtrace_s, qboolean, vec3_t, EdictFlags, MoveType, SoundFlags,
+        UserCmdExt,
+    },
 };
 
 use crate::raw::playermove_s;
@@ -400,7 +402,7 @@ impl<'a> PlayerMove<'a> {
         let end = self.raw.origin + push;
         let trace = self.raw.player_trace(self.raw.origin, end, PM_NORMAL, -1);
         self.raw.origin = trace.endpos;
-        if trace.fraction < 1.0 && !trace.allsolid.to_bool() {
+        if trace.fraction < 1.0 && trace.allsolid == 0 {
             self.add_to_touched(trace, self.raw.velocity);
         }
         trace
@@ -736,10 +738,7 @@ impl<'a> PlayerMove<'a> {
 
             if self.raw.onground != -1 {
                 self.raw.waterjumptime = 0.0;
-                if self.raw.waterlevel < 2
-                    && !trace.startsolid.to_bool()
-                    && !trace.allsolid.to_bool()
-                {
+                if self.raw.waterlevel < 2 && trace.startsolid == 0 && trace.allsolid == 0 {
                     self.raw.origin = trace.endpos;
                 }
             }
@@ -830,10 +829,10 @@ impl<'a> PlayerMove<'a> {
     fn play_step_sound(&mut self, step: c_int, vol: f32) {
         self.raw.step_left = (self.raw.step_left == 0) as c_int;
 
-        if !self.raw.runfuncs.to_bool() {
+        if self.raw.runfuncs == 0 {
             return;
         } else if self.raw.is_multiplayer() {
-            if !self.raw.movevars().is_footsteps() {
+            if self.raw.movevars().footsteps == 0 {
                 return;
             }
             let vel = vec3_t::new(self.raw.velocity[0], self.raw.velocity[1], 0.0);
@@ -1139,7 +1138,7 @@ impl<'a> PlayerMove<'a> {
                 self.raw.in_duck = true.into();
             }
 
-            if self.raw.in_duck.to_bool() {
+            if self.raw.in_duck != 0 {
                 if self.raw.duck_time / 1000.0 <= 1.0 - TIME_TO_DUCK || self.raw.onground == -1 {
                     self.raw.usehull = 1;
                     self.raw.view_ofs[2] = VEC_DUCK_VIEW;
@@ -1159,7 +1158,7 @@ impl<'a> PlayerMove<'a> {
                         (VEC_DUCK_VIEW - more) * duck_fraction + VEC_VIEW_Z * (1.0 - duck_fraction);
                 }
             }
-        } else if self.raw.in_duck.to_bool() || self.raw.flags.contains(Flags::DUCKING) {
+        } else if self.raw.in_duck != 0 || self.raw.flags.contains(Flags::DUCKING) {
             self.un_duck();
         }
     }
@@ -1171,10 +1170,10 @@ impl<'a> PlayerMove<'a> {
         }
 
         let trace = self.raw.player_trace(new_origin, new_origin, PM_NORMAL, -1);
-        if !trace.startsolid.to_bool() {
+        if trace.startsolid == 0 {
             self.raw.usehull = 0;
             let trace = self.raw.player_trace(new_origin, new_origin, PM_NORMAL, -1);
-            if trace.startsolid.to_bool() {
+            if trace.startsolid != 0 {
                 self.raw.usehull = 1;
                 return;
             }
@@ -1293,7 +1292,7 @@ impl<'a> PlayerMove<'a> {
         let trace = self.push_entity(&move_);
         self.check_velocity();
 
-        if trace.allsolid.to_bool() {
+        if trace.allsolid != 0 {
             self.raw.onground = trace.ent;
             self.raw.velocity = vec3_t::ZERO;
             return;
@@ -1351,7 +1350,7 @@ impl<'a> PlayerMove<'a> {
             let end = self.raw.origin + self.raw.velocity * time_left;
             let trace = self.raw.player_trace(self.raw.origin, end, PM_NORMAL, -1);
             all_fraction += trace.fraction;
-            if trace.allsolid.to_bool() {
+            if trace.allsolid != 0 {
                 self.raw.velocity = vec3_t::ZERO;
                 return 4;
             }
@@ -1543,7 +1542,7 @@ impl<'a> PlayerMove<'a> {
         let cansuperjump = self
             .raw
             .info_value_for_key::<i32>(self.raw.physinfo(), c"slj");
-        if self.raw.in_duck.to_bool() || self.raw.flags.contains(EdictFlags::DUCKING) {
+        if self.raw.in_duck != 0 || self.raw.flags.contains(EdictFlags::DUCKING) {
             if cansuperjump == Some(1)
                 && self.raw.cmd.is_button(IN_DUCK)
                 && self.raw.duck_time > 0.0
@@ -1622,7 +1621,7 @@ impl<'a> PlayerMove<'a> {
         dest[2] += self.raw.movevars().stepsize;
 
         let trace = self.raw.player_trace(self.raw.origin, dest, PM_NORMAL, -1);
-        if !trace.startsolid.to_bool() && !trace.allsolid.to_bool() {
+        if trace.startsolid == 0 && trace.allsolid == 0 {
             self.raw.origin = trace.endpos;
         }
 
@@ -1636,7 +1635,7 @@ impl<'a> PlayerMove<'a> {
             self.raw.origin = down;
             self.raw.velocity = downvel;
             return;
-        } else if !trace.startsolid.to_bool() && !trace.allsolid.to_bool() {
+        } else if trace.startsolid == 0 && trace.allsolid == 0 {
             self.raw.origin = trace.endpos;
         }
         self.raw.up = self.raw.origin;
@@ -1724,7 +1723,7 @@ impl<'a> PlayerMove<'a> {
         let mut start = end;
         start[2] += self.raw.movevars().stepsize + 1.0;
         let trace = self.raw.player_trace(start, end, PM_NORMAL, -1);
-        if !trace.startsolid.to_bool() && !trace.allsolid.to_bool() {
+        if trace.startsolid == 0 && trace.allsolid == 0 {
             self.raw.origin = trace.endpos;
             return;
         }
@@ -1745,8 +1744,7 @@ impl<'a> PlayerMove<'a> {
         self.raw.right = av.right;
         self.raw.up = av.up;
 
-        #[cfg(feature = "debug")]
-        if self.raw.is_client() {
+        if cfg!(feature = "debug") && self.raw.is_client() {
             self.show_clip_box();
         }
 

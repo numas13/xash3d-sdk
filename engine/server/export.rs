@@ -955,7 +955,7 @@ impl<T: ServerDll + Default> ServerDllExport for Export<T> {
 
     unsafe extern "C" fn player_move(pm: *mut playermove_s, is_server: qboolean) {
         let pm = NonNull::new(pm).unwrap();
-        unsafe { T::global_assume_init_ref() }.player_move(pm, is_server.to_bool());
+        unsafe { T::global_assume_init_ref() }.player_move(pm, is_server != 0);
     }
 
     unsafe extern "C" fn player_move_find_texture_type(name: *const c_char) -> c_char {
@@ -1049,14 +1049,17 @@ impl<T: ServerDll + Default> ServerDllExport for Export<T> {
         assert!(!player.is_null());
         assert!(!info.is_null());
         let player = unsafe { &mut *player };
-        let info = unsafe { &mut *info };
         match unsafe { T::global_assume_init_ref() }.get_weapon_data(player) {
             Some(x) => {
-                *info = x;
+                unsafe {
+                    info.write(x);
+                }
                 1
             }
             None => {
-                *info = weapon_data_s::default();
+                unsafe {
+                    info.write_bytes(0, 1);
+                }
                 0
             }
         }

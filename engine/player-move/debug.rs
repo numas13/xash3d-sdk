@@ -1,4 +1,4 @@
-use shared::{consts::PM_STUDIO_BOX, raw::vec3_t};
+use shared::{consts::PM_STUDIO_BOX, math::ToAngleVectors, raw::vec3_t};
 
 const BOX_GAP: f32 = 0.0;
 const BOX_POINTS: [[usize; 4]; 6] = [
@@ -156,7 +156,7 @@ impl super::PlayerMove<'_> {
     }
 
     pub(super) fn show_clip_box(&self) {
-        if !self.raw.runfuncs.to_bool() {
+        if self.raw.runfuncs == 0 {
             return;
         }
 

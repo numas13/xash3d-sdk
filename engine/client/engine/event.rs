@@ -5,7 +5,7 @@ use core::{
 
 use csz::CStrThin;
 use shared::{
-    raw::{fake_edict_s, movevars_s, msurface_s},
+    raw::{edict_s, movevars_s, msurface_s},
     str::{AsCStrPtr, ToEngineStr},
 };
 
@@ -85,7 +85,7 @@ pub struct EventApiFunctions {
     pub EV_PlaybackEvent: Option<
         unsafe extern "C" fn(
             flags: c_int,
-            pInvoker: *const fake_edict_s,
+            pInvoker: *const edict_s,
             eventindex: c_ushort,
             delay: f32,
             origin: *mut f32,

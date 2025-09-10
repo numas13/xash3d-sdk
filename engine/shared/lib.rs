@@ -23,6 +23,7 @@ pub mod logger;
 pub mod math;
 pub mod message;
 pub mod parser;
+pub mod prelude;
 pub mod raw;
 pub mod str;
 pub mod utils;

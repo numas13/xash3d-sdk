@@ -508,7 +508,7 @@ impl RefEngine {
     //     Option<unsafe extern "C" fn(handle: *mut c_void, name: *const c_char) -> *mut c_void>,
 
     pub fn r_init_video(&self, api: GraphicApi) -> bool {
-        unsafe { unwrap!(self, R_Init_Video)(api as c_int).to_bool() }
+        unsafe { unwrap!(self, R_Init_Video)(api as c_int) != 0 }
     }
 
     pub fn r_free_video(&self) {
@@ -537,7 +537,7 @@ impl RefEngine {
                 &mut buffer.b_mask,
             )
         };
-        res.to_bool().then_some(buffer)
+        (res != 0).then_some(buffer)
     }
 
     pub(crate) unsafe fn sw_lock_buffer(&self) -> *mut c_void {
@@ -620,9 +620,7 @@ impl RefEngine {
         height: c_int,
         flags: ImageFlags,
     ) -> bool {
-        unsafe {
-            unwrap!(self, Image_Process)(&mut pic.raw, width, height, flags.bits(), 0.0).into()
-        }
+        unsafe { unwrap!(self, Image_Process)(&mut pic.raw, width, height, flags.bits(), 0.0) != 0 }
     }
 
     pub fn fs_load_image(
@@ -649,7 +647,7 @@ impl RefEngine {
     ) -> Result<(), SaveImageError> {
         let filename = filename.to_engine_str();
         let res = unsafe { unwrap!(self, FS_SaveImage)(filename.as_ptr(), pic.raw) };
-        if res.to_bool() {
+        if res != 0 {
             Ok(())
         } else {
             Err(SaveImageError(()))

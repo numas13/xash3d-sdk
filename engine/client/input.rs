@@ -24,7 +24,8 @@ impl KeyButtonExt for kbutton_t {
                 *i = k;
 
                 if !self.is_down() {
-                    self.state.insert(KeyState::DOWN | KeyState::IMPULSE_DOWN);
+                    self.state_mut()
+                        .insert(KeyState::DOWN | KeyState::IMPULSE_DOWN);
                 }
             }
         }
@@ -39,14 +40,14 @@ impl KeyButtonExt for kbutton_t {
                 *i = 0;
 
                 if self.is_down() && !self.down.iter().any(|i| *i != 0) {
-                    self.state.remove(KeyState::DOWN);
-                    self.state.insert(KeyState::IMPULSE_UP);
+                    self.state_mut().remove(KeyState::DOWN);
+                    self.state_mut().insert(KeyState::IMPULSE_UP);
                 }
             }
         } else {
             // typed manually at the console, assume for unsticking, so clear all
             self.down.fill(0);
-            self.state.insert(KeyState::IMPULSE_UP);
+            self.state_mut().insert(KeyState::IMPULSE_UP);
         }
     }
 
@@ -82,7 +83,7 @@ impl KeyButtonExt for kbutton_t {
         }
 
         // clear impulses
-        self.state &= KeyState::DOWN;
+        *self.state_mut() &= KeyState::DOWN;
 
         val
     }

@@ -109,7 +109,7 @@ impl Events {
             let tr = ev.player_trace(src, dest, PM_NORMAL, -1);
             pm_states.pop();
 
-            if tr.allsolid.to_bool() {
+            if tr.allsolid != 0 {
                 break;
             }
 
@@ -217,7 +217,7 @@ impl Events {
                         ev.set_trace_hull(2);
                         let mut beam_tr = ev.player_trace(start, dest, PM_NORMAL, -1);
 
-                        if !beam_tr.allsolid.to_bool() {
+                        if beam_tr.allsolid == 0 {
                             beam_tr = ev.player_trace(beam_tr.endpos, tr.endpos, PM_NORMAL, -1);
                             let delta = beam_tr.endpos - tr.endpos;
                             let mut n = delta.length();

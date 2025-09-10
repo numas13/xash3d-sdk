@@ -148,7 +148,7 @@ impl Events {
                     SoundFlags::NONE,
                     PITCH_NORM,
                 );
-            } else if pe.rendermode == RenderMode::Normal {
+            } else if pe.rendermode == RenderMode::Normal as c_int {
                 let sample = sound::weapons::XBOW_HIT1;
                 let vol = engine.random_float(0.95, 1.0);
                 ev.play_sound(

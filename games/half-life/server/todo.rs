@@ -3,6 +3,7 @@ use core::{
     ptr,
 };
 
+use csz::CStrSlice;
 use sv::{
     consts::{EFLAG_SLERP, ENTITY_BEAM, ENTITY_NORMAL, SOLID_SLIDEBOX},
     prelude::*,
@@ -27,7 +28,7 @@ pub fn update_client_data(ent: &edict_s, sendweapons: bool, cd: &mut clientdata_
 
     // TODO:
 
-    cd.flags = ev.flags;
+    cd.flags = ev.flags.bits();
     cd.health = ev.health;
 
     cd.viewmodel = engine.model_index(ev.viewmodel.as_ref().map_or(c"".into(), |s| s.as_thin()));
@@ -47,7 +48,7 @@ pub fn update_client_data(ent: &edict_s, sendweapons: bool, cd: &mut clientdata_
     cd.flSwimTime = ev.flSwimTime;
     cd.waterjumptime = ev.teleport_time as c_int;
 
-    cd.physinfo
+    CStrSlice::new_in_slice(&mut cd.physinfo)
         .cursor()
         .write_c_str(engine.get_physics_info_string(ent).into())
         .unwrap();
@@ -134,7 +135,7 @@ pub fn add_to_full_pack(
     state.frame = ent.v.frame;
 
     state.skin = ent.v.skin as c_short;
-    state.effects = ent.v.effects;
+    state.effects = ent.v.effects.bits();
 
     if !player && ent.v.animtime != 0.0 && ent.v.velocity == vec3_t::ZERO {
         state.eflags |= EFLAG_SLERP as u8;
@@ -144,7 +145,7 @@ pub fn add_to_full_pack(
     state.solid = ent.v.solid as c_short;
     state.colormap = ent.v.colormap;
 
-    state.movetype = ent.v.movetype;
+    state.movetype = ent.v.movetype as c_int;
     state.sequence = ent.v.sequence;
     state.framerate = ent.v.framerate;
     state.body = ent.v.body;
@@ -153,9 +154,9 @@ pub fn add_to_full_pack(
     state.blending[0] = ent.v.blending[0];
     state.blending[1] = ent.v.blending[1];
 
-    state.rendermode = ent.v.rendermode;
+    state.rendermode = ent.v.rendermode as c_int;
     state.renderamt = ent.v.renderamt as c_int;
-    state.renderfx = ent.v.renderfx;
+    state.renderfx = ent.v.renderfx as c_int;
     state.rendercolor.r = ent.v.rendercolor[0] as u8;
     state.rendercolor.g = ent.v.rendercolor[1] as u8;
     state.rendercolor.b = ent.v.rendercolor[2] as u8;
@@ -221,12 +222,12 @@ pub fn create_baseline(
     baseline.frame = ent.v.frame;
     baseline.skin = ent.v.skin as c_short;
 
-    baseline.rendermode = ent.v.rendermode;
+    baseline.rendermode = ent.v.rendermode as c_int;
     baseline.renderamt = ent.v.renderamt as u8 as c_int;
     baseline.rendercolor.r = ent.v.rendercolor[0] as u8;
     baseline.rendercolor.g = ent.v.rendercolor[1] as u8;
     baseline.rendercolor.b = ent.v.rendercolor[2] as u8;
-    baseline.renderfx = ent.v.renderfx;
+    baseline.renderfx = ent.v.renderfx as c_int;
 
     if player {
         baseline.mins = player_mins;
@@ -235,7 +236,7 @@ pub fn create_baseline(
         baseline.colormap = eindex;
         baseline.modelindex = playermodelindex;
         baseline.friction = 1.0;
-        baseline.movetype = MoveType::Walk;
+        baseline.movetype = MoveType::Walk as c_int;
 
         baseline.scale = ent.v.scale;
         baseline.solid = SOLID_SLIDEBOX as c_short;
@@ -247,7 +248,7 @@ pub fn create_baseline(
 
         baseline.colormap = 0;
         baseline.modelindex = ent.v.modelindex;
-        baseline.movetype = ent.v.movetype;
+        baseline.movetype = ent.v.movetype as c_int;
 
         baseline.scale = ent.v.scale;
         baseline.solid = ent.v.solid as c_short;

@@ -392,8 +392,8 @@ pub trait RefDll: UnsyncGlobal {
         end: vec3_t,
         light_spot: Option<&mut vec3_t>,
         light_vec: Option<&mut vec3_t>,
-    ) -> colorVec {
-        colorVec::default()
+    ) -> RGBA {
+        RGBA::default()
     }
 
     fn studio_get_texture(&self, ent: &mut cl_entity_s) -> *mut mstudiotex_s {
@@ -1265,9 +1265,9 @@ impl<T: RefDll> RefDllExport for Export<T> {
         match T::new() {
             Some(instance) => unsafe {
                 (&mut *T::global_as_mut_ptr()).write(instance);
-                qboolean::TRUE
+                1
             },
-            None => qboolean::FALSE,
+            None => 0,
         }
     }
 
@@ -1313,12 +1313,12 @@ impl<T: RefDll> RefDllExport for Export<T> {
 
     unsafe extern "C" fn gamma_changed(do_reset_gamma: qboolean) {
         let dll = unsafe { T::global_assume_init_ref() };
-        dll.gamma_changed(do_reset_gamma.into());
+        dll.gamma_changed(do_reset_gamma != 0);
     }
 
     unsafe extern "C" fn begin_frame(clear_scene: qboolean) {
         let dll = unsafe { T::global_assume_init_ref() };
-        dll.begin_frame(clear_scene.into());
+        dll.begin_frame(clear_scene != 0);
     }
 
     unsafe extern "C" fn render_scene() {
@@ -1358,7 +1358,7 @@ impl<T: RefDll> RefDllExport for Export<T> {
 
     unsafe extern "C" fn allow_fog(allow: qboolean) {
         let dll = unsafe { T::global_assume_init_ref() };
-        dll.allow_fog(allow.into());
+        dll.allow_fog(allow != 0);
     }
 
     unsafe extern "C" fn gl_set_render_mode(render_mode: c_int) {
@@ -1371,7 +1371,7 @@ impl<T: RefDll> RefDllExport for Export<T> {
             let dll = unsafe { T::global_assume_init_ref() };
             dll.add_entity(ent, type_).into()
         } else {
-            qboolean::FALSE
+            0
         }
     }
 
@@ -1387,7 +1387,7 @@ impl<T: RefDll> RefDllExport for Export<T> {
         max_entities: c_uint,
     ) {
         let dll = unsafe { T::global_assume_init_ref() };
-        dll.process_entity_data(allocate.into(), entities, max_entities as usize);
+        dll.process_entity_data(allocate != 0, entities, max_entities as usize);
     }
 
     unsafe extern "C" fn flush(flush_flags: c_uint) {
@@ -1417,7 +1417,7 @@ impl<T: RefDll> RefDllExport for Export<T> {
     ) -> c_int {
         let name = unsafe { cstr_or_none(name).unwrap() };
         let dll = unsafe { T::global_assume_init_ref() };
-        let res = dll.gl_load_texture_from_buffer(name, pic, flags, update.into());
+        let res = dll.gl_load_texture_from_buffer(name, pic, flags, update != 0);
         TextureId::to_ffi(res)
     }
 
@@ -1444,7 +1444,7 @@ impl<T: RefDll> RefDllExport for Export<T> {
 
     unsafe extern "C" fn set_2d_mode(enable: qboolean) {
         let dll = unsafe { T::global_assume_init_ref() };
-        dll.set_2d_mode(enable.into());
+        dll.set_2d_mode(enable != 0);
     }
 
     unsafe extern "C" fn draw_stretch_raw(
@@ -1458,7 +1458,7 @@ impl<T: RefDll> RefDllExport for Export<T> {
         dirty: qboolean,
     ) {
         let dll = unsafe { T::global_assume_init_ref() };
-        dll.draw_stretch_raw(x, y, w, h, cols, rows, data, dirty.into());
+        dll.draw_stretch_raw(x, y, w, h, cols, rows, data, dirty != 0);
     }
 
     unsafe extern "C" fn draw_stretch_pic(
@@ -1528,7 +1528,7 @@ impl<T: RefDll> RefDllExport for Export<T> {
         let base = unsafe { cstr_or_none(base).unwrap() };
         let vieworg = unsafe { vieworg.as_ref() };
         let dll = unsafe { T::global_assume_init_ref() };
-        dll.cubemap_shot(base, size, vieworg, skyshot.into()).into()
+        dll.cubemap_shot(base, size, vieworg, skyshot != 0).into()
     }
 
     unsafe extern "C" fn light_point(point: *const vec3_t) -> colorVec {
@@ -1657,7 +1657,7 @@ impl<T: RefDll> RefDllExport for Export<T> {
     ) -> qboolean {
         let model = unsafe { model.as_mut().unwrap() };
         let dll = unsafe { T::global_assume_init_ref() };
-        dll.mod_process_render_data(model, create.into(), buffer)
+        dll.mod_process_render_data(model, create != 0, buffer)
             .into()
     }
 
@@ -1697,7 +1697,7 @@ impl<T: RefDll> RefDllExport for Export<T> {
         let start = unsafe { start.as_ref().unwrap() };
         let end = unsafe { end.as_ref().unwrap() };
         let dll = unsafe { T::global_assume_init_ref() };
-        dll.beam_cull(start, end, pvs_only.into()).into()
+        dll.beam_cull(start, end, pvs_only != 0).into()
     }
 
     unsafe extern "C" fn ref_get_parm(parm: c_int, arg: c_int) -> c_int {
@@ -1970,7 +1970,7 @@ impl<T: RefDll> RefDllExport for Export<T> {
     ) {
         let rvp = unsafe { rvp.as_ref().unwrap() };
         let dll = unsafe { T::global_assume_init_ref() };
-        dll.gl_draw_particles(rvp, trans_pass.into(), frame_time);
+        dll.gl_draw_particles(rvp, trans_pass != 0, frame_time);
     }
 
     unsafe extern "C" fn light_vec(
@@ -1984,7 +1984,7 @@ impl<T: RefDll> RefDllExport for Export<T> {
         let light_spot = unsafe { light_spot.as_mut() };
         let light_vec = unsafe { light_vec.as_mut() };
         let dll = unsafe { T::global_assume_init_ref() };
-        dll.light_vec(start, end, light_spot, light_vec)
+        dll.light_vec(start, end, light_spot, light_vec).into()
     }
 
     unsafe extern "C" fn studio_get_texture(ent: *mut cl_entity_s) -> *mut mstudiotex_s {
@@ -2008,7 +2008,7 @@ impl<T: RefDll> RefDllExport for Export<T> {
 
     unsafe extern "C" fn speeds_message(out: *mut c_char, size: usize) -> qboolean {
         if out.is_null() || size == 0 {
-            return qboolean::FALSE;
+            return 0;
         }
         let out = unsafe { slice::from_raw_parts_mut(out.cast(), size) };
         let dll = unsafe { T::global_assume_init_ref() };
@@ -2113,7 +2113,7 @@ impl<T: RefDll> RefDllExport for Export<T> {
 
     unsafe extern "C" fn vgui_setup_drawing(rect: qboolean) {
         let dll = unsafe { T::global_assume_init_ref() };
-        dll.vgui_setup_drawing(rect.into());
+        dll.vgui_setup_drawing(rect != 0);
     }
 
     unsafe extern "C" fn vgui_upload_texture_block(
