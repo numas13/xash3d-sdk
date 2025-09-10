@@ -9,12 +9,16 @@ use core::{
 use csz::{CStrArray, CStrThin};
 use shared::{
     engine::net::netadr_s,
-    ffi::server::{
-        edict_s, KeyValueData, DLL_FUNCTIONS, NEW_DLL_FUNCTIONS, SAVERESTOREDATA, TYPEDESCRIPTION,
-    },
-    raw::{
-        clientdata_s, customization_s, entity_state_s, playermove_s, qboolean, usercmd_s, vec3_t,
-        weapon_data_s,
+    ffi::{
+        common::{
+            clientdata_s, customization_s, entity_state_s, qboolean, usercmd_s, vec3_t,
+            weapon_data_s,
+        },
+        player_move::playermove_s,
+        server::{
+            edict_s, KeyValueData, DLL_FUNCTIONS, NEW_DLL_FUNCTIONS, SAVERESTOREDATA,
+            TYPEDESCRIPTION,
+        },
     },
     utils::cstr_or_none,
 };

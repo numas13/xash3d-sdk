@@ -11,7 +11,10 @@ use shared::{
     borrow::{BorrowRef, Ref},
     engine::net::{netadr_s, NetApi},
     export::impl_unsync_global,
-    ffi::menu::{ui_enginefuncs_s, ui_extendedfuncs_s},
+    ffi::{
+        common::{kbutton_t, wrect_s},
+        menu::{gameinfo2_s, ui_enginefuncs_s, ui_extendedfuncs_s, GAMEINFO, HIMAGE},
+    },
     str::{AsCStrPtr, ToEngineStr},
 };
 
@@ -22,7 +25,7 @@ use crate::{
     engine_types::{ActiveMenu, Point, Size},
     file::{Cursor, File, FileList},
     game_info::GameInfo,
-    raw::{self, kbutton_t, wrect_s, HIMAGE},
+    raw::GAMEINFO_VERSION,
 };
 
 pub use shared::engine::{net, AddCmdError, BufferError};
@@ -540,7 +543,7 @@ impl UiEngine {
         }
     }
 
-    pub fn get_games_list(&self) -> &[&raw::GAMEINFO] {
+    pub fn get_games_list(&self) -> &[&GAMEINFO] {
         let mut len = 0;
         let data = unsafe { unwrap!(self, pfnGetGamesList)(&mut len) };
         if !data.is_null() {
@@ -743,8 +746,8 @@ impl UiEngine {
     // pub pfnCompareAdr: Option<unsafe extern "C" fn(a: *const c_void, b: *const c_void) -> c_int>,
     // pub pfnGetNativeObject: Option<unsafe extern "C" fn(name: *const c_char) -> *mut c_void>,
 
-    pub fn get_game_info_2(&self) -> Option<&raw::gameinfo2_s> {
-        let info = unsafe { unwrap!(self, ext.pfnGetGameInfo)(raw::GAMEINFO_VERSION) };
+    pub fn get_game_info_2(&self) -> Option<&gameinfo2_s> {
+        let info = unsafe { unwrap!(self, ext.pfnGetGameInfo)(GAMEINFO_VERSION) };
         if !info.is_null() {
             Some(unsafe { &*info })
         } else {
@@ -752,8 +755,8 @@ impl UiEngine {
         }
     }
 
-    pub fn get_mod_info(&self, mod_index: c_int) -> Option<&raw::gameinfo2_s> {
-        let info = unsafe { unwrap!(self, ext.pfnGetModInfo)(raw::GAMEINFO_VERSION, mod_index) };
+    pub fn get_mod_info(&self, mod_index: c_int) -> Option<&gameinfo2_s> {
+        let info = unsafe { unwrap!(self, ext.pfnGetModInfo)(GAMEINFO_VERSION, mod_index) };
         if !info.is_null() {
             Some(unsafe { &*info })
         } else {
@@ -761,7 +764,7 @@ impl UiEngine {
         }
     }
 
-    pub fn get_mod_info_iter(&self) -> impl Iterator<Item = &raw::gameinfo2_s> {
+    pub fn get_mod_info_iter(&self) -> impl Iterator<Item = &gameinfo2_s> {
         (0..).map_while(|i| self.get_mod_info(i))
     }
 }

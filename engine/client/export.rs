@@ -10,21 +10,22 @@ use shared::{
     engine::net::netadr_s,
     ffi::{
         self,
-        client::{cl_enginefuncs_s, cldll_func_s},
+        api::{
+            efx::TEMPENTITY,
+            studio::{engine_studio_api_s, mstudioevent_s, r_studio_interface_s},
+        },
+        client::{cl_enginefuncs_s, cldll_func_s, client_data_s},
+        common::{
+            byte, cl_entity_s, clientdata_s, entity_state_s, kbutton_t, local_state_s, qboolean,
+            ref_params_s, usercmd_s, vec3_t, weapon_data_s,
+        },
+        player_move::playermove_s,
     },
-    raw::{
-        byte, cl_entity_s, clientdata_s, engine_studio_api_s, entity_state_s, kbutton_t,
-        mstudioevent_s, playermove_s, qboolean, r_studio_interface_s, usercmd_s, vec3_t,
-        weapon_data_s, UserCmdExt,
-    },
+    raw::UserCmdExt,
     utils::cstr_or_none,
 };
 
-use crate::{
-    collections::TempEntityList,
-    prelude::*,
-    raw::{client_data_s, local_state_s, ref_params_s, EntityType, TEMPENTITY},
-};
+use crate::{collections::TempEntityList, prelude::*, raw::EntityType};
 
 pub use shared::export::{impl_unsync_global, UnsyncGlobal};
 

@@ -2,17 +2,9 @@ use core::{ffi::c_int, mem};
 
 use bitflags::bitflags;
 use csz::CStrThin;
-use shared::ffi;
+use shared::ffi::{self, menu::gameinfo2_s};
 
 pub use shared::raw::*;
-
-// TODO: remove me
-#[rustfmt::skip]
-pub use shared::ffi::{
-    menu::HIMAGE,
-    menu::GAMEINFO,
-    menu::gameinfo2_s,
-};
 
 pub const GAMEINFO_VERSION: c_int = ffi::menu::GAMEINFO_VERSION as c_int;
 

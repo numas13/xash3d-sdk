@@ -1,8 +1,3 @@
-#![allow(non_camel_case_types)]
-#![allow(non_snake_case)]
-#![allow(non_upper_case_globals)]
-#![allow(clippy::type_complexity)]
-
 use core::{
     ffi::{c_char, c_int, c_short, c_uint},
     mem,
@@ -10,28 +5,16 @@ use core::{
 
 use bitflags::bitflags;
 use csz::{CStrSlice, CStrThin};
-use shared::utils::{
-    cstr_or_none, slice_from_raw_parts_or_empty, slice_from_raw_parts_or_empty_mut,
+use shared::{
+    ffi::server::{
+        entvars_s, KeyValueData, ENTITYTABLE, LEVELLIST, SAVERESTOREDATA, TYPEDESCRIPTION,
+    },
+    utils::{cstr_or_none, slice_from_raw_parts_or_empty, slice_from_raw_parts_or_empty_mut},
 };
 
 use crate::str::MapString;
 
 pub use shared::raw::*;
-
-// TODO: remove me
-#[rustfmt::skip]
-pub use shared::ffi::{
-    common::link_s,
-
-    server::KeyValueData,
-    server::SAVERESTOREDATA,
-    server::ENTITYTABLE,
-    server::LEVELLIST,
-    server::TYPEDESCRIPTION,
-    server::delta_s,
-    server::entvars_s,
-    server::edict_s,
-};
 
 pub trait EntityVarsExt {
     fn classname(&self) -> Option<MapString>;
@@ -196,6 +179,7 @@ impl SaveRestoreExt for SAVERESTOREDATA {
 }
 
 /// TYPEDESCRIPTION.fieldType
+#[allow(non_camel_case_types)]
 #[derive(Copy, Clone, Debug)]
 #[repr(C)]
 pub enum FieldType {

@@ -6,70 +6,14 @@ use core::{
 };
 
 use bitflags::bitflags;
-
-use crate::consts::{self, MAX_MOVEENTS};
-
-// TODO: remove me
-#[rustfmt::skip]
-pub use xash3d_ffi::{
-    common::BEAM,
-    common::alight_s,
-    common::auxvert_s,
-    common::byte,
-    common::cache_user_s,
-    common::cl_entity_s,
-    common::clientdata_s,
-    common::color24,
-    common::colorVec,
-    common::con_nprint_s,
-    common::customization_s,
-    common::decal_s,
-    common::dlight_s,
-    common::edict_s,
-    common::efrag_s,
-    common::entity_state_s,
-    common::hull_s,
-    common::kbutton_t,
-    common::latchedvars_t,
-    common::mleaf_s,
-    common::mnode_s,
-    common::model_s,
-    common::mouth_t,
-    common::movevars_s,
-    common::msurface_s,
-    common::particle_s,
-    common::player_info_s,
-    common::pmtrace_s,
-    common::poolhandle_t,
-    common::position_history_t,
-    common::qboolean,
-    common::ref_overview_s,
-    common::ref_viewpass_s,
-    common::screenfade_s,
-    common::texture_s,
-    common::texture_t,
-    common::trace_t,
-    common::usercmd_s,
-    common::vec2_t,
-    common::vec3_t,
-    common::vec4_t,
-    common::weapon_data_s,
-    common::wrect_s,
-
-    api::studio::engine_studio_api_s,
-    api::studio::engine_studio_api_t,
-    api::studio::mstudioevent_s,
-    api::studio::r_studio_interface_s,
-    api::studio::r_studio_interface_t,
-
-    api::render::decallist_s,
-    api::render::lightstyle_t,
-
-    api::tri::TRICULLSTYLE,
-
+use xash3d_ffi::{
+    common::{
+        byte, entity_state_s, kbutton_t, model_s, ref_viewpass_s, usercmd_s, vec3_t, wrect_s,
+    },
     player_move::physent_s,
-    player_move::playermove_s,
 };
+
+use crate::consts::MAX_MOVEENTS;
 
 bitflags! {
     /// kbutton_t.state

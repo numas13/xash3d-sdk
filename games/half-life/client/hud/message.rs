@@ -6,10 +6,13 @@ use core::{
 use alloc::{boxed::Box, vec, vec::Vec};
 use cl::{
     color::RGB,
+    ffi::{
+        client::{client_textmessage_s, SCREENINFO},
+        common::byte,
+    },
     math::fabsf,
     message::hook_message,
     prelude::*,
-    raw::{byte, client_textmessage_s, SCREENINFO},
 };
 
 use crate::export::hud;

@@ -1,8 +1,8 @@
 use core::ffi::{c_char, c_int};
 
-use shared::{
-    ffi::api::render::render_interface_s,
-    raw::{cl_entity_s, decallist_s, model_s, ref_viewpass_s, vec2_t},
+use shared::ffi::{
+    api::render::{decallist_s, render_interface_s},
+    common::{cl_entity_s, model_s, ref_viewpass_s, vec2_t},
 };
 
 pub enum Renderer {

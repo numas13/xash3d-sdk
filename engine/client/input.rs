@@ -1,7 +1,6 @@
-use crate::{
-    prelude::*,
-    raw::{kbutton_t, KeyState},
-};
+use shared::ffi::common::kbutton_t;
+
+use crate::{prelude::*, raw::KeyState};
 
 pub trait KeyButtonExt {
     fn key_down(&mut self);

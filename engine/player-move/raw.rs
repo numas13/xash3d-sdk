@@ -14,10 +14,14 @@ use core::{
 use csz::CStrArray;
 use shared::{
     consts::MAX_PHYSENTS,
-    raw::{
-        byte, hull_s, model_s, movevars_s, msurface_s, physent_s, pmtrace_s, qboolean, trace_t,
-        usercmd_s, vec3_t, EdictFlags, ModelType, MoveEnts, MoveType, SoundFlags,
+    ffi::{
+        common::{
+            byte, hull_s, model_s, movevars_s, msurface_s, pmtrace_s, qboolean, trace_t, usercmd_s,
+            vec3_t,
+        },
+        player_move::physent_s,
     },
+    raw::{EdictFlags, ModelType, MoveEnts, MoveType, SoundFlags},
 };
 
 pub struct MemFile {

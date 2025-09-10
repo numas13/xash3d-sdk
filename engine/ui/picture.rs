@@ -3,12 +3,9 @@ use core::{
     fmt,
 };
 
-use crate::{
-    color::RGBA,
-    engine_types::Size,
-    prelude::*,
-    raw::{PictureFlags, HIMAGE},
-};
+use shared::ffi::menu::HIMAGE;
+
+use crate::{color::RGBA, engine_types::Size, prelude::*, raw::PictureFlags};
 
 #[derive(Debug)]
 pub enum PictureError {

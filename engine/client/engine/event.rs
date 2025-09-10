@@ -2,11 +2,15 @@ use core::{ffi::c_int, mem::MaybeUninit};
 
 use csz::CStrThin;
 use shared::{
-    ffi::api::event::event_api_s,
+    ffi::{
+        api::event::event_api_s,
+        common::{pmtrace_s, vec3_t},
+        player_move::physent_s,
+    },
     str::{AsCStrPtr, ToEngineStr},
 };
 
-use crate::raw::{physent_s, pmtrace_s, vec3_t, SoundFlags};
+use crate::raw::SoundFlags;
 
 pub use shared::ffi::common::event_args_s;
 

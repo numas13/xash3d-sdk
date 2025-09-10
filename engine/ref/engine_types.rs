@@ -5,7 +5,9 @@ use core::{
     slice,
 };
 
-use crate::{prelude::*, raw};
+use shared::ffi::render::rgbdata_t;
+
+use crate::prelude::*;
 
 #[derive(Default)]
 pub struct SwBuffer {
@@ -132,7 +134,7 @@ impl Drop for SwBufferLock<'_> {
 }
 
 pub struct RgbData {
-    pub(crate) raw: *mut raw::rgbdata_t,
+    pub(crate) raw: *mut rgbdata_t,
 }
 
 impl Clone for RgbData {
@@ -152,7 +154,7 @@ impl Drop for RgbData {
 }
 
 impl Deref for RgbData {
-    type Target = raw::rgbdata_t;
+    type Target = rgbdata_t;
 
     fn deref(&self) -> &Self::Target {
         unsafe { &*self.raw }

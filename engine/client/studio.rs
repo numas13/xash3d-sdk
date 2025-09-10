@@ -1,7 +1,7 @@
-use crate::raw::{self, cl_entity_s};
+use shared::ffi::{api::studio::engine_studio_api_s, common::cl_entity_s};
 
 pub struct Studio {
-    raw: raw::engine_studio_api_s,
+    raw: engine_studio_api_s,
 }
 
 shared::export::impl_unsync_global!(Studio);
@@ -17,11 +17,11 @@ macro_rules! unwrap {
 
 #[allow(dead_code)]
 impl Studio {
-    pub(crate) fn new(raw: &raw::engine_studio_api_s) -> Self {
+    pub(crate) fn new(raw: &engine_studio_api_s) -> Self {
         Self { raw: *raw }
     }
 
-    pub fn raw(&self) -> &raw::engine_studio_api_s {
+    pub fn raw(&self) -> &engine_studio_api_s {
         &self.raw
     }
 

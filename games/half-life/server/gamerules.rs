@@ -3,8 +3,8 @@ use core::{ffi::CStr, ptr};
 use alloc::boxed::Box;
 use sv::{
     cell::Sync,
+    ffi::{common::vec3_t, server::edict_s},
     prelude::*,
-    raw::{edict_s, vec3_t},
 };
 
 use crate::{entity::Entity, player::Player};

@@ -11,7 +11,7 @@
 macro_rules! link_entity {
     ($name:ident, $create:expr) => {
         #[no_mangle]
-        unsafe extern "C" fn $name(ev: *mut sv::raw::entvars_s) {
+        unsafe extern "C" fn $name(ev: *mut sv::ffi::server::entvars_s) {
             use $crate::private_data::Private;
             let ent = if !ev.is_null() {
                 unsafe { (*ev).pContainingEntity }

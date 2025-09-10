@@ -1,14 +1,14 @@
 use core::{ffi::CStr, fmt};
 
-use crate::raw;
+use shared::ffi::menu::GAMEINFO;
 
 #[derive(Clone)]
 pub struct GameInfo {
-    raw: raw::GAMEINFO,
+    raw: GAMEINFO,
 }
 
 impl GameInfo {
-    pub(crate) fn new(raw: raw::GAMEINFO) -> Self {
+    pub(crate) fn new(raw: GAMEINFO) -> Self {
         Self { raw }
     }
 

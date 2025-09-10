@@ -4,8 +4,9 @@ use alloc::collections::linked_list::LinkedList;
 use csz::{CStrArray, CStrThin};
 use sv::{
     cell::SyncOnceCell,
+    ffi::server::{edict_s, SAVERESTOREDATA, TYPEDESCRIPTION},
     macros::define_field,
-    raw::{edict_s, FieldType, SAVERESTOREDATA, TYPEDESCRIPTION},
+    raw::FieldType,
     str::MapString,
 };
 

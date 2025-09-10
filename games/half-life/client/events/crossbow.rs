@@ -6,8 +6,9 @@ use cl::{
         SOLID_BSP, TE_BOUNCE_NULL,
     },
     engine::event::event_args_s,
+    ffi::{api::efx::TEMPENTITY, common::vec3_t},
     prelude::*,
-    raw::{vec3_t, RenderMode, SoundFlags, TempEntFlags, TEMPENTITY},
+    raw::{RenderMode, SoundFlags, TempEntFlags},
 };
 use res::valve::{models, sound};
 

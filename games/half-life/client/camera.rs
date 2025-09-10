@@ -2,11 +2,11 @@ use core::{cmp::Ordering, ffi::c_int};
 
 use cl::{
     consts::{PITCH, ROLL, YAW},
+    ffi::common::{kbutton_t, vec3_t},
     input::KeyButtonExt,
     macros::{hook_command, hook_command_key},
     math::fabsf,
     prelude::*,
-    raw::{kbutton_t, vec3_t},
 };
 
 use crate::{

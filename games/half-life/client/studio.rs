@@ -1,6 +1,6 @@
 use core::ffi::c_int;
 
-use cl::raw;
+use cl::ffi::common::entity_state_s;
 
 pub struct StudioRenderer {}
 
@@ -15,7 +15,7 @@ impl StudioRenderer {
         Self {}
     }
 
-    pub fn draw_player(&mut self, _flags: c_int, _player: &mut raw::entity_state_s) -> c_int {
+    pub fn draw_player(&mut self, _flags: c_int, _player: &mut entity_state_s) -> c_int {
         // TODO:
         0
     }

@@ -13,7 +13,10 @@ use csz::{CStrSlice, CStrThin};
 use shared::{
     engine::net::NetApi,
     export::impl_unsync_global,
-    ffi::{client::cl_enginefuncs_s, common::event_args_s},
+    ffi::{
+        client::{cl_enginefuncs_s, client_textmessage_s, hud_player_info_s, SCREENINFO},
+        common::{cl_entity_s, event_args_s, vec3_t, wrect_s},
+    },
     raw::WRectExt,
     str::{AsCStrPtr, ToEngineStr},
 };
@@ -22,10 +25,7 @@ use crate::{
     color::{RGB, RGBA},
     cvar::{CVarFlags, CVarPtr},
     engine::{demo::DemoApi, efx::EfxApi, event::EventApi, tri::TriangleApi},
-    raw::{
-        cl_entity_s, client_textmessage_s, hud_player_info_s, vec3_t, wrect_s, ScreenInfoExt,
-        SCREENINFO,
-    },
+    raw::ScreenInfoExt,
     sprite::{SpriteHandle, SpriteList},
 };
 

@@ -7,8 +7,8 @@ use core::{
 };
 
 use sv::{
+    ffi::server::{edict_s, entvars_s},
     prelude::*,
-    raw::{edict_s, entvars_s},
 };
 
 use crate::entity::Entity;

@@ -8,6 +8,7 @@ use shared::{
     export::impl_unsync_global,
     ffi::{
         self,
+        common::vec3_t,
         server::{edict_s, enginefuncs_s, ALERT_TYPE},
     },
     str::{AsCStrPtr, ToEngineStr},
@@ -15,7 +16,6 @@ use shared::{
 
 use crate::{
     cvar::{cvar_s, CVarPtr},
-    raw::vec3_t,
     str::MapString,
 };
 

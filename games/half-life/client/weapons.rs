@@ -2,8 +2,8 @@ use core::ffi::c_uint;
 
 use cl::{
     cvar::CVarPtr,
+    ffi::common::{local_state_s, usercmd_s},
     prelude::*,
-    raw::{local_state_s, usercmd_s},
 };
 
 use crate::export::{hud, hud_mut};

@@ -3,8 +3,9 @@ use core::ffi::c_int;
 use cl::{
     consts::{ATTN_NORM, CHAN_WEAPON, PITCH, PM_NORMAL, SOLID_BSP, TE_SPRITETRAIL},
     engine::event::event_args_s,
+    ffi::common::vec3_t,
     prelude::*,
-    raw::{vec3_t, BeamEntity, RenderFx, RenderMode, SoundFlags, TempEntFlags},
+    raw::{BeamEntity, RenderFx, RenderMode, SoundFlags, TempEntFlags},
 };
 use res::valve::{self, sound, sprites};
 

@@ -7,11 +7,12 @@ use core::{
 use alloc::vec::Vec;
 use cl::{
     consts::{self, PITCH, ROLL, YAW},
+    ffi::common::{kbutton_t, usercmd_s, vec3_t},
     input::KeyButtonExt,
     macros::{hook_command, hook_command_key},
     math::{angle_mod, pow, sqrt, sqrtf},
     prelude::*,
-    raw::{kbutton_t, usercmd_s, vec3_t, KeyState, UserCmdExt},
+    raw::{KeyState, UserCmdExt},
 };
 use csz::{CStrBox, CStrThin};
 

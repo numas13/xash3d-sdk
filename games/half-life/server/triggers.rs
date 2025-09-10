@@ -3,12 +3,13 @@ use core::{ffi::c_int, ptr};
 use csz::{cstr, CStrArray, CStrThin};
 use sv::{
     consts::{FENTTABLE_GLOBAL, FENTTABLE_MOVEABLE, SOLID_TRIGGER},
+    ffi::{
+        common::vec3_t,
+        server::{edict_s, entvars_s, KeyValueData, LEVELLIST, TYPEDESCRIPTION},
+    },
     macros::define_field,
     prelude::*,
-    raw::{
-        edict_s, entvars_s, vec3_t, Effects, FieldType, KeyValueData, MoveType, LEVELLIST,
-        TYPEDESCRIPTION,
-    },
+    raw::{Effects, FieldType, MoveType},
     str::MapString,
 };
 

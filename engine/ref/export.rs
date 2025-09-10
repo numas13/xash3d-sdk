@@ -10,22 +10,26 @@ use shared::{
     color::RGBA,
     consts::RefParm,
     ffi::{
-        api::render::texFlags_t,
-        common::uint,
+        api::{
+            render::{decallist_s, lightstyle_t, texFlags_t},
+            studio::{mstudioseqdesc_t, mstudiotex_s},
+            tri::TRICULLSTYLE,
+        },
+        common::{
+            byte, cl_entity_s, colorVec, decal_s, model_s, msurface_s, particle_s, qboolean,
+            ref_viewpass_s, uint, vec2_t, vec3_t, BEAM,
+        },
         render::{
-            ref_api_s, ref_globals_s, ref_interface_s, ref_screen_rotation_t, REF_API_VERSION,
+            ref_api_s, ref_globals_s, ref_interface_s, ref_screen_rotation_t, rgbdata_t,
+            REF_API_VERSION,
         },
     },
-    raw::{
-        byte, cl_entity_s, colorVec, decal_s, decallist_s, lightstyle_t, model_s, msurface_s,
-        particle_s, qboolean, ref_viewpass_s, vec2_t, vec3_t, TextureFlags, BEAM, MAX_LIGHTSTYLES,
-        MAX_RENDER_DECALS, TRICULLSTYLE,
-    },
+    raw::{TextureFlags, MAX_LIGHTSTYLES, MAX_RENDER_DECALS},
     utils::{cstr_or_none, slice_from_raw_parts_or_empty},
 };
 
 use crate::{
-    raw::{mstudioseqdesc_t, mstudiotex_s, rgbdata_t, SKYBOX_MAX_SIDES},
+    raw::SKYBOX_MAX_SIDES,
     texture::{TextureId, UNUSED_TEXTURE_NAME},
 };
 

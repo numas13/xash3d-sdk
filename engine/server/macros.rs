@@ -4,7 +4,7 @@ pub use shared::macros::cstringify;
 #[macro_export]
 macro_rules! field {
     ($ty:ty, $name:ident, $fieldtype:expr, $count:expr, $flags:expr) => {
-        $crate::raw::TYPEDESCRIPTION {
+        $crate::ffi::server::TYPEDESCRIPTION {
             fieldType: $fieldtype as core::ffi::c_uint,
             fieldName: $crate::macros::cstringify!($name).as_ptr(),
             fieldOffset: core::mem::offset_of!($ty, $name) as core::ffi::c_int,
@@ -55,7 +55,7 @@ macro_rules! define_entity_field {
     };
     ($name:ident, $fieldtype:expr, global) => {
         $crate::macros::field!(
-            $crate::raw::entvars_s,
+            $crate::ffi::server::entvars_s,
             $name,
             $fieldtype,
             1,
@@ -64,7 +64,7 @@ macro_rules! define_entity_field {
     };
     ($name:ident, $fieldtype:expr, $count:expr) => {
         $crate::macros::field!(
-            $crate::raw::entvars_s,
+            $crate::ffi::server::entvars_s,
             $name,
             $fieldtype,
             $count,
@@ -73,7 +73,7 @@ macro_rules! define_entity_field {
     };
     ($name:ident, $fieldtype:expr) => {
         $crate::macros::field!(
-            $crate::raw::entvars_s,
+            $crate::ffi::server::entvars_s,
             $name,
             $fieldtype,
             1,

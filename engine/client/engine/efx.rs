@@ -1,13 +1,14 @@
 use core::ffi::c_int;
 
 use shared::{
-    ffi::{api::efx::efx_api_s, common::BEAM},
+    ffi::{
+        api::efx::{efx_api_s, TEMPENTITY},
+        common::{dlight_s, vec3_t, BEAM},
+    },
     str::{AsCStrPtr, ToEngineStr},
 };
 
-use crate::raw::{
-    self, dlight_s, vec3_t, BeamEntity, RenderFx, RenderMode, TempEntFlags, TEMPENTITY,
-};
+use crate::raw::{BeamEntity, RenderFx, RenderMode, TempEntFlags};
 
 pub struct EfxApi {
     raw: *mut efx_api_s,
@@ -297,7 +298,7 @@ impl EfxApi {
         life: f32,
         model: c_int,
         soundtype: c_int,
-    ) -> *mut raw::TEMPENTITY {
+    ) -> *mut TEMPENTITY {
         unsafe {
             unwrap!(self, R_TempModel)(
                 pos.as_ptr(),

@@ -1,5 +1,4 @@
 #![allow(non_camel_case_types)]
-#![allow(non_snake_case)]
 
 use core::{
     ffi::{c_int, c_uint, CStr},
@@ -8,59 +7,14 @@ use core::{
 
 use bitflags::bitflags;
 use csz::CStrThin;
-use shared::{consts::RefParm, cvar::CVarFlags, ffi::common::uint};
+use shared::{
+    consts::RefParm,
+    cvar::CVarFlags,
+    ffi::common::uint,
+    ffi::render::{convar_s, rgbdata_t},
+};
 
 pub use shared::raw::*;
-
-// TODO: remove me
-#[rustfmt::skip]
-pub use shared::ffi::{
-    common::vec_t,
-    common::rgba_t,
-    render::bpc_desc_s,
-    render::rgbdata_s,
-    render::rgbdata_t,
-    render::sortedface_t,
-    render::ref_client_s,
-    render::ref_host_s,
-    render::remap_info_s,
-    render::convar_s,
-
-    api::studio::studiohdr_s,
-    api::studio::studiohdr2_t,
-    api::studio::studioseqhdr_t,
-    api::studio::mstudiobone_s,
-    api::studio::mstudioaxisinterpbone_t,
-    api::studio::mstudioquatinterpinfo_t,
-    api::studio::mstudioquatinterpbone_t,
-    api::studio::mstudioboneinfo_t,
-    api::studio::mstudiojigglebone_t,
-    api::studio::mstudioaimatbone_t,
-    api::studio::mstudiobonecontroller_t,
-    api::studio::mstudiobbox_t,
-    api::studio::mstudiohitboxset_t,
-    api::studio::mstudioseqgroup_t,
-    api::studio::mstudioattachment_t,
-    api::studio::mstudioikerror_t,
-    api::studio::mstudioikrule_t,
-    api::studio::mstudioiklock_t,
-    api::studio::mstudiomovement_t,
-    api::studio::mstudioanimdesc_t,
-    api::studio::mstudioautolayer_t,
-    api::studio::mstudioseqdesc_s,
-    api::studio::mstudioseqdesc_t,
-    api::studio::mstudioposeparamdesc_t,
-    api::studio::mstudioanim_s,
-    api::studio::mstudioanimvalue_t,
-    api::studio::mstudiobodyparts_t,
-    api::studio::mstudiotex_s,
-    api::studio::mstudioiklink_t,
-    api::studio::mstudioikchain_t,
-    api::studio::mstudioboneweight_t,
-    api::studio::mstudiomodel_t,
-    api::studio::mstudiomesh_t,
-    api::studio::mstudiotrivert_t,
-};
 
 bitflags! {
     #[derive(Copy, Clone, PartialEq, Eq)]
@@ -136,7 +90,6 @@ pub enum PixelFormat {
     KTX2_RAW,
     TOTALCOUNT,
 }
-pub type pixformat_t = PixelFormat;
 
 impl PixelFormat {
     pub fn from_raw(raw: uint) -> Option<Self> {
@@ -176,7 +129,7 @@ impl PixelFormat {
 bitflags! {
     #[derive(Copy, Clone, PartialEq, Eq)]
     #[repr(transparent)]
-    pub struct ilFlags_t: c_uint {
+    pub struct ImageFlags: c_uint {
         const USE_LERPING       = 1 << 0; // lerping images during resample
         const KEEP_8BIT         = 1 << 1; // don't expand paletted images
         const ALLOW_OVERWRITE   = 1 << 2; // allow to overwrite stored images
@@ -193,7 +146,7 @@ bitflags! {
     /// rgbdata_s.flags
     #[derive(Copy, Clone, PartialEq, Eq, Debug, Default)]
     #[repr(transparent)]
-    pub struct ImageFlags: c_uint {
+    pub struct OutputImageFlags: c_uint {
         const CUBEMAP       = 1 << 0;   // it's 6-sides cubemap buffer
         const HAS_ALPHA     = 1 << 1;   // image contain alpha-channel
         const HAS_COLOR     = 1 << 2;   // image contain RGB-channel
@@ -328,19 +281,19 @@ pub const PARM_GET_ELIGHTS_PTR: RefParm = RefParm::new(-22);
 pub const PARM_TEX_FILTERING: RefParm = RefParm::new(-0x10000);
 
 pub trait RgbDataExt {
-    fn flags(&self) -> &ImageFlags;
+    fn flags(&self) -> &OutputImageFlags;
 
-    fn flags_mut(&mut self) -> &mut ImageFlags;
+    fn flags_mut(&mut self) -> &mut OutputImageFlags;
 
     fn type_(&self) -> PixelFormat;
 }
 
 impl RgbDataExt for rgbdata_t {
-    fn flags(&self) -> &ImageFlags {
+    fn flags(&self) -> &OutputImageFlags {
         unsafe { mem::transmute(&self.flags) }
     }
 
-    fn flags_mut(&mut self) -> &mut ImageFlags {
+    fn flags_mut(&mut self) -> &mut OutputImageFlags {
         unsafe { mem::transmute(&mut self.flags) }
     }
 

@@ -1,11 +1,14 @@
 use core::{ffi::c_int, ptr::NonNull, time::Duration};
 
-use shared::{export::impl_unsync_global, ffi::server::globalvars_t};
-
-use crate::{
-    raw::{self, vec3_t},
-    str::MapString,
+use shared::{
+    export::impl_unsync_global,
+    ffi::{
+        common::vec3_t,
+        server::{globalvars_t, SAVERESTOREDATA},
+    },
 };
+
+use crate::str::MapString;
 
 pub struct ServerGlobals {
     raw: *mut globalvars_t,
@@ -62,7 +65,7 @@ impl ServerGlobals {
         unsafe { (*self.raw).maxClients }
     }
 
-    pub fn save_data(&self) -> Option<NonNull<raw::SAVERESTOREDATA>> {
+    pub fn save_data(&self) -> Option<NonNull<SAVERESTOREDATA>> {
         NonNull::new(unsafe { &*self.raw }.pSaveData.cast())
     }
 

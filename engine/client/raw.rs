@@ -1,31 +1,18 @@
-#![allow(non_camel_case_types)]
-#![allow(non_snake_case)]
-#![allow(non_upper_case_globals)]
-#![allow(clippy::type_complexity)]
-
 use core::{ffi::c_int, mem};
 
 use bitflags::bitflags;
 use csz::CStrThin;
-use shared::utils::cstr_or_none;
+
+use shared::{
+    ffi::{
+        api::efx::TEMPENTITY,
+        client::{hud_player_info_s, SCREENINFO},
+        common::{movevars_s, ref_params_s, usercmd_s},
+    },
+    utils::cstr_or_none,
+};
 
 pub use shared::raw::*;
-
-// TODO: remove me
-#[rustfmt::skip]
-pub use shared::ffi::{
-    common::local_state_s,
-    common::ref_params_s,
-
-    api::efx::TEMPENTITY,
-
-    client::SCREENINFO,
-    client::client_data_s,
-    client::client_textmessage_s,
-    client::cmdalias_s,
-    client::hud_player_info_s,
-    client::tagPOINT,
-};
 
 bitflags! {
     #[derive(Copy, Clone, Debug)]

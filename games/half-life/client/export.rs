@@ -7,7 +7,18 @@ use core::{
 use cl::{
     collections::TempEntityList,
     export::{export_dll, impl_unsync_global, ClientDll, UnsyncGlobal},
-    raw::{self, kbutton_t, vec3_t},
+    ffi::{
+        api::{
+            efx::TEMPENTITY,
+            studio::{engine_studio_api_s, r_studio_interface_s},
+        },
+        client::client_data_s,
+        common::{
+            cl_entity_s, clientdata_s, entity_state_s, kbutton_t, local_state_s, ref_params_s,
+            usercmd_s, vec3_t, weapon_data_s,
+        },
+    },
+    raw::EntityType,
 };
 use csz::CStrThin;
 
@@ -66,7 +77,7 @@ impl ClientDll for Instance {
         self.hud.borrow_mut().draw(time, intermission)
     }
 
-    fn update_client_data(&self, data: &mut raw::client_data_s, time: f32) -> bool {
+    fn update_client_data(&self, data: &mut client_data_s, time: f32) -> bool {
         self.input.borrow_mut().in_commands();
         self.hud.borrow_mut().update_client_data(data, time)
     }
@@ -75,22 +86,22 @@ impl ClientDll for Instance {
         self.hud.borrow_mut().reset();
     }
 
-    fn txfer_local_overrides(&self, state: &mut raw::entity_state_s, client: &raw::clientdata_s) {
+    fn txfer_local_overrides(&self, state: &mut entity_state_s, client: &clientdata_s) {
         self.entities.borrow().txfer_local_overrides(state, client);
     }
 
-    fn process_player_state(&self, dst: &mut raw::entity_state_s, src: &raw::entity_state_s) {
+    fn process_player_state(&self, dst: &mut entity_state_s, src: &entity_state_s) {
         self.entities.borrow_mut().process_player_state(dst, src);
     }
 
     fn txfer_prediction_data(
         &self,
-        ps: &mut raw::entity_state_s,
-        pps: &raw::entity_state_s,
-        pcd: &mut raw::clientdata_s,
-        ppcd: &raw::clientdata_s,
-        wd: *mut raw::weapon_data_s,
-        pwd: *const raw::weapon_data_s,
+        ps: &mut entity_state_s,
+        pps: &entity_state_s,
+        pcd: &mut clientdata_s,
+        ppcd: &clientdata_s,
+        wd: *mut weapon_data_s,
+        pwd: *const weapon_data_s,
     ) {
         let wd = unsafe { &mut *wd.cast() };
         let pwd = unsafe { &*pwd.cast() };
@@ -99,15 +110,15 @@ impl ClientDll for Instance {
             .txfer_prediction_data(ps, pps, pcd, ppcd, wd, pwd);
     }
 
-    fn create_move(&self, frame_time: f32, active: bool) -> raw::usercmd_s {
+    fn create_move(&self, frame_time: f32, active: bool) -> usercmd_s {
         self.input.borrow_mut().create_move(frame_time, active)
     }
 
     fn post_run_cmd(
         &self,
-        from: &mut raw::local_state_s,
-        to: &mut raw::local_state_s,
-        cmd: &mut raw::usercmd_s,
+        from: &mut local_state_s,
+        to: &mut local_state_s,
+        cmd: &mut usercmd_s,
         run_funcs: bool,
         time: f64,
         random_seed: c_uint,
@@ -117,7 +128,7 @@ impl ClientDll for Instance {
             .post_run_cmd(from, to, cmd, run_funcs, time, random_seed);
     }
 
-    fn calc_ref_def(&self, params: &mut raw::ref_params_s) {
+    fn calc_ref_def(&self, params: &mut ref_params_s) {
         self.view.borrow_mut().calc_ref_def(params);
     }
 
@@ -161,12 +172,7 @@ impl ClientDll for Instance {
         self.input.borrow_mut().deactivate_mouse();
     }
 
-    fn add_entity(
-        &self,
-        ty: raw::EntityType,
-        ent: &mut raw::cl_entity_s,
-        model_name: &CStrThin,
-    ) -> bool {
+    fn add_entity(&self, ty: EntityType, ent: &mut cl_entity_s, model_name: &CStrThin) -> bool {
         self.entities.borrow().add_entity(ty, ent, model_name)
     }
 
@@ -180,8 +186,8 @@ impl ClientDll for Instance {
         client_time: f64,
         cl_gravity: f64,
         list: &mut TempEntityList,
-        add_visible_entity: impl FnMut(&mut raw::cl_entity_s) -> c_int,
-        play_sound: impl FnMut(&mut raw::TEMPENTITY, f32),
+        add_visible_entity: impl FnMut(&mut cl_entity_s) -> c_int,
+        play_sound: impl FnMut(&mut TEMPENTITY, f32),
     ) {
         self.entities.borrow().update_temp_entities(
             frametime,
@@ -196,8 +202,8 @@ impl ClientDll for Instance {
     fn get_studio_model_interface(
         &self,
         version: c_int,
-        interface: *mut *mut raw::r_studio_interface_s,
-        studio: *mut raw::engine_studio_api_s,
+        interface: *mut *mut r_studio_interface_s,
+        studio: *mut engine_studio_api_s,
     ) -> bool {
         // TODO: export studio interface
         if true {
@@ -228,13 +234,13 @@ unsafe extern "C" fn StudioDrawModel(flags: c_int) -> c_int {
 }
 
 #[allow(non_snake_case)]
-unsafe extern "C" fn StudioDrawPlayer(flags: c_int, player: *mut raw::entity_state_s) -> c_int {
+unsafe extern "C" fn StudioDrawPlayer(flags: c_int, player: *mut entity_state_s) -> c_int {
     let player = unsafe { &mut *player };
     renderer_mut().draw_player(flags, player)
 }
 
-static mut STUDIO: raw::r_studio_interface_s = raw::r_studio_interface_s {
-    version: cl::consts::STUDIO_INTERFACE_VERSION,
+static mut STUDIO: r_studio_interface_s = r_studio_interface_s {
+    version: cl::ffi::api::studio::STUDIO_INTERFACE_VERSION as c_int,
     StudioDrawModel: Some(StudioDrawModel),
     StudioDrawPlayer: Some(StudioDrawPlayer),
 };

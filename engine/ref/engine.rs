@@ -7,7 +7,10 @@ use core::{
 
 use shared::{
     export::impl_unsync_global,
-    ffi::render::ref_api_s,
+    ffi::{
+        common::{efrag_s, mleaf_s, mnode_s, ref_overview_s, vec3_t},
+        render::{convar_s, ref_api_s, rgbdata_t},
+    },
     str::{AsCStrPtr, ToEngineStr},
 };
 
@@ -16,10 +19,7 @@ use crate::{
     cvar::cvar_s,
     engine::draw::Draw,
     engine_types::*,
-    raw::{
-        self, bsp::MAX_MAP_LEAFS_BYTES, convar_s, ilFlags_t, mleaf_s, mnode_s, rgbdata_t, vec3_t,
-        GraphicApi, ImageFlags,
-    },
+    raw::{bsp::MAX_MAP_LEAFS_BYTES, GraphicApi, ImageFlags, OutputImageFlags},
 };
 
 pub use shared::engine::AddCmdError;
@@ -160,7 +160,7 @@ impl RefEngine {
     // pub CL_AllocElight: Option<unsafe extern "C" fn(key: c_int) -> *mut dlight_s>,
     // pub GetDefaultSprite: Option<unsafe extern "C" fn(spr: ref_defaultsprite_e) -> *mut model_s>,
 
-    pub fn r_store_efrags(&self, efrags: &mut *mut raw::efrag_s, framecount: c_int) {
+    pub fn r_store_efrags(&self, efrags: &mut *mut efrag_s, framecount: c_int) {
         unsafe { unwrap!(self, R_StoreEfrags)(efrags, framecount) }
     }
 
@@ -319,7 +319,7 @@ impl RefEngine {
         Ok(&mut buffer[..bytes as usize])
     }
 
-    pub fn get_overview_parms(&self) -> &raw::ref_overview_s {
+    pub fn get_overview_parms(&self) -> &ref_overview_s {
         let ret = unsafe { unwrap!(self, GetOverviewParms)() };
         assert!(!ret.is_null());
         unsafe { &*ret }
@@ -351,7 +351,7 @@ impl RefEngine {
     // >,
     // pub Image_AddCmdFlags: Option<unsafe extern "C" fn(flags: c_uint)>,
 
-    pub fn image_set_force_flags(&self, flags: ilFlags_t) {
+    pub fn image_set_force_flags(&self, flags: ImageFlags) {
         unsafe { unwrap!(self, Image_SetForceFlags)(flags.bits()) }
     }
 
@@ -363,7 +363,7 @@ impl RefEngine {
         pic: &mut RgbData,
         width: c_int,
         height: c_int,
-        flags: ImageFlags,
+        flags: OutputImageFlags,
     ) -> bool {
         unsafe { unwrap!(self, Image_Process)(&mut pic.raw, width, height, flags.bits(), 0.0) != 0 }
     }

@@ -1,6 +1,6 @@
 use core::{iter, ptr};
 
-use crate::raw::TEMPENTITY;
+use shared::ffi::api::efx::TEMPENTITY;
 
 pub struct TempEntityList {
     head: *mut *mut TEMPENTITY,

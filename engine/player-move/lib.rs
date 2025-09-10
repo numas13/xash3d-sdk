@@ -27,11 +27,12 @@ use shared::{
         IN_FORWARD, IN_JUMP, IN_MOVELEFT, IN_MOVERIGHT, IN_USE, MAX_CLIP_PLANES, MAX_PHYSENTS,
         PITCH, PITCH_NORM, PM_NORMAL, ROLL, YAW,
     },
-    math::{self, fabsf, fmaxf, fminf, pow2, sqrtf, ToAngleVectors},
-    raw::{
-        physent_s, pmtrace_s, qboolean, vec3_t, EdictFlags, ModelType, MoveType, SoundFlags,
-        UserCmdExt,
+    ffi::{
+        common::{pmtrace_s, qboolean, vec3_t},
+        player_move::physent_s,
     },
+    math::{self, fabsf, fmaxf, fminf, pow2, sqrtf, ToAngleVectors},
+    raw::{EdictFlags, ModelType, MoveType, SoundFlags, UserCmdExt},
 };
 
 use crate::raw::playermove_s;

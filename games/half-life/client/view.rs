@@ -2,10 +2,11 @@ use core::{f32, ffi::c_int, ptr};
 
 use cl::{
     consts::{CONTENTS_WATER, PITCH, ROLL, YAW},
+    ffi::common::{cl_entity_s, ref_params_s, vec3_t},
     macros::hook_command,
     math::{fabsf, fmaxf, fminf, sinf, sqrtf},
     prelude::*,
-    raw::{cl_entity_s, ref_params_s, vec3_t, KeyState},
+    raw::KeyState,
 };
 
 use crate::{

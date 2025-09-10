@@ -8,12 +8,13 @@ use core::{
 
 use sv::{
     export::RestoreResult,
+    ffi::{
+        common::vec3_t,
+        server::{edict_s, entvars_s, KeyValueData, SAVERESTOREDATA, TYPEDESCRIPTION},
+    },
     macros::define_entity_field,
     prelude::*,
-    raw::{
-        edict_s, entvars_s, vec3_t, FieldType, FtypeDesc, KeyValueData, MoveType, SAVERESTOREDATA,
-        TYPEDESCRIPTION,
-    },
+    raw::{FieldType, FtypeDesc, MoveType},
     str::MapString,
     utils::array_from_slice,
 };

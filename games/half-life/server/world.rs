@@ -1,6 +1,6 @@
 use sv::{
+    ffi::server::{entvars_s, KeyValueData},
     prelude::*,
-    raw::{entvars_s, KeyValueData},
 };
 
 use crate::{

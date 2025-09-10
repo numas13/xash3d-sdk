@@ -4,11 +4,13 @@ use bitflags::bitflags;
 use csz::CStrThin;
 use sv::{
     consts::{SOLID_BSP, SOLID_NOT},
+    ffi::{
+        common::vec3_t,
+        server::{edict_s, entvars_s, KeyValueData, TYPEDESCRIPTION},
+    },
     math::fabsf,
     prelude::*,
-    raw::{
-        edict_s, entvars_s, vec3_t, EdictFlags, Effects, KeyValueData, MoveType, TYPEDESCRIPTION,
-    },
+    raw::{EdictFlags, Effects, MoveType},
     str::MapString,
 };
 

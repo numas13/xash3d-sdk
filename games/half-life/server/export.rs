@@ -7,8 +7,12 @@ use csz::CStrThin;
 use pm::{VEC_DUCK_HULL_MIN, VEC_HULL_MIN};
 use sv::{
     export::{export_dll, impl_unsync_global, RestoreResult, ServerDll, SpawnResult},
+    ffi::{
+        common::{clientdata_s, entity_state_s, vec3_t},
+        server::{edict_s, KeyValueData, SAVERESTOREDATA, TYPEDESCRIPTION},
+    },
     prelude::*,
-    raw::{self, edict_s, vec3_t, EdictFlags, KeyValueData, SAVERESTOREDATA, TYPEDESCRIPTION},
+    raw::EdictFlags,
 };
 
 use crate::{
@@ -208,13 +212,13 @@ impl ServerDll for Instance {
         }
     }
 
-    fn update_client_data(&self, ent: &edict_s, send_weapons: bool, cd: &mut raw::clientdata_s) {
+    fn update_client_data(&self, ent: &edict_s, send_weapons: bool, cd: &mut clientdata_s) {
         crate::todo::update_client_data(ent, send_weapons, cd);
     }
 
     fn add_to_full_pack(
         &self,
-        state: &mut raw::entity_state_s,
+        state: &mut entity_state_s,
         e: c_int,
         ent: &edict_s,
         host: &edict_s,
@@ -229,7 +233,7 @@ impl ServerDll for Instance {
         &self,
         player: bool,
         eindex: c_int,
-        baseline: &mut raw::entity_state_s,
+        baseline: &mut entity_state_s,
         entity: &mut edict_s,
         player_model_index: c_int,
         player_mins: vec3_t,

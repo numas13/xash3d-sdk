@@ -4,11 +4,11 @@ use alloc::collections::VecDeque;
 use bitflags::bitflags;
 use cl::{
     color::RGB,
+    ffi::common::vec3_t,
     macros::spr_load,
     math::{fabsf, fmaxf, sinf},
     message::hook_message,
     prelude::*,
-    raw::vec3_t,
     sprite::SpriteHandle,
 };
 

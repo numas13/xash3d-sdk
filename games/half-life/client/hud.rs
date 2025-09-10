@@ -28,10 +28,13 @@ use bitflags::bitflags;
 use cl::{
     color::RGB,
     consts::MAX_PLAYERS,
+    ffi::{
+        client::client_data_s,
+        common::{vec3_t, wrect_s},
+    },
     macros::{hook_command, spr_load},
     message::{hook_message, hook_message_flag},
     prelude::*,
-    raw::{client_data_s, vec3_t, wrect_s},
     sprite::SpriteHandle,
 };
 use csz::{CStrArray, CStrBox};

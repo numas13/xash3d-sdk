@@ -19,10 +19,14 @@ use cl::{
         ATTN_NORM, CHAN_STATIC, EFLAG_FLESH_SOUND, MAX_PLAYERS, PITCH_NORM, PM_NORMAL, SOLID_BSP,
     },
     engine::event::event_args_s,
+    ffi::{
+        common::{pmtrace_s, vec3_t},
+        player_move::physent_s,
+    },
     macros::hook_event,
     math::AngleVectorsAll,
     prelude::*,
-    raw::{physent_s, pmtrace_s, vec3_t, Effects, MoveType, RenderMode, SoundFlags},
+    raw::{Effects, MoveType, RenderMode, SoundFlags},
 };
 use csz::CStrArray;
 use res::valve::{self, sound};
