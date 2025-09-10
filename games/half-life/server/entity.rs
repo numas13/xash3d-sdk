@@ -147,7 +147,7 @@ pub trait Entity: EntityVars + Cast + Any {
         restore.read_fields(c"BASE", self as *mut _ as *mut _, fields)?;
 
         let ev = self.vars_mut();
-        if let (true, Some(model)) = (ev.modelindex != 0, ev.model) {
+        if let (true, Some(model)) = (ev.modelindex != 0, ev.model()) {
             let mins = ev.mins;
             let maxs = ev.maxs;
             let engine = engine();
@@ -184,27 +184,27 @@ pub trait Entity: EntityVars + Cast + Any {
 
     fn make_dormant(&mut self) {
         let ev = self.vars_mut();
-        ev.flags.insert(EdictFlags::DORMANT);
+        ev.flags_mut().insert(EdictFlags::DORMANT);
         ev.solid = SOLID_NOT as c_int;
-        ev.movetype = MoveType::None;
-        ev.effects.insert(Effects::NODRAW);
+        ev.movetype = MoveType::None.into();
+        ev.effects_mut().insert(Effects::NODRAW);
         ev.nextthink = 0.0;
     }
 
     fn is_dormant(&self) -> bool {
-        self.vars().flags.intersects(EdictFlags::DORMANT)
+        self.vars().flags().intersects(EdictFlags::DORMANT)
     }
 
-    fn globalname(&self) -> &MapString {
-        self.vars().globalname.as_ref().unwrap()
+    fn globalname(&self) -> MapString {
+        self.vars().globalname().unwrap()
     }
 
     fn is_globalname(&self, name: &CStrThin) -> bool {
         name == self.globalname().as_thin()
     }
 
-    fn classname(&self) -> &MapString {
-        self.vars().classname.as_ref().unwrap()
+    fn classname(&self) -> MapString {
+        self.vars().classname().unwrap()
     }
 
     fn is_classname(&self, name: &CStrThin) -> bool {

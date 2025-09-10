@@ -511,8 +511,11 @@ impl ClientEngine {
         let name = name.to_engine_str();
         let value = value.to_engine_str();
         unsafe {
-            let raw =
-                unwrap!(self, pfnRegisterVariable)(name.as_ptr(), value.as_ptr(), flags.bits());
+            let raw = unwrap!(self, pfnRegisterVariable)(
+                name.as_ptr(),
+                value.as_ptr(),
+                flags.bits() as c_int,
+            );
             if !raw.is_null() {
                 Some(CVarPtr::from_ptr(raw))
             } else {

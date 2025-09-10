@@ -58,11 +58,11 @@ impl ChangeLevel {
             set_move_dir(ev);
         }
         ev.solid = SOLID_TRIGGER;
-        ev.movetype = MoveType::None;
+        ev.movetype = MoveType::None.into();
         let engine = engine();
-        engine.set_model(unsafe { &mut *ev.pContainingEntity }, &ev.model.unwrap());
+        engine.set_model(unsafe { &mut *ev.pContainingEntity }, &ev.model().unwrap());
         if engine.get_cvar_float(c"showtriggers") == 0.0 {
-            ev.effects.insert(Effects::NODRAW);
+            ev.effects_mut().insert(Effects::NODRAW);
         }
     }
 
@@ -168,7 +168,7 @@ impl Entity for ChangeLevel {
     }
 
     fn touch(&mut self, other: &mut dyn Entity) {
-        if other.vars().classname.unwrap().as_thin() == c"player" {
+        if other.vars().classname().unwrap().as_thin() == c"player" {
             self.change_level_now(other);
         }
     }
@@ -201,17 +201,17 @@ fn add_transition_to_list(
     if landmark.is_null()
         || level_list[..count]
             .iter()
-            .any(|i| i.pentLandmark == landmark || i.mapName == *map_name)
+            .any(|i| i.pentLandmark == landmark || i.map_name() == map_name)
     {
         return false;
     }
     level_list[count]
-        .mapName
+        .map_name_new()
         .cursor()
         .write_c_str(map_name)
         .unwrap();
     level_list[count]
-        .landmarkName
+        .landmark_name_new()
         .cursor()
         .write_c_str(landmark_name)
         .unwrap();
@@ -236,7 +236,7 @@ fn find_landmark(landmark_name: &CStrThin) -> *mut edict_s {
     engine()
         .find_ent_by_targetname_iter(landmark_name)
         .find(|&ent| {
-            let classname = unsafe { *ent }.v.classname.unwrap();
+            let classname = unsafe { &*ent }.v.classname().unwrap();
             classname.as_thin() == c"info_landmark"
         })
         .unwrap_or(ptr::null_mut())
@@ -249,12 +249,12 @@ fn in_transition_volume(ent: *mut edict_s, volume_name: &CStrThin) -> bool {
         return true;
     }
 
-    if ent.vars().movetype == MoveType::Follow && !ent.vars().aiment.is_null() {
+    if ent.vars().movetype == MoveType::Follow.into() && !ent.vars().aiment.is_null() {
         ent = unsafe { &*ent.vars().aiment }.private().unwrap();
     }
 
     let engine = engine();
-    let mut ent_volume = engine.find_ent_by_target_name(ptr::null(), volume_name);
+    let mut ent_volume = engine.find_ent_by_target_name(ptr::null_mut(), volume_name);
     while !engine.is_null_ent(ent_volume) {
         if let Some(volume) = unsafe { &*ent_volume }.private() {
             if volume.is_classname(c"trigger_transition".into()) && volume.intersects(&**ent) {
@@ -271,7 +271,7 @@ pub fn build_change_list(level_list: &mut [LEVELLIST]) -> usize {
     const MAX_ENTITY: usize = 512;
 
     let engine = engine();
-    let mut ent = engine.find_ent_by_classname(ptr::null(), c"trigger_changelevel");
+    let mut ent = engine.find_ent_by_classname(ptr::null_mut(), c"trigger_changelevel");
     if engine.is_null_ent(ent) {
         return 0;
     }
@@ -302,7 +302,7 @@ pub fn build_change_list(level_list: &mut [LEVELLIST]) -> usize {
                 let mut ent_list = [ptr::null_mut(); MAX_ENTITY];
                 let mut ent_flags = [0; MAX_ENTITY];
 
-                let mut ent = engine.entities_in_pvs(level.pentLandmark);
+                let mut ent = engine.entities_in_pvs(unsafe { &mut *level.pentLandmark });
                 while !engine.is_null_ent(ent) {
                     if let Some(entity) = unsafe { &mut *ent }.private_mut() {
                         let caps = entity.object_caps();
@@ -312,7 +312,7 @@ pub fn build_change_list(level_list: &mut [LEVELLIST]) -> usize {
                             if caps.intersects(ObjectCaps::ACROSS_TRANSITION) {
                                 flags |= FENTTABLE_MOVEABLE;
                             }
-                            if entity.vars().globalname.is_some() && !entity.is_dormant() {
+                            if entity.vars().globalname().is_some() && !entity.is_dormant() {
                                 flags |= FENTTABLE_GLOBAL;
                             }
                             if flags != 0 {
@@ -326,7 +326,7 @@ pub fn build_change_list(level_list: &mut [LEVELLIST]) -> usize {
                 }
 
                 for j in 0..ent_count {
-                    let landmark_name = level.landmarkName.as_thin();
+                    let landmark_name = level.landmark_name();
                     if ent_flags[j] != 0 && in_transition_volume(ent_list[j], landmark_name) {
                         if let Some(index) = save_helper.entity_index(ent_list[j]) {
                             save_helper.entity_flags_set(index, ent_flags[j] | (1 << i));

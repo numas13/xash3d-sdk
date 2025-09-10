@@ -5,11 +5,11 @@ pub use shared::macros::cstringify;
 macro_rules! field {
     ($ty:ty, $name:ident, $fieldtype:expr, $count:expr, $flags:expr) => {
         $crate::raw::TYPEDESCRIPTION {
-            fieldType: $fieldtype,
+            fieldType: $fieldtype as core::ffi::c_uint,
             fieldName: $crate::macros::cstringify!($name).as_ptr(),
             fieldOffset: core::mem::offset_of!($ty, $name) as core::ffi::c_int,
             fieldSize: $count as core::ffi::c_short,
-            flags: $flags,
+            flags: $flags.bits(),
         }
     };
 }

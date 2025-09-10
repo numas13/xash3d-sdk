@@ -1,5 +1,5 @@
 use core::{
-    ffi::{c_char, c_int, CStr},
+    ffi::{c_char, CStr},
     ops::Deref,
     ptr,
     str::Utf8Error,
@@ -13,7 +13,7 @@ use csz::{CStrBox, CStrThin};
 bitflags! {
     #[derive(Copy, Clone, PartialEq, Eq)]
     #[repr(transparent)]
-    pub struct CVarFlags: c_int {
+    pub struct CVarFlags: u32 {
         const NONE                  = 0;
         /// Set to cause it to be saved to vars.rc.
         const ARCHIVE               = 1 << 0;
@@ -53,6 +53,7 @@ bitflags! {
     }
 }
 
+// TODO: replace with ffi::cvar_s
 #[allow(non_camel_case_types)]
 #[derive(Copy, Clone)]
 #[repr(C)]

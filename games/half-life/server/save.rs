@@ -164,7 +164,7 @@ impl<'a> SaveRestore<'a> {
     }
 
     fn buffer_size(&self) -> usize {
-        self.data.buffer_size as usize
+        self.data.bufferSize as usize
     }
 
     fn available(&self) -> usize {
@@ -172,13 +172,13 @@ impl<'a> SaveRestore<'a> {
     }
 
     fn is_empty(&self) -> bool {
-        let diff = unsafe { self.data.current_data.offset_from(self.data.base_data) };
+        let diff = unsafe { self.data.pCurrentData.offset_from(self.data.pBaseData) };
         diff >= self.buffer_size() as isize
     }
 
     fn buffer_rewind(&mut self, size: usize) {
         let size = cmp::min(size, self.size());
-        self.data.current_data = unsafe { self.data.current_data.byte_sub(size) };
+        self.data.pCurrentData = unsafe { self.data.pCurrentData.byte_sub(size) };
         self.data.size -= size as c_int;
     }
 
@@ -193,9 +193,9 @@ impl<'a> SaveRestore<'a> {
     }
 
     fn as_slice(&self) -> &'a [u8] {
-        if !self.data.current_data.is_null() {
+        if !self.data.pCurrentData.is_null() {
             unsafe {
-                let data = self.data.current_data.cast();
+                let data = self.data.pCurrentData.cast();
                 let len = self.available();
                 slice::from_raw_parts(data, len)
             }
@@ -231,9 +231,9 @@ impl<'a> SaveRestore<'a> {
 
     fn read_slice(&mut self, len: usize) -> Result<&'a [u8]> {
         self.check(len).map(|_| {
-            let data = self.data.current_data.cast();
+            let data = self.data.pCurrentData.cast();
             let output = unsafe { slice::from_raw_parts(data, len) };
-            self.data.current_data = unsafe { self.data.current_data.byte_add(output.len()) };
+            self.data.pCurrentData = unsafe { self.data.pCurrentData.byte_add(output.len()) };
             self.data.size += output.len() as c_int;
             output
         })
@@ -295,8 +295,8 @@ impl<'a> SaveRestore<'a> {
         use FieldType as F;
 
         let time = self.data.time;
-        let position = if self.data.use_landmark != 0 {
-            self.data.landmark_offset
+        let position = if self.data.fUseLandmark != 0 {
+            self.data.vecLandmarkOffset
         } else {
             vec3_t::ZERO
         };
@@ -306,14 +306,14 @@ impl<'a> SaveRestore<'a> {
             let field = &fields[field_index];
 
             if field.name().is_some_and(|s| s.eq_ignore_case(name.into())) {
-                if !self.global || !field.flags.intersects(FtypeDesc::GLOBAL) {
+                if !self.global || !field.flags().intersects(FtypeDesc::GLOBAL) {
                     let ptr = unsafe { base_data.byte_add(field.fieldOffset as usize) };
-                    let size = field_size(field.fieldType);
+                    let size = field_size(field.field_type());
                     let count = field.fieldSize as usize;
                     let output =
                         unsafe { slice::from_raw_parts_mut(ptr.cast::<u8>(), size * count) };
 
-                    match field.fieldType {
+                    match field.field_type() {
                         F::TIME => {
                             for (dst, src) in output.chunks_mut(size).zip(data.chunks(size)) {
                                 let value = c_float::from_le_bytes(array_from_slice(src)) + time;
@@ -341,7 +341,7 @@ impl<'a> SaveRestore<'a> {
                                     let id = MapString::new(str);
                                     dst.copy_from_slice(&id.index().to_ne_bytes());
                                     if self.precache {
-                                        match field.fieldType {
+                                        match field.field_type() {
                                             F::MODELNAME => {
                                                 engine.precache_model(str);
                                             }
@@ -408,10 +408,10 @@ impl<'a> SaveRestore<'a> {
 
         let file_count = self.read_uint()?;
         for i in fields.iter() {
-            if !self.global || !i.flags.intersects(FtypeDesc::GLOBAL) {
+            if !self.global || !i.flags().intersects(FtypeDesc::GLOBAL) {
                 unsafe {
                     let data = base_data.byte_add(i.fieldOffset as usize);
-                    let len = i.fieldSize as usize * field_size(i.fieldType);
+                    let len = i.fieldSize as usize * field_size(i.field_type());
                     ptr::write_bytes(data, 0, len);
                 }
             }
@@ -523,7 +523,7 @@ fn entvars_key_value(ev: &mut entvars_s, data: &mut KeyValueData) {
         let p = unsafe { pev.offset(field.fieldOffset as isize) };
         let value = data.value();
 
-        match field.fieldType {
+        match field.field_type() {
             FieldType::MODELNAME | FieldType::SOUNDNAME | FieldType::STRING => {
                 let s = MapString::new(value);
                 unsafe {
@@ -577,7 +577,7 @@ pub fn dispatch_key_value(ent: &mut edict_s, data: &mut KeyValueData) {
 
 pub fn dispatch_save(ent: &mut edict_s, save_data: &mut SAVERESTOREDATA) {
     let size = save_data.size;
-    let current_index = save_data.current_index as usize;
+    let current_index = save_data.currentIndex as usize;
     let table = &mut save_data.table_mut()[current_index];
     if table.pent != ent {
         error!("Entity table or index is wrong");
@@ -590,7 +590,7 @@ pub fn dispatch_save(ent: &mut edict_s, save_data: &mut SAVERESTOREDATA) {
         return;
     }
 
-    if entity.vars().movetype == MoveType::Push {
+    if entity.vars().movetype == MoveType::Push.into() {
         let delta = entity.vars().nextthink - entity.vars().ltime;
         entity.vars_mut().ltime = globals().map_time_f32();
         entity.vars_mut().nextthink = entity.vars().ltime + delta;
@@ -626,28 +626,28 @@ pub fn dispatch_restore(
     if global_entity {
         let tmp_vars = unsafe { global_vars.assume_init_mut() };
         // HACK: restore save pointers
-        restore.data.size = restore.data.table()[restore.data.current_index as usize].location;
+        restore.data.size = restore.data.table()[restore.data.currentIndex as usize].location;
         unsafe {
-            restore.data.current_data = restore.data.base_data.add(restore.data.size as usize);
+            restore.data.pCurrentData = restore.data.pBaseData.add(restore.data.size as usize);
         }
 
         let mut entities = global_state().entities.borrow_mut();
-        let global = entities.find(tmp_vars.globalname.unwrap()).unwrap();
-        if restore.data.current_map_name != *global.map_name() {
+        let global = entities.find(tmp_vars.globalname().unwrap()).unwrap();
+        if restore.data.current_map_name() != global.map_name() {
             return RestoreResult::Ok;
         }
 
-        old_offset = restore.data.landmark_offset;
-        if let Some(new_ent) =
-            find_global_entity(tmp_vars.classname.unwrap(), tmp_vars.globalname.unwrap())
-        {
+        old_offset = restore.data.vecLandmarkOffset;
+        let classname = tmp_vars.classname().unwrap();
+        let globalname = tmp_vars.globalname().unwrap();
+        if let Some(new_ent) = find_global_entity(classname, globalname) {
             let new_ent = unsafe { &mut *new_ent };
             restore.global_mode(true);
-            restore.data.landmark_offset -= new_ent.v.mins;
-            restore.data.landmark_offset += tmp_vars.mins;
+            restore.data.vecLandmarkOffset -= new_ent.v.mins;
+            restore.data.vecLandmarkOffset += tmp_vars.mins;
             ent = new_ent;
             entities.update(
-                unsafe { (*ent).v.globalname }.unwrap(),
+                unsafe { &*ent }.v.globalname().unwrap(),
                 globals().map_name().unwrap(),
             );
         } else {
@@ -667,7 +667,7 @@ pub fn dispatch_restore(
 
     let entity = unsafe { (*ent).private_mut() };
     if global_entity {
-        restore.data.landmark_offset = old_offset;
+        restore.data.vecLandmarkOffset = old_offset;
         if let Some(entity) = entity {
             let origin = entity.vars().origin;
             engine().set_origin(entity.ent_mut(), origin);
@@ -675,7 +675,7 @@ pub fn dispatch_restore(
             return RestoreResult::Ok;
         }
     } else if let Some(entity) = entity {
-        if let Some(globalname) = entity.vars().globalname {
+        if let Some(globalname) = entity.vars().globalname() {
             let mut entities = global_state().entities.borrow_mut();
             if let Some(global) = entities.find(globalname) {
                 if global.is_dead() {
@@ -701,7 +701,7 @@ fn find_global_entity(classname: MapString, globalname: MapString) -> Option<*mu
     engine()
         .find_ent_by_globalname_iter(&globalname)
         .find(|&ent| {
-            if let Some(private) = unsafe { *ent }.private_mut() {
+            if let Some(private) = unsafe { &mut *ent }.private_mut() {
                 if private.is_classname(&classname) {
                     return true;
                 } else {

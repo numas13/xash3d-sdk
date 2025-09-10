@@ -45,7 +45,7 @@ impl Player {
         if start_spot.is_empty() {
             start_spot = c"info_player_start".into();
         }
-        let spot = engine().find_ent_by_classname(ptr::null(), start_spot);
+        let spot = engine().find_ent_by_classname(ptr::null_mut(), start_spot);
 
         if !spot.is_null() {
             *global_state().last_spawn.borrow_mut() = spot;
@@ -70,18 +70,18 @@ impl Entity for Player {
 
     fn spawn(&mut self) -> bool {
         let ev = self.vars_mut();
-        ev.classname = Some(MapString::new(c"player"));
+        ev.classname = MapString::new(c"player").index();
         ev.health = 100.0;
         ev.armorvalue = 0.0;
         ev.takedamage = DAMAGE_AIM as f32;
         ev.solid = SOLID_SLIDEBOX as c_int;
-        ev.movetype = MoveType::Walk;
+        ev.movetype = MoveType::Walk.into();
         ev.max_health = ev.health;
-        ev.flags &= EdictFlags::PROXY;
-        ev.flags |= EdictFlags::CLIENT;
+        ev.flags &= EdictFlags::PROXY.bits();
+        ev.flags |= EdictFlags::CLIENT.bits();
         ev.air_finished = globals().map_time_f32() + 12.0;
         ev.dmg = 2.0;
-        ev.effects = Effects::NONE;
+        ev.effects = Effects::NONE.bits();
         ev.deadflag = DEAD_NO;
         ev.dmg_take = 0.0;
         ev.dmg_save = 0.0;
@@ -110,7 +110,7 @@ impl Entity for Player {
         restore.read_fields(c"BASE", self as *mut _ as *mut _, fields)?;
 
         let ev = self.vars_mut();
-        if let (true, Some(model)) = (ev.modelindex != 0, ev.model) {
+        if let (true, Some(model)) = (ev.modelindex != 0, ev.model()) {
             let mins = ev.mins;
             let maxs = ev.maxs;
             let engine = engine();
@@ -154,7 +154,7 @@ pub fn client_put_in_server(ent: &mut edict_s) {
     player.set_custom_decal_frames(-1);
     player.spawn();
 
-    ent.v.effects.insert(Effects::NOINTERP);
+    ent.v.effects_mut().insert(Effects::NOINTERP);
     ent.v.iuser1 = 0;
     ent.v.iuser2 = 0;
 }

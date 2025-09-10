@@ -349,7 +349,7 @@ fn gunshot_decal_trace(tr: &pmtrace_s, decal_name: Option<&CStr>) {
         return;
     };
 
-    if (pe.solid == SOLID_BSP || pe.movetype == MoveType::PushStep as c_int)
+    if (pe.solid == SOLID_BSP || pe.movetype == MoveType::PushStep.into())
         && engine.get_cvar_float(c"r_decals") != 0.0
     {
         let index = efx.draw_decal_index_from_name(decal_name);

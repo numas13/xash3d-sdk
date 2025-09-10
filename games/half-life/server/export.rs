@@ -48,11 +48,11 @@ impl ServerDll for Instance {
             return SpawnResult::Delete;
         }
 
-        if ent.vars().flags.intersects(EdictFlags::KILLME) {
+        if ent.vars().flags().intersects(EdictFlags::KILLME) {
             return SpawnResult::Delete;
         }
 
-        if let Some(globalname) = &ent.vars().globalname {
+        if let Some(globalname) = ent.vars().globalname() {
             let global_state = global_state();
             let mut entities = global_state.entities.borrow_mut();
             let map_name = globals().map_name().unwrap();
@@ -73,7 +73,7 @@ impl ServerDll for Instance {
 
     fn dispatch_think(&self, ent: &mut edict_s) {
         if let Some(entity) = ent.private_mut() {
-            if entity.vars().flags.intersects(EdictFlags::DORMANT) {
+            if entity.vars().flags().intersects(EdictFlags::DORMANT) {
                 let classname = entity.classname();
                 warn!("Dormant entity {classname:?} is thinkng");
             }
@@ -158,9 +158,10 @@ impl ServerDll for Instance {
     }
 
     fn client_command(&self, ent: &mut edict_s) {
-        let classname = ent
-            .private()
-            .map_or(c"unknown".into(), |p| p.classname().as_thin());
+        let classname = ent.private().map(|pd| pd.classname());
+        let classname = classname
+            .as_ref()
+            .map_or(c"unknown".into(), |s| s.as_thin());
         let engine = engine();
         let cmd = engine.cmd_argv(0);
         let args = engine.cmd_args_raw().unwrap_or_default();
@@ -170,8 +171,8 @@ impl ServerDll for Instance {
     fn parms_change_level(&self) {
         if let Some(mut save_data) = globals().save_data() {
             let save_data = unsafe { save_data.as_mut() };
-            save_data.connection_count =
-                triggers::build_change_list(&mut save_data.level_list) as c_int;
+            save_data.connectionCount =
+                triggers::build_change_list(&mut save_data.levelList) as c_int;
         }
     }
 
@@ -186,7 +187,7 @@ impl ServerDll for Instance {
         pvs: *mut *mut c_uchar,
         pas: *mut *mut c_uchar,
     ) {
-        if client.v.flags.intersects(EdictFlags::PROXY) {
+        if client.v.flags().intersects(EdictFlags::PROXY) {
             unsafe {
                 *pvs = ptr::null_mut();
                 *pas = ptr::null_mut();
@@ -196,7 +197,7 @@ impl ServerDll for Instance {
 
         let view = view_entity.unwrap_or(client);
         let mut org = view.v.origin + view.v.view_ofs;
-        if view.v.flags.intersects(EdictFlags::DUCKING) {
+        if view.v.flags().intersects(EdictFlags::DUCKING) {
             org += VEC_HULL_MIN - VEC_DUCK_HULL_MIN;
         }
 

@@ -507,7 +507,7 @@ impl UiEngine {
         let name = name.to_engine_str();
         let value = value.to_engine_str();
         let ptr = unsafe {
-            unwrap!(self, pfnRegisterVariable)(name.as_ptr(), value.as_ptr(), flags.bits())
+            unwrap!(self, pfnRegisterVariable)(name.as_ptr(), value.as_ptr(), flags.bits() as c_int)
         };
         if !ptr.is_null() {
             Some(CVarPtr::from_ptr(ptr))

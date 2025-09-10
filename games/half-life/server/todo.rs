@@ -28,10 +28,10 @@ pub fn update_client_data(ent: &edict_s, sendweapons: bool, cd: &mut clientdata_
 
     // TODO:
 
-    cd.flags = ev.flags.bits();
+    cd.flags = ev.flags;
     cd.health = ev.health;
 
-    cd.viewmodel = engine.model_index(ev.viewmodel.as_ref().map_or(c"".into(), |s| s.as_thin()));
+    cd.viewmodel = engine.model_index(ev.viewmodel().as_ref().map_or(c"".into(), |s| s.as_thin()));
 
     cd.waterlevel = ev.waterlevel;
     cd.watertype = ev.watertype;
@@ -79,15 +79,15 @@ pub fn add_to_full_pack(
     player: bool,
     set: *mut c_uchar,
 ) -> bool {
-    if ent.v.effects.intersects(Effects::NODRAW) && !ptr::eq(ent, host) {
+    if ent.v.effects().intersects(Effects::NODRAW) && !ptr::eq(ent, host) {
         return false;
     }
 
-    if ent.v.modelindex == 0 || ent.v.model.unwrap().is_empty() {
+    if ent.v.modelindex == 0 || ent.v.model().unwrap().is_empty() {
         return false;
     }
 
-    if ent.v.flags.intersects(EdictFlags::SPECTATOR) && !ptr::eq(ent, host) {
+    if ent.v.flags().intersects(EdictFlags::SPECTATOR) && !ptr::eq(ent, host) {
         return false;
     }
 
@@ -97,7 +97,7 @@ pub fn add_to_full_pack(
     }
 
     // do not send if the client say it is predicting the entity itself
-    if ent.v.flags.intersects(EdictFlags::SKIPLOCALHOST)
+    if ent.v.flags().intersects(EdictFlags::SKIPLOCALHOST)
         && hostflags & 1 != 0
         && ptr::eq(ent.v.owner, host)
     {
@@ -114,7 +114,7 @@ pub fn add_to_full_pack(
 
     state.number = e;
 
-    state.entityType = if ent.v.flags.intersects(EdictFlags::CUSTOMENTITY) {
+    state.entityType = if ent.v.flags().intersects(EdictFlags::CUSTOMENTITY) {
         ENTITY_BEAM
     } else {
         ENTITY_NORMAL
@@ -135,7 +135,7 @@ pub fn add_to_full_pack(
     state.frame = ent.v.frame;
 
     state.skin = ent.v.skin as c_short;
-    state.effects = ent.v.effects.bits();
+    state.effects = ent.v.effects;
 
     if !player && ent.v.animtime != 0.0 && ent.v.velocity == vec3_t::ZERO {
         state.eflags |= EFLAG_SLERP as u8;
@@ -184,18 +184,18 @@ pub fn add_to_full_pack(
 
         state.weaponmodel = engine.model_index(
             ent.v
-                .weaponmodel
+                .weaponmodel()
                 .as_ref()
                 .map_or(c"".into(), |s| s.as_thin()),
         );
         state.gaitsequence = ent.v.gaitsequence;
-        state.spectator = ent.v.flags.intersects(EdictFlags::SPECTATOR).into();
+        state.spectator = ent.v.flags().intersects(EdictFlags::SPECTATOR).into();
         state.friction = ent.v.friction;
 
         state.gravity = ent.v.gravity;
         // state.team = env.v.team;
 
-        state.usehull = if ent.v.flags.intersects(EdictFlags::DUCKING) {
+        state.usehull = if ent.v.flags().intersects(EdictFlags::DUCKING) {
             1
         } else {
             0
@@ -236,7 +236,7 @@ pub fn create_baseline(
         baseline.colormap = eindex;
         baseline.modelindex = playermodelindex;
         baseline.friction = 1.0;
-        baseline.movetype = MoveType::Walk as c_int;
+        baseline.movetype = MoveType::Walk.into();
 
         baseline.scale = ent.v.scale;
         baseline.solid = SOLID_SLIDEBOX as c_short;
@@ -269,8 +269,8 @@ pub fn dispatch_touch(entity: &mut edict_s, other: &mut edict_s) {
 
     if !entity
         .vars()
-        .flags
-        .union(other.vars().flags)
+        .flags()
+        .union(*other.vars().flags())
         .intersects(EdictFlags::KILLME)
     {
         entity.touch(&mut **other);
@@ -302,7 +302,7 @@ impl Entity for Stub {
     fn spawn(&mut self) -> bool {
         let classname = MapString::new(self.name);
         let ev = self.vars_mut();
-        ev.classname = Some(classname);
+        ev.classname = classname.index();
         true
     }
 }
