@@ -13,7 +13,7 @@ pub mod raw;
 pub mod str;
 pub mod utils;
 
-pub use shared::{cell, color, consts, cvar, math, str::ToEngineStr};
+pub use shared::{cell, color, consts, cvar, ffi, math, str::ToEngineStr};
 
 // TODO: remove me
 pub use crate::engine_types::*;

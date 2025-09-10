@@ -22,6 +22,7 @@ log = "0.4"
 libc = "0.2.172"
 libm = "0.2.15"
 csz = { version = "0.3.0", features = ["alloc"] }
+xash3d-ffi = "0.1.0"
 cell = { package = "xash3d-cell", version = "0.1.0", path = "crates/cell" }
 allocator = { package = "xash3d-allocator", version = "0.1.0", path = "crates/allocator" }
 shared = { package = "xash3d-shared", version = "0.1.0", path = "engine/shared" }

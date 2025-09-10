@@ -28,3 +28,4 @@ pub mod str;
 pub mod utils;
 
 pub use cell;
+pub use xash3d_ffi as ffi;

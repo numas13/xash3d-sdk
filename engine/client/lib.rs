@@ -17,7 +17,7 @@ pub mod utils;
 
 use core::ffi::c_int;
 
-pub use shared::{cell, color, consts, cvar, math, str::ToEngineStr};
+pub use shared::{cell, color, consts, cvar, ffi, math, str::ToEngineStr};
 
 pub use crate::studio::*;
 

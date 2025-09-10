@@ -55,6 +55,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "xash3d-ffi"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6ec603a55e5df1e8e0f4117c19cb76eb2b560deb5564fecf98f538c602145e81"
+dependencies = [
+ "libc",
+ "libm",
+]
+
+[[package]]
 name = "xash3d-hl-client"
 version = "0.1.0"
 dependencies = [
@@ -127,6 +137,7 @@ dependencies = [
  "libm",
  "log",
  "xash3d-cell",
+ "xash3d-ffi",
 ]
 
 [[package]]

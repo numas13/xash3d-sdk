@@ -8,10 +8,10 @@ rust-version.workspace = true
 
 [features]
 default = ["bsp2", "libm"]
-std = []
+std = ["xash3d-ffi/std"]
 bsp2 = []
 # Use libm crate for float math instead of C math library.
-libm = ["dep:libm"]
+libm = ["xash3d-ffi/libm", "dep:libm"]
 
 [lib]
 path = "lib.rs"
@@ -23,5 +23,6 @@ workspace = true
 bitflags.workspace = true
 log.workspace = true
 csz.workspace = true
+xash3d-ffi.workspace = true
 cell.workspace = true
 libm = { workspace = true, optional = true }
