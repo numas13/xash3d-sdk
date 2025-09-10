@@ -1,36 +1,20 @@
-#![allow(non_camel_case_types)]
-#![allow(non_snake_case)]
-#![allow(non_upper_case_globals)]
-#![allow(clippy::missing_safety_doc)]
-#![allow(clippy::type_complexity)]
-
-use core::ffi::{c_int, c_short};
+use core::{ffi::c_int, mem};
 
 use bitflags::bitflags;
-use csz::CStrArray;
+use csz::CStrThin;
+use shared::ffi;
 
 pub use shared::raw::*;
 
-pub type HIMAGE = c_int;
+// TODO: remove me
+#[rustfmt::skip]
+pub use shared::ffi::{
+    menu::HIMAGE,
+    menu::GAMEINFO,
+    menu::gameinfo2_s,
+};
 
-pub const GAMEINFO_VERSION: c_int = 2;
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct GAMEINFO {
-    pub gamefolder: CStrArray<64>,
-    pub startmap: CStrArray<64>,
-    pub trainmap: CStrArray<64>,
-    pub title: CStrArray<64>,
-    pub version: CStrArray<14>,
-    pub flags: c_short,
-    pub game_url: CStrArray<256>,
-    pub update_url: CStrArray<256>,
-    pub type_: CStrArray<64>,
-    pub date: CStrArray<64>,
-    pub size: CStrArray<64>,
-    pub gamemode: c_int,
-}
+pub const GAMEINFO_VERSION: c_int = ffi::menu::GAMEINFO_VERSION as c_int;
 
 bitflags! {
     #[derive(Copy, Clone, PartialEq, Eq)]
@@ -68,22 +52,54 @@ impl GameType {
     }
 }
 
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct gameinfo2_s {
-    pub gi_version: c_int,
-    pub gamefolder: CStrArray<64>,
-    pub startmap: CStrArray<64>,
-    pub trainmap: CStrArray<64>,
-    pub demomap: CStrArray<64>,
-    pub title: CStrArray<64>,
-    pub iconpath: CStrArray<64>,
-    pub version: CStrArray<16>,
-    pub flags: GameInfoFlags,
-    pub game_url: CStrArray<256>,
-    pub update_url: CStrArray<256>,
-    pub type_: CStrArray<64>,
-    pub date: CStrArray<64>,
-    pub size: u64,
-    pub gamemode: GameType,
+pub trait GameInfo2Ext {
+    fn gamefolder(&self) -> &CStrThin;
+    fn startmap(&self) -> &CStrThin;
+    fn trainmap(&self) -> &CStrThin;
+    fn demomap(&self) -> &CStrThin;
+    fn title(&self) -> &CStrThin;
+    fn iconpath(&self) -> &CStrThin;
+    fn version(&self) -> &CStrThin;
+    fn game_url(&self) -> &CStrThin;
+    fn update_url(&self) -> &CStrThin;
+    fn type_(&self) -> &CStrThin;
+    fn date(&self) -> &CStrThin;
+    fn flags(&self) -> &GameInfoFlags;
+    fn gamemode(&self) -> GameType;
+}
+
+macro_rules! get_cstr {
+    ($($field:ident),* $(,)?) => {
+        $(fn $field(&self) -> &CStrThin {
+            unsafe { CStrThin::from_ptr(self.$field.as_ptr()) }
+        })*
+    };
+}
+
+impl GameInfo2Ext for gameinfo2_s {
+    get_cstr! {
+        gamefolder,
+        startmap,
+        trainmap,
+        demomap,
+        title,
+        iconpath,
+        version,
+        game_url,
+        update_url,
+        type_,
+        date,
+    }
+
+    fn flags(&self) -> &GameInfoFlags {
+        unsafe { mem::transmute(&self.flags) }
+    }
+
+    fn gamemode(&self) -> GameType {
+        match self.gamemode {
+            1 => GameType::SingleplayerOnly,
+            2 => GameType::MultiplayerOnly,
+            _ => GameType::Normal,
+        }
+    }
 }

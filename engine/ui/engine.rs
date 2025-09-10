@@ -1,7 +1,7 @@
 use core::{
     ffi::{c_char, c_int, c_uint, c_void},
     fmt,
-    mem::MaybeUninit,
+    mem::{self, MaybeUninit},
     ptr, slice,
     str::FromStr,
 };
@@ -9,10 +9,9 @@ use core::{
 use csz::{CStrArray, CStrSlice, CStrThin};
 use shared::{
     borrow::{BorrowRef, Ref},
-    cvar::cvar_s,
-    engine::net::{net_api_s, netadr_s, NetApi},
+    engine::net::{netadr_s, NetApi},
     export::impl_unsync_global,
-    raw::{byte, cl_entity_s, con_nprint_s, ref_viewpass_s},
+    ffi::menu::{ui_enginefuncs_s, ui_extendedfuncs_s},
     str::{AsCStrPtr, ToEngineStr},
 };
 
@@ -23,7 +22,7 @@ use crate::{
     engine_types::{ActiveMenu, Point, Size},
     file::{Cursor, File, FileList},
     game_info::GameInfo,
-    raw::{self, gameinfo2_s, kbutton_t, wrect_s, GAMEINFO, HIMAGE},
+    raw::{self, kbutton_t, wrect_s, HIMAGE},
 };
 
 pub use shared::engine::{net, AddCmdError, BufferError};
@@ -97,248 +96,14 @@ impl fmt::Display for Protocol {
     }
 }
 
-#[allow(non_camel_case_types)]
-pub type ui_enginefuncs_s = UiEngineFunctions;
-
-#[allow(non_snake_case)]
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct UiEngineFunctions {
-    pub pfnPIC_Load: Option<
-        unsafe extern "C" fn(
-            szPicName: *const c_char,
-            ucRawImage: *const byte,
-            ulRawImageSize: c_int,
-            flags: c_int,
-        ) -> HIMAGE,
-    >,
-    pub pfnPIC_Free: Option<unsafe extern "C" fn(szPicName: *const c_char)>,
-    pub pfnPIC_Width: Option<unsafe extern "C" fn(hPic: HIMAGE) -> c_int>,
-    pub pfnPIC_Height: Option<unsafe extern "C" fn(hPic: HIMAGE) -> c_int>,
-    pub pfnPIC_Set:
-        Option<unsafe extern "C" fn(hPic: HIMAGE, r: c_int, g: c_int, b: c_int, a: c_int)>,
-    pub pfnPIC_Draw: Option<
-        unsafe extern "C" fn(x: c_int, y: c_int, width: c_int, height: c_int, prc: *const wrect_s),
-    >,
-    pub pfnPIC_DrawHoles: Option<
-        unsafe extern "C" fn(x: c_int, y: c_int, width: c_int, height: c_int, prc: *const wrect_s),
-    >,
-    pub pfnPIC_DrawTrans: Option<
-        unsafe extern "C" fn(x: c_int, y: c_int, width: c_int, height: c_int, prc: *const wrect_s),
-    >,
-    pub pfnPIC_DrawAdditive: Option<
-        unsafe extern "C" fn(x: c_int, y: c_int, width: c_int, height: c_int, prc: *const wrect_s),
-    >,
-    pub pfnPIC_EnableScissor:
-        Option<unsafe extern "C" fn(x: c_int, y: c_int, width: c_int, height: c_int)>,
-    pub pfnPIC_DisableScissor: Option<unsafe extern "C" fn()>,
-    pub pfnFillRGBA: Option<
-        unsafe extern "C" fn(
-            x: c_int,
-            y: c_int,
-            width: c_int,
-            height: c_int,
-            r: c_int,
-            g: c_int,
-            b: c_int,
-            a: c_int,
-        ),
-    >,
-    pub pfnRegisterVariable: Option<
-        unsafe extern "C" fn(
-            szName: *const c_char,
-            szValue: *const c_char,
-            flags: c_int,
-        ) -> *mut cvar_s,
-    >,
-    pub pfnGetCvarFloat: Option<unsafe extern "C" fn(szName: *const c_char) -> f32>,
-    pub pfnGetCvarString: Option<unsafe extern "C" fn(szName: *const c_char) -> *const c_char>,
-    pub pfnCvarSetString:
-        Option<unsafe extern "C" fn(szName: *const c_char, szValue: *const c_char)>,
-    pub pfnCvarSetValue: Option<unsafe extern "C" fn(szName: *const c_char, flValue: f32)>,
-    pub pfnAddCommand: Option<
-        unsafe extern "C" fn(cmd_name: *const c_char, function: unsafe extern "C" fn()) -> c_int,
-    >,
-    pub pfnClientCmd: Option<unsafe extern "C" fn(execute_now: c_int, szCmdString: *const c_char)>,
-    pub pfnDelCommand: Option<unsafe extern "C" fn(cmd_name: *const c_char)>,
-    pub pfnCmdArgc: Option<unsafe extern "C" fn() -> c_int>,
-    pub pfnCmdArgv: Option<unsafe extern "C" fn(argc: c_int) -> *const c_char>,
-    pub pfnCmd_Args: Option<unsafe extern "C" fn() -> *const c_char>,
-    pub Con_Printf: Option<unsafe extern "C" fn(fmt: *const c_char, ...)>,
-    pub Con_DPrintf: Option<unsafe extern "C" fn(fmt: *const c_char, ...)>,
-    pub Con_NPrintf: Option<unsafe extern "C" fn(pos: c_int, fmt: *const c_char, ...)>,
-    pub Con_NXPrintf:
-        Option<unsafe extern "C" fn(info: *mut con_nprint_s, fmt: *const c_char, ...)>,
-    pub pfnPlayLocalSound: Option<unsafe extern "C" fn(szSound: *const c_char)>,
-    pub pfnDrawLogo: Option<
-        unsafe extern "C" fn(filename: *const c_char, x: f32, y: f32, width: f32, height: f32),
-    >,
-    pub pfnGetLogoWidth: Option<unsafe extern "C" fn() -> c_int>,
-    pub pfnGetLogoHeight: Option<unsafe extern "C" fn() -> c_int>,
-    pub pfnGetLogoLength: Option<unsafe extern "C" fn() -> f32>,
-    pub pfnDrawCharacter: Option<
-        unsafe extern "C" fn(
-            x: c_int,
-            y: c_int,
-            width: c_int,
-            height: c_int,
-            ch: c_int,
-            ulRGBA: c_int,
-            hFont: HIMAGE,
-        ),
-    >,
-    pub pfnDrawConsoleString:
-        Option<unsafe extern "C" fn(x: c_int, y: c_int, string: *const c_char) -> c_int>,
-    pub pfnDrawSetTextColor:
-        Option<unsafe extern "C" fn(r: c_int, g: c_int, b: c_int, alpha: c_int)>,
-    pub pfnDrawConsoleStringLen:
-        Option<unsafe extern "C" fn(string: *const c_char, length: *mut c_int, height: *mut c_int)>,
-    pub pfnSetConsoleDefaultColor: Option<unsafe extern "C" fn(r: c_int, g: c_int, b: c_int)>,
-    pub pfnGetPlayerModel: Option<unsafe extern "C" fn() -> *mut cl_entity_s>,
-    pub pfnSetModel: Option<unsafe extern "C" fn(ed: *mut cl_entity_s, path: *const c_char)>,
-    pub pfnClearScene: Option<unsafe extern "C" fn()>,
-    pub pfnRenderScene: Option<unsafe extern "C" fn(rvp: *const ref_viewpass_s)>,
-    pub CL_CreateVisibleEntity:
-        Option<unsafe extern "C" fn(type_: c_int, ent: *mut cl_entity_s) -> c_int>,
-    pub pfnHostError: Option<unsafe extern "C" fn(szFmt: *const c_char, ...)>,
-    pub pfnFileExists:
-        Option<unsafe extern "C" fn(filename: *const c_char, gamedironly: c_int) -> c_int>,
-    pub pfnGetGameDir: Option<unsafe extern "C" fn(szGetGameDir: *mut c_char)>,
-    pub pfnCreateMapsList: Option<unsafe extern "C" fn(fRefresh: c_int) -> c_int>,
-    pub pfnClientInGame: Option<unsafe extern "C" fn() -> c_int>,
-    pub pfnClientJoin: Option<unsafe extern "C" fn(adr: netadr_s)>,
-    pub COM_LoadFile:
-        Option<unsafe extern "C" fn(filename: *const c_char, pLength: *mut c_int) -> *mut byte>,
-    pub COM_ParseFile:
-        Option<unsafe extern "C" fn(data: *mut c_char, token: *mut c_char) -> *mut c_char>,
-    pub COM_FreeFile: Option<unsafe extern "C" fn(buffer: *mut c_void)>,
-    pub pfnKeyClearStates: Option<unsafe extern "C" fn()>,
-    pub pfnSetKeyDest: Option<unsafe extern "C" fn(dest: c_int)>,
-    pub pfnKeynumToString: Option<unsafe extern "C" fn(keynum: c_int) -> *const c_char>,
-    pub pfnKeyGetBinding: Option<unsafe extern "C" fn(keynum: c_int) -> *const c_char>,
-    pub pfnKeySetBinding: Option<unsafe extern "C" fn(keynum: c_int, binding: *const c_char)>,
-    pub pfnKeyIsDown: Option<unsafe extern "C" fn(keynum: c_int) -> c_int>,
-    pub pfnKeyGetOverstrikeMode: Option<unsafe extern "C" fn() -> c_int>,
-    pub pfnKeySetOverstrikeMode: Option<unsafe extern "C" fn(fActive: c_int)>,
-    pub pfnKeyGetState: Option<unsafe extern "C" fn(name: *const c_char) -> *mut c_void>,
-    pub pfnMemAlloc: Option<
-        unsafe extern "C" fn(cb: usize, filename: *const c_char, fileline: c_int) -> *mut c_void,
-    >,
-    pub pfnMemFree:
-        Option<unsafe extern "C" fn(mem: *mut c_void, filename: *const c_char, fileline: c_int)>,
-    pub pfnGetGameInfo: Option<unsafe extern "C" fn(pgameinfo: *mut GAMEINFO) -> c_int>,
-    pub pfnGetGamesList: Option<unsafe extern "C" fn(numGames: *mut c_int) -> *mut *mut GAMEINFO>,
-    pub pfnGetFilesList: Option<
-        unsafe extern "C" fn(
-            pattern: *const c_char,
-            numFiles: *mut c_int,
-            gamedironly: c_int,
-        ) -> *mut *mut c_char,
-    >,
-    pub pfnGetSaveComment:
-        Option<unsafe extern "C" fn(savename: *const c_char, comment: *mut c_char) -> c_int>,
-    pub pfnGetDemoComment:
-        Option<unsafe extern "C" fn(demoname: *const c_char, comment: *mut c_char) -> c_int>,
-    pub pfnCheckGameDll: Option<unsafe extern "C" fn() -> c_int>,
-    pub pfnGetClipboardData: Option<unsafe extern "C" fn() -> *mut c_char>,
-    pub pfnShellExecute:
-        Option<unsafe extern "C" fn(name: *const c_char, args: *const c_char, closeEngine: c_int)>,
-    pub pfnWriteServerConfig: Option<unsafe extern "C" fn(name: *const c_char)>,
-    pub pfnChangeInstance:
-        Option<unsafe extern "C" fn(newInstance: *const c_char, szFinalMessage: *const c_char)>,
-    pub pfnPlayBackgroundTrack:
-        Option<unsafe extern "C" fn(introName: *const c_char, loopName: *const c_char)>,
-    pub pfnHostEndGame: Option<unsafe extern "C" fn(szFinalMessage: *const c_char)>,
-    pub pfnRandomFloat: Option<unsafe extern "C" fn(flLow: f32, flHigh: f32) -> f32>,
-    pub pfnRandomLong: Option<unsafe extern "C" fn(lLow: c_int, lHigh: c_int) -> c_int>,
-    pub pfnSetCursor: Option<unsafe extern "C" fn(hCursor: *mut c_void)>,
-    pub pfnIsMapValid: Option<unsafe extern "C" fn(filename: *const c_char) -> c_int>,
-    pub pfnProcessImage: Option<
-        unsafe extern "C" fn(texnum: c_int, gamma: f32, topColor: c_int, bottomColor: c_int),
-    >,
-    pub pfnCompareFileTime: Option<
-        unsafe extern "C" fn(
-            filename1: *const c_char,
-            filename2: *const c_char,
-            iCompare: *mut c_int,
-        ) -> c_int,
-    >,
-    pub pfnGetModeString: Option<unsafe extern "C" fn(vid_mode: c_int) -> *const c_char>,
-    pub COM_SaveFile: Option<
-        unsafe extern "C" fn(filename: *const c_char, data: *const c_void, len: c_int) -> c_int,
-    >,
-    pub COM_RemoveFile: Option<unsafe extern "C" fn(filepath: *const c_char) -> c_int>,
-}
-
-#[allow(non_camel_case_types)]
-pub type ui_extendedfuncs_s = UiEngineFunctionsExtended;
-
-#[allow(non_snake_case)]
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct UiEngineFunctionsExtended {
-    pub pfnEnableTextInput: Option<unsafe extern "C" fn(enable: c_int)>,
-    pub pfnUtfProcessChar: Option<unsafe extern "C" fn(ch: c_int) -> c_int>,
-    pub pfnUtfMoveLeft: Option<unsafe extern "C" fn(str_: *mut c_char, pos: c_int) -> c_int>,
-    pub pfnUtfMoveRight:
-        Option<unsafe extern "C" fn(str_: *mut c_char, pos: c_int, length: c_int) -> c_int>,
-    pub pfnGetRenderers: Option<
-        unsafe extern "C" fn(
-            num: c_uint,
-            shortName: *mut c_char,
-            size1: usize,
-            readableName: *mut c_char,
-            size2: usize,
-        ) -> c_int,
-    >,
-    pub pfnDoubleTime: Option<unsafe extern "C" fn() -> f64>,
-    pub pfnParseFile: Option<
-        unsafe extern "C" fn(
-            data: *mut c_char,
-            buf: *mut c_char,
-            size: c_int,
-            flags: c_uint,
-            len: *mut c_int,
-        ) -> *mut c_char,
-    >,
-    pub pfnAdrToString: Option<unsafe extern "C" fn(a: netadr_s) -> *const c_char>,
-    pub pfnCompareAdr: Option<unsafe extern "C" fn(a: *const c_void, b: *const c_void) -> c_int>,
-    pub pfnGetNativeObject: Option<unsafe extern "C" fn(name: *const c_char) -> *mut c_void>,
-    pub pNetAPI: *mut net_api_s,
-    pub pfnGetGameInfo: Option<unsafe extern "C" fn(gi_version: c_int) -> *mut gameinfo2_s>,
-    pub pfnGetModInfo:
-        Option<unsafe extern "C" fn(gi_version: c_int, mod_index: c_int) -> *mut gameinfo2_s>,
-}
-
-// TODO: use derive(Default) when MSRV >= 1.88
-impl Default for UiEngineFunctionsExtended {
-    fn default() -> Self {
-        Self {
-            pfnEnableTextInput: None,
-            pfnUtfProcessChar: None,
-            pfnUtfMoveLeft: None,
-            pfnUtfMoveRight: None,
-            pfnGetRenderers: None,
-            pfnDoubleTime: None,
-            pfnParseFile: None,
-            pfnAdrToString: None,
-            pfnCompareAdr: None,
-            pfnGetNativeObject: None,
-            pNetAPI: ptr::null_mut(),
-            pfnGetGameInfo: None,
-            pfnGetModInfo: None,
-        }
-    }
-}
-
 #[derive(Default)]
 struct Borrows {
     keynum_to_str: BorrowRef,
 }
 
 pub struct UiEngine {
-    raw: UiEngineFunctions,
-    ext: UiEngineFunctionsExtended,
+    raw: ui_enginefuncs_s,
+    ext: ui_extendedfuncs_s,
     net_api: NetApi,
     borrows: Borrows,
 }
@@ -361,25 +126,25 @@ macro_rules! unwrap {
 }
 
 impl UiEngine {
-    pub(crate) fn new(raw: &UiEngineFunctions) -> Self {
+    pub(crate) fn new(raw: &ui_enginefuncs_s) -> Self {
         Self {
             raw: *raw,
-            ext: Default::default(),
+            ext: unsafe { mem::zeroed() },
             borrows: Default::default(),
             net_api: NetApi::new(ptr::null_mut()),
         }
     }
 
-    pub(crate) fn set_extended(&mut self, ext: UiEngineFunctionsExtended) {
+    pub(crate) fn set_extended(&mut self, ext: ui_extendedfuncs_s) {
         self.net_api = NetApi::new(ext.pNetAPI);
         self.ext = ext;
     }
 
-    pub fn raw(&self) -> &UiEngineFunctions {
+    pub fn raw(&self) -> &ui_enginefuncs_s {
         &self.raw
     }
 
-    pub fn raw_ext(&self) -> &UiEngineFunctionsExtended {
+    pub fn raw_ext(&self) -> &ui_extendedfuncs_s {
         &self.ext
     }
 
@@ -510,7 +275,7 @@ impl UiEngine {
             unwrap!(self, pfnRegisterVariable)(name.as_ptr(), value.as_ptr(), flags.bits() as c_int)
         };
         if !ptr.is_null() {
-            Some(CVarPtr::from_ptr(ptr))
+            Some(CVarPtr::from_ptr(ptr.cast()))
         } else {
             None
         }
@@ -876,7 +641,8 @@ impl UiEngine {
 
     pub fn is_map_valid(&self, filename: impl ToEngineStr) -> bool {
         let filename = filename.to_engine_str();
-        unsafe { unwrap!(self, pfnIsMapValid)(filename.as_ptr()) != 0 }
+        // FIXME: ffi: why filename is mutable?
+        unsafe { unwrap!(self, pfnIsMapValid)(filename.as_ptr().cast_mut()) != 0 }
     }
 
     pub fn process_image(&self, texnum: c_int, gamma: f32, top_color: c_int, bottom_color: c_int) {
@@ -1052,7 +818,7 @@ impl EngineCmd for UiEngine {
         func: unsafe extern "C" fn(),
     ) -> Result<(), AddCmdError> {
         let name = name.to_engine_str();
-        let result = unsafe { unwrap!(self, pfnAddCommand)(name.as_ptr(), func) };
+        let result = unsafe { unwrap!(self, pfnAddCommand)(name.as_ptr(), Some(func)) };
         if result == 0 {
             Err(AddCmdError)
         } else {

@@ -1,44 +1,26 @@
 use core::{ffi::c_int, time::Duration};
 
-use csz::{CStrArray, CStrThin};
-use shared::export::impl_unsync_global;
+use csz::CStrThin;
+use shared::{export::impl_unsync_global, ffi::menu::ui_globalvars_s};
 
 use crate::Size;
 
-#[allow(non_camel_case_types)]
-pub type ui_globalvars_s = UiGlobalsRaw;
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct UiGlobalsRaw {
-    pub time: f32,
-    pub frametime: f32,
-    pub screen_width: c_int,
-    pub screen_height: c_int,
-    pub max_clients: c_int,
-    pub developer: c_int,
-    pub demo_playback: c_int,
-    pub demo_recording: c_int,
-    pub demo_name: CStrArray<64>,
-    pub map_title: CStrArray<64>,
-}
-
 pub struct UiGlobals {
-    raw: *mut UiGlobalsRaw,
+    raw: *mut ui_globalvars_s,
 }
 
 impl_unsync_global!(UiGlobals);
 
 impl UiGlobals {
-    pub(crate) fn new(raw: *mut UiGlobalsRaw) -> Self {
+    pub(crate) fn new(raw: *mut ui_globalvars_s) -> Self {
         Self { raw }
     }
 
-    pub fn raw(&self) -> *const UiGlobalsRaw {
+    pub fn raw(&self) -> *const ui_globalvars_s {
         self.raw
     }
 
-    pub fn raw_mut(&self) -> *mut UiGlobalsRaw {
+    pub fn raw_mut(&self) -> *mut ui_globalvars_s {
         self.raw
     }
 
@@ -59,11 +41,11 @@ impl UiGlobals {
     }
 
     pub fn screen_width(&self) -> c_int {
-        unsafe { (*self.raw).screen_width }
+        unsafe { (*self.raw).scrWidth }
     }
 
     pub fn screen_height(&self) -> c_int {
-        unsafe { (*self.raw).screen_height }
+        unsafe { (*self.raw).scrHeight }
     }
 
     pub fn screen_size(&self) -> Size {
@@ -71,7 +53,7 @@ impl UiGlobals {
     }
 
     pub fn max_clients(&self) -> c_int {
-        unsafe { (*self.raw).max_clients }
+        unsafe { (*self.raw).maxClients }
     }
 
     pub fn developer(&self) -> c_int {
@@ -83,10 +65,10 @@ impl UiGlobals {
     // TODO: ui global demorecording
 
     pub fn demo_name(&self) -> &CStrThin {
-        unsafe { (*self.raw).demo_name.as_thin() }
+        unsafe { CStrThin::from_ptr((*self.raw).demoname.as_ptr()) }
     }
 
     pub fn map_title(&self) -> &CStrThin {
-        unsafe { (*self.raw).map_title.as_thin() }
+        unsafe { CStrThin::from_ptr((*self.raw).maptitle.as_ptr()) }
     }
 }

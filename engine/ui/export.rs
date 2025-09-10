@@ -5,14 +5,15 @@ use core::{
 };
 
 use csz::CStrThin;
-use shared::engine::net::netadr_s;
-
-use crate::{
-    color::RGBA,
-    engine::{UiEngineFunctions, UiEngineFunctionsExtended},
-    globals::UiGlobalsRaw,
-    prelude::*,
+use shared::{
+    engine::net::netadr_s,
+    ffi::{
+        self,
+        menu::{UI_EXTENDED_FUNCTIONS, UI_FUNCTIONS},
+    },
 };
+
+use crate::{color::RGBA, prelude::*};
 
 pub use shared::export::{impl_unsync_global, UnsyncGlobal};
 
@@ -107,88 +108,18 @@ pub trait UiDll: UnsyncGlobal {
     fn connection_progress_parse_server_info(&self, server: &CStrThin) {}
 }
 
-#[allow(non_camel_case_types)]
-pub type UI_FUNCTIONS = UiDllFunctions;
-
-#[allow(non_snake_case)]
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct UiDllFunctions {
-    pub pfnVidInit: Option<unsafe extern "C" fn() -> c_int>,
-    pub pfnInit: Option<unsafe extern "C" fn()>,
-    pub pfnShutdown: Option<unsafe extern "C" fn()>,
-    pub pfnRedraw: Option<unsafe extern "C" fn(flTime: f32)>,
-    pub pfnKeyEvent: Option<unsafe extern "C" fn(key: c_int, down: c_int)>,
-    pub pfnMouseMove: Option<unsafe extern "C" fn(x: c_int, y: c_int)>,
-    pub pfnSetActiveMenu: Option<unsafe extern "C" fn(active: c_int)>,
-    pub pfnAddServerToList: Option<unsafe extern "C" fn(adr: netadr_s, info: *const c_char)>,
-    pub pfnGetCursorPos: Option<unsafe extern "C" fn(pos_x: *mut c_int, pos_y: *mut c_int)>,
-    pub pfnSetCursorPos: Option<unsafe extern "C" fn(pos_x: c_int, pos_y: c_int)>,
-    pub pfnShowCursor: Option<unsafe extern "C" fn(show: c_int)>,
-    pub pfnCharEvent: Option<unsafe extern "C" fn(key: c_int)>,
-    pub pfnMouseInRect: Option<unsafe extern "C" fn() -> c_int>,
-    pub pfnIsVisible: Option<unsafe extern "C" fn() -> c_int>,
-    pub pfnCreditsActive: Option<unsafe extern "C" fn() -> c_int>,
-    pub pfnFinalCredits: Option<unsafe extern "C" fn()>,
+pub fn ui_functions<T: UiDll + Default>() -> UI_FUNCTIONS {
+    Export::<T>::ui_functions()
 }
 
-impl UiDllFunctions {
-    pub fn new<T: UiDll + Default>() -> Self {
-        Export::<T>::ui_functions()
-    }
-}
-
-pub type ADDTOUCHBUTTONTOLIST = Option<
-    unsafe extern "C" fn(
-        name: *const c_char,
-        texture: *const c_char,
-        command: *const c_char,
-        color: *mut c_uchar,
-        flags: c_int,
-    ),
->;
-
-#[allow(non_camel_case_types)]
-pub type UI_EXTENDED_FUNCTIONS = UiDllFunctionsExtended;
-
-#[allow(non_snake_case)]
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct UiDllFunctionsExtended {
-    pub pfnAddTouchButtonToList: ADDTOUCHBUTTONTOLIST,
-    pub pfnResetPing: Option<unsafe extern "C" fn()>,
-    pub pfnShowConnectionWarning: Option<unsafe extern "C" fn()>,
-    pub pfnShowUpdateDialog: Option<unsafe extern "C" fn(preferStore: c_int)>,
-    pub pfnShowMessageBox: Option<unsafe extern "C" fn(text: *const c_char)>,
-    pub pfnConnectionProgress_Disconnect: Option<unsafe extern "C" fn()>,
-    pub pfnConnectionProgress_Download: Option<
-        unsafe extern "C" fn(
-            pszFileName: *const c_char,
-            pszServerName: *const c_char,
-            iCurrent: c_int,
-            iTotal: c_int,
-            comment: *const c_char,
-        ),
-    >,
-    pub pfnConnectionProgress_DownloadEnd: Option<unsafe extern "C" fn()>,
-    pub pfnConnectionProgress_Precache: Option<unsafe extern "C" fn()>,
-    pub pfnConnectionProgress_Connect: Option<unsafe extern "C" fn(server: *const c_char)>,
-    pub pfnConnectionProgress_ChangeLevel: Option<unsafe extern "C" fn()>,
-    pub pfnConnectionProgress_ParseServerInfo: Option<unsafe extern "C" fn(server: *const c_char)>,
-}
-
-impl UiDllFunctionsExtended {
-    pub const VERSION: c_int = 1;
-
-    pub fn new<T: UiDll + Default>() -> Self {
-        Export::<T>::ui_extended_functions()
-    }
+pub fn ui_extended_functions<T: UiDll + Default>() -> UI_EXTENDED_FUNCTIONS {
+    Export::<T>::ui_extended_functions()
 }
 
 #[allow(clippy::missing_safety_doc)]
 trait UiDllExport {
-    fn ui_functions() -> UiDllFunctions {
-        UiDllFunctions {
+    fn ui_functions() -> UI_FUNCTIONS {
+        UI_FUNCTIONS {
             pfnVidInit: Some(Self::vid_init),
             pfnInit: Some(Self::init),
             pfnShutdown: Some(Self::shutdown),
@@ -240,8 +171,8 @@ trait UiDllExport {
 
     unsafe extern "C" fn final_credits();
 
-    fn ui_extended_functions() -> UiDllFunctionsExtended {
-        UiDllFunctionsExtended {
+    fn ui_extended_functions() -> UI_EXTENDED_FUNCTIONS {
+        UI_EXTENDED_FUNCTIONS {
             pfnAddTouchButtonToList: Some(Self::add_touch_button_to_list),
             pfnResetPing: Some(Self::reset_ping),
             pfnShowConnectionWarning: Some(Self::show_connection_warning),
@@ -471,9 +402,9 @@ impl<T: UiDll + Default> UiDllExport for Export<T> {
 ///
 /// Must be called only once.
 pub unsafe fn get_menu_api<T: UiDll + Default>(
-    dll_funcs: Option<&mut UiDllFunctions>,
-    eng_funcs: Option<&UiEngineFunctions>,
-    globals: *mut UiGlobalsRaw,
+    dll_funcs: Option<&mut UI_FUNCTIONS>,
+    eng_funcs: Option<&ffi::menu::ui_enginefuncs_s>,
+    globals: *mut ffi::menu::ui_globalvars_s,
 ) -> c_int {
     let Some(dll_funcs) = dll_funcs else { return 0 };
     let Some(eng_funcs) = eng_funcs else { return 0 };
@@ -483,7 +414,7 @@ pub unsafe fn get_menu_api<T: UiDll + Default>(
     unsafe {
         crate::instance::init_engine(eng_funcs, globals);
     }
-    *dll_funcs = UiDllFunctions::new::<T>();
+    *dll_funcs = ui_functions::<T>();
     1
 }
 
@@ -494,14 +425,13 @@ pub unsafe fn get_menu_api<T: UiDll + Default>(
 /// Must be called only once after [get_menu_api].
 pub unsafe fn get_ext_api<T: UiDll + Default>(
     version: c_int,
-    dll_funcs: Option<&mut UiDllFunctionsExtended>,
-    eng_funcs: Option<&UiEngineFunctionsExtended>,
+    dll_funcs: Option<&mut ffi::menu::UI_EXTENDED_FUNCTIONS>,
+    eng_funcs: Option<&ffi::menu::ui_extendedfuncs_s>,
 ) -> c_int {
-    if version != UiDllFunctionsExtended::VERSION {
-        error!(
-            "GetExtAPI: unsupported version (engine {version}, menu {})",
-            UiDllFunctionsExtended::VERSION,
-        );
+    let expected = ffi::menu::MENU_EXTENDED_API_VERSION as c_int;
+    if version != expected {
+        // FIXME: logger is not initialized yet
+        error!("GetExtAPI: unsupported version (engine {version}, menu {expected})");
         return 0;
     }
 
@@ -514,28 +444,9 @@ pub unsafe fn get_ext_api<T: UiDll + Default>(
         crate::instance::init_engine_ext(eng_funcs);
     }
 
-    *dll_funcs = UiDllFunctionsExtended::new::<T>();
+    *dll_funcs = ui_extended_functions::<T>();
     1
 }
-
-pub type MENUAPI = Option<
-    unsafe extern "C" fn(
-        dll_funcs: *mut UiDllFunctions,
-        eng_funcs: *mut UiEngineFunctions,
-        globals: *mut UiGlobalsRaw,
-    ) -> c_int,
->;
-
-pub type UIEXTENEDEDAPI = Option<
-    unsafe extern "C" fn(
-        version: c_int,
-        dll_funcs: *mut UiDllFunctionsExtended,
-        eng_funcs: *mut UiEngineFunctionsExtended,
-    ) -> c_int,
->;
-
-pub type UITEXTAPI =
-    Option<unsafe extern "C" fn(eng_funcs: *mut UiEngineFunctionsExtended) -> c_int>;
 
 #[doc(hidden)]
 #[macro_export]
@@ -543,9 +454,9 @@ macro_rules! export_dll {
     ($ui_dll:ty $(, pre $pre:block)? $(, post $post:block)?) => {
         #[no_mangle]
         pub unsafe extern "C" fn GetMenuAPI(
-            dll_funcs: Option<&mut $crate::export::UiDllFunctions>,
-            eng_funcs: Option<&$crate::engine::UiEngineFunctions>,
-            globals: *mut $crate::globals::ui_globalvars_s,
+            dll_funcs: Option<&mut $crate::ffi::menu::UI_FUNCTIONS>,
+            eng_funcs: Option<&$crate::ffi::menu::ui_enginefuncs_s>,
+            globals: *mut $crate::ffi::menu::ui_globalvars_s,
         ) -> core::ffi::c_int {
             $($pre)?
             let result = unsafe {
@@ -558,8 +469,8 @@ macro_rules! export_dll {
         #[no_mangle]
         pub unsafe extern "C" fn GetExtAPI(
             version: core::ffi::c_int,
-            dll_funcs: Option<&mut $crate::export::UiDllFunctionsExtended>,
-            eng_funcs: Option<&$crate::engine::UiEngineFunctionsExtended>,
+            dll_funcs: Option<&mut $crate::ffi::menu::UI_EXTENDED_FUNCTIONS>,
+            eng_funcs: Option<&$crate::ffi::menu::ui_extendedfuncs_s>,
         ) -> core::ffi::c_int {
             unsafe {
                 $crate::export::get_ext_api::<$ui_dll>(version, dll_funcs, eng_funcs)

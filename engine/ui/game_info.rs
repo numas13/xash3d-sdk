@@ -33,7 +33,7 @@ impl GameInfo {
     }
 
     pub fn version(&self) -> Option<&str> {
-        self.raw.version.to_str().ok()
+        unsafe { CStr::from_ptr(self.raw.version.as_ptr()).to_str().ok() }
     }
 
     #[inline(always)]
