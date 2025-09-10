@@ -9,6 +9,13 @@ use csz::{CStrSlice, CStrThin};
 use shared::{
     color::RGBA,
     consts::RefParm,
+    ffi::{
+        api::render::texFlags_t,
+        common::uint,
+        render::{
+            ref_api_s, ref_globals_s, ref_interface_s, ref_screen_rotation_t, REF_API_VERSION,
+        },
+    },
     raw::{
         byte, cl_entity_s, colorVec, decal_s, decallist_s, lightstyle_t, model_s, msurface_s,
         particle_s, qboolean, ref_viewpass_s, vec2_t, vec3_t, TextureFlags, BEAM, MAX_LIGHTSTYLES,
@@ -18,9 +25,7 @@ use shared::{
 };
 
 use crate::{
-    engine::RefEngineFunctions,
-    globals::RefGlobalsRaw,
-    raw::{mstudioseqdesc_t, mstudiotex_s, ref_screen_rotation_t, rgbdata_t, SKYBOX_MAX_SIDES},
+    raw::{mstudioseqdesc_t, mstudiotex_s, rgbdata_t, SKYBOX_MAX_SIDES},
     texture::{TextureId, UNUSED_TEXTURE_NAME},
 };
 
@@ -463,315 +468,14 @@ pub trait RefDll: UnsyncGlobal {
     }
 }
 
-#[allow(non_camel_case_types)]
-pub type ref_interface_s = RefDllFunctions;
-
-#[allow(non_snake_case)]
-#[derive(Copy, Clone, Default)]
-#[repr(C)]
-pub struct RefDllFunctions {
-    pub R_Init: Option<unsafe extern "C" fn() -> qboolean>,
-    pub R_Shutdown: Option<unsafe extern "C" fn()>,
-    pub R_GetConfigName: Option<unsafe extern "C" fn() -> *const c_char>,
-    pub R_SetDisplayTransform: Option<
-        unsafe extern "C" fn(
-            rotate: ref_screen_rotation_t,
-            x: c_int,
-            y: c_int,
-            scale_x: f32,
-            scale_y: f32,
-        ) -> qboolean,
-    >,
-    pub GL_SetupAttributes: Option<unsafe extern "C" fn(safe_gl: c_int)>,
-    pub GL_InitExtensions: Option<unsafe extern "C" fn()>,
-    pub GL_ClearExtensions: Option<unsafe extern "C" fn()>,
-    pub R_GammaChanged: Option<unsafe extern "C" fn(do_reset_gamma: qboolean)>,
-    pub R_BeginFrame: Option<unsafe extern "C" fn(clear_scene: qboolean)>,
-    pub R_RenderScene: Option<unsafe extern "C" fn()>,
-    pub R_EndFrame: Option<unsafe extern "C" fn()>,
-    pub R_PushScene: Option<unsafe extern "C" fn()>,
-    pub R_PopScene: Option<unsafe extern "C" fn()>,
-    pub GL_BackendStartFrame: Option<unsafe extern "C" fn()>,
-    pub GL_BackendEndFrame: Option<unsafe extern "C" fn()>,
-    pub R_ClearScreen: Option<unsafe extern "C" fn()>,
-    pub R_AllowFog: Option<unsafe extern "C" fn(allow: qboolean)>,
-    pub GL_SetRenderMode: Option<unsafe extern "C" fn(render_mode: c_int)>,
-    pub R_AddEntity:
-        Option<unsafe extern "C" fn(clent: *mut cl_entity_s, type_: c_int) -> qboolean>,
-    pub CL_AddCustomBeam: Option<unsafe extern "C" fn(env_beam: *mut cl_entity_s)>,
-    pub R_ProcessEntData: Option<
-        unsafe extern "C" fn(allocate: qboolean, entities: *mut cl_entity_s, max_entities: c_uint),
-    >,
-    pub R_Flush: Option<unsafe extern "C" fn(flush_flags: c_uint)>,
-    pub R_ShowTextures: Option<unsafe extern "C" fn()>,
-    pub R_GetTextureOriginalBuffer: Option<unsafe extern "C" fn(texture: c_int) -> *const byte>,
-    pub GL_LoadTextureFromBuffer: Option<
-        unsafe extern "C" fn(
-            name: *const c_char,
-            pic: *mut rgbdata_t,
-            flags: TextureFlags,
-            update: qboolean,
-        ) -> c_int,
-    >,
-    pub GL_ProcessTexture: Option<
-        unsafe extern "C" fn(texture: c_int, gamma: f32, top_color: c_int, bottom_color: c_int),
-    >,
-    pub R_SetupSky: Option<unsafe extern "C" fn(skybox_textures: *const [c_int; SKYBOX_MAX_SIDES])>,
-    pub R_Set2DMode: Option<unsafe extern "C" fn(enable: qboolean)>,
-    pub R_DrawStretchRaw: Option<
-        unsafe extern "C" fn(
-            x: f32,
-            y: f32,
-            w: f32,
-            h: f32,
-            cols: c_int,
-            rows: c_int,
-            data: *const byte,
-            dirty: qboolean,
-        ),
-    >,
-    pub R_DrawStretchPic: Option<
-        unsafe extern "C" fn(
-            x: f32,
-            y: f32,
-            w: f32,
-            h: f32,
-            s1: f32,
-            t1: f32,
-            s2: f32,
-            t2: f32,
-            texture: c_int,
-        ),
-    >,
-    pub FillRGBA: Option<
-        unsafe extern "C" fn(
-            render_mode: c_int,
-            x: f32,
-            y: f32,
-            w: f32,
-            h: f32,
-            r: byte,
-            g: byte,
-            b: byte,
-            a: byte,
-        ),
-    >,
-    pub WorldToScreen:
-        Option<unsafe extern "C" fn(world: *const vec3_t, screen: *mut vec3_t) -> c_int>,
-    pub VID_ScreenShot:
-        Option<unsafe extern "C" fn(file_name: *const c_char, shot_type: c_int) -> qboolean>,
-    pub VID_CubemapShot: Option<
-        unsafe extern "C" fn(
-            base: *const c_char,
-            size: c_uint,
-            vieworg: *const vec3_t,
-            skyshot: qboolean,
-        ) -> qboolean,
-    >,
-    pub R_LightPoint: Option<unsafe extern "C" fn(p: *const vec3_t) -> colorVec>,
-    pub R_DecalShoot: Option<
-        unsafe extern "C" fn(
-            texture: c_int,
-            entity_index: c_int,
-            model_index: c_int,
-            pos: *mut vec3_t,
-            flags: c_int,
-            scale: f32,
-        ),
-    >,
-    pub R_DecalRemoveAll: Option<unsafe extern "C" fn(texture: c_int)>,
-    pub R_CreateDecalList: Option<unsafe extern "C" fn(list: *mut decallist_s) -> c_int>,
-    pub R_ClearAllDecals: Option<unsafe extern "C" fn()>,
-    pub R_StudioEstimateFrame: Option<
-        unsafe extern "C" fn(
-            ent: *mut cl_entity_s,
-            pseqdesc: *mut mstudioseqdesc_t,
-            time: f64,
-        ) -> f32,
-    >,
-    pub R_StudioLerpMovement: Option<
-        unsafe extern "C" fn(
-            ent: *mut cl_entity_s,
-            time: f64,
-            origin: *mut vec3_t,
-            angles: *mut vec3_t,
-        ),
-    >,
-    pub CL_InitStudioAPI: Option<unsafe extern "C" fn()>,
-    pub R_SetSkyCloudsTextures:
-        Option<unsafe extern "C" fn(solid_sky_texture: c_int, alpha_sky_texture: c_int)>,
-    pub GL_SubdivideSurface: Option<unsafe extern "C" fn(model: *mut model_s, fa: *mut msurface_s)>,
-    pub CL_RunLightStyles: Option<unsafe extern "C" fn(ls: *mut lightstyle_t)>,
-    pub R_GetSpriteParms: Option<
-        unsafe extern "C" fn(
-            frame_width: *mut c_int,
-            frame_height: *mut c_int,
-            num_frames: *mut c_int,
-            current_frame: c_int,
-            sprite: *const model_s,
-        ),
-    >,
-    pub R_GetSpriteTexture:
-        Option<unsafe extern "C" fn(model: *const model_s, frame: c_int) -> c_int>,
-    pub Mod_ProcessRenderData: Option<
-        unsafe extern "C" fn(
-            model: *mut model_s,
-            create: qboolean,
-            buffer: *const byte,
-        ) -> qboolean,
-    >,
-    pub Mod_StudioLoadTextures:
-        Option<unsafe extern "C" fn(model: *mut model_s, data: *mut c_void)>,
-    pub CL_DrawParticles:
-        Option<unsafe extern "C" fn(frame_time: f64, particles: *mut particle_s, partsize: f32)>,
-    pub CL_DrawTracers: Option<unsafe extern "C" fn(frame_time: f64, tracers: *mut particle_s)>,
-    pub CL_DrawBeams: Option<unsafe extern "C" fn(trans: c_int, beams: *mut BEAM)>,
-    pub R_BeamCull: Option<
-        unsafe extern "C" fn(
-            start: *const vec3_t,
-            end: *const vec3_t,
-            pvs_only: qboolean,
-        ) -> qboolean,
-    >,
-    pub RefGetParm: Option<unsafe extern "C" fn(parm: c_int, arg: c_int) -> c_int>,
-    pub GetDetailScaleForTexture:
-        Option<unsafe extern "C" fn(texture: c_int, x_scale: *mut f32, y_scale: *mut f32)>,
-    pub GetExtraParmsForTexture: Option<
-        unsafe extern "C" fn(
-            texture: c_int,
-            red: *mut byte,
-            green: *mut byte,
-            blue: *mut byte,
-            alpha: *mut byte,
-        ),
-    >,
-    pub GetFrameTime: Option<unsafe extern "C" fn() -> f32>,
-    pub R_SetCurrentEntity: Option<unsafe extern "C" fn(ent: *mut cl_entity_s)>,
-    pub R_SetCurrentModel: Option<unsafe extern "C" fn(model: *mut model_s)>,
-    pub GL_FindTexture: Option<unsafe extern "C" fn(name: *const c_char) -> c_int>,
-    pub GL_TextureName: Option<unsafe extern "C" fn(texture: c_int) -> *const c_char>,
-    pub GL_TextureData: Option<unsafe extern "C" fn(texture: c_int) -> *const byte>,
-    pub GL_LoadTexture: Option<
-        unsafe extern "C" fn(
-            name: *const c_char,
-            buf: *const byte,
-            size: usize,
-            flags: c_int,
-        ) -> c_int,
-    >,
-    pub GL_CreateTexture: Option<
-        unsafe extern "C" fn(
-            name: *const c_char,
-            width: c_int,
-            height: c_int,
-            buffer: *const c_void,
-            flags: TextureFlags,
-        ) -> c_int,
-    >,
-    pub GL_LoadTextureArray:
-        Option<unsafe extern "C" fn(names: *mut *const c_char, flags: c_int) -> c_int>,
-    pub GL_CreateTextureArray: Option<
-        unsafe extern "C" fn(
-            name: *const c_char,
-            width: c_int,
-            height: c_int,
-            depth: c_int,
-            buffer: *const c_void,
-            flags: TextureFlags,
-        ) -> c_int,
-    >,
-    pub GL_FreeTexture: Option<unsafe extern "C" fn(texture: c_int)>,
-    pub R_OverrideTextureSourceSize:
-        Option<unsafe extern "C" fn(texture: c_int, src_width: c_uint, src_height: c_uint)>,
-    pub DrawSingleDecal: Option<unsafe extern "C" fn(decal: *mut decal_s, fa: *mut msurface_s)>,
-    pub R_DecalSetupVerts: Option<
-        unsafe extern "C" fn(
-            pDecal: *mut decal_s,
-            surf: *mut msurface_s,
-            texture: c_int,
-            outCount: *mut c_int,
-        ) -> *mut f32,
-    >,
-    pub R_EntityRemoveDecals: Option<unsafe extern "C" fn(model: *mut model_s)>,
-    pub AVI_UploadRawFrame: Option<
-        unsafe extern "C" fn(
-            texture: c_int,
-            cols: c_int,
-            rows: c_int,
-            width: c_int,
-            height: c_int,
-            data: *const byte,
-        ),
-    >,
-    pub GL_Bind: Option<unsafe extern "C" fn(tmu: c_int, texture: c_int)>,
-    pub GL_SelectTexture: Option<unsafe extern "C" fn(tmu: c_int)>,
-    pub GL_LoadTextureMatrix: Option<unsafe extern "C" fn(gl_matrix: *const f32)>,
-    pub GL_TexMatrixIdentity: Option<unsafe extern "C" fn()>,
-    pub GL_CleanUpTextureUnits: Option<unsafe extern "C" fn(last: c_int)>,
-    pub GL_TexGen: Option<unsafe extern "C" fn(coord: c_uint, mode: c_uint)>,
-    pub GL_TextureTarget: Option<unsafe extern "C" fn(target: c_uint)>,
-    pub GL_TexCoordArrayMode: Option<unsafe extern "C" fn(tex_mode: c_uint)>,
-    pub GL_UpdateTexSize:
-        Option<unsafe extern "C" fn(texture: c_int, width: c_int, height: c_int, depth: c_int)>,
-    pub GL_Reserved0: Option<unsafe extern "C" fn()>,
-    pub GL_Reserved1: Option<unsafe extern "C" fn()>,
-    pub GL_DrawParticles: Option<
-        unsafe extern "C" fn(rvp: *const ref_viewpass_s, trans_pass: qboolean, frame_time: f32),
-    >,
-    pub LightVec: Option<
-        unsafe extern "C" fn(
-            start: *const vec3_t,
-            end: *const vec3_t,
-            light_spot: *mut vec3_t,
-            light_vec: *mut vec3_t,
-        ) -> colorVec,
-    >,
-    pub StudioGetTexture: Option<unsafe extern "C" fn(e: *mut cl_entity_s) -> *mut mstudiotex_s>,
-    pub GL_RenderFrame: Option<unsafe extern "C" fn(rvp: *const ref_viewpass_s)>,
-    pub GL_OrthoBounds: Option<unsafe extern "C" fn(mins: *const vec2_t, maxs: *const vec2_t)>,
-    pub R_SpeedsMessage: Option<unsafe extern "C" fn(out: *mut c_char, size: usize) -> qboolean>,
-    pub Mod_GetCurrentVis: Option<unsafe extern "C" fn() -> *mut byte>,
-    pub R_NewMap: Option<unsafe extern "C" fn()>,
-    pub R_ClearScene: Option<unsafe extern "C" fn()>,
-    pub R_GetProcAddress: Option<unsafe extern "C" fn(name: *const c_char) -> *mut c_void>,
-    pub TriRenderMode: Option<unsafe extern "C" fn(mode: c_int)>,
-    pub Begin: Option<unsafe extern "C" fn(primitive_code: c_int)>,
-    pub End: Option<unsafe extern "C" fn()>,
-    pub Color4f: Option<unsafe extern "C" fn(r: f32, g: f32, b: f32, a: f32)>,
-    pub Color4ub: Option<unsafe extern "C" fn(r: c_uchar, g: c_uchar, b: c_uchar, a: c_uchar)>,
-    pub TexCoord2f: Option<unsafe extern "C" fn(u: f32, v: f32)>,
-    pub Vertex3fv: Option<unsafe extern "C" fn(world_point: *const f32)>,
-    pub Vertex3f: Option<unsafe extern "C" fn(x: f32, y: f32, z: f32)>,
-    pub Fog:
-        Option<unsafe extern "C" fn(fog_color: *mut [f32; 3], start: f32, end: f32, on: c_int)>,
-    pub ScreenToWorld: Option<unsafe extern "C" fn(screen: *const vec3_t, world: *mut vec3_t)>,
-    pub GetMatrix: Option<unsafe extern "C" fn(pname: c_int, matrix: *mut f32)>,
-    pub FogParams: Option<unsafe extern "C" fn(density: f32, fog_skybox: c_int)>,
-    pub CullFace: Option<unsafe extern "C" fn(mode: TRICULLSTYLE)>,
-    pub VGUI_SetupDrawing: Option<unsafe extern "C" fn(rect: qboolean)>,
-    pub VGUI_UploadTextureBlock: Option<
-        unsafe extern "C" fn(
-            draw_x: c_int,
-            draw_y: c_int,
-            rgba: *const byte,
-            block_width: c_int,
-            block_height: c_int,
-        ),
-    >,
-}
-
-impl RefDllFunctions {
-    pub const VERSION: c_int = 10;
-
-    pub fn new<T: RefDll>() -> Self {
-        Export::<T>::ref_functions()
-    }
+pub fn ref_functions<T: RefDll>() -> ref_interface_s {
+    Export::<T>::ref_functions()
 }
 
 #[allow(clippy::missing_safety_doc)]
 trait RefDllExport {
-    fn ref_functions() -> RefDllFunctions {
-        RefDllFunctions {
+    fn ref_functions() -> ref_interface_s {
+        ref_interface_s {
             R_Init: Some(Self::init),
             R_Shutdown: Some(Self::shutdown),
             R_GetConfigName: Some(Self::get_config_name),
@@ -939,12 +643,12 @@ trait RefDllExport {
 
     unsafe extern "C" fn show_textures();
 
-    unsafe extern "C" fn get_texture_original_buffer(idx: c_int) -> *const byte;
+    unsafe extern "C" fn get_texture_original_buffer(idx: c_uint) -> *const byte;
 
     unsafe extern "C" fn gl_load_texture_from_buffer(
         name: *const c_char,
         pic: *mut rgbdata_t,
-        flags: TextureFlags,
+        flags: texFlags_t,
         update: qboolean,
     ) -> c_int;
 
@@ -955,7 +659,7 @@ trait RefDllExport {
         bottom_color: c_int,
     );
 
-    unsafe extern "C" fn setup_sky(skybox_textures: *const [c_int; SKYBOX_MAX_SIDES]);
+    unsafe extern "C" fn setup_sky(skybox_textures: *mut c_int);
 
     unsafe extern "C" fn set_2d_mode(enable: qboolean);
 
@@ -1000,12 +704,12 @@ trait RefDllExport {
 
     unsafe extern "C" fn cubemap_shot(
         base: *const c_char,
-        size: c_uint,
-        vieworg: *const vec3_t,
+        size: uint,
+        vieworg: *const f32,
         skyshot: qboolean,
     ) -> qboolean;
 
-    unsafe extern "C" fn light_point(point: *const vec3_t) -> colorVec;
+    unsafe extern "C" fn light_point(point: *const f32) -> colorVec;
 
     unsafe extern "C" fn decal_shoot(
         texture: c_int,
@@ -1100,9 +804,9 @@ trait RefDllExport {
 
     unsafe extern "C" fn gl_find_texture(name: *const c_char) -> c_int;
 
-    unsafe extern "C" fn gl_texture_name(texture: c_int) -> *const c_char;
+    unsafe extern "C" fn gl_texture_name(texture: c_uint) -> *const c_char;
 
-    unsafe extern "C" fn gl_texture_data(texture: c_int) -> *const byte;
+    unsafe extern "C" fn gl_texture_data(texture: c_uint) -> *const byte;
 
     unsafe extern "C" fn gl_load_texture(
         name: *const c_char,
@@ -1116,7 +820,7 @@ trait RefDllExport {
         width: c_int,
         height: c_int,
         buffer: *const c_void,
-        flags: TextureFlags,
+        flags: texFlags_t,
     ) -> c_int;
 
     unsafe extern "C" fn gl_load_texture_array(names: *mut *const c_char, flags: c_int) -> c_int;
@@ -1127,13 +831,13 @@ trait RefDllExport {
         height: c_int,
         depth: c_int,
         buffer: *const c_void,
-        flags: TextureFlags,
+        flags: texFlags_t,
     ) -> c_int;
 
-    unsafe extern "C" fn gl_free_texture(texture: c_int);
+    unsafe extern "C" fn gl_free_texture(texture: c_uint);
 
     unsafe extern "C" fn override_texture_source_size(
-        texture: c_int,
+        texture: c_uint,
         src_width: c_uint,
         src_height: c_uint,
     );
@@ -1158,7 +862,7 @@ trait RefDllExport {
         data: *const byte,
     );
 
-    unsafe extern "C" fn gl_bind(tmu: c_int, texture: c_int);
+    unsafe extern "C" fn gl_bind(tmu: c_int, texture: c_uint);
 
     unsafe extern "C" fn gl_select_texture(tmu: c_int);
 
@@ -1188,17 +892,17 @@ trait RefDllExport {
     );
 
     unsafe extern "C" fn light_vec(
-        start: *const vec3_t,
-        end: *const vec3_t,
-        light_spot: *mut vec3_t,
-        light_vec: *mut vec3_t,
+        start: *const f32,
+        end: *const f32,
+        light_spot: *mut f32,
+        light_vec: *mut f32,
     ) -> colorVec;
 
     unsafe extern "C" fn studio_get_texture(ent: *mut cl_entity_s) -> *mut mstudiotex_s;
 
     unsafe extern "C" fn gl_render_frame(rvp: *const ref_viewpass_s);
 
-    unsafe extern "C" fn gl_ortho_bounds(mins: *const vec2_t, maxs: *const vec2_t);
+    unsafe extern "C" fn gl_ortho_bounds(mins: *const f32, maxs: *const f32);
 
     unsafe extern "C" fn speeds_message(out: *mut c_char, size: usize) -> qboolean;
 
@@ -1228,7 +932,7 @@ trait RefDllExport {
 
     unsafe extern "C" fn fog(fog_color: *mut [f32; 3], start: f32, end: f32, on: c_int);
 
-    unsafe extern "C" fn screen_to_world(point: *const vec3_t, ret: *mut vec3_t);
+    unsafe extern "C" fn screen_to_world(point: *const f32, ret: *mut f32);
 
     unsafe extern "C" fn get_matrix(pname: c_int, matrix: *mut f32);
 
@@ -1400,8 +1104,8 @@ impl<T: RefDll> RefDllExport for Export<T> {
         dll.show_textures();
     }
 
-    unsafe extern "C" fn get_texture_original_buffer(texture: c_int) -> *const byte {
-        if let Some(texture) = TextureId::new(texture) {
+    unsafe extern "C" fn get_texture_original_buffer(texture: c_uint) -> *const byte {
+        if let Some(texture) = TextureId::new(texture as c_int) {
             let dll = unsafe { T::global_assume_init_ref() };
             dll.get_texture_original_buffer(texture)
         } else {
@@ -1412,11 +1116,12 @@ impl<T: RefDll> RefDllExport for Export<T> {
     unsafe extern "C" fn gl_load_texture_from_buffer(
         name: *const c_char,
         pic: *mut rgbdata_t,
-        flags: TextureFlags,
+        flags: texFlags_t,
         update: qboolean,
     ) -> c_int {
         let name = unsafe { cstr_or_none(name).unwrap() };
         let dll = unsafe { T::global_assume_init_ref() };
+        let flags = TextureFlags::from_bits_retain(flags);
         let res = dll.gl_load_texture_from_buffer(name, pic, flags, update != 0);
         TextureId::to_ffi(res)
     }
@@ -1433,7 +1138,7 @@ impl<T: RefDll> RefDllExport for Export<T> {
         }
     }
 
-    unsafe extern "C" fn setup_sky(skybox_textures: *const [c_int; SKYBOX_MAX_SIDES]) {
+    unsafe extern "C" fn setup_sky(skybox_textures: *mut c_int) {
         let dll = unsafe { T::global_assume_init_ref() };
         dll.unload_skybox();
         let skybox_textures = skybox_textures.cast::<[Option<TextureId>; SKYBOX_MAX_SIDES]>();
@@ -1521,18 +1226,18 @@ impl<T: RefDll> RefDllExport for Export<T> {
 
     unsafe extern "C" fn cubemap_shot(
         base: *const c_char,
-        size: c_uint,
-        vieworg: *const vec3_t,
+        size: uint,
+        vieworg: *const f32,
         skyshot: qboolean,
     ) -> qboolean {
         let base = unsafe { cstr_or_none(base).unwrap() };
-        let vieworg = unsafe { vieworg.as_ref() };
+        let vieworg = unsafe { vieworg.cast::<vec3_t>().as_ref() };
         let dll = unsafe { T::global_assume_init_ref() };
         dll.cubemap_shot(base, size, vieworg, skyshot != 0).into()
     }
 
-    unsafe extern "C" fn light_point(point: *const vec3_t) -> colorVec {
-        let point = unsafe { point.as_ref().unwrap() };
+    unsafe extern "C" fn light_point(point: *const f32) -> colorVec {
+        let point = unsafe { point.cast::<vec3_t>().as_ref().unwrap() };
         let dll = unsafe { T::global_assume_init_ref() };
         dll.light_point(*point).into()
     }
@@ -1777,8 +1482,8 @@ impl<T: RefDll> RefDllExport for Export<T> {
         TextureId::to_ffi(res)
     }
 
-    unsafe extern "C" fn gl_texture_name(texture: c_int) -> *const c_char {
-        if let Some(texture) = TextureId::new(texture) {
+    unsafe extern "C" fn gl_texture_name(texture: c_uint) -> *const c_char {
+        if let Some(texture) = TextureId::new(texture as c_int) {
             let dll = unsafe { T::global_assume_init_ref() };
             dll.gl_texture_name(texture)
         } else {
@@ -1786,8 +1491,8 @@ impl<T: RefDll> RefDllExport for Export<T> {
         }
     }
 
-    unsafe extern "C" fn gl_texture_data(texture: c_int) -> *const byte {
-        if let Some(texture) = TextureId::new(texture) {
+    unsafe extern "C" fn gl_texture_data(texture: c_uint) -> *const byte {
+        if let Some(texture) = TextureId::new(texture as c_int) {
             let dll = unsafe { T::global_assume_init_ref() };
             dll.gl_texture_data(texture)
         } else {
@@ -1815,7 +1520,7 @@ impl<T: RefDll> RefDllExport for Export<T> {
         width: c_int,
         height: c_int,
         buffer: *const c_void,
-        flags: TextureFlags,
+        flags: texFlags_t,
     ) -> c_int {
         assert!(!buffer.is_null());
         let Some(name) = texture_name(name) else {
@@ -1823,6 +1528,7 @@ impl<T: RefDll> RefDllExport for Export<T> {
         };
         let len = width as usize * height as usize;
         let buffer = unsafe { slice::from_raw_parts(buffer.cast(), len) };
+        let flags = TextureFlags::from_bits_retain(flags);
         let dll = unsafe { T::global_assume_init_ref() };
         let res = dll.gl_create_texture(name, width, height, buffer, flags);
         TextureId::to_ffi(res)
@@ -1840,29 +1546,30 @@ impl<T: RefDll> RefDllExport for Export<T> {
         height: c_int,
         depth: c_int,
         buffer: *const c_void,
-        flags: TextureFlags,
+        flags: texFlags_t,
     ) -> c_int {
         let Some(name) = texture_name(name) else {
             return 0;
         };
+        let flags = TextureFlags::from_bits_retain(flags);
         let dll = unsafe { T::global_assume_init_ref() };
         let res = dll.gl_create_texture_array(name, width, height, depth, buffer, flags);
         TextureId::to_ffi(res)
     }
 
-    unsafe extern "C" fn gl_free_texture(texture: c_int) {
-        if let Some(texture) = TextureId::new(texture) {
+    unsafe extern "C" fn gl_free_texture(texture: c_uint) {
+        if let Some(texture) = TextureId::new(texture as c_int) {
             let dll = unsafe { T::global_assume_init_ref() };
             dll.gl_free_texture(texture);
         }
     }
 
     unsafe extern "C" fn override_texture_source_size(
-        texture: c_int,
+        texture: c_uint,
         src_width: c_uint,
         src_height: c_uint,
     ) {
-        if let Some(texture) = TextureId::new(texture) {
+        if let Some(texture) = TextureId::new(texture as c_int) {
             let dll = unsafe { T::global_assume_init_ref() };
             dll.override_texture_source_size(texture, src_width, src_height);
         }
@@ -1909,8 +1616,8 @@ impl<T: RefDll> RefDllExport for Export<T> {
         }
     }
 
-    unsafe extern "C" fn gl_bind(tmu: c_int, texture: c_int) {
-        let texture = TextureId::new(texture);
+    unsafe extern "C" fn gl_bind(tmu: c_int, texture: c_uint) {
+        let texture = TextureId::new(texture as c_int);
         let dll = unsafe { T::global_assume_init_ref() };
         dll.gl_bind(tmu, texture);
     }
@@ -1974,15 +1681,15 @@ impl<T: RefDll> RefDllExport for Export<T> {
     }
 
     unsafe extern "C" fn light_vec(
-        start: *const vec3_t,
-        end: *const vec3_t,
-        light_spot: *mut vec3_t,
-        light_vec: *mut vec3_t,
+        start: *const f32,
+        end: *const f32,
+        light_spot: *mut f32,
+        light_vec: *mut f32,
     ) -> colorVec {
-        let start = unsafe { *start.as_ref().unwrap() };
-        let end = unsafe { *end.as_ref().unwrap() };
-        let light_spot = unsafe { light_spot.as_mut() };
-        let light_vec = unsafe { light_vec.as_mut() };
+        let start = unsafe { *start.cast::<vec3_t>().as_ref().unwrap() };
+        let end = unsafe { *end.cast::<vec3_t>().as_ref().unwrap() };
+        let light_spot = unsafe { light_spot.cast::<vec3_t>().as_mut() };
+        let light_vec = unsafe { light_vec.cast::<vec3_t>().as_mut() };
         let dll = unsafe { T::global_assume_init_ref() };
         dll.light_vec(start, end, light_spot, light_vec).into()
     }
@@ -1999,9 +1706,9 @@ impl<T: RefDll> RefDllExport for Export<T> {
         dll.gl_render_frame(rvp);
     }
 
-    unsafe extern "C" fn gl_ortho_bounds(mins: *const vec2_t, maxs: *const vec2_t) {
-        let mins = unsafe { *mins.as_ref().unwrap() };
-        let maxs = unsafe { *maxs.as_ref().unwrap() };
+    unsafe extern "C" fn gl_ortho_bounds(mins: *const f32, maxs: *const f32) {
+        let mins = unsafe { *mins.cast::<vec2_t>().as_ref().unwrap() };
+        let maxs = unsafe { *maxs.cast::<vec2_t>().as_ref().unwrap() };
         let dll = unsafe { T::global_assume_init_ref() };
         dll.gl_ortho_bounds(mins, maxs);
     }
@@ -2085,11 +1792,11 @@ impl<T: RefDll> RefDllExport for Export<T> {
         dll.fog(fog_color, start, end, on != 0);
     }
 
-    unsafe extern "C" fn screen_to_world(point: *const vec3_t, ret: *mut vec3_t) {
-        let Some(point) = (unsafe { point.as_ref() }) else {
+    unsafe extern "C" fn screen_to_world(point: *const f32, ret: *mut f32) {
+        let Some(point) = (unsafe { point.cast::<vec3_t>().as_ref() }) else {
             return;
         };
-        let Some(ret) = (unsafe { ret.as_mut() }) else {
+        let Some(ret) = (unsafe { ret.cast::<vec3_t>().as_mut() }) else {
             return;
         };
         let dll = unsafe { T::global_assume_init_ref() };
@@ -2135,11 +1842,11 @@ impl<T: RefDll> RefDllExport for Export<T> {
 /// Must be called only once.
 pub unsafe fn get_ref_api<T: RefDll>(
     version: c_int,
-    dll_funcs: Option<&mut RefDllFunctions>,
-    eng_funcs: Option<&RefEngineFunctions>,
-    globals: *mut RefGlobalsRaw,
+    dll_funcs: Option<&mut ref_interface_s>,
+    eng_funcs: Option<&ref_api_s>,
+    globals: *mut ref_globals_s,
 ) -> c_int {
-    if version != RefDllFunctions::VERSION {
+    if version != REF_API_VERSION as c_int {
         return 0;
     }
     let Some(dll_funcs) = dll_funcs else { return 0 };
@@ -2147,20 +1854,9 @@ pub unsafe fn get_ref_api<T: RefDll>(
     unsafe {
         crate::instance::init_engine(eng_funcs, globals);
     }
-    *dll_funcs = RefDllFunctions::new::<T>();
-    RefDllFunctions::VERSION
+    *dll_funcs = ref_functions::<T>();
+    REF_API_VERSION as c_int
 }
-
-// pub const GET_REF_API_FN: &CStr = c"GetRefAPI";
-
-pub type GetRefApiFn = Option<
-    unsafe extern "C" fn(
-        version: c_int,
-        dll_funcs: &mut RefDllFunctions,
-        eng_funcs: &RefEngineFunctions,
-        globals: *mut RefGlobalsRaw,
-    ) -> c_int,
->;
 
 #[doc(hidden)]
 #[macro_export]
@@ -2169,9 +1865,9 @@ macro_rules! export_dll {
         #[no_mangle]
         unsafe extern "C" fn GetRefAPI(
             version: core::ffi::c_int,
-            dll_funcs: Option<&mut $crate::export::RefDllFunctions>,
-            eng_funcs: Option<&$crate::engine::RefEngineFunctions>,
-            globals: *mut $crate::globals::RefGlobalsRaw,
+            dll_funcs: Option<&mut $crate::ffi::render::ref_interface_t>,
+            eng_funcs: Option<&$crate::ffi::render::ref_api_t>,
+            globals: *mut $crate::ffi::render::ref_globals_t,
         ) -> core::ffi::c_int {
             let result = unsafe {
                 $crate::export::get_ref_api::<$ref_dll>(version, dll_funcs, eng_funcs, globals)

@@ -1,29 +1,24 @@
 pub mod draw;
 
 use core::{
-    ffi::{c_char, c_int, c_uint, c_void},
+    ffi::{c_char, c_int, c_void},
     ptr,
 };
 
 use shared::{
     export::impl_unsync_global,
-    raw::{
-        byte, cache_user_s, cl_entity_s, con_nprint_s, dlight_s, efrag_s, engine_studio_api_s,
-        entity_state_s, model_s, mstudioevent_s, msurface_s, particle_s, physent_s, player_info_s,
-        pmtrace_s, poolhandle_t, qboolean, r_studio_interface_s, ref_overview_s, screenfade_s,
-    },
+    ffi::render::ref_api_s,
     str::{AsCStrPtr, ToEngineStr},
 };
 
 use crate::{
     consts::RefParm,
     cvar::cvar_s,
-    engine::draw::{render_interface_s, Draw},
+    engine::draw::Draw,
     engine_types::*,
     raw::{
-        self, bpc_desc_s, bsp::MAX_MAP_LEAFS_BYTES, convar_s, ilFlags_t, mleaf_s, mnode_s,
-        mstudioseqdesc_t, ref_defaultsprite_e, remap_info_s, rgba_t, rgbdata_t, studiohdr_s,
-        vec3_t, GraphicApi, ImageFlags,
+        self, bsp::MAX_MAP_LEAFS_BYTES, convar_s, ilFlags_t, mleaf_s, mnode_s, rgbdata_t, vec3_t,
+        GraphicApi, ImageFlags,
     },
 };
 
@@ -37,259 +32,8 @@ pub(crate) mod prelude {
 
 pub use self::prelude::*;
 
-#[allow(non_camel_case_types)]
-pub type ref_api_s = RefEngineFunctions;
-
-#[allow(non_snake_case)]
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct RefEngineFunctions {
-    pub EngineGetParm: Option<unsafe extern "C" fn(parm: c_int, arg: c_int) -> isize>,
-    pub Cvar_Get: Option<
-        unsafe extern "C" fn(
-            szName: *const c_char,
-            szValue: *const c_char,
-            flags: c_int,
-            description: *const c_char,
-        ) -> *mut cvar_s,
-    >,
-    pub pfnGetCvarPointer:
-        Option<unsafe extern "C" fn(name: *const c_char, ignore_flags: c_int) -> *mut cvar_s>,
-    pub pfnGetCvarFloat: Option<unsafe extern "C" fn(szName: *const c_char) -> f32>,
-    pub pfnGetCvarString: Option<unsafe extern "C" fn(szName: *const c_char) -> *const c_char>,
-    pub Cvar_SetValue: Option<unsafe extern "C" fn(name: *const c_char, value: f32)>,
-    pub Cvar_Set: Option<unsafe extern "C" fn(name: *const c_char, value: *const c_char)>,
-    pub Cvar_RegisterVariable: Option<unsafe extern "C" fn(var: *mut convar_s)>,
-    pub Cvar_FullSet:
-        Option<unsafe extern "C" fn(var_name: *const c_char, value: *const c_char, flags: c_int)>,
-    pub Cmd_AddCommand: Option<
-        unsafe extern "C" fn(
-            cmd_name: *const c_char,
-            function: unsafe extern "C" fn(),
-            description: *const c_char,
-        ) -> c_int,
-    >,
-    pub Cmd_RemoveCommand: Option<unsafe extern "C" fn(cmd_name: *const c_char)>,
-    pub Cmd_Argc: Option<unsafe extern "C" fn() -> c_int>,
-    pub Cmd_Argv: Option<unsafe extern "C" fn(arg: c_int) -> *const c_char>,
-    pub Cmd_Args: Option<unsafe extern "C" fn() -> *const c_char>,
-    pub Cbuf_AddText: Option<unsafe extern "C" fn(commands: *const c_char)>,
-    pub Cbuf_InsertText: Option<unsafe extern "C" fn(commands: *const c_char)>,
-    pub Cbuf_Execute: Option<unsafe extern "C" fn()>,
-    pub Con_Printf: Option<unsafe extern "C" fn(fmt: *const c_char, ...)>,
-    pub Con_DPrintf: Option<unsafe extern "C" fn(fmt: *const c_char, ...)>,
-    pub Con_Reportf: Option<unsafe extern "C" fn(fmt: *const c_char, ...)>,
-    pub Con_NPrintf: Option<unsafe extern "C" fn(pos: c_int, fmt: *const c_char, ...)>,
-    pub Con_NXPrintf:
-        Option<unsafe extern "C" fn(info: *mut con_nprint_s, fmt: *const c_char, ...)>,
-    pub CL_CenterPrint: Option<unsafe extern "C" fn(s: *const c_char, y: f32)>,
-    pub Con_DrawStringLen:
-        Option<unsafe extern "C" fn(pText: *const c_char, length: *mut c_int, height: *mut c_int)>,
-    pub Con_DrawString: Option<
-        unsafe extern "C" fn(
-            x: c_int,
-            y: c_int,
-            string: *const c_char,
-            setColor: *const rgba_t,
-        ) -> c_int,
-    >,
-    pub CL_DrawCenterPrint: Option<unsafe extern "C" fn()>,
-    pub R_BeamGetEntity: Option<unsafe extern "C" fn(index: c_int) -> *mut cl_entity_s>,
-    pub CL_GetWaterEntity: Option<unsafe extern "C" fn(p: *const vec3_t) -> *mut cl_entity_s>,
-    pub CL_AddVisibleEntity:
-        Option<unsafe extern "C" fn(ent: *mut cl_entity_s, entityType: c_int) -> qboolean>,
-    pub Mod_SampleSizeForFace: Option<unsafe extern "C" fn(surf: *const msurface_s) -> c_int>,
-    pub Mod_BoxVisible: Option<
-        unsafe extern "C" fn(
-            mins: *const vec3_t,
-            maxs: *const vec3_t,
-            visbits: *const byte,
-        ) -> qboolean,
-    >,
-    pub Mod_PointInLeaf:
-        Option<unsafe extern "C" fn(p: *const vec3_t, node: *mut mnode_s) -> *mut mleaf_s>,
-    pub R_DrawWorldHull: Option<unsafe extern "C" fn()>,
-    pub R_DrawModelHull: Option<unsafe extern "C" fn(mod_: *mut model_s)>,
-    pub R_StudioGetAnim: Option<
-        unsafe extern "C" fn(
-            m_pStudioHeader: *mut studiohdr_s,
-            m_pSubModel: *mut model_s,
-            pseqdesc: *mut mstudioseqdesc_t,
-        ) -> *mut c_void,
-    >,
-    pub pfnStudioEvent:
-        Option<unsafe extern "C" fn(event: *const mstudioevent_s, entity: *const cl_entity_s)>,
-    pub CL_DrawEFX: Option<unsafe extern "C" fn(time: f32, fTrans: qboolean)>,
-    pub CL_ThinkParticle: Option<unsafe extern "C" fn(frametime: f64, p: *mut particle_s)>,
-    pub R_FreeDeadParticles: Option<unsafe extern "C" fn(ppparticles: *mut *mut particle_s)>,
-    pub CL_AllocParticleFast: Option<unsafe extern "C" fn() -> *mut particle_s>,
-    pub CL_AllocElight: Option<unsafe extern "C" fn(key: c_int) -> *mut dlight_s>,
-    pub GetDefaultSprite: Option<unsafe extern "C" fn(spr: ref_defaultsprite_e) -> *mut model_s>,
-    pub R_StoreEfrags: Option<unsafe extern "C" fn(ppefrag: *mut *mut efrag_s, framecount: c_int)>,
-    pub Mod_ForName: Option<
-        unsafe extern "C" fn(
-            name: *const c_char,
-            crash: qboolean,
-            trackCRC: qboolean,
-        ) -> *mut model_s,
-    >,
-    pub Mod_Extradata:
-        Option<unsafe extern "C" fn(type_: c_int, model: *mut model_s) -> *mut c_void>,
-    pub CL_EntitySetRemapColors: Option<
-        unsafe extern "C" fn(
-            e: *mut cl_entity_s,
-            mod_: *mut model_s,
-            top: c_int,
-            bottom: c_int,
-        ) -> qboolean,
-    >,
-    pub CL_GetRemapInfoForEntity:
-        Option<unsafe extern "C" fn(e: *mut cl_entity_s) -> *mut remap_info_s>,
-    pub CL_ExtraUpdate: Option<unsafe extern "C" fn()>,
-    pub Host_Error: Option<unsafe extern "C" fn(fmt: *const c_char, ...)>,
-    pub COM_SetRandomSeed: Option<unsafe extern "C" fn(lSeed: c_int)>,
-    pub COM_RandomFloat: Option<unsafe extern "C" fn(rmin: f32, rmax: f32) -> f32>,
-    pub COM_RandomLong: Option<unsafe extern "C" fn(rmin: c_int, rmax: c_int) -> c_int>,
-    pub GetScreenFade: Option<unsafe extern "C" fn() -> *mut screenfade_s>,
-    pub CL_GetScreenInfo: Option<unsafe extern "C" fn(width: *mut c_int, height: *mut c_int)>,
-    pub SetLocalLightLevel: Option<unsafe extern "C" fn(level: c_int)>,
-    pub Sys_CheckParm: Option<unsafe extern "C" fn(flag: *const c_char) -> c_int>,
-    pub pfnPlayerInfo: Option<unsafe extern "C" fn(index: c_int) -> *mut player_info_s>,
-    pub pfnGetPlayerState: Option<unsafe extern "C" fn(index: c_int) -> *mut entity_state_s>,
-    pub Mod_CacheCheck: Option<unsafe extern "C" fn(c: *mut cache_user_s) -> *mut c_void>,
-    pub Mod_LoadCacheFile: Option<unsafe extern "C" fn(path: *const c_char, cu: *mut cache_user_s)>,
-    pub Mod_Calloc: Option<unsafe extern "C" fn(number: c_int, size: usize) -> *mut c_void>,
-    pub pfnGetStudioModelInterface: Option<
-        unsafe extern "C" fn(
-            version: c_int,
-            ppinterface: *mut *mut r_studio_interface_s,
-            pstudio: *mut engine_studio_api_s,
-        ) -> c_int,
-    >,
-    pub _Mem_AllocPool: Option<
-        unsafe extern "C" fn(
-            name: *const c_char,
-            filename: *const c_char,
-            fileline: c_int,
-        ) -> poolhandle_t,
-    >,
-    pub _Mem_FreePool: Option<
-        unsafe extern "C" fn(poolptr: *mut poolhandle_t, filename: *const c_char, fileline: c_int),
-    >,
-    pub _Mem_Alloc: Option<
-        unsafe extern "C" fn(
-            poolptr: poolhandle_t,
-            size: usize,
-            clear: qboolean,
-            filename: *const c_char,
-            fileline: c_int,
-        ) -> *mut c_void,
-    >,
-    pub _Mem_Realloc: Option<
-        unsafe extern "C" fn(
-            poolptr: poolhandle_t,
-            memptr: *mut c_void,
-            size: usize,
-            clear: qboolean,
-            filename: *const c_char,
-            fileline: c_int,
-        ) -> *mut c_void,
-    >,
-    pub _Mem_Free:
-        Option<unsafe extern "C" fn(data: *mut c_void, filename: *const c_char, fileline: c_int)>,
-    pub COM_LoadLibrary: Option<
-        unsafe extern "C" fn(
-            name: *const c_char,
-            build_ordinals_table: c_int,
-            directpath: qboolean,
-        ) -> *mut c_void,
-    >,
-    pub COM_FreeLibrary: Option<unsafe extern "C" fn(handle: *mut c_void)>,
-    pub COM_GetProcAddress:
-        Option<unsafe extern "C" fn(handle: *mut c_void, name: *const c_char) -> *mut c_void>,
-    pub R_Init_Video: Option<unsafe extern "C" fn(type_: c_int) -> qboolean>,
-    pub R_Free_Video: Option<unsafe extern "C" fn()>,
-    pub GL_SetAttribute: Option<unsafe extern "C" fn(attr: c_int, value: c_int) -> c_int>,
-    pub GL_GetAttribute: Option<unsafe extern "C" fn(attr: c_int, value: *mut c_int) -> c_int>,
-    pub GL_GetProcAddress: Option<unsafe extern "C" fn(name: *const c_char) -> *mut c_void>,
-    pub GL_SwapBuffers: Option<unsafe extern "C" fn()>,
-    pub SW_CreateBuffer: Option<
-        unsafe extern "C" fn(
-            width: c_int,
-            height: c_int,
-            stride: *mut c_uint,
-            bpp: *mut c_uint,
-            r: *mut c_uint,
-            g: *mut c_uint,
-            b: *mut c_uint,
-        ) -> qboolean,
-    >,
-    pub SW_LockBuffer: Option<unsafe extern "C" fn() -> *mut c_void>,
-    pub SW_UnlockBuffer: Option<unsafe extern "C" fn()>,
-    pub R_FatPVS: Option<
-        unsafe extern "C" fn(
-            org: *const f32,
-            radius: f32,
-            visbuffer: *mut byte,
-            merge: qboolean,
-            fullvis: qboolean,
-        ) -> c_int,
-    >,
-    pub GetOverviewParms: Option<unsafe extern "C" fn() -> *const ref_overview_s>,
-    pub pfnTime: Option<unsafe extern "C" fn() -> f64>,
-    pub EV_GetPhysent: Option<unsafe extern "C" fn(idx: c_int) -> *mut physent_s>,
-    pub EV_TraceSurface: Option<
-        unsafe extern "C" fn(ground: c_int, vstart: *mut f32, vend: *mut f32) -> *mut msurface_s,
-    >,
-    pub PM_TraceLine: Option<
-        unsafe extern "C" fn(
-            start: *mut f32,
-            end: *mut f32,
-            flags: c_int,
-            usehull: c_int,
-            ignore_pe: c_int,
-        ) -> *mut pmtrace_s,
-    >,
-    pub EV_VisTraceLine: Option<
-        unsafe extern "C" fn(start: *mut f32, end: *mut f32, flags: c_int) -> *mut pmtrace_s,
-    >,
-    pub CL_TraceLine: Option<
-        unsafe extern "C" fn(start: *mut vec3_t, end: *mut vec3_t, flags: c_int) -> pmtrace_s,
-    >,
-    pub Image_AddCmdFlags: Option<unsafe extern "C" fn(flags: c_uint)>,
-    pub Image_SetForceFlags: Option<unsafe extern "C" fn(flags: c_uint)>,
-    pub Image_ClearForceFlags: Option<unsafe extern "C" fn()>,
-    pub Image_CustomPalette: Option<unsafe extern "C" fn() -> qboolean>,
-    pub Image_Process: Option<
-        unsafe extern "C" fn(
-            pix: *mut *mut rgbdata_t,
-            width: c_int,
-            height: c_int,
-            flags: c_uint,
-            reserved: f32,
-        ) -> qboolean,
-    >,
-    pub FS_LoadImage: Option<
-        unsafe extern "C" fn(
-            filename: *const c_char,
-            buffer: *const byte,
-            size: usize,
-        ) -> *mut rgbdata_t,
-    >,
-    pub FS_SaveImage:
-        Option<unsafe extern "C" fn(filename: *const c_char, pix: *mut rgbdata_t) -> qboolean>,
-    pub FS_CopyImage: Option<unsafe extern "C" fn(in_: *mut rgbdata_t) -> *mut rgbdata_t>,
-    pub FS_FreeImage: Option<unsafe extern "C" fn(pack: *mut rgbdata_t)>,
-    pub Image_SetMDLPointer: Option<unsafe extern "C" fn(p: *mut byte)>,
-    pub Image_GetPFDesc: Option<unsafe extern "C" fn(idx: c_int) -> *const bpc_desc_s>,
-    pub pfnDrawNormalTriangles: Option<unsafe extern "C" fn()>,
-    pub pfnDrawTransparentTriangles: Option<unsafe extern "C" fn()>,
-    pub drawFuncs: *mut render_interface_s,
-    pub fsapi: *mut crate::raw::filesystem::fs_api_t,
-}
-
 pub struct RefEngine {
-    raw: RefEngineFunctions,
+    raw: ref_api_s,
 }
 
 impl_unsync_global!(RefEngine);
@@ -304,11 +48,11 @@ macro_rules! unwrap {
 }
 
 impl RefEngine {
-    pub(crate) fn new(raw: &RefEngineFunctions) -> Self {
+    pub(crate) fn new(raw: &ref_api_s) -> Self {
         Self { raw: *raw }
     }
 
-    pub fn raw(&self) -> &RefEngineFunctions {
+    pub fn raw(&self) -> &ref_api_s {
         &self.raw
     }
 
@@ -327,7 +71,7 @@ impl RefEngine {
 
     pub fn get_cvar_ptr(&self, name: impl ToEngineStr, ignore_flags: c_int) -> *mut cvar_s {
         let name = name.to_engine_str();
-        unsafe { unwrap!(self, pfnGetCvarPointer)(name.as_ptr(), ignore_flags) }
+        unsafe { unwrap!(self, pfnGetCvarPointer)(name.as_ptr(), ignore_flags).cast() }
     }
 
     pub fn cvar_register(&self, var: &'static mut convar_s) {
@@ -345,7 +89,8 @@ impl RefEngine {
     ) -> Result<(), AddCmdError> {
         let name = name.to_engine_str();
         let desc = desc.to_engine_str();
-        let result = unsafe { unwrap!(self, Cmd_AddCommand)(name.as_ptr(), func, desc.as_ptr()) };
+        let result =
+            unsafe { unwrap!(self, Cmd_AddCommand)(name.as_ptr(), Some(func), desc.as_ptr()) };
         if result == 0 {
             Err(AddCmdError)
         } else {

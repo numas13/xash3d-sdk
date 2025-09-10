@@ -303,7 +303,7 @@ impl ClientEngine {
     }
 
     pub fn set_view_angles(&self, mut angles: vec3_t) {
-        // FIXME: ffi: why arg1 is mut?
+        // FIXME: ffi: why arg1 is mutable?
         unsafe { unwrap!(self, SetViewAngles)(angles.as_mut_ptr()) }
     }
 
@@ -325,7 +325,7 @@ impl ClientEngine {
 
     pub fn check_parm(&self, parm: impl ToEngineStr) -> c_int {
         let parm = parm.to_engine_str();
-        // FIXME: ffi: why parm is mut?
+        // FIXME: ffi: why parm is mutable?
         unsafe { unwrap!(self, CheckParm)(parm.as_ptr().cast_mut(), ptr::null_mut()) }
     }
 
@@ -707,7 +707,7 @@ impl EngineDrawConsoleString for ClientEngine {
 
     fn draw_console_string(&self, x: c_int, y: c_int, text: impl ToEngineStr) -> c_int {
         let text = text.to_engine_str();
-        // FIXME: ffi: why string is mut?
+        // FIXME: ffi: why string is mutable?
         unsafe { unwrap!(self, pfnDrawConsoleString)(x, y, text.as_ptr().cast_mut()) }
     }
 }

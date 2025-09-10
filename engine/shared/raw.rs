@@ -6,7 +6,10 @@
 
 pub mod bsp;
 
-use core::{ffi::c_int, mem, str};
+use core::{
+    ffi::{c_int, c_uint},
+    mem, str,
+};
 
 use bitflags::bitflags;
 
@@ -448,7 +451,7 @@ pub type texFlags_t = TextureFlags;
 bitflags! {
     #[derive(Copy, Clone, PartialEq, Eq, Debug, Default)]
     #[repr(transparent)]
-    pub struct TextureFlags: c_int {
+    pub struct TextureFlags: c_uint {
         /// Just for tabulate source.
         const COLORMAP          = 0;
         /// Disable texfilter.

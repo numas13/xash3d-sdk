@@ -1,28 +1,66 @@
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
-#![allow(non_upper_case_globals)]
-#![allow(clippy::type_complexity)]
-
-pub mod filesystem;
-pub mod vgui;
 
 use core::{
-    ffi::{c_char, c_int, c_short, c_uint, c_ushort, c_void, CStr},
-    ptr,
+    ffi::{c_int, c_uint, CStr},
+    mem, ptr,
 };
 
 use bitflags::bitflags;
 use csz::CStrThin;
-use shared::{
-    consts::{RefParm, MAX_MODELS, MAX_SKINS},
-    cvar::CVarFlags,
-    raw::bsp::word,
-};
+use shared::{consts::RefParm, cvar::CVarFlags, ffi::common::uint};
 
 pub use shared::raw::*;
 
-pub type vec_t = f32;
-pub type rgba_t = [byte; 4];
+// TODO: remove me
+#[rustfmt::skip]
+pub use shared::ffi::{
+    common::vec_t,
+    common::rgba_t,
+    render::bpc_desc_s,
+    render::rgbdata_s,
+    render::rgbdata_t,
+    render::sortedface_t,
+    render::ref_client_s,
+    render::ref_host_s,
+    render::remap_info_s,
+    render::convar_s,
+
+    api::studio::studiohdr_s,
+    api::studio::studiohdr2_t,
+    api::studio::studioseqhdr_t,
+    api::studio::mstudiobone_s,
+    api::studio::mstudioaxisinterpbone_t,
+    api::studio::mstudioquatinterpinfo_t,
+    api::studio::mstudioquatinterpbone_t,
+    api::studio::mstudioboneinfo_t,
+    api::studio::mstudiojigglebone_t,
+    api::studio::mstudioaimatbone_t,
+    api::studio::mstudiobonecontroller_t,
+    api::studio::mstudiobbox_t,
+    api::studio::mstudiohitboxset_t,
+    api::studio::mstudioseqgroup_t,
+    api::studio::mstudioattachment_t,
+    api::studio::mstudioikerror_t,
+    api::studio::mstudioikrule_t,
+    api::studio::mstudioiklock_t,
+    api::studio::mstudiomovement_t,
+    api::studio::mstudioanimdesc_t,
+    api::studio::mstudioautolayer_t,
+    api::studio::mstudioseqdesc_s,
+    api::studio::mstudioseqdesc_t,
+    api::studio::mstudioposeparamdesc_t,
+    api::studio::mstudioanim_s,
+    api::studio::mstudioanimvalue_t,
+    api::studio::mstudiobodyparts_t,
+    api::studio::mstudiotex_s,
+    api::studio::mstudioiklink_t,
+    api::studio::mstudioikchain_t,
+    api::studio::mstudioboneweight_t,
+    api::studio::mstudiomodel_t,
+    api::studio::mstudiomesh_t,
+    api::studio::mstudiotrivert_t,
+};
 
 bitflags! {
     #[derive(Copy, Clone, PartialEq, Eq)]
@@ -69,574 +107,7 @@ pub enum demo_mode {
     QUAKE1 = 2,
 }
 
-// pub const DXT_ENCODE_DEFAULT: u32 = 0;
-// pub const DXT_ENCODE_COLOR_YCoCg: u32 = 6657;
-// pub const DXT_ENCODE_ALPHA_1BIT: u32 = 6658;
-// pub const DXT_ENCODE_ALPHA_8BIT: u32 = 6659;
-// pub const DXT_ENCODE_ALPHA_SDF: u32 = 6660;
-// pub const DXT_ENCODE_NORMAL_AG_ORTHO: u32 = 6661;
-// pub const DXT_ENCODE_NORMAL_AG_STEREO: u32 = 6662;
-// pub const DXT_ENCODE_NORMAL_AG_PARABOLOID: u32 = 6663;
-// pub const DXT_ENCODE_NORMAL_AG_QUARTIC: u32 = 6664;
-// pub const DXT_ENCODE_NORMAL_AG_AZIMUTHAL: u32 = 6665;
-// pub const STUDIO_VERSION: u32 = 10;
-// pub const MAXSTUDIOVERTS: u32 = 16384;
-// pub const MAXSTUDIOSEQUENCES: u32 = 256;
-// pub const MAXSTUDIOSKINS: u32 = 256;
-// pub const MAXSTUDIOSRCBONES: u32 = 512;
-// pub const MAXSTUDIOBONES: u32 = 128;
-// pub const MAXSTUDIOMODELS: u32 = 32;
-// pub const MAXSTUDIOBODYPARTS: u32 = 32;
-// pub const MAXSTUDIOGROUPS: u32 = 16;
-// pub const MAXSTUDIOMESHES: u32 = 256;
-// pub const MAXSTUDIOCONTROLLERS: u32 = 32;
-// pub const MAXSTUDIOATTACHMENTS: u32 = 64;
-// pub const MAXSTUDIOBONEWEIGHTS: u32 = 4;
-// pub const MAXSTUDIONAME: u32 = 32;
-// pub const MAXSTUDIOPOSEPARAM: u32 = 24;
-// pub const MAX_STUDIO_LIGHTMAP_SIZE: u32 = 256;
-// pub const STUDIO_ROCKET: u32 = 1;
-// pub const STUDIO_GRENADE: u32 = 2;
-// pub const STUDIO_GIB: u32 = 4;
-// pub const STUDIO_ROTATE: u32 = 8;
-// pub const STUDIO_TRACER: u32 = 16;
-// pub const STUDIO_ZOMGIB: u32 = 32;
-// pub const STUDIO_TRACER2: u32 = 64;
-// pub const STUDIO_TRACER3: u32 = 128;
-// pub const STUDIO_AMBIENT_LIGHT: u32 = 256;
-// pub const STUDIO_TRACE_HITBOX: u32 = 512;
-// pub const STUDIO_FORCE_SKYLIGHT: u32 = 1024;
-// pub const STUDIO_HAS_BUMP: u32 = 65536;
-// pub const STUDIO_STATIC_PROP: u32 = 536870912;
-// pub const STUDIO_HAS_BONEINFO: u32 = 1073741824;
-// pub const STUDIO_HAS_BONEWEIGHTS: u32 = 2147483648;
-// pub const STUDIO_NF_FLATSHADE: u32 = 1;
-// pub const STUDIO_NF_CHROME: u32 = 2;
-// pub const STUDIO_NF_FULLBRIGHT: u32 = 4;
-// pub const STUDIO_NF_NOMIPS: u32 = 8;
-// pub const STUDIO_NF_SMOOTH: u32 = 16;
-// pub const STUDIO_NF_ADDITIVE: u32 = 32;
-// pub const STUDIO_NF_MASKED: u32 = 64;
-// pub const STUDIO_NF_NORMALMAP: u32 = 128;
-// pub const STUDIO_NF_GLOSSMAP: u32 = 256;
-// pub const STUDIO_NF_GLOSSPOWER: u32 = 512;
-// pub const STUDIO_NF_LUMA: u32 = 1024;
-// pub const STUDIO_NF_ALPHASOLID: u32 = 2048;
-// pub const STUDIO_NF_TWOSIDE: u32 = 4096;
-// pub const STUDIO_NF_HEIGHTMAP: u32 = 8192;
-// pub const STUDIO_NF_NODRAW: u32 = 65536;
-// pub const STUDIO_NF_NODLIGHT: u32 = 131072;
-// pub const STUDIO_NF_NOSUNLIGHT: u32 = 262144;
-// pub const STUDIO_NF_HAS_ALPHA: u32 = 1048576;
-// pub const STUDIO_NF_HAS_DETAIL: u32 = 2097152;
-// pub const STUDIO_NF_COLORMAP: u32 = 1073741824;
-// pub const STUDIO_NF_UV_COORDS: u32 = 2147483648;
-// pub const STUDIO_X: u32 = 1;
-// pub const STUDIO_Y: u32 = 2;
-// pub const STUDIO_Z: u32 = 4;
-// pub const STUDIO_XR: u32 = 8;
-// pub const STUDIO_YR: u32 = 16;
-// pub const STUDIO_ZR: u32 = 32;
-// pub const STUDIO_LX: u32 = 64;
-// pub const STUDIO_LY: u32 = 128;
-// pub const STUDIO_LZ: u32 = 256;
-// pub const STUDIO_LXR: u32 = 512;
-// pub const STUDIO_LYR: u32 = 1024;
-// pub const STUDIO_LZR: u32 = 2048;
-// pub const STUDIO_LINEAR: u32 = 4096;
-// pub const STUDIO_QUADRATIC_MOTION: u32 = 8192;
-// pub const STUDIO_RESERVED: u32 = 16384;
-// pub const STUDIO_TYPES: u32 = 32767;
-// pub const STUDIO_RLOOP: u32 = 32768;
-// pub const STUDIO_MOUTH: u32 = 4;
-// pub const STUDIO_LOOPING: u32 = 1;
-// pub const STUDIO_SNAP: u32 = 2;
-// pub const STUDIO_DELTA: u32 = 4;
-// pub const STUDIO_AUTOPLAY: u32 = 8;
-// pub const STUDIO_POST: u32 = 16;
-// pub const STUDIO_ALLZEROS: u32 = 32;
-// pub const STUDIO_BLENDPOSE: u32 = 64;
-// pub const STUDIO_CYCLEPOSE: u32 = 128;
-// pub const STUDIO_REALTIME: u32 = 256;
-// pub const STUDIO_LOCAL: u32 = 512;
-// pub const STUDIO_HIDDEN: u32 = 1024;
-// pub const STUDIO_IKRULES: u32 = 2048;
-// pub const STUDIO_ACTIVITY: u32 = 4096;
-// pub const STUDIO_EVENT: u32 = 8192;
-// pub const STUDIO_WORLD: u32 = 16384;
-// pub const STUDIO_LIGHT_FROM_ROOT: u32 = 32768;
-// pub const STUDIO_AL_POST: u32 = 1;
-// pub const STUDIO_AL_SPLINE: u32 = 2;
-// pub const STUDIO_AL_XFADE: u32 = 4;
-// pub const STUDIO_AL_NOBLEND: u32 = 8;
-// pub const STUDIO_AL_LOCAL: u32 = 16;
-// pub const STUDIO_AL_POSE: u32 = 32;
-// pub const BONE_ALWAYS_PROCEDURAL: u32 = 1;
-// pub const BONE_SCREEN_ALIGN_SPHERE: u32 = 2;
-// pub const BONE_SCREEN_ALIGN_CYLINDER: u32 = 4;
-// pub const BONE_JIGGLE_PROCEDURAL: u32 = 8;
-// pub const BONE_FIXED_ALIGNMENT: u32 = 16;
-// pub const BONE_USED_BY_HITBOX: u32 = 256;
-// pub const BONE_USED_BY_ATTACHMENT: u32 = 512;
-// pub const BONE_USED_BY_VERTEX: u32 = 1024;
-// pub const BONE_USED_BY_BONE_MERGE: u32 = 2048;
-// pub const STUDIO_PROC_AXISINTERP: u32 = 1;
-// pub const STUDIO_PROC_QUATINTERP: u32 = 2;
-// pub const STUDIO_PROC_AIMATBONE: u32 = 3;
-// pub const STUDIO_PROC_AIMATATTACH: u32 = 4;
-// pub const STUDIO_PROC_JIGGLE: u32 = 5;
-// pub const JIGGLE_IS_FLEXIBLE: u32 = 1;
-// pub const JIGGLE_IS_RIGID: u32 = 2;
-// pub const JIGGLE_HAS_YAW_CONSTRAINT: u32 = 4;
-// pub const JIGGLE_HAS_PITCH_CONSTRAINT: u32 = 8;
-// pub const JIGGLE_HAS_ANGLE_CONSTRAINT: u32 = 16;
-// pub const JIGGLE_HAS_LENGTH_CONSTRAINT: u32 = 32;
-// pub const JIGGLE_HAS_BASE_SPRING: u32 = 64;
-// pub const JIGGLE_IS_BOING: u32 = 128;
-// pub const STUDIO_ATTACHMENT_LOCAL: u32 = 1;
-// pub const IK_SELF: u32 = 1;
-// pub const IK_WORLD: u32 = 2;
-// pub const IK_GROUND: u32 = 3;
-// pub const IK_RELEASE: u32 = 4;
-// pub const IK_ATTACHMENT: u32 = 5;
-// pub const IK_UNLATCH: u32 = 6;
-
-// pub const svc_bad: u32 = 0;
-// pub const svc_nop: u32 = 1;
-// pub const svc_disconnect: u32 = 2;
-// pub const svc_event: u32 = 3;
-// pub const svc_changing: u32 = 4;
-// pub const svc_setview: u32 = 5;
-// pub const svc_sound: u32 = 6;
-// pub const svc_time: u32 = 7;
-// pub const svc_print: u32 = 8;
-// pub const svc_stufftext: u32 = 9;
-// pub const svc_setangle: u32 = 10;
-// pub const svc_serverdata: u32 = 11;
-// pub const svc_lightstyle: u32 = 12;
-// pub const svc_updateuserinfo: u32 = 13;
-// pub const svc_deltatable: u32 = 14;
-// pub const svc_clientdata: u32 = 15;
-// pub const svc_resource: u32 = 16;
-// pub const svc_pings: u32 = 17;
-// pub const svc_particle: u32 = 18;
-// pub const svc_restoresound: u32 = 19;
-// pub const svc_spawnstatic: u32 = 20;
-// pub const svc_event_reliable: u32 = 21;
-// pub const svc_spawnbaseline: u32 = 22;
-// pub const svc_temp_entity: u32 = 23;
-// pub const svc_setpause: u32 = 24;
-// pub const svc_signonnum: u32 = 25;
-// pub const svc_centerprint: u32 = 26;
-// pub const svc_intermission: u32 = 30;
-// pub const svc_finale: u32 = 31;
-// pub const svc_cdtrack: u32 = 32;
-// pub const svc_restore: u32 = 33;
-// pub const svc_cutscene: u32 = 34;
-// pub const svc_weaponanim: u32 = 35;
-// pub const svc_bspdecal: u32 = 36;
-// pub const svc_roomtype: u32 = 37;
-// pub const svc_addangle: u32 = 38;
-// pub const svc_usermessage: u32 = 39;
-// pub const svc_packetentities: u32 = 40;
-// pub const svc_deltapacketentities: u32 = 41;
-// pub const svc_choke: u32 = 42;
-// pub const svc_resourcelist: u32 = 43;
-// pub const svc_deltamovevars: u32 = 44;
-// pub const svc_resourcerequest: u32 = 45;
-// pub const svc_customization: u32 = 46;
-// pub const svc_crosshairangle: u32 = 47;
-// pub const svc_soundfade: u32 = 48;
-// pub const svc_filetxferfailed: u32 = 49;
-// pub const svc_hltv: u32 = 50;
-// pub const svc_director: u32 = 51;
-// pub const svc_voiceinit: u32 = 52;
-// pub const svc_voicedata: u32 = 53;
-// pub const svc_resourcelocation: u32 = 56;
-// pub const svc_querycvarvalue: u32 = 57;
-// pub const svc_querycvarvalue2: u32 = 58;
-// pub const svc_exec: u32 = 59;
-// pub const svc_lastmsg: u32 = 59;
-
-// pub const clc_bad: u32 = 0;
-// pub const clc_nop: u32 = 1;
-// pub const clc_move: u32 = 2;
-// pub const clc_stringcmd: u32 = 3;
-// pub const clc_delta: u32 = 4;
-// pub const clc_resourcelist: u32 = 5;
-// pub const clc_fileconsistency: u32 = 7;
-// pub const clc_voicedata: u32 = 8;
-// pub const clc_requestcvarvalue: u32 = 9;
-// pub const clc_requestcvarvalue2: u32 = 10;
-// pub const clc_lastmsg: u32 = 11;
-
-// pub const SND_VOLUME: u32 = 1;
-// pub const SND_ATTENUATION: u32 = 2;
-// pub const SND_SEQUENCE: u32 = 4;
-// pub const SND_PITCH: u32 = 8;
-// pub const SND_SENTENCE: u32 = 16;
-// pub const SND_STOP: u32 = 32;
-// pub const SND_CHANGE_VOL: u32 = 64;
-// pub const SND_CHANGE_PITCH: u32 = 128;
-// pub const SND_SPAWNING: u32 = 256;
-// pub const SND_LOCALSOUND: u32 = 512;
-// pub const SND_STOP_LOOPING: u32 = 1024;
-// pub const SND_FILTER_CLIENT: u32 = 2048;
-// pub const SND_RESTORE_POSITION: u32 = 4096;
-// pub const FDECAL_PERMANENT: u32 = 1;
-// pub const FDECAL_USE_LANDMARK: u32 = 2;
-// pub const FDECAL_CUSTOM: u32 = 4;
-// pub const FDECAL_DONTSAVE: u32 = 32;
-// pub const FDECAL_STUDIO: u32 = 64;
-// pub const FDECAL_LOCAL_SPACE: u32 = 128;
-// pub const GAME_SINGLEPLAYER: u32 = 0;
-// pub const GAME_DEATHMATCH: u32 = 1;
-// pub const GAME_COOP: u32 = 2;
-// pub const GAME_TEAMPLAY: u32 = 4;
-// pub const NUM_BACKUP_COMMAND_BITS: u32 = 4;
-// pub const MAX_TOTAL_CMDS: u32 = 32;
-// pub const MAX_RESOURCES: u32 = 8192;
-// pub const MAX_RESOURCE_BITS: u32 = 13;
-// pub const FRAGMENT_MIN_SIZE: u32 = 508;
-// pub const FRAGMENT_DEFAULT_SIZE: u32 = 1200;
-// pub const FRAGMENT_MAX_SIZE: u32 = 64000;
-// pub const FRAGMENT_LOCAL_SIZE: u32 = 64000;
-
-// pub const svc_updatestat: u32 = 3;
-// pub const svc_version: u32 = 4;
-// pub const svc_updatename: u32 = 13;
-// pub const svc_updatefrags: u32 = 14;
-// pub const svc_stopsound: u32 = 16;
-// pub const svc_updatecolors: u32 = 17;
-// pub const svc_damage: u32 = 19;
-// pub const svc_spawnbinary: u32 = 21;
-// pub const svc_killedmonster: u32 = 27;
-// pub const svc_foundsecret: u32 = 28;
-// pub const svc_spawnstaticsound: u32 = 29;
-// pub const svc_sellscreen: u32 = 33;
-// pub const svc_showlmp: u32 = 35;
-// pub const svc_hidelmp: u32 = 36;
-// pub const svc_skybox: u32 = 37;
-// pub const svc_skyboxsize: u32 = 50;
-// pub const svc_fog: u32 = 51;
-
-// pub const U_MOREBITS: u32 = 1;
-// pub const U_ORIGIN1: u32 = 2;
-// pub const U_ORIGIN2: u32 = 4;
-// pub const U_ORIGIN3: u32 = 8;
-// pub const U_ANGLE2: u32 = 16;
-// pub const U_NOLERP: u32 = 32;
-// pub const U_FRAME: u32 = 64;
-// pub const U_SIGNAL: u32 = 128;
-// pub const U_ANGLE1: u32 = 256;
-// pub const U_ANGLE3: u32 = 512;
-// pub const U_MODEL: u32 = 1024;
-// pub const U_COLORMAP: u32 = 2048;
-// pub const U_SKIN: u32 = 4096;
-// pub const U_EFFECTS: u32 = 8192;
-// pub const U_LONGENTITY: u32 = 16384;
-// pub const U_TRANS: u32 = 32768;
-
-// pub const SU_VIEWHEIGHT: u32 = 1;
-// pub const SU_IDEALPITCH: u32 = 2;
-// pub const SU_PUNCH1: u32 = 4;
-// pub const SU_PUNCH2: u32 = 8;
-// pub const SU_PUNCH3: u32 = 16;
-// pub const SU_VELOCITY1: u32 = 32;
-// pub const SU_VELOCITY2: u32 = 64;
-// pub const SU_VELOCITY3: u32 = 128;
-// pub const SU_ITEMS: u32 = 512;
-// pub const SU_ONGROUND: u32 = 1024;
-// pub const SU_INWATER: u32 = 2048;
-// pub const SU_WEAPONFRAME: u32 = 4096;
-// pub const SU_ARMOR: u32 = 8192;
-// pub const SU_WEAPON: u32 = 16384;
-
-// pub const NET_EXT_SPLITSIZE: u32 = 1;
-// pub const PROTOCOL_LEGACY_VERSION: u32 = 48;
-
-// pub const svc_legacy_modelindex: u32 = 31;
-// pub const svc_legacy_soundindex: u32 = 28;
-// pub const svc_legacy_eventindex: u32 = 34;
-// pub const svc_legacy_ambientsound: u32 = 29;
-// pub const svc_legacy_chokecount: u32 = 42;
-// pub const svc_legacy_event: u32 = 27;
-// pub const svc_legacy_changing: u32 = 3;
-// pub const clc_legacy_userinfo: u32 = 6;
-
-// pub const SND_LEGACY_LARGE_INDEX: u32 = 4;
-// pub const MAX_LEGACY_ENTITY_BITS: u32 = 12;
-// pub const MAX_LEGACY_WEAPON_BITS: u32 = 5;
-// pub const MAX_LEGACY_MODEL_BITS: u32 = 11;
-// pub const MAX_LEGACY_TOTAL_CMDS: u32 = 16;
-// pub const MAX_LEGACY_BACKUP_CMDS: u32 = 12;
-// pub const MAX_LEGACY_EDICTS: u32 = 4096;
-// pub const MIN_LEGACY_EDICTS: u32 = 30;
-// pub const MS_SCAN_REQUEST: &[u8; 13] = b"1\xFF0.0.0.0:0\0\0";
-
-// pub const PROTOCOL_GOLDSRC_VERSION: u32 = 48;
-
-// pub const svc_goldsrc_version: u32 = 4;
-// pub const svc_goldsrc_stopsound: u32 = 16;
-// pub const svc_goldsrc_damage: u32 = 19;
-// pub const svc_goldsrc_killedmonster: u32 = 27;
-// pub const svc_goldsrc_foundsecret: u32 = 28;
-// pub const svc_goldsrc_spawnstaticsound: u32 = 29;
-// pub const svc_goldsrc_decalname: u32 = 36;
-// pub const svc_goldsrc_sendextrainfo: u32 = 54;
-// pub const svc_goldsrc_timescale: u32 = 55;
-// pub const clc_goldsrc_hltv: u32 = 9;
-// pub const clc_goldsrc_requestcvarvalue: u32 = 10;
-// pub const clc_goldsrc_requestcvarvalue2: u32 = 11;
-// pub const clc_goldsrc_lastmsg: u32 = 11;
-// pub const MAX_GOLDSRC_BACKUP_CMDS: u32 = 8;
-// pub const MAX_GOLDSRC_TOTAL_CMDS: u32 = 16;
-// pub const MAX_GOLDSRC_EXTENDED_TOTAL_CMDS: u32 = 62;
-// pub const MAX_GOLDSRC_MODEL_BITS: u32 = 10;
-// pub const MAX_GOLDSRC_RESOURCE_BITS: u32 = 12;
-// pub const MAX_GOLDSRC_ENTITY_BITS: u32 = 11;
-// pub const A2A_PING: &CStr = c"ping";
-// pub const A2A_ACK: &CStr = c"ack";
-// pub const A2A_INFO: &CStr = c"info";
-// pub const A2A_NETINFO: &CStr = c"netinfo";
-// pub const A2A_GOLDSRC_PING: &CStr = c"i";
-// pub const A2A_GOLDSRC_ACK: &CStr = c"j";
-// pub const A2S_GOLDSRC_INFO: &CStr = c"TSource Engine Query";
-// pub const A2S_GOLDSRC_RULES: u8 = 86u8;
-// pub const A2S_GOLDSRC_PLAYERS: u8 = 85u8;
-// pub const S2A_GOLDSRC_INFO: u8 = 73u8;
-// pub const S2A_GOLDSRC_RULES: u8 = 69u8;
-// pub const S2A_GOLDSRC_PLAYERS: u8 = 68u8;
-// pub const M2S_CHALLENGE: &CStr = c"s";
-// pub const M2S_NAT_CONNECT: &CStr = c"c";
-// pub const S2M_INFO: &CStr = c"0\n";
-// pub const C2S_BANDWIDTHTEST: &CStr = c"bandwidth";
-// pub const C2S_GETCHALLENGE: &CStr = c"getchallenge";
-// pub const C2S_CONNECT: &CStr = c"connect";
-// pub const C2S_RCON: &CStr = c"rcon";
-// pub const S2C_BANDWIDTHTEST: &CStr = c"testpacket";
-// pub const S2C_CHALLENGE: &CStr = c"challenge";
-// pub const S2C_CONNECTION: &CStr = c"client_connect";
-// pub const S2C_ERRORMSG: &CStr = c"errormsg";
-// pub const S2C_REJECT: &CStr = c"disconnect";
-// pub const S2C_GOLDSRC_REJECT_BADPASSWORD: u8 = 56u8;
-// pub const S2C_GOLDSRC_REJECT: u8 = 57u8;
-// pub const S2C_GOLDSRC_CHALLENGE: &CStr = c"A00000000";
-// pub const S2C_GOLDSRC_CONNECTION: &CStr = c"B";
-// pub const A2C_PRINT: &CStr = c"print";
-// pub const A2C_GOLDSRC_PRINT: u8 = 108u8;
-// pub const M2A_SERVERSLIST: &CStr = c"f";
-
-// pub type pfnCreateInterface_t = Option<
-//     unsafe extern "C" fn(
-//         arg1: *const c_char,
-//         arg2: *mut c_int,
-//     ) -> *mut c_void,
-// >;
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct server_studio_api_s {
-    pub Mem_Calloc: Option<unsafe extern "C" fn(number: c_int, size: usize) -> *mut c_void>,
-    pub Cache_Check: Option<unsafe extern "C" fn(c: *mut cache_user_s) -> *mut c_void>,
-    pub LoadCacheFile: Option<unsafe extern "C" fn(path: *const c_char, cu: *mut cache_user_s)>,
-    pub Mod_Extradata: Option<unsafe extern "C" fn(mod_: *mut model_s) -> *mut c_void>,
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct sv_blending_interface_s {
-    pub version: c_int,
-    pub SV_StudioSetupBones: Option<
-        unsafe extern "C" fn(
-            pModel: *mut model_s,
-            frame: f32,
-            sequence: c_int,
-            angles: *mut vec3_t,
-            origin: *mut vec3_t,
-            pcontroller: *const byte,
-            pblending: *const byte,
-            iBone: c_int,
-            pEdict: *const edict_s,
-        ),
-    >,
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct render_api_s {
-    pub RenderGetParm: Option<unsafe extern "C" fn(parm: c_int, arg: c_int) -> isize>,
-    pub GetDetailScaleForTexture:
-        Option<unsafe extern "C" fn(texture: c_int, xScale: *mut f32, yScale: *mut f32)>,
-    pub GetExtraParmsForTexture: Option<
-        unsafe extern "C" fn(
-            texture: c_int,
-            red: *mut byte,
-            green: *mut byte,
-            blue: *mut byte,
-            alpha: *mut byte,
-        ),
-    >,
-    pub GetLightStyle: Option<unsafe extern "C" fn(number: c_int) -> *mut lightstyle_t>,
-    pub GetDynamicLight: Option<unsafe extern "C" fn(number: c_int) -> *mut dlight_s>,
-    pub GetEntityLight: Option<unsafe extern "C" fn(number: c_int) -> *mut dlight_s>,
-    pub LightToTexGamma: Option<unsafe extern "C" fn(color: byte) -> byte>,
-    pub GetFrameTime: Option<unsafe extern "C" fn() -> f32>,
-    pub R_SetCurrentEntity: Option<unsafe extern "C" fn(ent: *mut cl_entity_s)>,
-    pub R_SetCurrentModel: Option<unsafe extern "C" fn(mod_: *mut model_s)>,
-    pub R_FatPVS: Option<
-        unsafe extern "C" fn(
-            org: *const f32,
-            radius: f32,
-            visbuffer: *mut byte,
-            merge: qboolean,
-            fullvis: qboolean,
-        ) -> c_int,
-    >,
-    pub R_StoreEfrags: Option<unsafe extern "C" fn(ppefrag: *mut *mut efrag_s, framecount: c_int)>,
-    pub GL_FindTexture: Option<unsafe extern "C" fn(name: *const c_char) -> c_int>,
-    pub GL_TextureName: Option<unsafe extern "C" fn(texnum: c_uint) -> *const c_char>,
-    pub GL_TextureData: Option<unsafe extern "C" fn(texnum: c_uint) -> *const byte>,
-    pub GL_LoadTexture: Option<
-        unsafe extern "C" fn(
-            name: *const c_char,
-            buf: *const byte,
-            size: usize,
-            flags: c_int,
-        ) -> c_int,
-    >,
-    pub GL_CreateTexture: Option<
-        unsafe extern "C" fn(
-            name: *const c_char,
-            width: c_int,
-            height: c_int,
-            buffer: *const c_void,
-            flags: TextureFlags,
-        ) -> c_int,
-    >,
-    pub GL_LoadTextureArray:
-        Option<unsafe extern "C" fn(names: *mut *const c_char, flags: c_int) -> c_int>,
-    pub GL_CreateTextureArray: Option<
-        unsafe extern "C" fn(
-            name: *const c_char,
-            width: c_int,
-            height: c_int,
-            depth: c_int,
-            buffer: *const c_void,
-            flags: TextureFlags,
-        ) -> c_int,
-    >,
-    pub GL_FreeTexture: Option<unsafe extern "C" fn(texnum: c_uint)>,
-    pub DrawSingleDecal: Option<unsafe extern "C" fn(pDecal: *mut decal_s, fa: *mut msurface_s)>,
-    pub R_DecalSetupVerts: Option<
-        unsafe extern "C" fn(
-            pDecal: *mut decal_s,
-            surf: *mut msurface_s,
-            texture: c_int,
-            outCount: *mut c_int,
-        ) -> *mut f32,
-    >,
-    pub R_EntityRemoveDecals: Option<unsafe extern "C" fn(mod_: *mut model_s)>,
-    pub AVI_LoadVideo:
-        Option<unsafe extern "C" fn(filename: *const c_char, load_audio: qboolean) -> *mut c_void>,
-    pub AVI_GetVideoInfo: Option<
-        unsafe extern "C" fn(
-            Avi: *mut c_void,
-            xres: *mut c_int,
-            yres: *mut c_int,
-            duration: *mut f32,
-        ) -> c_int,
-    >,
-    pub AVI_GetVideoFrameNumber: Option<unsafe extern "C" fn(Avi: *mut c_void, time: f32) -> c_int>,
-    pub AVI_GetVideoFrame:
-        Option<unsafe extern "C" fn(Avi: *mut c_void, frame: c_int) -> *mut byte>,
-    pub AVI_UploadRawFrame: Option<
-        unsafe extern "C" fn(
-            texture: c_int,
-            cols: c_int,
-            rows: c_int,
-            width: c_int,
-            height: c_int,
-            data: *const byte,
-        ),
-    >,
-    pub AVI_FreeVideo: Option<unsafe extern "C" fn(Avi: *mut c_void)>,
-    pub AVI_IsActive: Option<unsafe extern "C" fn(Avi: *mut c_void) -> c_int>,
-    pub AVI_StreamSound: Option<
-        unsafe extern "C" fn(Avi: *mut c_void, entnum: c_int, fvol: f32, attn: f32, synctime: f32),
-    >,
-    pub AVI_Reserved0: Option<unsafe extern "C" fn()>,
-    pub AVI_Reserved1: Option<unsafe extern "C" fn()>,
-    pub GL_Bind: Option<unsafe extern "C" fn(tmu: c_int, texnum: c_uint)>,
-    pub GL_SelectTexture: Option<unsafe extern "C" fn(tmu: c_int)>,
-    pub GL_LoadTextureMatrix: Option<unsafe extern "C" fn(glmatrix: *const f32)>,
-    pub GL_TexMatrixIdentity: Option<unsafe extern "C" fn()>,
-    pub GL_CleanUpTextureUnits: Option<unsafe extern "C" fn(last: c_int)>,
-    pub GL_TexGen: Option<unsafe extern "C" fn(coord: c_uint, mode: c_uint)>,
-    pub GL_TextureTarget: Option<unsafe extern "C" fn(target: c_uint)>,
-    pub GL_TexCoordArrayMode: Option<unsafe extern "C" fn(texmode: c_uint)>,
-    pub GL_GetProcAddress: Option<unsafe extern "C" fn(name: *const c_char) -> *mut c_void>,
-    pub GL_UpdateTexSize:
-        Option<unsafe extern "C" fn(texnum: c_int, width: c_int, height: c_int, depth: c_int)>,
-    pub GL_Reserved0: Option<unsafe extern "C" fn()>,
-    pub GL_Reserved1: Option<unsafe extern "C" fn()>,
-    pub GL_DrawParticles: Option<
-        unsafe extern "C" fn(rvp: *const ref_viewpass_s, trans_pass: qboolean, frametime: f32),
-    >,
-    pub EnvShot: Option<
-        unsafe extern "C" fn(
-            vieworg: *const f32,
-            name: *const c_char,
-            skyshot: qboolean,
-            shotsize: c_int,
-        ),
-    >,
-    pub SPR_LoadExt:
-        Option<unsafe extern "C" fn(szPicName: *const c_char, texFlags: c_uint) -> c_int>,
-    pub LightVec: Option<
-        unsafe extern "C" fn(
-            start: *const f32,
-            end: *const f32,
-            lightspot: *mut f32,
-            lightvec: *mut f32,
-        ) -> colorVec,
-    >,
-    pub StudioGetTexture: Option<unsafe extern "C" fn(e: *mut cl_entity_s) -> *mut mstudiotex_s>,
-    pub GetOverviewParms: Option<unsafe extern "C" fn() -> *const ref_overview_s>,
-    pub GetFileByIndex: Option<unsafe extern "C" fn(fileindex: c_int) -> *const c_char>,
-    pub pfnSaveFile: Option<
-        unsafe extern "C" fn(filename: *const c_char, data: *const c_void, len: c_int) -> c_int,
-    >,
-    pub R_Reserved0: Option<unsafe extern "C" fn()>,
-    pub pfnMemAlloc: Option<
-        unsafe extern "C" fn(cb: usize, filename: *const c_char, fileline: c_int) -> *mut c_void,
-    >,
-    pub pfnMemFree:
-        Option<unsafe extern "C" fn(mem: *mut c_void, filename: *const c_char, fileline: c_int)>,
-    pub pfnGetFilesList: Option<
-        unsafe extern "C" fn(
-            pattern: *const c_char,
-            numFiles: *mut c_int,
-            gamedironly: c_int,
-        ) -> *mut *mut c_char,
-    >,
-    pub pfnFileBufferCRC32:
-        Option<unsafe extern "C" fn(buffer: *const c_void, length: c_int) -> c_uint>,
-    pub COM_CompareFileTime: Option<
-        unsafe extern "C" fn(
-            filename1: *const c_char,
-            filename2: *const c_char,
-            iCompare: *mut c_int,
-        ) -> c_int,
-    >,
-    pub Host_Error: Option<unsafe extern "C" fn(error: *const c_char, ...)>,
-    pub pfnGetModel: Option<unsafe extern "C" fn(modelindex: c_int) -> *mut c_void>,
-    pub pfnTime: Option<unsafe extern "C" fn() -> f32>,
-    pub Cvar_Set: Option<unsafe extern "C" fn(name: *const c_char, value: *const c_char)>,
-    pub S_FadeMusicVolume: Option<unsafe extern "C" fn(fadePercent: f32)>,
-    pub SetRandomSeed: Option<unsafe extern "C" fn(lSeed: c_int)>,
-}
-
+/// rgbdata_s.type_
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Default)]
 #[non_exhaustive]
 #[repr(C)]
@@ -668,6 +139,13 @@ pub enum PixelFormat {
 pub type pixformat_t = PixelFormat;
 
 impl PixelFormat {
+    pub fn from_raw(raw: uint) -> Option<Self> {
+        if raw <= PixelFormat::TOTALCOUNT as uint {
+            Some(unsafe { mem::transmute::<uint, Self>(raw) })
+        } else {
+            None
+        }
+    }
     pub const fn is_raw(&self) -> bool {
         matches!(
             self,
@@ -695,15 +173,6 @@ impl PixelFormat {
     }
 }
 
-#[repr(C)]
-pub struct bpc_desc_s {
-    pub format: c_int,
-    pub name: [c_char; 16],
-    pub glFormat: c_uint,
-    pub bpp: c_int,
-}
-pub type bpc_desc_t = bpc_desc_s;
-
 bitflags! {
     #[derive(Copy, Clone, PartialEq, Eq)]
     #[repr(transparent)]
@@ -721,6 +190,7 @@ bitflags! {
 }
 
 bitflags! {
+    /// rgbdata_s.flags
     #[derive(Copy, Clone, PartialEq, Eq, Debug, Default)]
     #[repr(transparent)]
     pub struct ImageFlags: c_uint {
@@ -750,511 +220,6 @@ bitflags! {
         const REMAP         = 1 << 27;  // interpret width and height as top and bottom color
     }
 }
-pub type imgFlags_t = ImageFlags;
-
-#[repr(C)]
-pub struct rgbdata_s {
-    pub width: word,
-    pub height: word,
-    pub depth: word,
-    pub type_: PixelFormat,
-    pub flags: ImageFlags,
-    pub encode: word,
-    pub numMips: byte,
-    pub palette: *mut byte,
-    pub buffer: *mut byte,
-    pub fogParams: rgba_t,
-    pub size: usize,
-}
-pub type rgbdata_t = rgbdata_s;
-
-#[repr(C)]
-pub struct studiohdr_s {
-    pub ident: i32,
-    pub version: i32,
-    pub name: [c_char; 64],
-    pub length: i32,
-    pub eyeposition: vec3_t,
-    pub min: vec3_t,
-    pub max: vec3_t,
-    pub bbmin: vec3_t,
-    pub bbmax: vec3_t,
-    pub flags: i32,
-    pub numbones: i32,
-    pub boneindex: i32,
-    pub numbonecontrollers: i32,
-    pub bonecontrollerindex: i32,
-    pub numhitboxes: i32,
-    pub hitboxindex: i32,
-    pub numseq: i32,
-    pub seqindex: i32,
-    pub numseqgroups: i32,
-    pub seqgroupindex: i32,
-    pub numtextures: i32,
-    pub textureindex: i32,
-    pub texturedataindex: i32,
-    pub numskinref: i32,
-    pub numskinfamilies: i32,
-    pub skinindex: i32,
-    pub numbodyparts: i32,
-    pub bodypartindex: i32,
-    pub numattachments: i32,
-    pub attachmentindex: i32,
-    pub studiohdr2index: i32,
-    pub unused: i32,
-    pub unused2: i32,
-    pub unused3: i32,
-    pub numtransitions: i32,
-    pub transitionindex: i32,
-}
-
-#[repr(C)]
-pub struct studiohdr2_t {
-    pub numposeparameters: i32,
-    pub poseparamindex: i32,
-    pub numikautoplaylocks: i32,
-    pub ikautoplaylockindex: i32,
-    pub numikchains: i32,
-    pub ikchainindex: i32,
-    pub keyvalueindex: i32,
-    pub keyvaluesize: i32,
-    pub numhitboxsets: i32,
-    pub hitboxsetindex: i32,
-    pub unused: [i32; 6],
-}
-
-#[repr(C)]
-pub struct studioseqhdr_t {
-    pub id: i32,
-    pub version: i32,
-    pub name: [c_char; 64],
-    pub length: i32,
-}
-
-#[repr(C)]
-pub struct mstudiobone_s {
-    pub name: [c_char; 32],
-    pub parent: i32,
-    pub unused: i32,
-    pub bonecontroller: [i32; 6],
-    pub value: [vec_t; 6],
-    pub scale: [vec_t; 6],
-}
-pub type mstudiobone_t = mstudiobone_s;
-
-#[repr(C)]
-pub struct mstudioaxisinterpbone_t {
-    pub control: i32,
-    pub axis: i32,
-    pub pos: [vec3_t; 6],
-    pub quat: [vec4_t; 6],
-}
-
-#[repr(C)]
-pub struct mstudioquatinterpinfo_t {
-    pub inv_tolerance: vec_t,
-    pub trigger: vec4_t,
-    pub pos: vec3_t,
-    pub quat: vec4_t,
-}
-
-#[repr(C)]
-pub struct mstudioquatinterpbone_t {
-    pub control: i32,
-    pub numtriggers: i32,
-    pub triggerindex: i32,
-}
-
-#[repr(C)]
-pub struct mstudioboneinfo_t {
-    pub poseToBone: [[vec_t; 4]; 3],
-    pub qAlignment: vec4_t,
-    pub proctype: i32,
-    pub procindex: i32,
-    pub quat: vec4_t,
-    pub reserved: [i32; 10],
-}
-
-#[repr(C)]
-pub struct mstudiojigglebone_t {
-    pub flags: i32,
-    pub length: vec_t,
-    pub tipMass: vec_t,
-    pub yawStiffness: vec_t,
-    pub yawDamping: vec_t,
-    pub pitchStiffness: vec_t,
-    pub pitchDamping: vec_t,
-    pub alongStiffness: vec_t,
-    pub alongDamping: vec_t,
-    pub angleLimit: vec_t,
-    pub minYaw: vec_t,
-    pub maxYaw: vec_t,
-    pub yawFriction: vec_t,
-    pub yawBounce: vec_t,
-    pub minPitch: vec_t,
-    pub maxPitch: vec_t,
-    pub pitchFriction: vec_t,
-    pub pitchBounce: vec_t,
-    pub baseMass: vec_t,
-    pub baseStiffness: vec_t,
-    pub baseDamping: vec_t,
-    pub baseMinLeft: vec_t,
-    pub baseMaxLeft: vec_t,
-    pub baseLeftFriction: vec_t,
-    pub baseMinUp: vec_t,
-    pub baseMaxUp: vec_t,
-    pub baseUpFriction: vec_t,
-    pub baseMinForward: vec_t,
-    pub baseMaxForward: vec_t,
-    pub baseForwardFriction: vec_t,
-    pub boingImpactSpeed: vec_t,
-    pub boingImpactAngle: vec_t,
-    pub boingDampingRate: vec_t,
-    pub boingFrequency: vec_t,
-    pub boingAmplitude: vec_t,
-}
-
-#[repr(C)]
-pub struct mstudioaimatbone_t {
-    pub parent: i32,
-    pub aim: i32,
-    pub aimvector: vec3_t,
-    pub upvector: vec3_t,
-    pub basepos: vec3_t,
-}
-
-#[repr(C)]
-pub struct mstudiobonecontroller_t {
-    pub bone: i32,
-    pub type_: i32,
-    pub start: vec_t,
-    pub end: vec_t,
-    pub unused: i32,
-    pub index: i32,
-}
-
-#[repr(C)]
-pub struct mstudiobbox_t {
-    pub bone: i32,
-    pub group: i32,
-    pub bbmin: vec3_t,
-    pub bbmax: vec3_t,
-}
-
-#[repr(C)]
-pub struct mstudiohitboxset_t {
-    pub name: [c_char; 32],
-    pub numhitboxes: i32,
-    pub hitboxindex: i32,
-}
-
-#[repr(C)]
-pub struct mstudioseqgroup_t {
-    pub label: [c_char; 32],
-    pub name: [c_char; 64],
-    pub unused: i32,
-    pub unused2: i32,
-}
-
-#[repr(C)]
-pub struct mstudioattachment_t {
-    pub unused: [c_char; 32],
-    pub flags: i32,
-    pub bone: i32,
-    pub org: vec3_t,
-    pub vectors: [vec3_t; 3],
-}
-
-#[repr(C)]
-pub struct mstudioikerror_t {
-    pub scale: [vec_t; 6],
-    pub offset: [u16; 6],
-}
-
-#[repr(C)]
-pub struct mstudioikrule_t {
-    pub index: i32,
-    pub type_: i32,
-    pub chain: i32,
-    pub bone: i32,
-    pub attachment: i32,
-    pub slot: i32,
-    pub height: vec_t,
-    pub radius: vec_t,
-    pub floor: vec_t,
-    pub pos: vec3_t,
-    pub quat: vec4_t,
-    pub ikerrorindex: i32,
-    pub iStart: i32,
-    pub start: vec_t,
-    pub peak: vec_t,
-    pub tail: vec_t,
-    pub end: vec_t,
-    pub contact: vec_t,
-    pub drop: vec_t,
-    pub top: vec_t,
-    pub unused: [i32; 4],
-}
-
-#[repr(C)]
-pub struct mstudioiklock_t {
-    pub chain: i32,
-    pub flPosWeight: vec_t,
-    pub flLocalQWeight: vec_t,
-    pub flags: i32,
-    pub unused: [i32; 4],
-}
-
-#[repr(C)]
-pub struct mstudiomovement_t {
-    pub endframe: i32,
-    pub motionflags: i32,
-    pub v0: vec_t,
-    pub v1: vec_t,
-    pub angle: vec_t,
-    pub vector: vec3_t,
-    pub position: vec3_t,
-}
-
-#[repr(C)]
-pub struct mstudioanimdesc_t {
-    pub label: [c_char; 32],
-    pub fps: vec_t,
-    pub flags: i32,
-    pub numframes: i32,
-    pub nummovements: i32,
-    pub movementindex: i32,
-    pub numikrules: i32,
-    pub ikruleindex: i32,
-    pub unused: [i32; 8],
-}
-
-#[repr(C)]
-pub struct mstudioautolayer_t {
-    pub iSequence: i16,
-    pub iPose: i16,
-    pub flags: i32,
-    pub start: vec_t,
-    pub peak: vec_t,
-    pub tail: vec_t,
-    pub end: vec_t,
-}
-
-#[repr(C)]
-pub struct mstudioseqdesc_s {
-    pub label: [c_char; 32],
-    pub fps: vec_t,
-    pub flags: i32,
-    pub activity: i32,
-    pub actweight: i32,
-    pub numevents: i32,
-    pub eventindex: i32,
-    pub numframes: i32,
-    pub weightlistindex: i32,
-    pub iklockindex: i32,
-    pub motiontype: i32,
-    pub motionbone: i32,
-    pub linearmovement: vec3_t,
-    pub autolayerindex: i32,
-    pub keyvalueindex: i32,
-    pub bbmin: vec3_t,
-    pub bbmax: vec3_t,
-    pub numblends: i32,
-    pub animindex: i32,
-    pub blendtype: [i32; 2],
-    pub blendstart: [vec_t; 2],
-    pub blendend: [vec_t; 2],
-    pub groupsize: [u8; 2],
-    pub numautolayers: u8,
-    pub numiklocks: u8,
-    pub seqgroup: i32,
-    pub entrynode: i32,
-    pub exitnode: i32,
-    pub nodeflags: u8,
-    pub cycleposeindex: u8,
-    pub fadeintime: u8,
-    pub fadeouttime: u8,
-    pub animdescindex: i32,
-}
-pub type mstudioseqdesc_t = mstudioseqdesc_s;
-
-#[repr(C)]
-pub struct mstudioposeparamdesc_t {
-    pub name: [c_char; 32],
-    pub flags: i32,
-    pub start: vec_t,
-    pub end: vec_t,
-    pub loop_: vec_t,
-}
-
-#[repr(C)]
-pub struct mstudioanim_s {
-    pub offset: [u16; 6],
-}
-pub type mstudioanim_t = mstudioanim_s;
-
-#[repr(C)]
-pub union mstudioanimvalue_t {
-    pub num: mstudioanimvalue_t_num,
-    pub value: i16,
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct mstudioanimvalue_t_num {
-    pub valid: u8,
-    pub total: u8,
-}
-
-#[repr(C)]
-pub struct mstudiobodyparts_t {
-    pub name: [c_char; 64],
-    pub nummodels: i32,
-    pub base: i32,
-    pub modelindex: i32,
-}
-
-#[repr(C)]
-pub struct mstudiotex_s {
-    pub name: [c_char; 64],
-    pub flags: u32,
-    pub width: i32,
-    pub height: i32,
-    pub index: i32,
-}
-
-#[repr(C)]
-pub struct mstudioiklink_t {
-    pub bone: i32,
-    pub kneeDir: vec3_t,
-    pub unused0: vec3_t,
-}
-
-#[repr(C)]
-pub struct mstudioikchain_t {
-    pub name: [c_char; 32],
-    pub linktype: i32,
-    pub numlinks: i32,
-    pub linkindex: i32,
-}
-
-#[repr(C)]
-pub struct mstudioboneweight_t {
-    pub weight: [u8; 4],
-    pub bone: [i8; 4],
-}
-
-#[repr(C)]
-pub struct mstudiomodel_t {
-    pub name: [c_char; 64],
-    pub unused: i32,
-    pub unused2: vec_t,
-    pub nummesh: i32,
-    pub meshindex: i32,
-    pub numverts: i32,
-    pub vertinfoindex: i32,
-    pub vertindex: i32,
-    pub numnorms: i32,
-    pub norminfoindex: i32,
-    pub normindex: i32,
-    pub blendvertinfoindex: i32,
-    pub blendnorminfoindex: i32,
-}
-
-#[repr(C)]
-pub struct mstudiomesh_t {
-    pub numtris: i32,
-    pub triindex: i32,
-    pub skinref: i32,
-    pub numnorms: i32,
-    pub unused: i32,
-}
-
-#[repr(C)]
-pub struct mstudiotrivert_t {
-    pub vertindex: i16,
-    pub normindex: i16,
-    pub s: i16,
-    pub t: i16,
-}
-
-// extern "C" {
-//     pub static svc_strings: [*const c_char; 60];
-// }
-// extern "C" {
-//     pub static svc_legacy_strings: [*const c_char; 60];
-// }
-// extern "C" {
-//     pub static svc_quake_strings: [*const c_char; 60];
-// }
-// extern "C" {
-//     pub static svc_goldsrc_strings: [*const c_char; 60];
-// }
-// extern "C" {
-//     pub static clc_strings: [*const c_char; 12];
-// }
-
-#[repr(C)]
-pub struct sortedface_s {
-    pub surf: *mut msurface_s,
-    pub cull: c_int,
-}
-
-#[repr(C)]
-pub struct ref_client_s {
-    pub time: f64,
-    pub oldtime: f64,
-    pub viewentity: c_int,
-    pub playernum: c_int,
-    pub maxclients: c_int,
-    pub nummodels: c_int,
-    pub models: [*mut model_s; MAX_MODELS + 1],
-    pub paused: qboolean,
-    pub simorg: vec3_t,
-}
-
-#[repr(C)]
-pub struct ref_host_s {
-    pub realtime: f64,
-    pub frametime: f64,
-    pub features: c_int,
-}
-
-pub const GL_KEEP_UNIT: _bindgen_ty_10 = -1;
-pub const XASH_TEXTURE0: _bindgen_ty_10 = 0;
-pub const XASH_TEXTURE1: _bindgen_ty_10 = 1;
-pub const XASH_TEXTURE2: _bindgen_ty_10 = 2;
-pub const XASH_TEXTURE3: _bindgen_ty_10 = 3;
-pub const MAX_TEXTURE_UNITS: _bindgen_ty_10 = 32;
-pub type _bindgen_ty_10 = c_int;
-
-// r_speeds counters
-pub const RS_ACTIVE_TENTS: _bindgen_ty_11 = 0;
-pub type _bindgen_ty_11 = c_uint;
-
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
-#[repr(C)]
-pub enum connstate_e {
-    /// Not talking to a server.
-    Disconnected = 0,
-    /// Sending request packets to the server.
-    Connecting,
-    /// netchan_t established, waiting for svc_serverdata.
-    Connected,
-    /// Download resources, validating, auth on server.
-    Validate,
-    /// Game views should be displayed.
-    Active,
-    /// Playing a cinematic, not connected to a server.
-    Cinematic,
-}
-
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
-#[repr(C)]
-pub enum ref_defaultsprite_e {
-    DotSprite = 0,
-    ChromeSprite = 1,
-}
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
 #[repr(C)]
@@ -1267,120 +232,30 @@ pub enum GraphicApi {
     Direct3D,
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
-#[repr(C)]
-pub enum ref_safegl_context_t {
-    SAFE_NO = 0,
-    /// Skip MSAA.
-    SAFE_NOMSAA,
-    /// Don't set acceleration flag.
-    SAFE_NOACC,
-    /// Don't set stencil bits.
-    SAFE_NOSTENCIL,
-    /// Don't set alpha bits.
-    SAFE_NOALPHA,
-    /// Don't set depth bits.
-    SAFE_NODEPTH,
-    /// Don't set color bits.
-    SAFE_NOCOLOR,
-    /// Ignore everything, let SDL/EGL decide.
-    SAFE_DONTCARE,
-    /// Must be last.
-    SAFE_LAST,
-}
-
-/// OpenGL configuration attributes.
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
-#[repr(C)]
-pub enum GlConfigAttritube {
-    RED_SIZE,
-    GREEN_SIZE,
-    BLUE_SIZE,
-    ALPHA_SIZE,
-    DOUBLEBUFFER,
-    DEPTH_SIZE,
-    STENCIL_SIZE,
-    MULTISAMPLEBUFFERS,
-    MULTISAMPLESAMPLES,
-    ACCELERATED_VISUAL,
-    CONTEXT_MAJOR_VERSION,
-    CONTEXT_MINOR_VERSION,
-    CONTEXT_EGL,
-    CONTEXT_FLAGS,
-    CONTEXT_PROFILE_MASK,
-    SHARE_WITH_CURRENT_CONTEXT,
-    FRAMEBUFFER_SRGB_CAPABLE,
-    CONTEXT_RELEASE_BEHAVIOR,
-    CONTEXT_RESET_NOTIFICATION,
-    CONTEXT_NO_ERROR,
-    ATTRIBUTES_COUNT,
-}
-
-pub const REF_GL_CONTEXT_PROFILE_CORE: GlContextProfile = 0x01;
-pub const REF_GL_CONTEXT_PROFILE_COMPATIBILITY: GlContextProfile = 0x02;
-pub const REF_GL_CONTEXT_PROFILE_ES: GlContextProfile = 0x04;
-pub type GlContextProfile = c_uint;
-
-pub const REF_GL_CONTEXT_DEBUG_FLAG: GlContext = 0x01;
-pub const REF_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG: GlContext = 0x02;
-pub const REF_GL_CONTEXT_ROBUST_ACCESS_FLAG: GlContext = 0x04;
-pub const REF_GL_CONTEXT_RESET_ISOLATION_FLAG: GlContext = 0x08;
-/// Binary compatible with SDL and EGL_KHR_create_context(0x0007 mask).
-pub type GlContext = c_uint;
-
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
-#[repr(C)]
-pub enum ref_screen_rotation_t {
-    NONE = 0,
-    CW = 1,
-    UD = 2,
-    CCW = 3,
-}
-
-#[repr(C)]
-pub struct remap_info_s {
-    /// Alias textures.
-    pub textures: [c_ushort; MAX_SKINS],
-    /// Array of textures with local copy of remapped textures.
-    pub ptexture: *mut mstudiotex_s,
-    /// Textures count.
-    pub numtextures: c_short,
-    /// Cached value.
-    pub topcolor: c_short,
-    /// Cached value.
-    pub bottomcolor: c_short,
-    /// For catch model changes.
-    pub model: *mut model_s,
-}
-
 pub const CVAR_SENTINEL: usize = 0xdeadbeefdeadbeef_u64 as usize;
 
-/// Xash3D internal cvar format
-#[repr(C)]
-pub struct convar_s {
-    name: *const c_char,
-    string: *const c_char,
-    flags: CVarFlags,
-    value: f32,
-    next: *mut convar_s,
-    desc: *const c_char,
-    def_string: *const c_char,
-}
-
-impl convar_s {
-    pub const fn builder(name: &'static CStr) -> ConVarBuilder {
+pub trait ConVarExt {
+    fn builder(name: &'static CStr) -> ConVarBuilder {
         ConVarBuilder::new(name)
     }
 
-    pub fn name(&self) -> &CStrThin {
+    fn name(&self) -> &CStrThin;
+
+    fn value_c_str(&self) -> &CStrThin;
+
+    fn value(&self) -> f32;
+}
+
+impl ConVarExt for convar_s {
+    fn name(&self) -> &CStrThin {
         unsafe { CStrThin::from_ptr(self.name) }
     }
 
-    pub fn value_c_str(&self) -> &CStrThin {
+    fn value_c_str(&self) -> &CStrThin {
         unsafe { CStrThin::from_ptr(self.string) }
     }
 
-    pub fn value(&self) -> f32 {
+    fn value(&self) -> f32 {
         self.value
     }
 }
@@ -1393,9 +268,9 @@ impl ConVarBuilder {
     pub const fn new(name: &'static CStr) -> Self {
         ConVarBuilder {
             var: convar_s {
-                name: name.as_ptr(),
-                string: c"".as_ptr(),
-                flags: CVarFlags::NONE,
+                name: name.as_ptr().cast_mut(),
+                string: c"".as_ptr().cast_mut(),
+                flags: CVarFlags::NONE.bits(),
                 value: 0.0,
                 next: CVAR_SENTINEL as *mut convar_s,
                 desc: ptr::null_mut(),
@@ -1405,17 +280,17 @@ impl ConVarBuilder {
     }
 
     pub const fn value(mut self, value: &'static CStr) -> Self {
-        self.var.string = value.as_ptr();
+        self.var.string = value.as_ptr().cast_mut();
         self
     }
 
     pub const fn flags(mut self, flags: CVarFlags) -> Self {
-        self.var.flags = flags;
+        self.var.flags = flags.bits();
         self
     }
 
     pub const fn description(mut self, desc: &'static CStr) -> Self {
-        self.var.desc = desc.as_ptr();
+        self.var.desc = desc.as_ptr().cast_mut();
         self
     }
 
@@ -1451,3 +326,25 @@ pub const PARM_GET_ELIGHTS_PTR: RefParm = RefParm::new(-22);
 ///
 /// Pass -1 to query global filtering settings.
 pub const PARM_TEX_FILTERING: RefParm = RefParm::new(-0x10000);
+
+pub trait RgbDataExt {
+    fn flags(&self) -> &ImageFlags;
+
+    fn flags_mut(&mut self) -> &mut ImageFlags;
+
+    fn type_(&self) -> PixelFormat;
+}
+
+impl RgbDataExt for rgbdata_t {
+    fn flags(&self) -> &ImageFlags {
+        unsafe { mem::transmute(&self.flags) }
+    }
+
+    fn flags_mut(&mut self) -> &mut ImageFlags {
+        unsafe { mem::transmute(&mut self.flags) }
+    }
+
+    fn type_(&self) -> PixelFormat {
+        PixelFormat::from_raw(self.type_).unwrap()
+    }
+}

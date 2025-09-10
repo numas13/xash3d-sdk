@@ -1,27 +1,9 @@
 use core::ffi::{c_char, c_int};
 
-use shared::raw::{byte, cl_entity_s, decallist_s, model_s, qboolean, ref_viewpass_s, vec2_t};
-
-#[allow(non_camel_case_types)]
-#[allow(non_snake_case)]
-#[repr(C)]
-pub struct render_interface_s {
-    pub version: c_int,
-    pub GL_RenderFrame: Option<unsafe extern "C" fn(rvp: *const ref_viewpass_s) -> c_int>,
-    pub GL_BuildLightmaps: Option<unsafe extern "C" fn()>,
-    pub GL_OrthoBounds: Option<unsafe extern "C" fn(mins: *const f32, maxs: *const f32)>,
-    pub R_CreateStudioDecalList:
-        Option<unsafe extern "C" fn(pList: *mut decallist_s, count: c_int) -> c_int>,
-    pub R_ClearStudioDecals: Option<unsafe extern "C" fn()>,
-    pub R_SpeedsMessage: Option<unsafe extern "C" fn(out: *mut c_char, size: usize) -> qboolean>,
-    pub Mod_ProcessUserData:
-        Option<unsafe extern "C" fn(mod_: *mut model_s, create: qboolean, buffer: *const byte)>,
-    pub R_ProcessEntData: Option<unsafe extern "C" fn(allocate: qboolean)>,
-    pub Mod_GetCurrentVis: Option<unsafe extern "C" fn() -> *mut byte>,
-    pub R_NewMap: Option<unsafe extern "C" fn()>,
-    pub R_ClearScene: Option<unsafe extern "C" fn()>,
-    pub CL_UpdateLatchedVars: Option<unsafe extern "C" fn(e: *mut cl_entity_s, reset: qboolean)>,
-}
+use shared::{
+    ffi::api::render::render_interface_s,
+    raw::{cl_entity_s, decallist_s, model_s, ref_viewpass_s, vec2_t},
+};
 
 pub enum Renderer {
     Engine,
