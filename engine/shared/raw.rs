@@ -1,9 +1,3 @@
-#![allow(non_camel_case_types)]
-#![allow(non_snake_case)]
-#![allow(non_upper_case_globals)]
-#![allow(clippy::missing_safety_doc)]
-#![allow(clippy::type_complexity)]
-
 pub mod bsp;
 
 use core::{
@@ -313,7 +307,7 @@ bitflags! {
 /// model_s.type_
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
 #[repr(C)]
-pub enum modtype_t {
+pub enum ModelType {
     Bad = -1,
     Brush = 0,
     Sprite = 1,
@@ -321,7 +315,7 @@ pub enum modtype_t {
     Studio = 3,
 }
 
-impl modtype_t {
+impl ModelType {
     pub fn from_raw(raw: c_int) -> Option<Self> {
         match raw {
             -1 => Some(Self::Bad),
@@ -447,7 +441,6 @@ pub enum SkyboxOrdering {
     Down = 5,
 }
 
-pub type texFlags_t = TextureFlags;
 bitflags! {
     #[derive(Copy, Clone, PartialEq, Eq, Debug, Default)]
     #[repr(transparent)]
@@ -722,30 +715,13 @@ impl BeamEntity {
     }
 }
 
-/// particle_s.type_
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-#[repr(C)]
-pub enum ptype_t {
-    Static = 0,
-    Grav = 1,
-    SlowGrav = 2,
-    Fire = 3,
-    Explode = 4,
-    Explode2 = 5,
-    Blob = 6,
-    Blob2 = 7,
-    VoxSlowGrav = 8,
-    VoxGrav = 9,
-    ClientCustom = 10,
-}
-
 pub trait ModelExt {
-    fn model_type(&self) -> modtype_t;
+    fn model_type(&self) -> ModelType;
 }
 
 impl ModelExt for model_s {
-    fn model_type(&self) -> modtype_t {
-        modtype_t::from_raw(self.type_).unwrap()
+    fn model_type(&self) -> ModelType {
+        ModelType::from_raw(self.type_).unwrap()
     }
 }
 

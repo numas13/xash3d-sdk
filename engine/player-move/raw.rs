@@ -15,8 +15,8 @@ use csz::CStrArray;
 use shared::{
     consts::MAX_PHYSENTS,
     raw::{
-        byte, hull_s, model_s, modtype_t, movevars_s, msurface_s, physent_s, pmtrace_s, qboolean,
-        trace_t, usercmd_s, vec3_t, EdictFlags, MoveEnts, MoveType, SoundFlags,
+        byte, hull_s, model_s, movevars_s, msurface_s, physent_s, pmtrace_s, qboolean, trace_t,
+        usercmd_s, vec3_t, EdictFlags, ModelType, MoveEnts, MoveType, SoundFlags,
     },
 };
 
@@ -144,7 +144,7 @@ pub struct playermove_s {
     >,
     pub RandomLong: Option<unsafe extern "C" fn(lLow: c_int, lHigh: c_int) -> c_int>,
     pub RandomFloat: Option<unsafe extern "C" fn(flLow: f32, flHigh: f32) -> f32>,
-    pub PM_GetModelType: Option<unsafe extern "C" fn(mod_: *const model_s) -> modtype_t>,
+    pub PM_GetModelType: Option<unsafe extern "C" fn(mod_: *const model_s) -> ModelType>,
     pub PM_GetModelBounds:
         Option<unsafe extern "C" fn(mod_: *const model_s, mins: *mut f32, maxs: *mut f32)>,
     pub PM_HullForBsp:
@@ -397,7 +397,7 @@ impl playermove_s {
         }
     }
 
-    pub fn get_model_type(&self, model: &model_s) -> modtype_t {
+    pub fn get_model_type(&self, model: &model_s) -> ModelType {
         unsafe { pm_unwrap!(self, PM_GetModelType)(model) }
     }
 

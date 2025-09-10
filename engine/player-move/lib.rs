@@ -29,7 +29,7 @@ use shared::{
     },
     math::{self, fabsf, fmaxf, fminf, pow2, sqrtf, ToAngleVectors},
     raw::{
-        modtype_t, physent_s, pmtrace_s, qboolean, vec3_t, EdictFlags, MoveType, SoundFlags,
+        physent_s, pmtrace_s, qboolean, vec3_t, EdictFlags, ModelType, MoveType, SoundFlags,
         UserCmdExt,
     },
 };
@@ -282,7 +282,7 @@ impl<'a> PlayerMove<'a> {
             if pe.model.is_null() {
                 continue;
             }
-            if self.raw.get_model_type(unsafe { &*pe.model }) != modtype_t::Brush {
+            if self.raw.get_model_type(unsafe { &*pe.model }) != ModelType::Brush {
                 continue;
             }
             if pe.skin != CONTENTS_LADDER {
