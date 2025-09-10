@@ -2,7 +2,7 @@ use core::ffi::c_int;
 
 use cl::{
     consts::{ATTN_NORM, CHAN_WEAPON, PITCH, TE_BOUNCE_SHOTSHELL, YAW},
-    engine::event::EventArgs,
+    engine::event::event_args_s,
     prelude::*,
     raw::SoundFlags,
 };
@@ -32,11 +32,11 @@ enum Shotgun {
 }
 
 impl Events {
-    pub(super) fn fire_shotgun_single(&mut self, args: &mut EventArgs) {
+    pub(super) fn fire_shotgun_single(&mut self, args: &mut event_args_s) {
         let idx = args.entindex;
-        let origin = args.origin;
-        let angles = args.angles;
-        let velocity = args.velocity;
+        let origin = args.origin();
+        let angles = args.angles();
+        let velocity = args.velocity();
         let av = angles.angle_vectors().all();
         let engine = engine();
         let ev = engine.event_api();
@@ -80,11 +80,11 @@ impl Events {
         }
     }
 
-    pub(super) fn fire_shotgun_double(&mut self, args: &mut EventArgs) {
+    pub(super) fn fire_shotgun_double(&mut self, args: &mut event_args_s) {
         let idx = args.entindex;
-        let origin = args.origin;
-        let angles = args.angles;
-        let velocity = args.velocity;
+        let origin = args.origin();
+        let angles = args.angles();
+        let velocity = args.velocity();
         let av = angles.angle_vectors().all();
         let engine = engine();
         let ev = engine.event_api();

@@ -2,7 +2,7 @@ use core::ffi::c_int;
 
 use cl::{
     consts::{ATTN_NORM, CHAN_WEAPON, PITCH, PM_NORMAL, SOLID_BSP, TE_SPRITETRAIL},
-    engine::event::EventArgs,
+    engine::event::event_args_s,
     prelude::*,
     raw::{vec3_t, BeamEntity, RenderFx, RenderMode, SoundFlags, TempEntFlags},
 };
@@ -35,7 +35,7 @@ impl Events {
         ev.stop_sound(idx, CHAN_WEAPON, sound::ambience::PULSEMACHINE);
     }
 
-    pub(super) fn fire_gauss(&mut self, args: &mut EventArgs) {
+    pub(super) fn fire_gauss(&mut self, args: &mut event_args_s) {
         let idx = args.entindex;
         if args.bparam2 != 0 {
             self.stop_previous_gauss(idx);
@@ -43,8 +43,8 @@ impl Events {
         }
 
         let primary_fire = args.bparam1 != 0;
-        let origin = args.origin;
-        let angles = args.angles;
+        let origin = args.origin();
+        let angles = args.angles();
         let mut forward = angles.angle_vectors().forward();
 
         let engine = engine();
@@ -299,9 +299,9 @@ impl Events {
         }
     }
 
-    pub(super) fn spin_gauss(&mut self, args: &mut EventArgs) {
+    pub(super) fn spin_gauss(&mut self, args: &mut event_args_s) {
         let idx = args.entindex;
-        let origin = args.origin;
+        let origin = args.origin();
         let sample = sound::ambience::PULSEMACHINE;
         let vol = 1.0;
         let flags = if args.bparam1 != 0 {

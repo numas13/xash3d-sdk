@@ -4,34 +4,29 @@ pub mod event;
 pub mod tri;
 
 use core::{
-    ffi::{c_char, c_int, c_uint, c_ushort, c_void},
+    ffi::{c_char, c_int, c_void},
     mem::MaybeUninit,
     ptr,
 };
 
 use csz::{CStrSlice, CStrThin};
 use shared::{
-    cvar::cvar_s,
-    engine::net::{net_api_s, NetApi},
+    engine::net::NetApi,
     export::impl_unsync_global,
-    raw::{byte, con_nprint_s, edict_s, model_s, pmtrace_s, qboolean, screenfade_s, WRectExt},
+    ffi::{client::cl_enginefuncs_s, common::event_args_s},
+    raw::WRectExt,
     str::{AsCStrPtr, ToEngineStr},
 };
 
 use crate::{
     color::{RGB, RGBA},
     cvar::{CVarFlags, CVarPtr},
-    engine::{
-        demo::{DemoApi, DemoApiFunctions},
-        efx::{EfxApi, EfxApiFunctions},
-        event::{EventApi, EventApiFunctions, EventArgs},
-        tri::{TriangleApi, TriangleApiFunctions},
-    },
+    engine::{demo::DemoApi, efx::EfxApi, event::EventApi, tri::TriangleApi},
     raw::{
-        cl_entity_s, client_textmessage_s, cmdalias_s, hud_player_info_s, tagPOINT, vec3_t,
-        wrect_s, IVoiceTweak, SCREENINFO,
+        cl_entity_s, client_textmessage_s, hud_player_info_s, vec3_t, wrect_s, ScreenInfoExt,
+        SCREENINFO,
     },
-    sprite::{client_sprite_s, SpriteHandle, SpriteList, HSPRITE},
+    sprite::{SpriteHandle, SpriteList},
 };
 
 pub use shared::engine::{net, AddCmdError, BufferError};
@@ -48,315 +43,8 @@ pub use self::prelude::*;
 pub type UserMsgHookFn =
     Option<unsafe extern "C" fn(name: *const c_char, size: c_int, buf: *mut c_void) -> c_int>;
 
-#[allow(non_camel_case_types)]
-pub type cl_enginefuncs_s = ClientEngineFunctions;
-
-#[allow(non_snake_case)]
-#[allow(clippy::type_complexity)]
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct ClientEngineFunctions {
-    pub pfnSPR_Load: Option<unsafe extern "C" fn(szPicName: *const c_char) -> HSPRITE>,
-    pub pfnSPR_Frames: Option<unsafe extern "C" fn(hPic: HSPRITE) -> c_int>,
-    pub pfnSPR_Height: Option<unsafe extern "C" fn(hPic: HSPRITE, frame: c_int) -> c_int>,
-    pub pfnSPR_Width: Option<unsafe extern "C" fn(hPic: HSPRITE, frame: c_int) -> c_int>,
-    pub pfnSPR_Set: Option<unsafe extern "C" fn(hPic: HSPRITE, r: c_int, g: c_int, b: c_int)>,
-    pub pfnSPR_Draw:
-        Option<unsafe extern "C" fn(frame: c_int, x: c_int, y: c_int, prc: Option<&wrect_s>)>,
-    pub pfnSPR_DrawHoles:
-        Option<unsafe extern "C" fn(frame: c_int, x: c_int, y: c_int, prc: Option<&wrect_s>)>,
-    pub pfnSPR_DrawAdditive:
-        Option<unsafe extern "C" fn(frame: c_int, x: c_int, y: c_int, prc: Option<&wrect_s>)>,
-    pub pfnSPR_EnableScissor:
-        Option<unsafe extern "C" fn(x: c_int, y: c_int, width: c_int, height: c_int)>,
-    pub pfnSPR_DisableScissor: Option<unsafe extern "C" fn()>,
-    pub pfnSPR_GetList: Option<
-        unsafe extern "C" fn(name: *const c_char, count: *mut c_int) -> *mut client_sprite_s,
-    >,
-    pub pfnFillRGBA: Option<
-        unsafe extern "C" fn(
-            x: c_int,
-            y: c_int,
-            width: c_int,
-            height: c_int,
-            r: c_int,
-            g: c_int,
-            b: c_int,
-            a: c_int,
-        ),
-    >,
-    pub pfnGetScreenInfo: Option<unsafe extern "C" fn(pscrinfo: *mut SCREENINFO) -> c_int>,
-    pub pfnSetCrosshair:
-        Option<unsafe extern "C" fn(hspr: HSPRITE, rc: wrect_s, r: c_int, g: c_int, b: c_int)>,
-    pub pfnRegisterVariable: Option<
-        unsafe extern "C" fn(
-            szName: *const c_char,
-            szValue: *const c_char,
-            flags: c_int,
-        ) -> *mut cvar_s,
-    >,
-    pub pfnGetCvarFloat: Option<unsafe extern "C" fn(szName: *const c_char) -> f32>,
-    pub pfnGetCvarString: Option<unsafe extern "C" fn(szName: *const c_char) -> *const c_char>,
-    pub pfnAddCommand: Option<
-        unsafe extern "C" fn(cmd_name: *const c_char, function: unsafe extern "C" fn()) -> c_int,
-    >,
-    pub pfnHookUserMsg:
-        Option<unsafe extern "C" fn(szMsgName: *const c_char, pfn: UserMsgHookFn) -> c_int>,
-    pub pfnServerCmd: Option<unsafe extern "C" fn(szCmdString: *const c_char) -> c_int>,
-    pub pfnClientCmd: Option<unsafe extern "C" fn(szCmdString: *const c_char) -> c_int>,
-    pub pfnGetPlayerInfo:
-        Option<unsafe extern "C" fn(ent_num: c_int, pinfo: *mut hud_player_info_s)>,
-    pub pfnPlaySoundByName: Option<unsafe extern "C" fn(szSound: *const c_char, volume: f32)>,
-    pub pfnPlaySoundByIndex: Option<unsafe extern "C" fn(iSound: c_int, volume: f32)>,
-    pub pfnAngleVectors: Option<
-        unsafe extern "C" fn(
-            vecAngles: *const f32,
-            forward: *mut f32,
-            right: *mut f32,
-            up: *mut f32,
-        ),
-    >,
-    pub pfnTextMessageGet:
-        Option<unsafe extern "C" fn(pName: *const c_char) -> *mut client_textmessage_s>,
-    pub pfnDrawCharacter: Option<
-        unsafe extern "C" fn(
-            x: c_int,
-            y: c_int,
-            number: c_int,
-            r: c_int,
-            g: c_int,
-            b: c_int,
-        ) -> c_int,
-    >,
-    pub pfnDrawConsoleString:
-        Option<unsafe extern "C" fn(x: c_int, y: c_int, string: *const c_char) -> c_int>,
-    pub pfnDrawSetTextColor: Option<unsafe extern "C" fn(r: f32, g: f32, b: f32)>,
-    pub pfnDrawConsoleStringLen:
-        Option<unsafe extern "C" fn(string: *const c_char, length: *mut c_int, height: *mut c_int)>,
-    pub pfnConsolePrint: Option<unsafe extern "C" fn(string: *const c_char)>,
-    pub pfnCenterPrint: Option<unsafe extern "C" fn(string: *const c_char)>,
-    pub GetWindowCenterX: Option<unsafe extern "C" fn() -> c_int>,
-    pub GetWindowCenterY: Option<unsafe extern "C" fn() -> c_int>,
-    pub GetViewAngles: Option<unsafe extern "C" fn(arg1: *mut vec3_t)>,
-    pub SetViewAngles: Option<unsafe extern "C" fn(arg1: *const vec3_t)>,
-    pub GetMaxClients: Option<unsafe extern "C" fn() -> c_int>,
-    pub Cvar_SetValue: Option<unsafe extern "C" fn(cvar: *const c_char, value: f32)>,
-    pub Cmd_Argc: Option<unsafe extern "C" fn() -> c_int>,
-    pub Cmd_Argv: Option<unsafe extern "C" fn(arg: c_int) -> *const c_char>,
-    pub Con_Printf: Option<unsafe extern "C" fn(fmt: *const c_char, ...)>,
-    pub Con_DPrintf: Option<unsafe extern "C" fn(fmt: *const c_char, ...)>,
-    pub Con_NPrintf: Option<unsafe extern "C" fn(pos: c_int, fmt: *const c_char, ...)>,
-    pub Con_NXPrintf:
-        Option<unsafe extern "C" fn(info: *mut con_nprint_s, fmt: *const c_char, ...)>,
-    pub PhysInfo_ValueForKey: Option<unsafe extern "C" fn(key: *const c_char) -> *const c_char>,
-    pub ServerInfo_ValueForKey: Option<unsafe extern "C" fn(key: *const c_char) -> *const c_char>,
-    pub GetClientMaxspeed: Option<unsafe extern "C" fn() -> f32>,
-    pub CheckParm:
-        Option<unsafe extern "C" fn(parm: *const c_char, ppnext: *mut *mut c_char) -> c_int>,
-    pub Key_Event: Option<unsafe extern "C" fn(key: c_int, down: c_int)>,
-    pub GetMousePosition: Option<unsafe extern "C" fn(mx: *mut c_int, my: *mut c_int)>,
-    pub IsNoClipping: Option<unsafe extern "C" fn() -> c_int>,
-    pub GetLocalPlayer: Option<unsafe extern "C" fn() -> *mut cl_entity_s>,
-    pub GetViewModel: Option<unsafe extern "C" fn() -> *mut cl_entity_s>,
-    pub GetEntityByIndex: Option<unsafe extern "C" fn(idx: c_int) -> *mut cl_entity_s>,
-    pub GetClientTime: Option<unsafe extern "C" fn() -> f32>,
-    pub V_CalcShake: Option<unsafe extern "C" fn()>,
-    pub V_ApplyShake:
-        Option<unsafe extern "C" fn(origin: *mut vec3_t, angles: *mut vec3_t, factor: f32)>,
-    pub PM_PointContents:
-        Option<unsafe extern "C" fn(point: *const f32, truecontents: *mut c_int) -> c_int>,
-    pub PM_WaterEntity: Option<unsafe extern "C" fn(p: *const f32) -> c_int>,
-    pub PM_TraceLine: Option<
-        unsafe extern "C" fn(
-            start: *mut f32,
-            end: *mut f32,
-            flags: c_int,
-            usehull: c_int,
-            ignore_pe: c_int,
-        ) -> *mut pmtrace_s,
-    >,
-    pub CL_LoadModel:
-        Option<unsafe extern "C" fn(modelname: *const c_char, index: *mut c_int) -> *mut model_s>,
-    pub CL_CreateVisibleEntity:
-        Option<unsafe extern "C" fn(type_: c_int, ent: *mut cl_entity_s) -> c_int>,
-    pub GetSpritePointer: Option<unsafe extern "C" fn(hSprite: HSPRITE) -> *const model_s>,
-    pub pfnPlaySoundByNameAtLocation:
-        Option<unsafe extern "C" fn(szSound: *mut c_char, volume: f32, origin: *mut f32)>,
-    pub pfnPrecacheEvent:
-        Option<unsafe extern "C" fn(type_: c_int, psz: *const c_char) -> c_ushort>,
-    pub pfnPlaybackEvent: Option<
-        unsafe extern "C" fn(
-            flags: c_int,
-            pInvoker: *const edict_s,
-            eventindex: c_ushort,
-            delay: f32,
-            origin: *mut f32,
-            angles: *mut f32,
-            fparam1: f32,
-            fparam2: f32,
-            iparam1: c_int,
-            iparam2: c_int,
-            bparam1: c_int,
-            bparam2: c_int,
-        ),
-    >,
-    pub pfnWeaponAnim: Option<unsafe extern "C" fn(iAnim: c_int, body: c_int)>,
-    pub pfnRandomFloat: Option<unsafe extern "C" fn(flLow: f32, flHigh: f32) -> f32>,
-    pub pfnRandomLong: Option<unsafe extern "C" fn(lLow: c_int, lHigh: c_int) -> c_int>,
-    pub pfnHookEvent: Option<
-        unsafe extern "C" fn(
-            name: *const c_char,
-            pfnEvent: Option<unsafe extern "C" fn(args: *mut EventArgs)>,
-        ),
-    >,
-    pub Con_IsVisible: Option<unsafe extern "C" fn() -> c_int>,
-    pub pfnGetGameDirectory: Option<unsafe extern "C" fn() -> *const c_char>,
-    pub pfnGetCvarPointer: Option<unsafe extern "C" fn(szName: *const c_char) -> *mut cvar_s>,
-    pub Key_LookupBinding: Option<unsafe extern "C" fn(pBinding: *const c_char) -> *const c_char>,
-    pub pfnGetLevelName: Option<unsafe extern "C" fn() -> *const c_char>,
-    pub pfnGetScreenFade: Option<unsafe extern "C" fn(fade: *mut screenfade_s)>,
-    pub pfnSetScreenFade: Option<unsafe extern "C" fn(fade: *mut screenfade_s)>,
-    pub VGui_GetPanel: Option<unsafe extern "C" fn() -> *mut c_void>,
-    pub VGui_ViewportPaintBackground: Option<unsafe extern "C" fn(extents: *mut [c_int; 4usize])>,
-    pub COM_LoadFile: Option<
-        unsafe extern "C" fn(path: *const c_char, usehunk: c_int, pLength: *mut c_int) -> *mut byte,
-    >,
-    pub COM_ParseFile:
-        Option<unsafe extern "C" fn(data: *mut c_char, token: *mut c_char) -> *mut c_char>,
-    pub COM_FreeFile: Option<unsafe extern "C" fn(buffer: *mut c_void)>,
-    pub pTriAPI: *mut TriangleApiFunctions,
-    pub pEfxAPI: *mut EfxApiFunctions,
-    pub pEventAPI: *mut EventApiFunctions,
-    pub pDemoAPI: *mut DemoApiFunctions,
-    pub pNetAPI: *mut net_api_s,
-    pub pVoiceTweak: *mut IVoiceTweak,
-    pub IsSpectateOnly: Option<unsafe extern "C" fn() -> c_int>,
-    pub LoadMapSprite: Option<unsafe extern "C" fn(filename: *const c_char) -> *mut model_s>,
-    pub COM_AddAppDirectoryToSearchPath:
-        Option<unsafe extern "C" fn(pszBaseDir: *const c_char, appName: *const c_char)>,
-    pub COM_ExpandFilename: Option<
-        unsafe extern "C" fn(
-            fileName: *const c_char,
-            nameOutBuffer: *mut c_char,
-            nameOutBufferSize: c_int,
-        ) -> c_int,
-    >,
-    pub PlayerInfo_ValueForKey:
-        Option<unsafe extern "C" fn(playerNum: c_int, key: *const c_char) -> *const c_char>,
-    pub PlayerInfo_SetValueForKey:
-        Option<unsafe extern "C" fn(key: *const c_char, value: *const c_char)>,
-    pub GetPlayerUniqueID:
-        Option<unsafe extern "C" fn(iPlayer: c_int, playerID: *mut [c_char; 16usize]) -> qboolean>,
-    pub GetTrackerIDForPlayer: Option<unsafe extern "C" fn(playerSlot: c_int) -> c_int>,
-    pub GetPlayerForTrackerID: Option<unsafe extern "C" fn(trackerID: c_int) -> c_int>,
-    pub pfnServerCmdUnreliable: Option<unsafe extern "C" fn(szCmdString: *mut c_char) -> c_int>,
-    pub pfnGetMousePos: Option<unsafe extern "C" fn(ppt: *mut tagPOINT)>,
-    pub pfnSetMousePos: Option<unsafe extern "C" fn(x: c_int, y: c_int)>,
-    pub pfnSetMouseEnable: Option<unsafe extern "C" fn(fEnable: qboolean)>,
-    pub pfnGetFirstCvarPtr: Option<unsafe extern "C" fn() -> *mut cvar_s>,
-    pub pfnGetFirstCmdFunctionHandle: Option<unsafe extern "C" fn() -> *mut c_void>,
-    pub pfnGetNextCmdFunctionHandle:
-        Option<unsafe extern "C" fn(cmdhandle: *mut c_void) -> *mut c_void>,
-    pub pfnGetCmdFunctionName:
-        Option<unsafe extern "C" fn(cmdhandle: *mut c_void) -> *const c_char>,
-    pub pfnGetClientOldTime: Option<unsafe extern "C" fn() -> f32>,
-    pub pfnGetGravity: Option<unsafe extern "C" fn() -> f32>,
-    pub pfnGetModelByIndex: Option<unsafe extern "C" fn(index: c_int) -> *mut model_s>,
-    pub pfnSetFilterMode: Option<unsafe extern "C" fn(mode: c_int)>,
-    pub pfnSetFilterColor: Option<unsafe extern "C" fn(red: f32, green: f32, blue: f32)>,
-    pub pfnSetFilterBrightness: Option<unsafe extern "C" fn(brightness: f32)>,
-    pub pfnSequenceGet: Option<
-        unsafe extern "C" fn(fileName: *const c_char, entryName: *const c_char) -> *mut c_void,
-    >,
-    pub pfnSPR_DrawGeneric: Option<
-        unsafe extern "C" fn(
-            frame: c_int,
-            x: c_int,
-            y: c_int,
-            prc: *const wrect_s,
-            blendsrc: c_int,
-            blenddst: c_int,
-            width: c_int,
-            height: c_int,
-        ),
-    >,
-    pub pfnSequencePickSentence: Option<
-        unsafe extern "C" fn(
-            groupName: *const c_char,
-            pickMethod: c_int,
-            entryPicked: *mut c_int,
-        ) -> *mut c_void,
-    >,
-    pub pfnDrawString: Option<
-        unsafe extern "C" fn(
-            x: c_int,
-            y: c_int,
-            str_: *const c_char,
-            r: c_int,
-            g: c_int,
-            b: c_int,
-        ) -> c_int,
-    >,
-    pub pfnDrawStringReverse: Option<
-        unsafe extern "C" fn(
-            x: c_int,
-            y: c_int,
-            str_: *const c_char,
-            r: c_int,
-            g: c_int,
-            b: c_int,
-        ) -> c_int,
-    >,
-    pub LocalPlayerInfo_ValueForKey:
-        Option<unsafe extern "C" fn(key: *const c_char) -> *const c_char>,
-    pub pfnVGUI2DrawCharacter:
-        Option<unsafe extern "C" fn(x: c_int, y: c_int, ch: c_int, font: c_uint) -> c_int>,
-    pub pfnVGUI2DrawCharacterAdditive: Option<
-        unsafe extern "C" fn(
-            x: c_int,
-            y: c_int,
-            ch: c_int,
-            r: c_int,
-            g: c_int,
-            b: c_int,
-            font: c_uint,
-        ) -> c_int,
-    >,
-    pub pfnGetApproxWavePlayLen: Option<unsafe extern "C" fn(filename: *const c_char) -> c_uint>,
-    pub GetCareerGameUI: Option<unsafe extern "C" fn() -> *mut c_void>,
-    pub Cvar_Set: Option<unsafe extern "C" fn(name: *const c_char, value: *const c_char)>,
-    pub pfnIsPlayingCareerMatch: Option<unsafe extern "C" fn() -> c_int>,
-    pub pfnPlaySoundVoiceByName:
-        Option<unsafe extern "C" fn(szSound: *mut c_char, volume: f32, pitch: c_int)>,
-    pub pfnPrimeMusicStream: Option<unsafe extern "C" fn(filename: *mut c_char, looping: c_int)>,
-    pub pfnSys_FloatTime: Option<unsafe extern "C" fn() -> f64>,
-    pub pfnProcessTutorMessageDecayBuffer:
-        Option<unsafe extern "C" fn(buffer: *mut c_int, buflen: c_int)>,
-    pub pfnConstructTutorMessageDecayBuffer:
-        Option<unsafe extern "C" fn(buffer: *mut c_int, buflen: c_int)>,
-    pub pfnResetTutorMessageDecayData: Option<unsafe extern "C" fn()>,
-    pub pfnPlaySoundByNameAtPitch:
-        Option<unsafe extern "C" fn(szSound: *mut c_char, volume: f32, pitch: c_int)>,
-    pub pfnFillRGBABlend: Option<
-        unsafe extern "C" fn(
-            x: c_int,
-            y: c_int,
-            width: c_int,
-            height: c_int,
-            r: c_int,
-            g: c_int,
-            b: c_int,
-            a: c_int,
-        ),
-    >,
-    pub pfnGetAppID: Option<unsafe extern "C" fn() -> c_int>,
-    pub pfnGetAliases: Option<unsafe extern "C" fn() -> *mut cmdalias_s>,
-    pub pfnVguiWrap2_GetMouseDelta: Option<unsafe extern "C" fn(x: *mut c_int, y: *mut c_int)>,
-    pub pfnFilteredClientCmd: Option<unsafe extern "C" fn(cmd: *const c_char) -> c_int>,
-}
-
 pub struct ClientEngine {
-    raw: ClientEngineFunctions,
+    raw: cl_enginefuncs_s,
     tri_api: TriangleApi,
     efx_api: EfxApi,
     event_api: EventApi,
@@ -376,7 +64,7 @@ macro_rules! unwrap {
 }
 
 impl ClientEngine {
-    pub(crate) fn new(raw: &ClientEngineFunctions) -> Self {
+    pub(crate) fn new(raw: &cl_enginefuncs_s) -> Self {
         Self {
             raw: *raw,
             tri_api: TriangleApi::new(raw.pTriAPI),
@@ -387,7 +75,7 @@ impl ClientEngine {
         }
     }
 
-    pub fn raw(&self) -> &ClientEngineFunctions {
+    pub fn raw(&self) -> &cl_enginefuncs_s {
         &self.raw
     }
 
@@ -437,27 +125,27 @@ impl ClientEngine {
     }
 
     pub fn spr_draw(&self, frame: c_int, x: c_int, y: c_int) {
-        unsafe { unwrap!(self, pfnSPR_Draw)(frame, x, y, None) }
+        unsafe { unwrap!(self, pfnSPR_Draw)(frame, x, y, ptr::null()) }
     }
 
     pub fn spr_draw_rect(&self, frame: c_int, x: c_int, y: c_int, rect: wrect_s) {
-        unsafe { unwrap!(self, pfnSPR_Draw)(frame, x, y, Some(&rect)) }
+        unsafe { unwrap!(self, pfnSPR_Draw)(frame, x, y, &rect) }
     }
 
     pub fn spr_draw_holes(&self, frame: c_int, x: c_int, y: c_int) {
-        unsafe { unwrap!(self, pfnSPR_DrawHoles)(frame, x, y, None) }
+        unsafe { unwrap!(self, pfnSPR_DrawHoles)(frame, x, y, ptr::null()) }
     }
 
     pub fn spr_draw_holes_rect(&self, frame: c_int, x: c_int, y: c_int, rect: wrect_s) {
-        unsafe { unwrap!(self, pfnSPR_DrawHoles)(frame, x, y, Some(&rect)) }
+        unsafe { unwrap!(self, pfnSPR_DrawHoles)(frame, x, y, &rect) }
     }
 
     pub fn spr_draw_additive(&self, frame: c_int, x: c_int, y: c_int) {
-        unsafe { unwrap!(self, pfnSPR_DrawAdditive)(frame, x, y, None) }
+        unsafe { unwrap!(self, pfnSPR_DrawAdditive)(frame, x, y, ptr::null()) }
     }
 
     pub fn spr_draw_additive_rect(&self, frame: c_int, x: c_int, y: c_int, rect: wrect_s) {
-        unsafe { unwrap!(self, pfnSPR_DrawAdditive)(frame, x, y, Some(&rect)) }
+        unsafe { unwrap!(self, pfnSPR_DrawAdditive)(frame, x, y, &rect) }
     }
 
     pub fn spr_scissor_enable(&self, x: c_int, y: c_int, width: c_int, height: c_int) {
@@ -472,7 +160,8 @@ impl ClientEngine {
         let path = path.to_engine_str();
         unsafe {
             let mut len = MaybeUninit::uninit();
-            let data = unwrap!(self, pfnSPR_GetList)(path.as_ptr(), len.as_mut_ptr());
+            // FIXME: ffi: why psz is mutable?
+            let data = unwrap!(self, pfnSPR_GetList)(path.as_ptr().cast_mut(), len.as_mut_ptr());
             SpriteList::new(data, len.assume_init() as usize)
         }
     }
@@ -486,7 +175,7 @@ impl ClientEngine {
 
     pub fn get_screen_info(&self) -> SCREENINFO {
         unsafe {
-            let mut info = SCREENINFO::default();
+            let mut info = SCREENINFO::new();
             assert_eq!(unwrap!(self, pfnGetScreenInfo)(&mut info), 1);
             info
         }
@@ -517,7 +206,7 @@ impl ClientEngine {
                 flags.bits() as c_int,
             );
             if !raw.is_null() {
-                Some(CVarPtr::from_ptr(raw))
+                Some(CVarPtr::from_ptr(raw.cast()))
             } else {
                 None
             }
@@ -607,14 +296,15 @@ impl ClientEngine {
 
     pub fn get_view_angles(&self) -> vec3_t {
         unsafe {
-            let mut ret = MaybeUninit::uninit();
-            unwrap!(self, GetViewAngles)(ret.as_mut_ptr());
+            let mut ret = MaybeUninit::<vec3_t>::uninit();
+            unwrap!(self, GetViewAngles)(ret.as_mut_ptr().cast());
             ret.assume_init()
         }
     }
 
-    pub fn set_view_angles(&self, angles: vec3_t) {
-        unsafe { unwrap!(self, SetViewAngles)(&angles) }
+    pub fn set_view_angles(&self, mut angles: vec3_t) {
+        // FIXME: ffi: why arg1 is mut?
+        unsafe { unwrap!(self, SetViewAngles)(angles.as_mut_ptr()) }
     }
 
     pub fn get_max_clients(&self) -> c_int {
@@ -635,7 +325,8 @@ impl ClientEngine {
 
     pub fn check_parm(&self, parm: impl ToEngineStr) -> c_int {
         let parm = parm.to_engine_str();
-        unsafe { unwrap!(self, CheckParm)(parm.as_ptr(), ptr::null_mut()) }
+        // FIXME: ffi: why parm is mut?
+        unsafe { unwrap!(self, CheckParm)(parm.as_ptr().cast_mut(), ptr::null_mut()) }
     }
 
     pub fn key_event(&self, key: u32, down: bool) {
@@ -692,6 +383,8 @@ impl ClientEngine {
     }
 
     pub fn apply_shake(&self, origin: &mut vec3_t, angles: &mut vec3_t, factor: f32) {
+        let origin = origin.as_mut_ptr().cast();
+        let angles = angles.as_mut_ptr().cast();
         unsafe { unwrap!(self, V_ApplyShake)(origin, angles, factor) }
     }
 
@@ -751,7 +444,7 @@ impl ClientEngine {
     pub fn hook_event(
         &self,
         name: impl ToEngineStr,
-        event: Option<unsafe extern "C" fn(args: *mut EventArgs)>,
+        event: Option<unsafe extern "C" fn(args: *mut event_args_s)>,
     ) {
         let name = name.to_engine_str();
         unsafe { unwrap!(self, pfnHookEvent)(name.as_ptr(), event) }
@@ -763,7 +456,7 @@ impl ClientEngine {
     pub fn get_cvar(&self, name: impl ToEngineStr) -> CVarPtr {
         let name = name.to_engine_str();
         let ptr = unsafe { unwrap!(self, pfnGetCvarPointer)(name.as_ptr()) };
-        CVarPtr::from_ptr(ptr)
+        CVarPtr::from_ptr(ptr.cast())
     }
 
     pub fn key_lookup_binding<'a>(
@@ -977,7 +670,7 @@ impl EngineCmd for ClientEngine {
         func: unsafe extern "C" fn(),
     ) -> Result<(), AddCmdError> {
         let name = name.to_engine_str();
-        let result = unsafe { unwrap!(self, pfnAddCommand)(name.as_ptr(), func) };
+        let result = unsafe { unwrap!(self, pfnAddCommand)(name.as_ptr(), Some(func)) };
         if result == 0 {
             Err(AddCmdError)
         } else {
@@ -1014,7 +707,8 @@ impl EngineDrawConsoleString for ClientEngine {
 
     fn draw_console_string(&self, x: c_int, y: c_int, text: impl ToEngineStr) -> c_int {
         let text = text.to_engine_str();
-        unsafe { unwrap!(self, pfnDrawConsoleString)(x, y, text.as_ptr()) }
+        // FIXME: ffi: why string is mut?
+        unsafe { unwrap!(self, pfnDrawConsoleString)(x, y, text.as_ptr().cast_mut()) }
     }
 }
 

@@ -194,7 +194,7 @@ impl Entities {
 
         if frametime <= 0.0 {
             for temp in list.iter_mut() {
-                if !temp.flags.intersects(F::NOMODEL) {
+                if !temp.flags().intersects(F::NOMODEL) {
                     add_visible_entity(&mut temp.entity);
                 }
             }
@@ -214,7 +214,7 @@ impl Entities {
         list.retain_mut(|temp| {
             let life = temp.die - client_time;
             if life < 0.0 {
-                if temp.flags.intersects(F::FADEOUT) {
+                if temp.flags().intersects(F::FADEOUT) {
                     let cs = &mut temp.entity.curstate;
                     if cs.rendermode == RenderMode::Normal as c_int {
                         cs.rendermode = RenderMode::TransTexture as c_int;
@@ -231,7 +231,7 @@ impl Entities {
 
             temp.entity.prevstate.origin = temp.entity.origin;
 
-            if temp.flags.intersects(F::SPARKSHOWER) {
+            if temp.flags().intersects(F::SPARKSHOWER) {
                 if client_time > temp.entity.baseline.scale {
                     efx.spark_effect(temp.entity.origin, 8, -200, 200);
 
@@ -244,13 +244,13 @@ impl Entities {
                         temp.entity.baseline.scale = client_time + 0.1;
                     }
                 }
-            } else if temp.flags.intersects(F::PLYRATTACHMENT) {
+            } else if temp.flags().intersects(F::PLYRATTACHMENT) {
                 let client = engine.get_entity_by_index(temp.clientIndex as c_int);
                 if !client.is_null() {
                     let client = unsafe { &*client };
                     temp.entity.origin = client.origin + temp.tentOffset;
                 }
-            } else if temp.flags.intersects(F::SINEWAVE) {
+            } else if temp.flags().intersects(F::SINEWAVE) {
                 temp.x += temp.entity.baseline.origin[0] * frametime;
                 temp.y += temp.entity.baseline.origin[1] * frametime;
 
@@ -262,7 +262,7 @@ impl Entities {
                     + sinf(temp.entity.baseline.origin[2] + fast_freq + 0.7)
                         * (temp.entity.curstate.framerate * 8.0);
                 temp.entity.origin[2] += temp.entity.baseline.origin[2] * frametime;
-            } else if temp.flags.intersects(F::SPIRAL) {
+            } else if temp.flags().intersects(F::SPIRAL) {
                 temp.entity.origin += temp.entity.baseline.origin * frametime;
                 let t = temp as *const _ as i32 as f32;
                 temp.entity.origin[0] += 8.0 * sinf(client_time * 20.0 + t);
@@ -271,34 +271,34 @@ impl Entities {
                 temp.entity.origin += temp.entity.baseline.origin * frametime;
             }
 
-            if temp.flags.intersects(F::SPRANIMATE) {
+            if temp.flags().intersects(F::SPRANIMATE) {
                 temp.entity.curstate.frame += frametime * temp.entity.curstate.framerate;
                 if temp.entity.curstate.frame >= temp.frameMax {
                     temp.entity.curstate.frame -= (temp.entity.curstate.frame as i32) as f32;
 
                     // destroy if animation sprite is not set to loop
-                    if !temp.flags.intersects(F::SPRANIMATELOOP) {
+                    if !temp.flags().intersects(F::SPRANIMATELOOP) {
                         temp.die = client_time;
                         return true;
                     }
                 }
-            } else if temp.flags.intersects(F::SPRCYCLE) {
+            } else if temp.flags().intersects(F::SPRCYCLE) {
                 temp.entity.curstate.frame += frametime * 10.0;
                 if temp.entity.curstate.frame >= temp.frameMax {
                     temp.entity.curstate.frame -= (temp.entity.curstate.frame as i32) as f32;
                 }
             }
 
-            if temp.flags.intersects(F::ROTATE) {
+            if temp.flags().intersects(F::ROTATE) {
                 temp.entity.angles += temp.entity.baseline.angles * frametime;
                 temp.entity.latched.prevangles = temp.entity.angles;
             }
 
-            if temp.flags.intersects(F::COLLIDEALL | F::COLLIDEWORLD) {
+            if temp.flags().intersects(F::COLLIDEALL | F::COLLIDEWORLD) {
                 let mut trace_fraction = 1.0;
                 let mut trace_normal = vec3_t::ZERO;
 
-                if temp.flags.intersects(F::COLLIDEALL) {
+                if temp.flags().intersects(F::COLLIDEALL) {
                     event.set_trace_hull(2);
                     let mut pmtrace = event.player_trace(
                         temp.entity.prevstate.origin,
@@ -320,7 +320,7 @@ impl Entities {
                             }
                         }
                     }
-                } else if temp.flags.intersects(F::COLLIDEWORLD) {
+                } else if temp.flags().intersects(F::COLLIDEWORLD) {
                     event.set_trace_hull(2);
                     let mut pmtrace = event.player_trace(
                         temp.entity.prevstate.origin,
@@ -333,7 +333,7 @@ impl Entities {
                         trace_fraction = pmtrace.fraction;
                         trace_normal = pmtrace.plane.normal;
 
-                        if temp.flags.intersects(F::SPARKSHOWER) {
+                        if temp.flags().intersects(F::SPARKSHOWER) {
                             temp.entity.baseline.origin *= 0.6;
 
                             if temp.entity.baseline.origin.length() < 10.0 {
@@ -354,7 +354,7 @@ impl Entities {
                         + temp.entity.baseline.origin * (trace_fraction * frametime);
 
                     let mut damp = temp.bounceFactor;
-                    if temp.flags.intersects(F::GRAVITY | F::SLOWGRAVITY) {
+                    if temp.flags().intersects(F::GRAVITY | F::SLOWGRAVITY) {
                         damp *= 0.5;
 
                         if trace_normal[2] > 0.9
@@ -362,7 +362,7 @@ impl Entities {
                             && temp.entity.baseline.origin[2] >= gravity * 3.0
                         {
                             damp = 0.0;
-                            temp.flags.remove(
+                            temp.flags_mut().remove(
                                 F::ROTATE
                                     | F::GRAVITY
                                     | F::SLOWGRAVITY
@@ -376,8 +376,8 @@ impl Entities {
                         temp_ent_play_sound(temp, damp);
                     }
 
-                    if temp.flags.intersects(F::COLLIDEKILL) {
-                        temp.flags.remove(F::FADEOUT);
+                    if temp.flags().intersects(F::COLLIDEKILL) {
+                        temp.flags_mut().remove(F::FADEOUT);
                         temp.die = client_time;
                     } else {
                         if damp != 0.0 {
@@ -394,7 +394,7 @@ impl Entities {
                 }
             }
 
-            if temp.flags.intersects(F::FLICKER)
+            if temp.flags().intersects(F::FLICKER)
                 && self.temp_ent_frame.get() == temp.entity.curstate.effects
             {
                 let dl = efx.alloc_dlight(0);
@@ -408,17 +408,17 @@ impl Entities {
                 dl.die = client_time + 0.01;
             }
 
-            if temp.flags.intersects(F::SMOKETRAIL) {
+            if temp.flags().intersects(F::SMOKETRAIL) {
                 efx.rocket_trail(temp.entity.prevstate.origin, temp.entity.origin, 1);
             }
 
-            if temp.flags.intersects(F::GRAVITY) {
+            if temp.flags().intersects(F::GRAVITY) {
                 temp.entity.baseline.origin[2] += gravity;
-            } else if temp.flags.intersects(F::SLOWGRAVITY) {
+            } else if temp.flags().intersects(F::SLOWGRAVITY) {
                 temp.entity.baseline.origin[2] += gravity_slow;
             }
 
-            if temp.flags.intersects(F::CLIENTCUSTOM) {
+            if temp.flags().intersects(F::CLIENTCUSTOM) {
                 if let Some(callback) = temp.callback {
                     unsafe {
                         callback(temp, frametime, client_time);
@@ -426,11 +426,11 @@ impl Entities {
                 }
             }
 
-            if !temp.flags.intersects(F::NOMODEL)
+            if !temp.flags().intersects(F::NOMODEL)
                 && add_visible_entity(&mut temp.entity) == 0
-                && !temp.flags.intersects(F::PERSIST)
+                && !temp.flags().intersects(F::PERSIST)
             {
-                temp.flags.remove(F::FADEOUT);
+                temp.flags_mut().remove(F::FADEOUT);
                 temp.die = client_time;
             }
 

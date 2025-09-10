@@ -56,17 +56,17 @@ impl Msg {
 
         let mut length = 0;
         let mut total_width = 0;
-        let mut total_height = screen.char_height;
+        let mut total_height = screen.iCharHeight;
         for line in self.message.lines() {
             let width = line
                 .as_bytes()
                 .iter()
-                .map(|i| screen.char_widths[*i as usize] as c_int)
+                .map(|i| screen.charWidths[*i as usize] as c_int)
                 .sum();
 
             length += line.len() + 1;
             total_width = cmp::max(width, total_width);
-            total_height += screen.char_height;
+            total_height += screen.iCharHeight;
         }
 
         let time = state.time - self.start_time;
@@ -100,18 +100,18 @@ impl Msg {
             _ => todo!(),
         }
 
-        let mut y = position(self.y, total_height, 0, screen.height);
+        let mut y = position(self.y, total_height, 0, screen.iHeight);
         for line in self.message.lines() {
             let width = line
                 .as_bytes()
                 .iter()
-                .map(|i| screen.char_widths[*i as usize] as c_int)
+                .map(|i| screen.charWidths[*i as usize] as c_int)
                 .sum();
 
-            let mut x = position(self.x, width, total_width, screen.width);
+            let mut x = position(self.x, width, total_width, screen.iWidth);
             for &c in line.as_bytes() {
-                let x_next = x + screen.char_widths[c as usize] as c_int;
-                if x_next > screen.width || x < 0 || y < 0 {
+                let x_next = x + screen.charWidths[c as usize] as c_int;
+                if x_next > screen.iWidth || x < 0 || y < 0 {
                     x = x_next;
                     continue;
                 }
@@ -147,7 +147,7 @@ impl Msg {
 
                 x = x_next;
             }
-            y += screen.char_height;
+            y += screen.iCharHeight;
         }
     }
 }
@@ -307,8 +307,8 @@ impl HudMessage {
         let full_height = title_life.rect.height();
         let engine = engine();
         let screen = engine.get_screen_info();
-        let x = position(title.x, full_width, full_width, screen.width);
-        let y = position(title.y, full_height, 0, screen.height);
+        let x = position(title.x, full_width, full_width, screen.iWidth);
+        let y = position(title.y, full_height, 0, screen.iHeight);
 
         engine.spr_set(title_half.hspr, color);
         engine.spr_draw_additive_rect(0, x, y, title_half.rect);

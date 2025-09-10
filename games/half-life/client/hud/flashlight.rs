@@ -91,14 +91,14 @@ impl super::HudItem for Flashlight {
         let screen = engine.get_screen_info();
 
         let width = empty.rect.width();
-        let x = screen.width - width - width / 2;
+        let x = screen.iWidth - width - width / 2;
         let y = (empty.rect.bottom - full.rect.top) / 2;
 
         engine.spr_set(empty.hspr, color);
         engine.spr_draw_additive_rect(0, x, y, empty.rect);
 
         if self.enabled {
-            let x = screen.width - width / 2;
+            let x = screen.iWidth - width / 2;
             engine.spr_set(beam.hspr, color);
             engine.spr_draw_additive_rect(0, x, y, beam.rect);
         }

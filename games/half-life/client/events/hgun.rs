@@ -2,7 +2,7 @@ use core::ffi::c_int;
 
 use cl::{
     consts::{ATTN_NORM, CHAN_WEAPON, PITCH},
-    engine::event::EventArgs,
+    engine::event::event_args_s,
     prelude::*,
     raw::SoundFlags,
 };
@@ -25,12 +25,12 @@ enum Hgun {
 }
 
 impl Events {
-    pub(super) fn fire_hornet_gun(&mut self, args: &mut EventArgs) {
+    pub(super) fn fire_hornet_gun(&mut self, args: &mut event_args_s) {
         let engine = engine();
         let ev = engine.event_api();
 
         let idx = args.entindex;
-        let origin = args.origin;
+        let origin = args.origin();
         let _fire_mode = args.iparam1;
 
         if is_local(idx) {

@@ -1,13 +1,8 @@
 use core::ffi::c_int;
 
-use shared::export::UnsyncGlobal;
+use shared::{export::UnsyncGlobal, ffi};
 
-use crate::{
-    engine::prelude::*,
-    engine::{event::EVENT_API_VERSION, tri::TRI_API_VERSION, ClientEngine, ClientEngineFunctions},
-    raw,
-    studio::Studio,
-};
+use crate::{engine::prelude::*, engine::ClientEngine, studio::Studio};
 
 fn check_version(engine: &ClientEngine, name: &str, version: c_int, expected: c_int) -> bool {
     if version == expected {
@@ -26,15 +21,25 @@ fn check_version(engine: &ClientEngine, name: &str, version: c_int, expected: c_
 /// # Safety
 ///
 /// Must be called only once.
-pub unsafe fn init_engine(engine_funcs: &ClientEngineFunctions) -> bool {
+pub unsafe fn init_engine(engine_funcs: &ffi::client::cl_enginefuncs_s) -> bool {
     let engine = ClientEngine::new(engine_funcs);
     let mut ok = true;
 
     let tri_version = engine.tri_api().version();
-    ok &= check_version(&engine, "TriangleAPI", tri_version, TRI_API_VERSION);
+    ok &= check_version(
+        &engine,
+        "TriangleAPI",
+        tri_version,
+        ffi::api::tri::TRI_API_VERSION,
+    );
 
     let event_version = engine.event_api().version();
-    ok &= check_version(&engine, "EventAPI", event_version, EVENT_API_VERSION);
+    ok &= check_version(
+        &engine,
+        "EventAPI",
+        event_version,
+        ffi::api::event::EVENT_API_VERSION,
+    );
 
     if !ok {
         return false;
@@ -61,7 +66,7 @@ pub fn engine() -> &'static ClientEngine {
 /// # Safety
 ///
 /// Must be called only once.
-pub unsafe fn init_studio(funcs: &raw::engine_studio_api_s) {
+pub unsafe fn init_studio(funcs: &ffi::api::studio::engine_studio_api_s) {
     unsafe {
         (*Studio::global_as_mut_ptr()).write(Studio::new(funcs));
     }

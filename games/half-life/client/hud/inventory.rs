@@ -151,7 +151,7 @@ impl Weapon {
 
         let load = |name: &CStr| {
             list.find(name.into(), res)
-                .and_then(|i| spr_load!("sprites/{}.spr", i.sprite).map(|s| (s, i.rc)))
+                .and_then(|i| spr_load!("sprites/{}.spr", i.sprite()).map(|s| (s, i.rc)))
                 .map(|(s, rc)| Sprite::new(s, rc))
         };
 

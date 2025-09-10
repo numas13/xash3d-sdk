@@ -1,19 +1,22 @@
 use core::{ffi::c_int, num::NonZeroI32, ops::Deref, slice};
 
-use csz::{CStrArray, CStrThin};
-use shared::raw::wrect_s;
+use csz::CStrThin;
+use shared::ffi::client::{client_sprite_s, HSPRITE};
 
-pub type HSPRITE = c_int;
+pub trait ClientSpriteExt {
+    fn sprite(&self) -> &CStrThin;
 
-#[allow(non_camel_case_types)]
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct client_sprite_s {
-    pub name: CStrArray<64>,
-    pub sprite: CStrArray<64>,
-    pub hspr: c_int,
-    pub res: c_int,
-    pub rc: wrect_s,
+    fn name(&self) -> &CStrThin;
+}
+
+impl ClientSpriteExt for client_sprite_s {
+    fn sprite(&self) -> &CStrThin {
+        unsafe { CStrThin::from_ptr(self.szSprite.as_ptr()) }
+    }
+
+    fn name(&self) -> &CStrThin {
+        unsafe { CStrThin::from_ptr(self.szName.as_ptr()) }
+    }
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -60,8 +63,8 @@ impl SpriteList {
     pub fn find(&self, name: &CStrThin, res: c_int) -> Option<&client_sprite_s> {
         self.as_slice()
             .iter()
-            .filter(|i| i.res <= res && i.name == *name)
-            .max_by_key(|i| i.res)
+            .filter(|i| i.iRes <= res && i.name() == name)
+            .max_by_key(|i| i.iRes)
     }
 }
 

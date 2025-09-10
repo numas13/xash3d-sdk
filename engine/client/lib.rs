@@ -15,10 +15,6 @@ pub mod sprite;
 mod studio;
 pub mod utils;
 
-use core::ffi::c_int;
-
 pub use shared::{cell, color, consts, cvar, ffi, math, str::ToEngineStr};
 
 pub use crate::studio::*;
-
-pub const CLDLL_INTERFACE_VERSION: c_int = 7;

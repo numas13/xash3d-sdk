@@ -2,7 +2,7 @@ use core::ffi::c_int;
 
 use cl::{
     consts::{ATTN_NORM, CHAN_STATIC},
-    engine::event::EventArgs,
+    engine::event::event_args_s,
     prelude::*,
     raw::SoundFlags,
 };
@@ -11,9 +11,9 @@ use res::valve::sound;
 use super::Events;
 
 impl Events {
-    pub(super) fn train_pitch_adjust(&mut self, args: &mut EventArgs) {
+    pub(super) fn train_pitch_adjust(&mut self, args: &mut event_args_s) {
         let idx = args.entindex;
-        let origin = args.origin;
+        let origin = args.origin();
         let us_params = args.iparam1 as u16;
         let stop = args.bparam1 != 0;
         let volume = (us_params & 0x3f) as f32 / 40.0;

@@ -75,7 +75,7 @@ impl History {
     fn add(&mut self, state: &State, kind: ItemKind) {
         let engine = engine();
         let height = self.slot as c_int * state.inv.pickup_gap() + state.inv.pickup_height();
-        let height_max = engine.get_screen_info().height - 100;
+        let height_max = engine.get_screen_info().iHeight - 100;
         if height > height_max || self.slot >= self.items.len() {
             self.slot = 0;
         }
@@ -120,8 +120,8 @@ impl HudItem for History {
 
             let a = ((item.time - state.time) * 80.0) as u8;
             let color = state.color.scale_color(a);
-            let mut x = screen.width - 4;
-            let y = screen.height - height - gap * i as c_int;
+            let mut x = screen.iWidth - 4;
+            let y = screen.iHeight - height - gap * i as c_int;
 
             match item.kind {
                 ItemKind::Ammo(index, count) => {

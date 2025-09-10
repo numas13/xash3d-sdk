@@ -1,6 +1,6 @@
 use core::ffi::c_int;
 
-use cl::{consts::PM_NORMAL, engine::event::EventArgs, prelude::*};
+use cl::{consts::PM_NORMAL, engine::event::event_args_s, prelude::*};
 
 use super::{is_local, Events};
 
@@ -20,7 +20,7 @@ enum Tripmine {
 }
 
 impl Events {
-    pub(super) fn fire_tripmine(&mut self, args: &mut EventArgs) {
+    pub(super) fn fire_tripmine(&mut self, args: &mut event_args_s) {
         let idx = args.entindex;
         if !is_local(idx) {
             return;
@@ -29,8 +29,8 @@ impl Events {
         let engine = engine();
         let ev = engine.event_api();
 
-        let origin = args.origin;
-        let angles = args.angles;
+        let origin = args.origin();
+        let angles = args.angles();
         let forward = angles.angle_vectors().forward();
 
         let view_ofs = ev.local_player_view_height();

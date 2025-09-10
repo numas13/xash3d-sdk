@@ -8,16 +8,20 @@ use csz::CStrThin;
 use shared::{
     cvar::CVarPtr,
     engine::net::netadr_s,
+    ffi::{
+        self,
+        client::{cl_enginefuncs_s, cldll_func_s},
+    },
     raw::{
         byte, cl_entity_s, clientdata_s, engine_studio_api_s, entity_state_s, kbutton_t,
         mstudioevent_s, playermove_s, qboolean, r_studio_interface_s, usercmd_s, vec3_t,
         weapon_data_s, UserCmdExt,
     },
+    utils::cstr_or_none,
 };
 
 use crate::{
     collections::TempEntityList,
-    engine::cl_enginefuncs_s,
     prelude::*,
     raw::{client_data_s, local_state_s, ref_params_s, EntityType, TEMPENTITY},
 };
@@ -177,164 +181,13 @@ pub trait ClientDll: UnsyncGlobal {
     }
 }
 
-#[allow(non_camel_case_types)]
-pub type cldll_func_s = ClientDllFunctions;
-
-#[allow(non_snake_case)]
-#[allow(clippy::type_complexity)]
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct ClientDllFunctions {
-    pub pfnInitialize: Option<
-        unsafe extern "C" fn(pEnginefuncs: Option<&cl_enginefuncs_s>, iVersion: c_int) -> c_int,
-    >,
-    pub pfnInit: Option<unsafe extern "C" fn()>,
-    pub pfnVidInit: Option<unsafe extern "C" fn() -> c_int>,
-    pub pfnRedraw: Option<unsafe extern "C" fn(flTime: f32, intermission: c_int) -> c_int>,
-    pub pfnUpdateClientData:
-        Option<unsafe extern "C" fn(cdata: Option<&mut client_data_s>, flTime: f32) -> c_int>,
-    pub pfnReset: Option<unsafe extern "C" fn()>,
-    pub pfnPlayerMove: Option<unsafe extern "C" fn(ppmove: *mut playermove_s, server: c_int)>,
-    pub pfnPlayerMoveInit: Option<unsafe extern "C" fn(ppmove: *mut playermove_s)>,
-    pub pfnPlayerMoveTexture: Option<unsafe extern "C" fn(name: *const c_char) -> c_char>,
-    pub IN_ActivateMouse: Option<unsafe extern "C" fn()>,
-    pub IN_DeactivateMouse: Option<unsafe extern "C" fn()>,
-    pub IN_MouseEvent: Option<unsafe extern "C" fn(mstate: c_int)>,
-    pub IN_ClearStates: Option<unsafe extern "C" fn()>,
-    pub IN_Accumulate: Option<unsafe extern "C" fn()>,
-    pub CL_CreateMove:
-        Option<unsafe extern "C" fn(frametime: f32, cmd: *mut usercmd_s, active: c_int)>,
-    pub CL_IsThirdPerson: Option<unsafe extern "C" fn() -> c_int>,
-    pub CL_CameraOffset: Option<unsafe extern "C" fn(ofs: *mut vec3_t)>,
-    pub KB_Find: Option<unsafe extern "C" fn(name: *const c_char) -> *mut kbutton_t>,
-    pub CAM_Think: Option<unsafe extern "C" fn()>,
-    pub pfnCalcRefdef: Option<unsafe extern "C" fn(pparams: Option<&mut ref_params_s>)>,
-    pub pfnAddEntity: Option<
-        unsafe extern "C" fn(
-            entity_type: EntityType,
-            entity: Option<&mut cl_entity_s>,
-            model_name: *const c_char,
-        ) -> c_int,
-    >,
-    pub pfnCreateEntities: Option<unsafe extern "C" fn()>,
-    pub pfnDrawNormalTriangles: Option<unsafe extern "C" fn()>,
-    pub pfnDrawTransparentTriangles: Option<unsafe extern "C" fn()>,
-    pub pfnStudioEvent:
-        Option<unsafe extern "C" fn(event: *const mstudioevent_s, entity: *const cl_entity_s)>,
-    pub pfnPostRunCmd: Option<
-        unsafe extern "C" fn(
-            from: Option<&mut local_state_s>,
-            to: Option<&mut local_state_s>,
-            cmd: Option<&mut usercmd_s>,
-            runfuncs: c_int,
-            time: f64,
-            random_seed: c_uint,
-        ),
-    >,
-    pub pfnShutdown: Option<unsafe extern "C" fn()>,
-    pub pfnTxferLocalOverrides: Option<
-        unsafe extern "C" fn(state: Option<&mut entity_state_s>, client: Option<&clientdata_s>),
-    >,
-    pub pfnProcessPlayerState: Option<
-        unsafe extern "C" fn(dst: Option<&mut entity_state_s>, src: Option<&entity_state_s>),
-    >,
-    pub pfnTxferPredictionData: Option<
-        unsafe extern "C" fn(
-            ps: Option<&mut entity_state_s>,
-            pps: Option<&entity_state_s>,
-            pcd: Option<&mut clientdata_s>,
-            ppcd: Option<&clientdata_s>,
-            wd: *mut weapon_data_s,
-            pwd: *const weapon_data_s,
-        ),
-    >,
-    pub pfnDemo_ReadBuffer: Option<unsafe extern "C" fn(size: c_int, buffer: *mut byte)>,
-    pub pfnConnectionlessPacket: Option<
-        unsafe extern "C" fn(
-            net_from: *const netadr_s,
-            args: *const c_char,
-            buffer: *mut c_char,
-            size: *mut c_int,
-        ) -> c_int,
-    >,
-    pub pfnGetHullBounds: Option<
-        unsafe extern "C" fn(
-            hullnumber: c_int,
-            mins: Option<&mut vec3_t>,
-            maxs: Option<&mut vec3_t>,
-        ) -> c_int,
-    >,
-    pub pfnFrame: Option<unsafe extern "C" fn(time: f64)>,
-    pub pfnKey_Event: Option<
-        unsafe extern "C" fn(
-            eventcode: c_int,
-            keynum: c_int,
-            pszCurrentBinding: *const c_char,
-        ) -> c_int,
-    >,
-    pub pfnTempEntUpdate: Option<
-        unsafe extern "C" fn(
-            frametime: f64,
-            client_time: f64,
-            cl_gravity: f64,
-            ppTempEntFree: *mut *mut TEMPENTITY,
-            ppTempEntActive: *mut *mut TEMPENTITY,
-            AddVisibleEntity: unsafe extern "C" fn(pEntity: *mut cl_entity_s) -> c_int,
-            TempEntPlaySound: unsafe extern "C" fn(pTemp: *mut TEMPENTITY, damp: f32),
-        ),
-    >,
-    pub pfnGetUserEntity: Option<unsafe extern "C" fn(index: c_int) -> *mut cl_entity_s>,
-    pub pfnVoiceStatus: Option<unsafe extern "C" fn(entindex: c_int, bTalking: qboolean)>,
-    pub pfnDirectorMessage: Option<unsafe extern "C" fn(iSize: c_int, pbuf: *const c_void)>,
-    pub pfnGetStudioModelInterface: Option<
-        unsafe extern "C" fn(
-            version: c_int,
-            ppinterface: *mut *mut r_studio_interface_s,
-            pstudio: *mut engine_studio_api_s,
-        ) -> c_int,
-    >,
-    pub pfnChatInputPosition: Option<unsafe extern "C" fn(x: *mut c_int, y: *mut c_int)>,
-    // TODO:
-    // pub pfnGetRenderInterface: Option<
-    //     unsafe extern "C" fn(
-    //         version: c_int,
-    //         renderfuncs: *mut render_api_t,
-    //         callback: *mut render_interface_t,
-    //     ) -> c_int,
-    // >,
-    // pub pfnClipMoveToEntity: Option<
-    //     unsafe extern "C" fn(
-    //         pe: *mut physent_s,
-    //         start: *mut vec3_t,
-    //         mins: *mut vec3_t,
-    //         maxs: *mut vec3_t,
-    //         end: *mut vec3_t,
-    //         tr: *mut pmtrace_s,
-    //     ),
-    // >,
-    // pub pfnTouchEvent: Option<
-    //     unsafe extern "C" fn(
-    //         type_: c_int,
-    //         fingerID: c_int,
-    //         x: f32,
-    //         y: f32,
-    //         dx: f32,
-    //         dy: f32,
-    //     ) -> c_int,
-    // >,
-    // pub pfnMoveEvent: Option<unsafe extern "C" fn(forwardmove: f32, sidemove: f32)>,
-    // pub pfnLookEvent: Option<unsafe extern "C" fn(relyaw: f32, relpitch: f32)>,
-}
-
-impl ClientDllFunctions {
-    pub fn new<T: ClientDll + Default>() -> Self {
-        Export::<T>::client_functions()
-    }
+pub fn dll_functions<T: ClientDll + Default>() -> cldll_func_s {
+    Export::<T>::dll_functions()
 }
 
 trait ClientDllExport {
-    fn client_functions() -> ClientDllFunctions {
-        ClientDllFunctions {
+    fn dll_functions() -> cldll_func_s {
+        cldll_func_s {
             pfnInitialize: Some(Self::initialize),
             pfnInit: Some(Self::init),
             pfnVidInit: Some(Self::vid_init),
@@ -376,19 +229,15 @@ trait ClientDllExport {
             pfnDirectorMessage: Some(Self::director_message),
             pfnGetStudioModelInterface: Some(Self::get_studio_model_interface),
             pfnChatInputPosition: Some(Self::chat_input_position),
-            // TODO:
-            // pfnGetRenderInterface: None,
-            // pfnClipMoveToEntity: None,
-            // pfnTouchEvent: None,
-            // pfnMoveEvent: None,
-            // pfnLookEvent: None,
+            pfnGetRenderInterface: None,
+            pfnClipMoveToEntity: None,
+            pfnTouchEvent: None,
+            pfnMoveEvent: None,
+            pfnLookEvent: None,
         }
     }
 
-    unsafe extern "C" fn initialize(
-        engine_funcs: Option<&cl_enginefuncs_s>,
-        version: c_int,
-    ) -> c_int;
+    unsafe extern "C" fn initialize(engine_funcs: *mut cl_enginefuncs_s, version: c_int) -> c_int;
 
     unsafe extern "C" fn init();
 
@@ -402,18 +251,18 @@ trait ClientDllExport {
 
     unsafe extern "C" fn reset();
 
-    unsafe extern "C" fn update_client_data(data: Option<&mut client_data_s>, time: f32) -> c_int;
+    unsafe extern "C" fn update_client_data(data: *mut client_data_s, time: f32) -> c_int;
 
     unsafe extern "C" fn player_move_init(pm: *mut playermove_s);
 
     unsafe extern "C" fn player_move(pm: *mut playermove_s, is_server: c_int);
 
-    unsafe extern "C" fn player_move_texture(name: *const c_char) -> c_char;
+    unsafe extern "C" fn player_move_texture(name: *mut c_char) -> c_char;
 
     unsafe extern "C" fn get_hull_bounds(
         hullnumber: c_int,
-        ret_mins: Option<&mut vec3_t>,
-        ret_maxs: Option<&mut vec3_t>,
+        ret_mins: *mut f32,
+        ret_maxs: *mut f32,
     ) -> c_int;
 
     unsafe extern "C" fn activate_mouse();
@@ -430,17 +279,17 @@ trait ClientDllExport {
 
     unsafe extern "C" fn is_third_person() -> c_int;
 
-    unsafe extern "C" fn camera_offset(ofs: *mut vec3_t);
+    unsafe extern "C" fn camera_offset(ofs: *mut f32);
 
     unsafe extern "C" fn camera_think();
 
-    unsafe extern "C" fn kb_find(name: *const c_char) -> *mut kbutton_t;
+    unsafe extern "C" fn kb_find(name: *const c_char) -> *mut c_void;
 
-    unsafe extern "C" fn calc_ref_def(params: Option<&mut ref_params_s>);
+    unsafe extern "C" fn calc_ref_def(params: *mut ref_params_s);
 
     unsafe extern "C" fn add_entity(
-        ty: EntityType,
-        ent: Option<&mut cl_entity_s>,
+        ty: c_int,
+        ent: *mut cl_entity_s,
         modelname: *const c_char,
     ) -> c_int;
 
@@ -453,29 +302,26 @@ trait ClientDllExport {
     unsafe extern "C" fn studio_event(event: *const mstudioevent_s, entity: *const cl_entity_s);
 
     unsafe extern "C" fn post_run_cmd(
-        from: Option<&mut local_state_s>,
-        to: Option<&mut local_state_s>,
-        cmd: Option<&mut usercmd_s>,
+        from: *mut local_state_s,
+        to: *mut local_state_s,
+        cmd: *mut usercmd_s,
         runfuncs: c_int,
         time: f64,
         random_seed: c_uint,
     );
 
     unsafe extern "C" fn txfer_local_overrides(
-        state: Option<&mut entity_state_s>,
-        client: Option<&clientdata_s>,
+        state: *mut entity_state_s,
+        client: *const clientdata_s,
     );
 
-    unsafe extern "C" fn process_player_state(
-        dst: Option<&mut entity_state_s>,
-        src: Option<&entity_state_s>,
-    );
+    unsafe extern "C" fn process_player_state(dst: *mut entity_state_s, src: *const entity_state_s);
 
     unsafe extern "C" fn txfer_prediction_data(
-        ps: Option<&mut entity_state_s>,
-        pps: Option<&entity_state_s>,
-        pcd: Option<&mut clientdata_s>,
-        ppcd: Option<&clientdata_s>,
+        ps: *mut entity_state_s,
+        pps: *const entity_state_s,
+        pcd: *mut clientdata_s,
+        ppcd: *const clientdata_s,
         wd: *mut weapon_data_s,
         pwd: *const weapon_data_s,
     );
@@ -501,15 +347,15 @@ trait ClientDllExport {
         cl_gravity: f64,
         temp_ent_free: *mut *mut TEMPENTITY,
         temp_ent_active: *mut *mut TEMPENTITY,
-        add_visible_entity: unsafe extern "C" fn(entity: *mut cl_entity_s) -> c_int,
-        temp_ent_play_sound: unsafe extern "C" fn(temp: *mut TEMPENTITY, damp: f32),
+        add_visible_entity: Option<unsafe extern "C" fn(entity: *mut cl_entity_s) -> c_int>,
+        temp_ent_play_sound: Option<unsafe extern "C" fn(temp: *mut TEMPENTITY, damp: f32)>,
     );
 
     unsafe extern "C" fn get_user_entity(index: c_int) -> *mut cl_entity_s;
 
     unsafe extern "C" fn voice_status(ent_index: c_int, talking: qboolean);
 
-    unsafe extern "C" fn director_message(size: c_int, buf: *const c_void);
+    unsafe extern "C" fn director_message(size: c_int, buf: *mut c_void);
 
     unsafe extern "C" fn get_studio_model_interface(
         version: c_int,
@@ -525,14 +371,11 @@ struct Export<T> {
 }
 
 impl<T: ClientDll + Default> ClientDllExport for Export<T> {
-    unsafe extern "C" fn initialize(
-        engine_funcs: Option<&cl_enginefuncs_s>,
-        version: c_int,
-    ) -> c_int {
-        if version != crate::CLDLL_INTERFACE_VERSION {
+    unsafe extern "C" fn initialize(engine_funcs: *mut cl_enginefuncs_s, version: c_int) -> c_int {
+        if version != ffi::client::CLDLL_INTERFACE_VERSION as c_int {
             return 0;
         }
-        let Some(engine_funcs) = engine_funcs else {
+        let Some(engine_funcs) = (unsafe { engine_funcs.as_mut() }) else {
             return 0;
         };
         if !unsafe { crate::instance::init_engine(engine_funcs) } {
@@ -583,9 +426,12 @@ impl<T: ClientDll + Default> ClientDllExport for Export<T> {
         unsafe { T::global_assume_init_ref() }.reset();
     }
 
-    unsafe extern "C" fn update_client_data(data: Option<&mut client_data_s>, time: f32) -> c_int {
-        let Some(data) = data else { return 0 };
-        unsafe { T::global_assume_init_ref() }.update_client_data(data, time) as c_int
+    unsafe extern "C" fn update_client_data(data: *mut client_data_s, time: f32) -> c_int {
+        if let Some(data) = unsafe { data.as_mut() } {
+            unsafe { T::global_assume_init_ref() }.update_client_data(data, time) as c_int
+        } else {
+            0
+        }
     }
 
     unsafe extern "C" fn player_move_init(pm: *mut playermove_s) {
@@ -596,19 +442,18 @@ impl<T: ClientDll + Default> ClientDllExport for Export<T> {
         unsafe { T::global_assume_init_ref() }.player_move(pm, is_server != 0)
     }
 
-    unsafe extern "C" fn player_move_texture(name: *const c_char) -> c_char {
-        assert!(!name.is_null());
-        let name = unsafe { CStrThin::from_ptr(name) };
+    unsafe extern "C" fn player_move_texture(name: *mut c_char) -> c_char {
+        let name = unsafe { cstr_or_none(name) }.unwrap();
         unsafe { T::global_assume_init_ref() }.player_move_texture(name)
     }
 
     unsafe extern "C" fn get_hull_bounds(
         hullnumber: c_int,
-        ret_mins: Option<&mut vec3_t>,
-        ret_maxs: Option<&mut vec3_t>,
+        ret_mins: *mut f32,
+        ret_maxs: *mut f32,
     ) -> c_int {
-        let ret_mins = ret_mins.unwrap();
-        let ret_maxs = ret_maxs.unwrap();
+        let ret_mins = unsafe { ret_mins.cast::<vec3_t>().as_mut() }.unwrap();
+        let ret_maxs = unsafe { ret_maxs.cast::<vec3_t>().as_mut() }.unwrap();
         unsafe { T::global_assume_init_ref() }.get_hull_bounds(hullnumber, ret_mins, ret_maxs)
             as c_int
     }
@@ -644,9 +489,8 @@ impl<T: ClientDll + Default> ClientDllExport for Export<T> {
         unsafe { T::global_assume_init_ref() }.is_third_person() as c_int
     }
 
-    unsafe extern "C" fn camera_offset(ofs: *mut vec3_t) {
-        assert!(!ofs.is_null());
-        let ofs = unsafe { &mut *ofs };
+    unsafe extern "C" fn camera_offset(ofs: *mut f32) {
+        let ofs = unsafe { ofs.cast::<vec3_t>().as_mut() }.unwrap();
         *ofs = unsafe { T::global_assume_init_ref() }.camera_offset();
     }
 
@@ -654,24 +498,25 @@ impl<T: ClientDll + Default> ClientDllExport for Export<T> {
         unsafe { T::global_assume_init_ref() }.camera_think();
     }
 
-    unsafe extern "C" fn kb_find(name: *const c_char) -> *mut kbutton_t {
-        assert!(!name.is_null());
-        let name = unsafe { CStrThin::from_ptr(name) };
-        unsafe { T::global_assume_init_ref() }.kb_find(name)
+    unsafe extern "C" fn kb_find(name: *const c_char) -> *mut c_void {
+        let name = unsafe { cstr_or_none(name) }.unwrap();
+        unsafe { T::global_assume_init_ref() }.kb_find(name).cast()
     }
 
-    unsafe extern "C" fn calc_ref_def(params: Option<&mut ref_params_s>) {
-        unsafe { T::global_assume_init_ref() }.calc_ref_def(params.unwrap());
+    unsafe extern "C" fn calc_ref_def(params: *mut ref_params_s) {
+        let params = unsafe { params.as_mut() }.unwrap();
+        unsafe { T::global_assume_init_ref() }.calc_ref_def(params);
     }
 
     unsafe extern "C" fn add_entity(
-        ty: EntityType,
-        ent: Option<&mut cl_entity_s>,
+        ty: c_int,
+        ent: *mut cl_entity_s,
         model_name: *const c_char,
     ) -> c_int {
-        assert!(!model_name.is_null());
-        let model_name = unsafe { CStrThin::from_ptr(model_name) };
-        unsafe { T::global_assume_init_ref() }.add_entity(ty, ent.unwrap(), model_name) as c_int
+        let ty = EntityType::from_raw(ty).unwrap();
+        let ent = unsafe { ent.as_mut() }.unwrap();
+        let model_name = unsafe { cstr_or_none(model_name) }.unwrap();
+        unsafe { T::global_assume_init_ref() }.add_entity(ty, ent, model_name) as c_int
     }
 
     unsafe extern "C" fn create_entities() {
@@ -694,16 +539,16 @@ impl<T: ClientDll + Default> ClientDllExport for Export<T> {
     }
 
     unsafe extern "C" fn post_run_cmd(
-        from: Option<&mut local_state_s>,
-        to: Option<&mut local_state_s>,
-        cmd: Option<&mut usercmd_s>,
+        from: *mut local_state_s,
+        to: *mut local_state_s,
+        cmd: *mut usercmd_s,
         run_funcs: c_int,
         time: f64,
         random_seed: c_uint,
     ) {
-        let from = from.unwrap();
-        let to = to.unwrap();
-        let cmd = cmd.unwrap();
+        let from = unsafe { from.as_mut() }.unwrap();
+        let to = unsafe { to.as_mut() }.unwrap();
+        let cmd = unsafe { cmd.as_mut() }.unwrap();
         unsafe { T::global_assume_init_ref() }.post_run_cmd(
             from,
             to,
@@ -715,36 +560,36 @@ impl<T: ClientDll + Default> ClientDllExport for Export<T> {
     }
 
     unsafe extern "C" fn txfer_local_overrides(
-        state: Option<&mut entity_state_s>,
-        client: Option<&clientdata_s>,
+        state: *mut entity_state_s,
+        client: *const clientdata_s,
     ) {
-        let state = state.unwrap();
-        let client = client.unwrap();
+        let state = unsafe { state.as_mut() }.unwrap();
+        let client = unsafe { client.as_ref() }.unwrap();
         unsafe { T::global_assume_init_ref() }.txfer_local_overrides(state, client);
     }
 
     unsafe extern "C" fn process_player_state(
-        dst: Option<&mut entity_state_s>,
-        src: Option<&entity_state_s>,
+        dst: *mut entity_state_s,
+        src: *const entity_state_s,
     ) {
-        let dst = dst.unwrap();
-        let src = src.unwrap();
+        let dst = unsafe { dst.as_mut() }.unwrap();
+        let src = unsafe { src.as_ref() }.unwrap();
         unsafe { T::global_assume_init_ref() }.process_player_state(dst, src);
     }
 
     unsafe extern "C" fn txfer_prediction_data(
-        ps: Option<&mut entity_state_s>,
-        pps: Option<&entity_state_s>,
-        pcd: Option<&mut clientdata_s>,
-        ppcd: Option<&clientdata_s>,
+        ps: *mut entity_state_s,
+        pps: *const entity_state_s,
+        pcd: *mut clientdata_s,
+        ppcd: *const clientdata_s,
         wd: *mut weapon_data_s,
         pwd: *const weapon_data_s,
     ) {
         assert!(!wd.is_null() && !pwd.is_null());
-        let ps = ps.unwrap();
-        let pps = pps.unwrap();
-        let pcd = pcd.unwrap();
-        let ppcd = ppcd.unwrap();
+        let ps = unsafe { ps.as_mut() }.unwrap();
+        let pps = unsafe { pps.as_ref() }.unwrap();
+        let pcd = unsafe { pcd.as_mut() }.unwrap();
+        let ppcd = unsafe { ppcd.as_ref() }.unwrap();
         unsafe { T::global_assume_init_ref() }.txfer_prediction_data(ps, pps, pcd, ppcd, wd, pwd);
     }
 
@@ -800,9 +645,11 @@ impl<T: ClientDll + Default> ClientDllExport for Export<T> {
         cl_gravity: f64,
         temp_ent_free: *mut *mut TEMPENTITY,
         temp_ent_active: *mut *mut TEMPENTITY,
-        add_visible_entity: unsafe extern "C" fn(entity: *mut cl_entity_s) -> c_int,
-        play_sound: unsafe extern "C" fn(temp: *mut TEMPENTITY, damp: f32),
+        add_visible_entity: Option<unsafe extern "C" fn(entity: *mut cl_entity_s) -> c_int>,
+        play_sound: Option<unsafe extern "C" fn(temp: *mut TEMPENTITY, damp: f32)>,
     ) {
+        let add_visible_entity = add_visible_entity.unwrap();
+        let play_sound = play_sound.unwrap();
         let mut list = unsafe { TempEntityList::from_raw_parts(temp_ent_active, temp_ent_free) };
         let add_visible_entity = |ent: &mut cl_entity_s| unsafe { add_visible_entity(ent) };
         let play_sound = |temp: &mut TEMPENTITY, damp: f32| unsafe { play_sound(temp, damp) };
@@ -824,7 +671,7 @@ impl<T: ClientDll + Default> ClientDllExport for Export<T> {
         unsafe { T::global_assume_init_ref() }.voice_status(ent_index, talking != 0)
     }
 
-    unsafe extern "C" fn director_message(size: c_int, buf: *const c_void) {
+    unsafe extern "C" fn director_message(size: c_int, buf: *mut c_void) {
         assert!(!buf.is_null());
         let buf = unsafe { slice::from_raw_parts(buf.cast(), size as usize) };
         unsafe { T::global_assume_init_ref() }.director_message(buf)
@@ -852,9 +699,11 @@ impl<T: ClientDll + Default> ClientDllExport for Export<T> {
 macro_rules! export_dll {
     ($client_dll:ty $($init:block)?) => {
         #[no_mangle]
-        unsafe extern "C" fn F(dll_funcs: Option<&mut $crate::export::ClientDllFunctions>) {
+        unsafe extern "C" fn GetClientAPI(
+            dll_funcs: Option<&mut $crate::ffi::client::cldll_func_s>,
+        ) {
             if let Some(dll_funcs) = dll_funcs {
-                *dll_funcs = $crate::export::ClientDllFunctions::new::<$client_dll>();
+                *dll_funcs = $crate::export::dll_functions::<$client_dll>();
                 $($init)?
             }
         }

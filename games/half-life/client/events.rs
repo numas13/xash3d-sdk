@@ -18,7 +18,7 @@ use cl::{
     consts::{
         ATTN_NORM, CHAN_STATIC, EFLAG_FLESH_SOUND, MAX_PLAYERS, PITCH_NORM, PM_NORMAL, SOLID_BSP,
     },
-    engine::event::EventArgs,
+    engine::event::event_args_s,
     macros::hook_event,
     math::AngleVectorsAll,
     prelude::*,
@@ -112,7 +112,7 @@ fn muzzle_flash() {
     ent.curstate.effects |= Effects::MUZZLEFLASH.bits();
 }
 
-fn get_player_view_height(args: &EventArgs) -> vec3_t {
+fn get_player_view_height(args: &event_args_s) -> vec3_t {
     if is_player(args.entindex) {
         if is_local(args.entindex) {
             return engine().event_api().local_player_view_height();
@@ -129,7 +129,7 @@ struct ShellInfo {
 }
 
 fn get_default_shell_info(
-    args: &mut EventArgs,
+    args: &mut event_args_s,
     origin: vec3_t,
     velocity: vec3_t,
     av: AngleVectorsAll,
@@ -161,7 +161,7 @@ fn eject_brass(origin: vec3_t, velocity: vec3_t, rotation: f32, model: c_int, so
         .temp_model(origin, velocity, endpos, 2.5, model, soundtype);
 }
 
-fn get_gun_position(args: &EventArgs, origin: vec3_t) -> vec3_t {
+fn get_gun_position(args: &event_args_s, origin: vec3_t) -> vec3_t {
     origin + get_player_view_height(args)
 }
 

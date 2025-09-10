@@ -178,7 +178,7 @@ impl Health {
         let screen_info = engine.get_screen_info();
         let cross_width = cross.rect.width();
         let mut x = cross_width / 2;
-        let mut y = screen_info.height - state.num_height - state.num_height / 2;
+        let mut y = screen_info.iHeight - state.num_height - state.num_height / 2;
 
         engine.spr_set(cross.hspr, color);
         engine.spr_draw_additive_rect(0, x, y, cross.rect);
@@ -240,7 +240,7 @@ impl Health {
 
         let screen = engine.get_screen_info();
         let x = width / 8;
-        let mut y = screen.height - height * 2;
+        let mut y = screen.iHeight - height * 2;
 
         for i in &self.damages {
             engine.spr_set(sprites[i.index].hspr, color);
@@ -301,8 +301,8 @@ impl Health {
         let fade = (state.time_delta * 2.0) as f32;
         let color = self.get_pain_color().unwrap_or(state.color);
         let screen = engine.get_screen_info();
-        let x = screen.width / 2;
-        let y = screen.height / 2;
+        let x = screen.iWidth / 2;
+        let y = screen.iHeight / 2;
 
         for i in 0..4 {
             if self.attack[i] > 0.4 {

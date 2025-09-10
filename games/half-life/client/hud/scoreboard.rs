@@ -66,12 +66,12 @@ impl HudItem for ScoreBoard {
         let engine = engine();
 
         let screen = engine.get_screen_info();
-        let width = 70 * screen.char_widths[b'w' as usize] as c_int;
-        let width = cmp::min(screen.width.saturating_sub(40), width);
-        let left = (screen.width - width) / 2;
+        let width = 70 * screen.charWidths[b'w' as usize] as c_int;
+        let width = cmp::min(screen.iWidth.saturating_sub(40), width);
+        let left = (screen.iWidth - width) / 2;
         let right = left + width;
-        let top = screen.height / 10;
-        let bottom = screen.height - top;
+        let top = screen.iHeight / 10;
+        let bottom = screen.iHeight - top;
 
         let bg = RGB::BLACK.rgba(128);
         engine.fill_rgba_blend(left, top, right - left, bottom - top, bg);
@@ -80,7 +80,7 @@ impl HudItem for ScoreBoard {
         let name_x = left + gap;
         let mut y = top + gap;
         engine.draw_string(name_x, y, &state.server_name, state.color);
-        y += screen.char_height * 2;
+        y += screen.iCharHeight * 2;
 
         let fields = [c"SCORE", c"DEATHS", c"PING", c"VOICE"];
         let mut w = 0;

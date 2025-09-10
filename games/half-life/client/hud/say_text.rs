@@ -123,7 +123,7 @@ impl HudItem for SayText {
         }
 
         let screen = engine.get_screen_info();
-        let mut y = screen.height - 60 - self.line_height * (MAX_LINES + 2) as c_int;
+        let mut y = screen.iHeight - 60 - self.line_height * (MAX_LINES + 2) as c_int;
 
         for line in self.lines.iter_mut().rev() {
             let mut x = 10;

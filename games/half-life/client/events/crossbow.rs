@@ -5,7 +5,7 @@ use cl::{
         ATTN_NORM, CHAN_BODY, CHAN_ITEM, CHAN_WEAPON, CONTENTS_WATER, PITCH, PITCH_NORM, PM_NORMAL,
         SOLID_BSP, TE_BOUNCE_NULL,
     },
-    engine::event::EventArgs,
+    engine::event::event_args_s,
     prelude::*,
     raw::{vec3_t, RenderMode, SoundFlags, TempEntFlags, TEMPENTITY},
 };
@@ -34,9 +34,9 @@ enum Crossbow {
 }
 
 impl Events {
-    pub(super) fn fire_crossbow(&mut self, args: &mut EventArgs) {
+    pub(super) fn fire_crossbow(&mut self, args: &mut event_args_s) {
         let idx = args.entindex;
-        let origin = args.origin;
+        let origin = args.origin();
 
         let engine = engine();
         let ev = engine.event_api();
@@ -79,10 +79,10 @@ impl Events {
         }
     }
 
-    pub(super) fn fire_crossbow2(&mut self, args: &mut EventArgs) {
+    pub(super) fn fire_crossbow2(&mut self, args: &mut event_args_s) {
         let idx = args.entindex;
-        let origin = args.origin;
-        let forward = args.angles.angle_vectors().forward();
+        let origin = args.origin();
+        let forward = args.angles().angle_vectors().forward();
         let engine = engine();
         let ev = engine.event_api();
         let efx = engine.efx_api();
@@ -181,7 +181,7 @@ impl Events {
 
                 if !bolt.is_null() {
                     let bolt = unsafe { &mut *bolt };
-                    bolt.flags.insert(TempEntFlags::CLIENTCUSTOM);
+                    bolt.flags_mut().insert(TempEntFlags::CLIENTCUSTOM);
                     bolt.entity.baseline.vuser1 = pos;
                     bolt.entity.baseline.vuser2 = bolt_angles;
 

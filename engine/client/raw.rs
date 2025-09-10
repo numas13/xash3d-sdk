@@ -3,17 +3,29 @@
 #![allow(non_upper_case_globals)]
 #![allow(clippy::type_complexity)]
 
-use core::{
-    ffi::{c_char, c_int, c_short},
-    mem,
-};
+use core::{ffi::c_int, mem};
 
 use bitflags::bitflags;
 use csz::CStrThin;
-
-use crate::consts::MAX_LOCAL_WEAPONS;
+use shared::utils::cstr_or_none;
 
 pub use shared::raw::*;
+
+// TODO: remove me
+#[rustfmt::skip]
+pub use shared::ffi::{
+    common::local_state_s,
+    common::ref_params_s,
+
+    api::efx::TEMPENTITY,
+
+    client::SCREENINFO,
+    client::client_data_s,
+    client::client_textmessage_s,
+    client::cmdalias_s,
+    client::hud_player_info_s,
+    client::tagPOINT,
+};
 
 bitflags! {
     #[derive(Copy, Clone, Debug)]
@@ -44,46 +56,24 @@ bitflags! {
     }
 }
 
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct tempent_s {
-    pub flags: TempEntFlags,
-    pub die: f32,
-    pub frameMax: f32,
-    pub x: f32,
-    pub y: f32,
-    pub z: f32,
-    pub fadeSpeed: f32,
-    pub bounceFactor: f32,
-    pub hitSound: c_int,
-    pub hitcallback: Option<unsafe extern "C" fn(ent: *mut TEMPENTITY, ptr: *mut pmtrace_s)>,
-    pub callback:
-        Option<unsafe extern "C" fn(ent: *mut TEMPENTITY, frametime: f32, currenttime: f32)>,
-    pub next: *mut TEMPENTITY,
-    pub priority: c_int,
-    pub clientIndex: c_short,
-    pub tentOffset: vec3_t,
-    pub entity: cl_entity_s,
-}
-pub type TEMPENTITY = tempent_s;
+pub trait TempEntityExt {
+    fn flags(&self) -> &TempEntFlags;
 
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-#[repr(C)]
-pub enum VoiceTweakControl {
-    MicrophoneVolume = 0,
-    OtherSpeakerScale = 1,
+    fn flags_mut(&mut self) -> &mut TempEntFlags;
 }
 
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct IVoiceTweak {
-    pub StartVoiceTweakMode: Option<unsafe extern "C" fn() -> c_int>,
-    pub EndVoiceTweakMode: Option<unsafe extern "C" fn()>,
-    pub SetControlFloat: Option<unsafe extern "C" fn(iControl: VoiceTweakControl, value: f32)>,
-    pub GetControlFloat: Option<unsafe extern "C" fn(iControl: VoiceTweakControl) -> f32>,
+impl TempEntityExt for TEMPENTITY {
+    fn flags(&self) -> &TempEntFlags {
+        unsafe { mem::transmute(&self.flags) }
+    }
+
+    fn flags_mut(&mut self) -> &mut TempEntFlags {
+        unsafe { mem::transmute(&mut self.flags) }
+    }
 }
 
 bitflags! {
+    /// SCREENINFO.flags
     #[derive(Copy, Clone, PartialEq, Eq)]
     #[repr(transparent)]
     pub struct ScreenInfoFlags: c_int {
@@ -93,36 +83,37 @@ bitflags! {
     }
 }
 
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct SCREENINFO {
-    size: c_int,
-    pub width: c_int,
-    pub height: c_int,
-    pub flags: ScreenInfoFlags,
-    pub char_height: c_int,
-    pub char_widths: [c_short; 256],
-}
+pub trait ScreenInfoExt {
+    fn new() -> Self;
 
-impl SCREENINFO {
-    pub fn sprite_resolution(&self) -> u32 {
-        if self.width > 2560 && self.height > 1600 {
+    fn width(&self) -> c_int;
+
+    fn height(&self) -> c_int;
+
+    fn size(&self) -> (c_int, c_int) {
+        (self.width(), self.height())
+    }
+
+    fn sprite_resolution(&self) -> u32 {
+        let (width, height) = self.size();
+        if width > 2560 && height > 1600 {
             2560
-        } else if self.width >= 1280 && self.height > 720 {
+        } else if width >= 1280 && height > 720 {
             1280
-        } else if self.width >= 640 {
+        } else if width >= 640 {
             640
         } else {
             320
         }
     }
 
-    pub fn scale(&self) -> u32 {
-        if self.width > 2560 && self.height > 1600 {
+    fn scale(&self) -> u32 {
+        let (width, height) = self.size();
+        if width > 2560 && height > 1600 {
             4
-        } else if self.width >= 1280 && self.height > 720 {
+        } else if width >= 1280 && height > 720 {
             3
-        } else if self.width >= 640 {
+        } else if width >= 640 {
             2
         } else {
             1
@@ -130,132 +121,45 @@ impl SCREENINFO {
     }
 }
 
-impl Default for SCREENINFO {
-    fn default() -> Self {
+impl ScreenInfoExt for SCREENINFO {
+    fn new() -> Self {
         Self {
-            size: mem::size_of::<Self>() as c_int,
-            width: 0,
-            height: 0,
-            flags: ScreenInfoFlags::NONE,
-            char_height: 0,
-            char_widths: [0; 256],
+            iSize: mem::size_of::<Self>() as c_int,
+            ..unsafe { mem::zeroed() }
         }
+    }
+
+    fn width(&self) -> c_int {
+        self.iWidth
+    }
+
+    fn height(&self) -> c_int {
+        self.iHeight
     }
 }
 
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct hud_player_info_s {
-    pub name: *mut c_char,
-    pub ping: c_short,
-    pub thisplayer: byte,
-    pub spectator: byte,
-    pub packetloss: byte,
-    pub model: *mut c_char,
-    pub topcolor: c_short,
-    pub bottomcolor: c_short,
-    pub m_nSteamID: u64,
+pub trait HudPlayerInfoExt {
+    fn name(&self) -> Option<&CStrThin>;
 }
 
-impl hud_player_info_s {
-    pub fn name(&self) -> Option<&CStrThin> {
-        if self.name.is_null() {
-            None
-        } else {
-            Some(unsafe { CStrThin::from_ptr(self.name) })
-        }
+impl HudPlayerInfoExt for hud_player_info_s {
+    fn name(&self) -> Option<&CStrThin> {
+        unsafe { cstr_or_none(self.name) }
     }
 }
 
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct client_textmessage_s {
-    pub effect: c_int,
-    pub r1: byte,
-    pub g1: byte,
-    pub b1: byte,
-    pub a1: byte,
-    pub r2: byte,
-    pub g2: byte,
-    pub b2: byte,
-    pub a2: byte,
-    pub x: f32,
-    pub y: f32,
-    pub fadein: f32,
-    pub fadeout: f32,
-    pub holdtime: f32,
-    pub fxtime: f32,
-    pub pName: *const c_char,
-    pub pMessage: *const c_char,
+pub trait RefParamsExt {
+    fn movevars(&self) -> &movevars_s;
+
+    fn cmd(&self) -> &usercmd_s;
 }
 
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct tagPOINT {
-    _unused: [u8; 0],
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct cmdalias_s {
-    pub next: *mut cmdalias_s,
-    pub name: [c_char; 32usize],
-    pub value: *mut c_char,
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct client_data_s {
-    pub origin: vec3_t,
-    pub viewangles: vec3_t,
-    pub iWeaponBits: c_int,
-    pub fov: f32,
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct ref_params_s {
-    pub vieworg: vec3_t,
-    pub viewangles: vec3_t,
-    pub forward: vec3_t,
-    pub right: vec3_t,
-    pub up: vec3_t,
-    pub frametime: f32,
-    pub time: f32,
-    pub intermission: c_int,
-    pub paused: c_int,
-    pub spectator: c_int,
-    pub onground: c_int,
-    pub waterlevel: c_int,
-    pub simvel: vec3_t,
-    pub simorg: vec3_t,
-    pub viewheight: vec3_t,
-    pub idealpitch: f32,
-    pub cl_viewangles: vec3_t,
-    pub health: c_int,
-    pub crosshairangle: vec3_t,
-    pub viewsize: f32,
-    pub punchangle: vec3_t,
-    pub maxclients: c_int,
-    pub viewentity: c_int,
-    pub playernum: c_int,
-    pub max_entities: c_int,
-    pub demoplayback: c_int,
-    pub hardware: c_int,
-    pub smoothing: c_int,
-    pub cmd: *mut usercmd_s,
-    pub movevars: *mut movevars_s,
-    pub viewport: [c_int; 4usize],
-    pub nextView: c_int,
-    pub onlyClientDraw: c_int,
-}
-
-impl ref_params_s {
-    pub fn movevars(&self) -> &movevars_s {
+impl RefParamsExt for ref_params_s {
+    fn movevars(&self) -> &movevars_s {
         unsafe { &*self.movevars }
     }
 
-    pub fn cmd(&self) -> &usercmd_s {
+    fn cmd(&self) -> &usercmd_s {
         unsafe { &*self.cmd }
     }
 }
@@ -270,10 +174,15 @@ pub enum EntityType {
     Fragmented = 4,
 }
 
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct local_state_s {
-    pub playerstate: entity_state_s,
-    pub client: clientdata_s,
-    pub weapondata: [weapon_data_s; MAX_LOCAL_WEAPONS],
+impl EntityType {
+    pub fn from_raw(raw: c_int) -> Option<Self> {
+        match raw {
+            0 => Some(Self::Normal),
+            1 => Some(Self::Player),
+            2 => Some(Self::TempEntity),
+            3 => Some(Self::Beam),
+            4 => Some(Self::Fragmented),
+            _ => None,
+        }
+    }
 }

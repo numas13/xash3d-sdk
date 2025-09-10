@@ -2,7 +2,7 @@ use core::ffi::c_int;
 
 use cl::{
     consts::{ATTN_NORM, CHAN_ITEM, CHAN_WEAPON, PITCH, PITCH_NORM},
-    engine::event::EventArgs,
+    engine::event::event_args_s,
     prelude::*,
     raw::SoundFlags,
 };
@@ -29,9 +29,9 @@ enum Rpg {
 }
 
 impl Events {
-    pub(super) fn fire_rpg(&mut self, args: &mut EventArgs) {
+    pub(super) fn fire_rpg(&mut self, args: &mut event_args_s) {
         let idx = args.entindex;
-        let origin = args.origin;
+        let origin = args.origin();
 
         let engine = engine();
         let ev = engine.event_api();

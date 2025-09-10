@@ -1,131 +1,35 @@
-use core::{
-    ffi::{c_char, c_int, c_ushort},
-    mem::MaybeUninit,
-};
+use core::{ffi::c_int, mem::MaybeUninit};
 
 use csz::CStrThin;
 use shared::{
-    raw::{edict_s, movevars_s, msurface_s},
+    ffi::api::event::event_api_s,
     str::{AsCStrPtr, ToEngineStr},
 };
 
 use crate::raw::{physent_s, pmtrace_s, vec3_t, SoundFlags};
 
-#[allow(non_camel_case_types)]
-pub type event_args_s = EventArgs;
+pub use shared::ffi::common::event_args_s;
 
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct EventArgs {
-    pub flags: c_int,
-    pub entindex: c_int,
-    pub origin: vec3_t,
-    pub angles: vec3_t,
-    pub velocity: vec3_t,
-    pub ducking: c_int,
-    pub fparam1: f32,
-    pub fparam2: f32,
-    pub iparam1: c_int,
-    pub iparam2: c_int,
-    pub bparam1: c_int,
-    pub bparam2: c_int,
+pub trait EventArgsExt {
+    fn origin(&self) -> vec3_t;
+
+    fn angles(&self) -> vec3_t;
+
+    fn velocity(&self) -> vec3_t;
 }
 
-pub const EVENT_API_VERSION: c_int = 1;
+impl EventArgsExt for event_args_s {
+    fn origin(&self) -> vec3_t {
+        self.origin.into()
+    }
 
-#[allow(non_camel_case_types)]
-pub type event_api_s = EventApiFunctions;
+    fn angles(&self) -> vec3_t {
+        self.angles.into()
+    }
 
-#[allow(non_snake_case)]
-#[allow(clippy::type_complexity)]
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct EventApiFunctions {
-    pub version: c_int,
-    pub EV_PlaySound: Option<
-        unsafe extern "C" fn(
-            ent: c_int,
-            origin: *const f32,
-            channel: c_int,
-            sample: *const c_char,
-            volume: f32,
-            attenuation: f32,
-            flags: SoundFlags,
-            pitch: c_int,
-        ),
-    >,
-    pub EV_StopSound:
-        Option<unsafe extern "C" fn(ent: c_int, channel: c_int, sample: *const c_char)>,
-    pub EV_FindModelIndex: Option<unsafe extern "C" fn(pmodel: *const c_char) -> c_int>,
-    pub EV_IsLocal: Option<unsafe extern "C" fn(playernum: c_int) -> c_int>,
-    pub EV_LocalPlayerDucking: Option<unsafe extern "C" fn() -> c_int>,
-    pub EV_LocalPlayerViewheight: Option<unsafe extern "C" fn(arg1: *mut f32)>,
-    pub EV_LocalPlayerBounds:
-        Option<unsafe extern "C" fn(hull: c_int, mins: *mut f32, maxs: *mut f32)>,
-    pub EV_IndexFromTrace: Option<unsafe extern "C" fn(pTrace: *const pmtrace_s) -> c_int>,
-    pub EV_GetPhysent: Option<unsafe extern "C" fn(idx: c_int) -> *mut physent_s>,
-    pub EV_SetUpPlayerPrediction:
-        Option<unsafe extern "C" fn(dopred: c_int, bIncludeLocalClient: c_int)>,
-    pub EV_PushPMStates: Option<unsafe extern "C" fn()>,
-    pub EV_PopPMStates: Option<unsafe extern "C" fn()>,
-    pub EV_SetSolidPlayers: Option<unsafe extern "C" fn(playernum: c_int)>,
-    pub EV_SetTraceHull: Option<unsafe extern "C" fn(hull: c_int)>,
-    pub EV_PlayerTrace: Option<
-        unsafe extern "C" fn(
-            start: *const vec3_t,
-            end: *const vec3_t,
-            traceFlags: c_int,
-            ignore_pe: c_int,
-            tr: *mut pmtrace_s,
-        ),
-    >,
-    pub EV_WeaponAnimation: Option<unsafe extern "C" fn(sequence: c_int, body: c_int)>,
-    pub EV_PrecacheEvent:
-        Option<unsafe extern "C" fn(type_: c_int, psz: *const c_char) -> c_ushort>,
-    pub EV_PlaybackEvent: Option<
-        unsafe extern "C" fn(
-            flags: c_int,
-            pInvoker: *const edict_s,
-            eventindex: c_ushort,
-            delay: f32,
-            origin: *mut f32,
-            angles: *mut f32,
-            fparam1: f32,
-            fparam2: f32,
-            iparam1: c_int,
-            iparam2: c_int,
-            bparam1: c_int,
-            bparam2: c_int,
-        ),
-    >,
-    pub EV_TraceTexture: Option<
-        unsafe extern "C" fn(ground: c_int, vstart: *const f32, vend: *const f32) -> *const c_char,
-    >,
-    pub EV_StopAllSounds: Option<unsafe extern "C" fn(entnum: c_int, entchannel: c_int)>,
-    pub EV_KillEvents: Option<unsafe extern "C" fn(entnum: c_int, eventname: *const c_char)>,
-    pub EV_PlayerTraceExt: Option<
-        unsafe extern "C" fn(
-            start: *mut f32,
-            end: *mut f32,
-            traceFlags: c_int,
-            pfnIgnore: Option<unsafe extern "C" fn(pe: *mut physent_s) -> c_int>,
-            tr: *mut pmtrace_s,
-        ),
-    >,
-    pub EV_SoundForIndex: Option<unsafe extern "C" fn(index: c_int) -> *const c_char>,
-    pub EV_TraceSurface: Option<
-        unsafe extern "C" fn(ground: c_int, vstart: *mut f32, vend: *mut f32) -> *mut msurface_s,
-    >,
-    pub EV_GetMovevars: Option<unsafe extern "C" fn() -> *mut movevars_s>,
-    pub EV_VisTraceLine: Option<
-        unsafe extern "C" fn(start: *mut f32, end: *mut f32, flags: c_int) -> *mut pmtrace_s,
-    >,
-    pub EV_GetVisent: Option<unsafe extern "C" fn(idx: c_int) -> *mut physent_s>,
-    pub EV_TestLine:
-        Option<unsafe extern "C" fn(start: *mut vec3_t, end: *mut vec3_t, flags: c_int) -> c_int>,
-    pub EV_PushTraceBounds:
-        Option<unsafe extern "C" fn(hullnum: c_int, mins: *const f32, maxs: *const f32)>,
-    pub EV_PopTraceBounds: Option<unsafe extern "C" fn()>,
+    fn velocity(&self) -> vec3_t {
+        self.velocity.into()
+    }
 }
 
 pub struct PmStates<'a>(&'a EventApi);
@@ -141,7 +45,7 @@ impl Drop for PmStates<'_> {
 }
 
 pub struct EventApi {
-    raw: *mut EventApiFunctions,
+    raw: *mut event_api_s,
 }
 
 macro_rules! unwrap {
@@ -155,11 +59,11 @@ macro_rules! unwrap {
 
 #[allow(dead_code)]
 impl EventApi {
-    pub(super) fn new(raw: *mut EventApiFunctions) -> Self {
+    pub(super) fn new(raw: *mut event_api_s) -> Self {
         Self { raw }
     }
 
-    pub fn raw(&self) -> &EventApiFunctions {
+    pub fn raw(&self) -> &event_api_s {
         unsafe { self.raw.as_ref().unwrap() }
     }
 
@@ -171,7 +75,7 @@ impl EventApi {
     pub fn play_sound(
         &self,
         ent: c_int,
-        origin: vec3_t,
+        mut origin: vec3_t,
         channel: c_int,
         sample: impl ToEngineStr,
         volume: f32,
@@ -181,14 +85,15 @@ impl EventApi {
     ) {
         let sample = sample.to_engine_str();
         unsafe {
+            // FIXME: ffi: why origin is mutable?
             unwrap!(self, EV_PlaySound)(
                 ent,
-                origin.as_ptr(),
+                origin.as_mut_ptr(),
                 channel,
                 sample.as_ptr(),
                 volume,
                 attenuation,
-                flags,
+                flags.bits(),
                 pitch,
             )
         }
@@ -222,6 +127,8 @@ impl EventApi {
     //     Option<unsafe extern "C" fn(hull: c_int, mins: *mut f32, maxs: *mut f32)>,
 
     pub fn index_from_trace(&self, tr: &pmtrace_s) -> c_int {
+        let tr = tr as *const pmtrace_s as *mut pmtrace_s;
+        // FIXME: ffi: why pTrace is mutable?
         unsafe { unwrap!(self, EV_IndexFromTrace)(tr) }
     }
 
@@ -261,16 +168,17 @@ impl EventApi {
 
     pub fn player_trace(
         &self,
-        start: vec3_t,
-        end: vec3_t,
+        mut start: vec3_t,
+        mut end: vec3_t,
         trace_flags: u32,
         ignore_pe: c_int,
     ) -> pmtrace_s {
         unsafe {
             let mut pm = MaybeUninit::uninit();
+            // FIXME: ffi why start and ent are mutable?
             unwrap!(self, EV_PlayerTrace)(
-                &start,
-                &end,
+                start.as_mut_ptr(),
+                end.as_mut_ptr(),
                 trace_flags as c_int,
                 ignore_pe,
                 pm.as_mut_ptr(),
@@ -302,9 +210,15 @@ impl EventApi {
     //     ),
     // >,
 
-    pub fn trace_texture(&self, ground: c_int, start: vec3_t, end: vec3_t) -> Option<&CStrThin> {
+    pub fn trace_texture(
+        &self,
+        ground: c_int,
+        mut start: vec3_t,
+        mut end: vec3_t,
+    ) -> Option<&CStrThin> {
         unsafe {
-            let ptr = unwrap!(self, EV_TraceTexture)(ground, start.as_ptr(), end.as_ptr());
+            // FIXME: ffi: why start and end are mutable?
+            let ptr = unwrap!(self, EV_TraceTexture)(ground, start.as_mut_ptr(), end.as_mut_ptr());
             if !ptr.is_null() {
                 Some(CStrThin::from_ptr(ptr))
             } else {

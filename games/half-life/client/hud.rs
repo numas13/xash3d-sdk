@@ -290,11 +290,11 @@ impl State {
         let sprite_list = sprite_list.as_slice();
         self.sprites_names.clear();
         self.sprites.clear();
-        for i in sprite_list.iter().filter(|i| i.res as u32 == self.res) {
-            let Some(hspr) = spr_load!("sprites/{}.spr", i.sprite) else {
+        for i in sprite_list.iter().filter(|i| i.iRes as u32 == self.res) {
+            let Some(hspr) = spr_load!("sprites/{}.spr", i.sprite()) else {
                 continue;
             };
-            self.sprites_names.push(i.name.to_str().unwrap().into());
+            self.sprites_names.push(i.name().to_str().unwrap().into());
             let sprite = Sprite::new(hspr, i.rc);
             self.sprites.push(sprite);
         }
@@ -734,7 +734,7 @@ impl Hud {
         let engine = engine();
         let info = engine.get_screen_info();
         let (w, h) = engine.spr_size(hspr, 0);
-        let x = info.width - w;
+        let x = info.iWidth - w;
         let y = h / 2;
         let frame = (self.state.time * 20.0) as usize % MAX_LOGO_FRAMES;
         let i = LOGO_FRAME[frame] - 1;

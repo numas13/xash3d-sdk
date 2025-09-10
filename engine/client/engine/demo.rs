@@ -1,20 +1,9 @@
-use core::ffi::{c_int, c_uchar};
+use core::ffi::c_int;
 
-#[allow(non_camel_case_types)]
-pub type demo_api_s = DemoApiFunctions;
-
-#[allow(non_snake_case)]
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct DemoApiFunctions {
-    pub IsRecording: Option<unsafe extern "C" fn() -> c_int>,
-    pub IsPlayingback: Option<unsafe extern "C" fn() -> c_int>,
-    pub IsTimeDemo: Option<unsafe extern "C" fn() -> c_int>,
-    pub WriteBuffer: Option<unsafe extern "C" fn(size: c_int, buffer: *const c_uchar)>,
-}
+use shared::ffi::client::demo_api_s;
 
 pub struct DemoApi {
-    raw: *mut DemoApiFunctions,
+    raw: *mut demo_api_s,
 }
 
 macro_rules! unwrap {
@@ -27,11 +16,11 @@ macro_rules! unwrap {
 }
 
 impl DemoApi {
-    pub(super) fn new(raw: *mut DemoApiFunctions) -> Self {
+    pub(super) fn new(raw: *mut demo_api_s) -> Self {
         Self { raw }
     }
 
-    pub fn raw(&self) -> &DemoApiFunctions {
+    pub fn raw(&self) -> &demo_api_s {
         unsafe { self.raw.as_ref().unwrap() }
     }
 
@@ -48,6 +37,7 @@ impl DemoApi {
     }
 
     pub fn write_buffer(&self, buffer: &[u8]) {
-        unsafe { unwrap!(self, WriteBuffer)(buffer.len() as c_int, buffer.as_ptr()) }
+        // FIXME: ffi: why buffer is mutable?
+        unsafe { unwrap!(self, WriteBuffer)(buffer.len() as c_int, buffer.as_ptr().cast_mut()) }
     }
 }
