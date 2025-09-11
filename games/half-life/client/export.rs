@@ -8,6 +8,7 @@ use cl::{
     collections::TempEntityList,
     export::{export_dll, impl_unsync_global, ClientDll, UnsyncGlobal},
     ffi::{
+        self,
         api::{
             efx::TEMPENTITY,
             studio::{engine_studio_api_s, r_studio_interface_s},
@@ -210,7 +211,7 @@ impl ClientDll for Instance {
             return false;
         }
 
-        if version != cl::consts::STUDIO_INTERFACE_VERSION {
+        if version != ffi::api::studio::STUDIO_INTERFACE_VERSION {
             return false;
         }
 
@@ -240,7 +241,7 @@ unsafe extern "C" fn StudioDrawPlayer(flags: c_int, player: *mut entity_state_s)
 }
 
 static mut STUDIO: r_studio_interface_s = r_studio_interface_s {
-    version: cl::ffi::api::studio::STUDIO_INTERFACE_VERSION as c_int,
+    version: cl::ffi::api::studio::STUDIO_INTERFACE_VERSION,
     StudioDrawModel: Some(StudioDrawModel),
     StudioDrawPlayer: Some(StudioDrawPlayer),
 };

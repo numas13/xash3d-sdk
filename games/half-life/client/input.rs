@@ -7,7 +7,10 @@ use core::{
 use alloc::vec::Vec;
 use cl::{
     consts::{self, PITCH, ROLL, YAW},
-    ffi::common::{kbutton_t, usercmd_s, vec3_t},
+    ffi::{
+        common::{kbutton_t, usercmd_s, vec3_t},
+        keys,
+    },
     input::KeyButtonExt,
     macros::{hook_command, hook_command_key},
     math::{angle_mod, pow, sqrt, sqrtf},
@@ -328,7 +331,7 @@ impl Input {
         }
     }
 
-    pub fn button_bits(&mut self, reset_state: bool, show_score: bool) -> u32 {
+    pub fn button_bits(&mut self, reset_state: bool, show_score: bool) -> c_int {
         let mut bits = 0;
 
         macro_rules! set {
@@ -391,7 +394,7 @@ impl Input {
         bits
     }
 
-    pub fn reset_button_bits(&mut self, bits: u32, show_score: bool) {
+    pub fn reset_button_bits(&mut self, bits: c_int, show_score: bool) {
         let bits_new = self.button_bits(false, show_score) ^ bits;
 
         if bits_new & consts::IN_ATTACK != 0 {
@@ -603,11 +606,11 @@ impl Input {
         let engine = engine();
         for i in 0..self.mouse_buttons {
             if mstate & (1 << i) != 0 && self.mouse_oldbuttonstate & (1 << i) == 0 {
-                engine.key_event(consts::K_MOUSE1 + i as u32, true);
+                engine.key_event(keys::K_MOUSE1 + i, true);
             }
 
             if mstate & (1 << i) == 0 && self.mouse_oldbuttonstate & (1 << i) != 0 {
-                engine.key_event(consts::K_MOUSE1 + i as u32, false);
+                engine.key_event(keys::K_MOUSE1 + i, false);
             }
         }
 

@@ -249,7 +249,7 @@ pub struct State {
     last_fov: u8,
     fov: u8,
     mouse_sensitivity: f32,
-    key_bits: u32,
+    key_bits: c_int,
 
     server_name: CStrBox,
     player_info_extra: [Option<PlayerInfoExtra>; MAX_PLAYERS + 1],

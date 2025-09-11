@@ -2,6 +2,7 @@
 
 #[macro_use]
 pub mod macros;
+pub mod consts;
 pub mod engine;
 pub mod export;
 pub mod globals;
@@ -12,4 +13,4 @@ pub mod raw;
 pub mod str;
 pub mod utils;
 
-pub use shared::{cell, color, consts, cvar, ffi, math, str::ToEngineStr};
+pub use shared::{cell, color, cvar, ffi, math, str::ToEngineStr};

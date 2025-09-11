@@ -104,7 +104,8 @@ pub trait PlayerMoveExt {
 
     fn load_file(&self, path: &CStr, usehunk: c_int) -> Option<MemFile>;
 
-    fn player_trace(&self, start: vec3_t, end: vec3_t, flags: u32, ignore_pe: c_int) -> pmtrace_s;
+    fn player_trace(&self, start: vec3_t, end: vec3_t, flags: c_int, ignore_pe: c_int)
+        -> pmtrace_s;
 
     fn test_player_position(&self, point: vec3_t) -> (c_int, pmtrace_s);
 
@@ -307,17 +308,18 @@ impl PlayerMoveExt for playermove_s {
         }
     }
 
-    fn player_trace(&self, start: vec3_t, end: vec3_t, flags: u32, ignore_pe: c_int) -> pmtrace_s {
+    fn player_trace(
+        &self,
+        start: vec3_t,
+        end: vec3_t,
+        flags: c_int,
+        ignore_pe: c_int,
+    ) -> pmtrace_s {
         let mut start = start;
         let mut end = end;
         // FIXME: ffi: why start and end are mutable?
         unsafe {
-            pm_unwrap!(self, PM_PlayerTrace)(
-                start.as_mut_ptr(),
-                end.as_mut_ptr(),
-                flags as c_int,
-                ignore_pe,
-            )
+            pm_unwrap!(self, PM_PlayerTrace)(start.as_mut_ptr(), end.as_mut_ptr(), flags, ignore_pe)
         }
     }
 

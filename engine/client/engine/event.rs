@@ -174,7 +174,7 @@ impl EventApi {
         &self,
         mut start: vec3_t,
         mut end: vec3_t,
-        trace_flags: u32,
+        trace_flags: c_int,
         ignore_pe: c_int,
     ) -> pmtrace_s {
         unsafe {
@@ -183,7 +183,7 @@ impl EventApi {
             unwrap!(self, EV_PlayerTrace)(
                 start.as_mut_ptr(),
                 end.as_mut_ptr(),
-                trace_flags as c_int,
+                trace_flags,
                 ignore_pe,
                 pm.as_mut_ptr(),
             );

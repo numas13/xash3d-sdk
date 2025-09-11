@@ -329,7 +329,7 @@ impl ClientEngine {
         unsafe { unwrap!(self, CheckParm)(parm.as_ptr().cast_mut(), ptr::null_mut()) }
     }
 
-    pub fn key_event(&self, key: u32, down: bool) {
+    pub fn key_event(&self, key: i32, down: bool) {
         unsafe {
             unwrap!(self, Key_Event)(key as c_int, down as c_int);
         }

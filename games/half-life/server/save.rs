@@ -452,10 +452,10 @@ impl<'a> SaveRestore<'a> {
         }
     }
 
-    pub fn entity_flags_set(&mut self, index: usize, flags: u32) -> u32 {
+    pub fn entity_flags_set(&mut self, index: usize, flags: c_int) -> c_int {
         if let Some(i) = self.data.table_mut().get_mut(index) {
-            i.flags |= flags as c_int;
-            i.flags as u32
+            i.flags |= flags;
+            i.flags
         } else {
             0
         }

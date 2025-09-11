@@ -349,7 +349,7 @@ pub trait UserCmdExt {
 
     fn move_vector_set(&mut self, vec: vec3_t);
 
-    fn is_button(&self, button: u32) -> bool;
+    fn is_button(&self, button: c_int) -> bool;
 }
 
 impl UserCmdExt for usercmd_s {
@@ -367,8 +367,8 @@ impl UserCmdExt for usercmd_s {
         self.upmove = vec[2];
     }
 
-    fn is_button(&self, button: u32) -> bool {
-        self.buttons as u32 & button != 0
+    fn is_button(&self, button: c_int) -> bool {
+        self.buttons as c_int & button != 0
     }
 }
 

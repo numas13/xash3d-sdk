@@ -1,364 +1,54 @@
-use core::ffi::{c_int, CStr};
+use core::ffi::c_int;
 
-pub const PITCH: usize = 0;
-pub const YAW: usize = 1;
-pub const ROLL: usize = 2;
+use xash3d_ffi as ffi;
 
-pub const FTRACE_SIMPLEBOX: u32 = 1;
-pub const FTRACE_IGNORE_GLASS: u32 = 2;
-pub const WALKMOVE_NORMAL: u32 = 0;
-pub const WALKMOVE_WORLDONLY: u32 = 1;
-pub const WALKMOVE_CHECKONLY: u32 = 2;
-pub const SOLID_NOT: c_int = 0;
-pub const SOLID_TRIGGER: c_int = 1;
-pub const SOLID_BBOX: c_int = 2;
-pub const SOLID_SLIDEBOX: c_int = 3;
-pub const SOLID_BSP: c_int = 4;
-pub const SOLID_CUSTOM: c_int = 5;
-pub const SOLID_PORTAL: c_int = 6;
-pub const DEAD_NO: c_int = 0;
-pub const DEAD_DYING: c_int = 1;
-pub const DEAD_DEAD: c_int = 2;
-pub const DEAD_RESPAWNABLE: c_int = 3;
-pub const DEAD_DISCARDBODY: c_int = 4;
-pub const DAMAGE_NO: u32 = 0;
-pub const DAMAGE_YES: u32 = 1;
-pub const DAMAGE_AIM: u32 = 2;
-pub const EFLAG_SLERP: u32 = 1;
-pub const EFLAG_FLESH_SOUND: u32 = 2;
-pub const TE_BEAMPOINTS: u32 = 0;
-pub const TE_BEAMENTPOINT: u32 = 1;
-pub const TE_GUNSHOT: u32 = 2;
-pub const TE_EXPLOSION: u32 = 3;
-pub const TE_EXPLFLAG_NONE: u32 = 0;
-pub const TE_EXPLFLAG_NOADDITIVE: u32 = 1;
-pub const TE_EXPLFLAG_NODLIGHTS: u32 = 2;
-pub const TE_EXPLFLAG_NOSOUND: u32 = 4;
-pub const TE_EXPLFLAG_NOPARTICLES: u32 = 8;
-pub const TE_EXPLFLAG_DRAWALPHA: u32 = 16;
-pub const TE_EXPLFLAG_ROTATE: u32 = 32;
-pub const TE_TAREXPLOSION: u32 = 4;
-pub const TE_SMOKE: u32 = 5;
-pub const TE_TRACER: u32 = 6;
-pub const TE_LIGHTNING: u32 = 7;
-pub const TE_BEAMENTS: u32 = 8;
-pub const TE_SPARKS: u32 = 9;
-pub const TE_LAVASPLASH: u32 = 10;
-pub const TE_TELEPORT: u32 = 11;
-pub const TE_EXPLOSION2: u32 = 12;
-pub const TE_BSPDECAL: u32 = 13;
-pub const TE_IMPLOSION: u32 = 14;
-pub const TE_SPRITETRAIL: u32 = 15;
-pub const TE_BEAM: u32 = 16;
-pub const TE_SPRITE: u32 = 17;
-pub const TE_BEAMSPRITE: u32 = 18;
-pub const TE_BEAMTORUS: u32 = 19;
-pub const TE_BEAMDISK: u32 = 20;
-pub const TE_BEAMCYLINDER: u32 = 21;
-pub const TE_BEAMFOLLOW: u32 = 22;
-pub const TE_GLOWSPRITE: u32 = 23;
-pub const TE_BEAMRING: u32 = 24;
-pub const TE_STREAK_SPLASH: u32 = 25;
-pub const TE_BEAMHOSE: u32 = 26;
-pub const TE_DLIGHT: u32 = 27;
-pub const TE_ELIGHT: u32 = 28;
-pub const TE_TEXTMESSAGE: u32 = 29;
-pub const TE_LINE: u32 = 30;
-pub const TE_BOX: u32 = 31;
-pub const TE_KILLBEAM: u32 = 99;
-pub const TE_LARGEFUNNEL: u32 = 100;
-pub const TE_BLOODSTREAM: u32 = 101;
-pub const TE_SHOWLINE: u32 = 102;
-pub const TE_BLOOD: u32 = 103;
-pub const TE_DECAL: u32 = 104;
-pub const TE_FIZZ: u32 = 105;
-pub const TE_MODEL: u32 = 106;
-pub const TE_EXPLODEMODEL: u32 = 107;
-pub const TE_BREAKMODEL: u32 = 108;
-pub const TE_GUNSHOTDECAL: u32 = 109;
-pub const TE_SPRITE_SPRAY: u32 = 110;
-pub const TE_ARMOR_RICOCHET: u32 = 111;
-pub const TE_PLAYERDECAL: u32 = 112;
-pub const TE_BUBBLES: u32 = 113;
-pub const TE_BUBBLETRAIL: u32 = 114;
-pub const TE_BLOODSPRITE: u32 = 115;
-pub const TE_WORLDDECAL: u32 = 116;
-pub const TE_WORLDDECALHIGH: u32 = 117;
-pub const TE_DECALHIGH: u32 = 118;
-pub const TE_PROJECTILE: u32 = 119;
-pub const TE_SPRAY: u32 = 120;
-pub const TE_PLAYERSPRITES: u32 = 121;
-pub const TE_PARTICLEBURST: u32 = 122;
-pub const TE_FIREFIELD: u32 = 123;
-pub const TEFIRE_FLAG_ALLFLOAT: u32 = 1;
-pub const TEFIRE_FLAG_SOMEFLOAT: u32 = 2;
-pub const TEFIRE_FLAG_LOOP: u32 = 4;
-pub const TEFIRE_FLAG_ALPHA: u32 = 8;
-pub const TEFIRE_FLAG_PLANAR: u32 = 16;
-pub const TEFIRE_FLAG_ADDITIVE: u32 = 32;
-pub const TE_PLAYERATTACHMENT: u32 = 124;
-pub const TE_KILLPLAYERATTACHMENTS: u32 = 125;
-pub const TE_MULTIGUNSHOT: u32 = 126;
-pub const TE_USERTRACER: u32 = 127;
-pub const MSG_BROADCAST: u32 = 0;
-pub const MSG_ONE: u32 = 1;
-pub const MSG_ALL: u32 = 2;
-pub const MSG_INIT: u32 = 3;
-pub const MSG_PVS: u32 = 4;
-pub const MSG_PAS: u32 = 5;
-pub const MSG_PVS_R: u32 = 6;
-pub const MSG_PAS_R: u32 = 7;
-pub const MSG_ONE_UNRELIABLE: u32 = 8;
-pub const MSG_SPEC: u32 = 9;
+pub const MAX_PLAYERS: usize = 64;
+pub const MAX_TEAMS: usize = 64;
 
-pub const CONTENTS_EMPTY: i32 = -1;
-pub const CONTENTS_SOLID: i32 = -2;
-pub const CONTENTS_WATER: i32 = -3;
-pub const CONTENTS_SLIME: i32 = -4;
-pub const CONTENTS_LAVA: i32 = -5;
-pub const CONTENTS_SKY: i32 = -6;
-pub const CONTENTS_ORIGIN: i32 = -7;
-pub const CONTENTS_CLIP: i32 = -8;
-pub const CONTENTS_CURRENT_0: i32 = -9;
-pub const CONTENTS_CURRENT_90: i32 = -10;
-pub const CONTENTS_CURRENT_180: i32 = -11;
-pub const CONTENTS_CURRENT_270: i32 = -12;
-pub const CONTENTS_CURRENT_UP: i32 = -13;
-pub const CONTENTS_CURRENT_DOWN: i32 = -14;
-pub const CONTENTS_TRANSLUCENT: i32 = -15;
-pub const CONTENTS_LADDER: i32 = -16;
-pub const CONTENT_FLYFIELD: i32 = -17;
-pub const CONTENT_GRAVITY_FLYFIELD: i32 = -18;
-pub const CONTENT_FOG: i32 = -19;
+pub const PITCH: usize = ffi::common::PITCH as usize;
+pub const YAW: usize = ffi::common::YAW as usize;
+pub const ROLL: usize = ffi::common::ROLL as usize;
 
-pub const CHAN_AUTO: c_int = 0;
-pub const CHAN_WEAPON: c_int = 1;
-pub const CHAN_VOICE: c_int = 2;
-pub const CHAN_ITEM: c_int = 3;
-pub const CHAN_BODY: c_int = 4;
-pub const CHAN_STREAM: c_int = 5;
-pub const CHAN_STATIC: c_int = 6;
-pub const CHAN_NETWORKVOICE_BASE: c_int = 7;
-pub const CHAN_NETWORKVOICE_END: c_int = 500;
-pub const CHAN_BOT: c_int = 501;
+pub use ffi::common::{
+    SOLID_BBOX, SOLID_BSP, SOLID_CUSTOM, SOLID_NOT, SOLID_PORTAL, SOLID_SLIDEBOX, SOLID_TRIGGER,
+};
 
-pub const ATTN_NONE: f32 = 0.0;
-pub const ATTN_NORM: f32 = 0.8;
-pub const ATTN_IDLE: f32 = 2.0;
-pub const ATTN_STATIC: f32 = 1.25;
+pub use ffi::common::{DEAD_DEAD, DEAD_DISCARDBODY, DEAD_DYING, DEAD_NO, DEAD_RESPAWNABLE};
 
-pub const PITCH_NORM: c_int = 100;
-pub const PITCH_LOW: c_int = 95;
-pub const PITCH_HIGH: c_int = 120;
+pub use ffi::common::{DAMAGE_AIM, DAMAGE_NO, DAMAGE_YES};
 
-pub const VOL_NORM: f64 = 1.0;
-pub const PLAT_LOW_TRIGGER: u32 = 1;
-pub const SF_TRAIN_WAIT_RETRIGGER: u32 = 1;
-pub const SF_TRAIN_START_ON: u32 = 4;
-pub const SF_TRAIN_PASSABLE: u32 = 8;
-pub const IN_ATTACK: u32 = 1;
-pub const IN_JUMP: u32 = 2;
-pub const IN_DUCK: u32 = 4;
-pub const IN_FORWARD: u32 = 8;
-pub const IN_BACK: u32 = 16;
-pub const IN_USE: u32 = 32;
-pub const IN_CANCEL: u32 = 64;
-pub const IN_LEFT: u32 = 128;
-pub const IN_RIGHT: u32 = 256;
-pub const IN_MOVELEFT: u32 = 512;
-pub const IN_MOVERIGHT: u32 = 1024;
-pub const IN_ATTACK2: u32 = 2048;
-pub const IN_RUN: u32 = 4096;
-pub const IN_RELOAD: u32 = 8192;
-pub const IN_ALT1: u32 = 16384;
-pub const IN_SCORE: u32 = 32768;
-pub const BREAK_TYPEMASK: u32 = 79;
-pub const BREAK_GLASS: u32 = 1;
-pub const BREAK_METAL: u32 = 2;
-pub const BREAK_FLESH: u32 = 4;
-pub const BREAK_WOOD: u32 = 8;
-pub const BREAK_SMOKE: u32 = 16;
-pub const BREAK_TRANS: u32 = 32;
-pub const BREAK_CONCRETE: u32 = 64;
-pub const BREAK_2: u32 = 128;
-pub const BOUNCE_GLASS: u32 = 1;
-pub const BOUNCE_METAL: u32 = 2;
-pub const BOUNCE_FLESH: u32 = 4;
-pub const BOUNCE_WOOD: u32 = 8;
-pub const BOUNCE_SHRAP: u32 = 16;
-pub const BOUNCE_SHELL: u32 = 32;
-pub const BOUNCE_CONCRETE: u32 = 64;
-pub const BOUNCE_SHOTSHELL: u32 = 128;
-pub const TE_BOUNCE_NULL: u32 = 0;
-pub const TE_BOUNCE_SHELL: u32 = 1;
-pub const TE_BOUNCE_SHOTSHELL: u32 = 2;
-pub const XASH_POSIX: u32 = 1;
-pub const XASH_LINUX: u32 = 1;
-pub const XASH_LITTLE_ENDIAN: u32 = 1;
-pub const XASH_64BIT: u32 = 1;
-pub const XASH_AMD64: u32 = 1;
+pub use ffi::common::{EFLAG_FLESH_SOUND, EFLAG_SLERP};
 
-pub const MAX_STRING: usize = 256;
-pub const MAX_INFO_STRING: u32 = 256;
-pub const MAX_SERVERINFO_STRING: u32 = 512;
-pub const MAX_LOCALINFO_STRING: u32 = 32768;
-pub const MAX_SYSPATH: usize = 1024;
-pub const MAX_VA_STRING: u32 = 1024;
-pub const MAX_PRINT_MSG: u32 = 8192;
-pub const MAX_TOKEN: u32 = 2048;
-pub const MAX_MODS: usize = 512;
-pub const MAX_USERMSG_LENGTH: u32 = 2048;
-pub const MAX_QPATH: usize = 64;
-pub const MAX_OSPATH: u32 = 260;
-pub const NUM_AMBIENTS: usize = 4;
-// pub const MAX_VISIBLE_PACKET_BITS: u32 = 11;
-// pub const MAX_VISIBLE_PACKET: u32 = 2048;
-// pub const MAX_VISIBLE_PACKET_VIS_BYTES: u32 = 256;
+pub use ffi::common::TE_SPRITETRAIL;
 
-// additional protocol data
+pub use ffi::common::{
+    CONTENTS_CLIP, CONTENTS_CURRENT_0, CONTENTS_CURRENT_180, CONTENTS_CURRENT_270,
+    CONTENTS_CURRENT_90, CONTENTS_CURRENT_DOWN, CONTENTS_CURRENT_UP, CONTENTS_EMPTY,
+    CONTENTS_LADDER, CONTENTS_LAVA, CONTENTS_ORIGIN, CONTENTS_SKY, CONTENTS_SLIME, CONTENTS_SOLID,
+    CONTENTS_TRANSLUCENT, CONTENTS_WATER, CONTENT_FLYFIELD, CONTENT_FOG, CONTENT_GRAVITY_FLYFIELD,
+};
 
-pub const MAX_CLIENT_BITS: u32 = 5;
-pub const MAX_CLIENTS: usize = 1 << MAX_CLIENT_BITS;
+pub use ffi::common::{
+    CHAN_AUTO, CHAN_BODY, CHAN_ITEM, CHAN_NETWORKVOICE_BASE, CHAN_NETWORKVOICE_END, CHAN_STATIC,
+    CHAN_STREAM, CHAN_VOICE, CHAN_WEAPON,
+};
 
-pub const MAX_WEAPON_BITS: u32 = 6;
-/// Predictable weapons.
-pub const MAX_WEAPONS: usize = 1 << MAX_WEAPON_BITS;
+pub use ffi::common::{ATTN_IDLE, ATTN_NONE, ATTN_NORM, ATTN_STATIC};
 
-pub const MAX_EVENT_BITS: u32 = 10;
-/// 1024 events is the original Half-Life limit.
-pub const MAX_EVENTS: usize = 1 << MAX_EVENT_BITS;
+pub use ffi::common::{PITCH_HIGH, PITCH_LOW, PITCH_NORM};
 
-pub const MAX_MODEL_BITS: u32 = 12;
-pub const MAX_MODELS: usize = 1 << MAX_MODEL_BITS;
+pub use ffi::common::{
+    IN_ALT1, IN_ATTACK, IN_ATTACK2, IN_BACK, IN_CANCEL, IN_DUCK, IN_FORWARD, IN_JUMP, IN_LEFT,
+    IN_MOVELEFT, IN_MOVERIGHT, IN_RELOAD, IN_RIGHT, IN_RUN, IN_SCORE, IN_USE,
+};
 
-pub const MAX_SOUND_BITS: u32 = 11;
-pub const MAX_SOUNDS: usize = 1 << MAX_SOUND_BITS;
-pub const MAX_SOUNDS_NONSENTENCE: usize = MAX_SOUNDS;
+pub use ffi::common::{TE_BOUNCE_NULL, TE_BOUNCE_SHELL, TE_BOUNCE_SHOTSHELL};
 
-pub const MAX_ENTITY_BITS: u32 = 13;
-pub const MAX_EDICTS: u32 = 1 << MAX_ENTITY_BITS;
-pub const MAX_EDICTS_BYTES: u32 = MAX_EDICTS.div_ceil(8);
-pub const LAST_EDICT: u32 = 8191;
+pub const MAX_STRING: usize = ffi::common::MAX_STRING as usize;
+pub const MAX_SYSPATH: usize = ffi::common::MAX_SYSPATH as usize;
+pub const MAX_MAP_HULLS: usize = ffi::common::MAX_MAP_HULLS as usize;
 
-pub const MIN_EDICTS: u32 = 64;
-
-pub const MAX_CUSTOM_BITS: u32 = 10;
-pub const MAX_CUSTOM: u32 = 1 << MAX_CUSTOM_BITS;
-pub const MAX_USER_MESSAGES: u32 = 197;
-/// Dynamic lights (rendered per one frame).
-pub const MAX_DLIGHTS: u32 = 32;
-/// Entity only point lights.
-pub const MAX_ELIGHTS: u32 = 128;
-
-// sound proto
-pub const MAX_SND_FLAGS_BITS: u32 = 14;
-pub const MAX_SND_CHAN_BITS: u32 = 4;
-
-pub const CS_SIZE: usize = 64;
-pub const CS_TIME: usize = 16;
-pub const MAX_ENT_LEAFS: usize = 48;
-pub const FBEAM_STARTENTITY: u32 = 1;
-pub const FBEAM_ENDENTITY: u32 = 2;
-pub const FBEAM_FADEIN: u32 = 4;
-pub const FBEAM_FADEOUT: u32 = 8;
-pub const FBEAM_SINENOISE: u32 = 16;
-pub const FBEAM_SOLID: u32 = 32;
-pub const FBEAM_SHADEIN: u32 = 64;
-pub const FBEAM_SHADEOUT: u32 = 128;
-pub const FBEAM_STARTVISIBLE: u32 = 268435456;
-pub const FBEAM_ENDVISIBLE: u32 = 536870912;
-pub const FBEAM_ISACTIVE: u32 = 1073741824;
-pub const FBEAM_FOREVER: u32 = 2147483648;
-pub const HISTORY_MAX: usize = 64;
-pub const HISTORY_MASK: u32 = 63;
-pub const ENTITY_NORMAL: c_int = 1;
-pub const ENTITY_BEAM: c_int = 2;
-pub const MAX_PHYSINFO_STRING: usize = 256;
-pub const MAX_LOCAL_WEAPONS: usize = 64;
-pub const FEVENT_ORIGIN: u32 = 1;
-pub const FEVENT_ANGLES: u32 = 2;
-pub const MAX_MAP_HULLS: usize = 4;
-pub const STUDIO_RENDER: u32 = 1;
-pub const STUDIO_EVENTS: u32 = 2;
-pub const MIPLEVELS: u32 = 4;
-pub const VERTEXSIZE: usize = 7;
-pub const MAXLIGHTMAPS: usize = 4;
-pub const MAXDYNLIGHTS: u32 = 8;
-pub const MAX_SCOREBOARDNAME: u32 = 32;
-pub const RES_FATALIFMISSING: u32 = 1;
-pub const RES_WASMISSING: u32 = 2;
-pub const RES_CUSTOM: u32 = 4;
-pub const RES_REQUESTED: u32 = 8;
-pub const RES_PRECACHED: u32 = 16;
-pub const RES_ALWAYS: u32 = 32;
-pub const RES_CHECKFILE: u32 = 128;
-pub const FCUST_FROMHPAK: u32 = 1;
-pub const FCUST_WIPEDATA: u32 = 2;
-pub const FCUST_IGNOREINIT: u32 = 4;
-pub const MAXALIASVERTS: u32 = 2048;
-pub const MAXALIASFRAMES: u32 = 256;
-pub const MAXALIASTRIS: u32 = 4096;
-pub const MAX_SKINS: usize = 32;
-pub const SUIT_HUE_START: u32 = 192;
-pub const SUIT_HUE_END: u32 = 223;
-pub const PLATE_HUE_START: u32 = 160;
-pub const PLATE_HUE_END: u32 = 191;
-pub const SHIRT_HUE_START: u32 = 16;
-pub const SHIRT_HUE_END: u32 = 32;
-pub const PANTS_HUE_START: u32 = 96;
-pub const PANTS_HUE_END: u32 = 112;
-pub const DIST_EPSILON: f64 = 0.03125;
-pub const FRAC_EPSILON: f64 = 0.0009765625;
-pub const BACKFACE_EPSILON: f64 = 0.01;
-pub const MAX_BOX_LEAFS: u32 = 256;
-pub const ANIM_CYCLE: u32 = 2;
-pub const MOD_FRAMES: u32 = 20;
-pub const MAX_DEMOS: u32 = 32;
-pub const MAX_MOVIES: u32 = 8;
-pub const MAX_CDTRACKS: u32 = 32;
-pub const MAX_CLIENT_SPRITES: u32 = 512;
-pub const MAX_REQUESTS: u32 = 64;
-pub const FEV_NOTHOST: u32 = 1;
-pub const FEV_RELIABLE: u32 = 2;
-pub const FEV_GLOBAL: u32 = 4;
-pub const FEV_UPDATE: u32 = 8;
-pub const FEV_HOSTONLY: u32 = 16;
-pub const FEV_SERVER: u32 = 32;
-pub const FEV_CLIENT: u32 = 64;
-pub const PORT_ANY: i32 = -1;
-pub const NETAPI_REQUEST_SERVERLIST: u32 = 0;
-pub const NETAPI_REQUEST_PING: u32 = 1;
-pub const NETAPI_REQUEST_RULES: u32 = 2;
-pub const NETAPI_REQUEST_PLAYERS: u32 = 3;
-pub const NETAPI_REQUEST_DETAILS: u32 = 4;
-pub const FNETAPI_MULTIPLE_RESPONSE: u32 = 1;
-pub const FNETAPI_LEGACY_PROTOCOL: u32 = 2;
-pub const NET_SUCCESS: u32 = 0;
-pub const NET_ERROR_TIMEOUT: u32 = 1;
-pub const NET_ERROR_PROTO_UNSUPPORTED: u32 = 2;
-pub const NET_ERROR_UNDEFINED: u32 = 4;
-pub const NET_ERROR_FORBIDDEN: u32 = 8;
-pub const NUM_GLYPHS: usize = 256;
-pub const TRACER_COLORINDEX_DEFAULT: u32 = 4;
-pub const TENTPRIORITY_LOW: u32 = 0;
-pub const TENTPRIORITY_HIGH: u32 = 1;
-pub const STUDIO_INTERFACE_VERSION: c_int = 1;
-pub const SV_BLENDING_INTERFACE_VERSION: u32 = 1;
-pub const RF_DRAW_WORLD: u32 = 1;
-pub const RF_DRAW_CUBEMAP: u32 = 2;
-pub const RF_DRAW_OVERVIEW: u32 = 4;
-pub const RF_ONLY_CLIENTDRAW: u32 = 8;
-pub const MAXEVENTSTRING: u32 = 64;
-pub const TRI_TRIANGLES: u32 = 0;
-pub const TRI_TRIANGLE_FAN: u32 = 1;
-pub const TRI_QUADS: u32 = 2;
-pub const TRI_POLYGON: u32 = 3;
-pub const TRI_LINES: u32 = 4;
-pub const TRI_TRIANGLE_STRIP: u32 = 5;
-pub const TRI_QUAD_STRIP: u32 = 6;
-pub const TRI_POINTS: u32 = 7;
-pub const CL_RENDER_INTERFACE_VERSION: u32 = 37;
-pub const MAX_STUDIO_DECALS: u32 = 4096;
+pub use ffi::common::{ENTITY_BEAM, ENTITY_NORMAL};
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
 #[repr(transparent)]
@@ -374,193 +64,59 @@ impl RefParm {
     }
 }
 
-pub const PARM_TEX_WIDTH: RefParm = RefParm::new(1);
-pub const PARM_TEX_HEIGHT: RefParm = RefParm::new(2);
-pub const PARM_TEX_SRC_WIDTH: RefParm = RefParm::new(3);
-pub const PARM_TEX_SRC_HEIGHT: RefParm = RefParm::new(4);
-pub const PARM_TEX_SKYBOX: RefParm = RefParm::new(5);
-pub const PARM_TEX_SKYTEXNUM: RefParm = RefParm::new(6);
-pub const PARM_TEX_LIGHTMAP: RefParm = RefParm::new(7);
-pub const PARM_TEX_TARGET: RefParm = RefParm::new(8);
-pub const PARM_TEX_TEXNUM: RefParm = RefParm::new(9);
-pub const PARM_TEX_FLAGS: RefParm = RefParm::new(10);
-pub const PARM_TEX_DEPTH: RefParm = RefParm::new(11);
-pub const PARM_TEX_GLFORMAT: RefParm = RefParm::new(13);
-pub const PARM_TEX_ENCODE: RefParm = RefParm::new(14);
-pub const PARM_TEX_MIPCOUNT: RefParm = RefParm::new(15);
-pub const PARM_BSP2_SUPPORTED: RefParm = RefParm::new(16);
-pub const PARM_SKY_SPHERE: RefParm = RefParm::new(17);
-pub const PARAM_GAMEPAUSED: RefParm = RefParm::new(18);
-pub const PARM_MAP_HAS_DELUXE: RefParm = RefParm::new(19);
-pub const PARM_MAX_ENTITIES: RefParm = RefParm::new(20);
-pub const PARM_WIDESCREEN: RefParm = RefParm::new(21);
-pub const PARM_FULLSCREEN: RefParm = RefParm::new(22);
-pub const PARM_SCREEN_WIDTH: RefParm = RefParm::new(23);
-pub const PARM_SCREEN_HEIGHT: RefParm = RefParm::new(24);
-pub const PARM_CLIENT_INGAME: RefParm = RefParm::new(25);
-pub const PARM_FEATURES: RefParm = RefParm::new(26);
-pub const PARM_ACTIVE_TMU: RefParm = RefParm::new(27);
-pub const PARM_LIGHTSTYLEVALUE: RefParm = RefParm::new(28);
-pub const PARM_MAX_IMAGE_UNITS: RefParm = RefParm::new(29);
-pub const PARM_CLIENT_ACTIVE: RefParm = RefParm::new(30);
-pub const PARM_REBUILD_GAMMA: RefParm = RefParm::new(31);
-pub const PARM_DEDICATED_SERVER: RefParm = RefParm::new(32);
-pub const PARM_SURF_SAMPLESIZE: RefParm = RefParm::new(33);
-pub const PARM_GL_CONTEXT_TYPE: RefParm = RefParm::new(34);
-pub const PARM_GLES_WRAPPER: RefParm = RefParm::new(35);
-pub const PARM_STENCIL_ACTIVE: RefParm = RefParm::new(36);
-pub const PARM_WATER_ALPHA: RefParm = RefParm::new(37);
-pub const PARM_TEX_MEMORY: RefParm = RefParm::new(38);
-pub const PARM_DELUXEDATA: RefParm = RefParm::new(39);
-pub const PARM_SHADOWDATA: RefParm = RefParm::new(40);
+macro_rules! define_ref_parm {
+    ($($name:ident),* $(,)?) => {
+        $(pub const $name: RefParm = RefParm::new(ffi::api::render::$name);)*
+    };
+}
 
-pub const K_TAB: u32 = 9;
-pub const K_ENTER: u32 = 13;
-pub const K_ESCAPE: u32 = 27;
-pub const K_SPACE: u32 = 32;
-pub const K_SCROLLOCK: u32 = 70;
-pub const K_BACKSPACE: u32 = 127;
-pub const K_UPARROW: u32 = 128;
-pub const K_DOWNARROW: u32 = 129;
-pub const K_LEFTARROW: u32 = 130;
-pub const K_RIGHTARROW: u32 = 131;
-pub const K_ALT: u32 = 132;
-pub const K_CTRL: u32 = 133;
-pub const K_SHIFT: u32 = 134;
-pub const K_F1: u32 = 135;
-pub const K_F2: u32 = 136;
-pub const K_F3: u32 = 137;
-pub const K_F4: u32 = 138;
-pub const K_F5: u32 = 139;
-pub const K_F6: u32 = 140;
-pub const K_F7: u32 = 141;
-pub const K_F8: u32 = 142;
-pub const K_F9: u32 = 143;
-pub const K_F10: u32 = 144;
-pub const K_F11: u32 = 145;
-pub const K_F12: u32 = 146;
-pub const K_INS: u32 = 147;
-pub const K_DEL: u32 = 148;
-pub const K_PGDN: u32 = 149;
-pub const K_PGUP: u32 = 150;
-pub const K_HOME: u32 = 151;
-pub const K_END: u32 = 152;
-pub const K_KP_HOME: u32 = 160;
-pub const K_KP_UPARROW: u32 = 161;
-pub const K_KP_PGUP: u32 = 162;
-pub const K_KP_LEFTARROW: u32 = 163;
-pub const K_KP_5: u32 = 164;
-pub const K_KP_RIGHTARROW: u32 = 165;
-pub const K_KP_END: u32 = 166;
-pub const K_KP_DOWNARROW: u32 = 167;
-pub const K_KP_PGDN: u32 = 168;
-pub const K_KP_ENTER: u32 = 169;
-pub const K_KP_INS: u32 = 170;
-pub const K_KP_DEL: u32 = 171;
-pub const K_KP_SLASH: u32 = 172;
-pub const K_KP_MINUS: u32 = 173;
-pub const K_KP_PLUS: u32 = 174;
-pub const K_CAPSLOCK: u32 = 175;
-pub const K_KP_MUL: u32 = 176;
-pub const K_WIN: u32 = 177;
-pub const K_KP_NUMLOCK: u32 = 178;
-pub const K_JOY1: u32 = 203;
-pub const K_JOY2: u32 = 204;
-pub const K_JOY3: u32 = 205;
-pub const K_JOY4: u32 = 206;
-pub const K_AUX1: u32 = 207;
-pub const K_A_BUTTON: u32 = 207;
-pub const K_AUX2: u32 = 208;
-pub const K_B_BUTTON: u32 = 208;
-pub const K_AUX3: u32 = 209;
-pub const K_X_BUTTON: u32 = 209;
-pub const K_AUX4: u32 = 210;
-pub const K_Y_BUTTON: u32 = 210;
-pub const K_AUX5: u32 = 211;
-pub const K_L1_BUTTON: u32 = 211;
-pub const K_AUX6: u32 = 212;
-pub const K_R1_BUTTON: u32 = 212;
-pub const K_AUX7: u32 = 213;
-pub const K_BACK_BUTTON: u32 = 213;
-pub const K_AUX8: u32 = 214;
-pub const K_MODE_BUTTON: u32 = 214;
-pub const K_AUX9: u32 = 215;
-pub const K_START_BUTTON: u32 = 215;
-pub const K_AUX10: u32 = 216;
-pub const K_LSTICK: u32 = 216;
-pub const K_AUX11: u32 = 217;
-pub const K_RSTICK: u32 = 217;
-pub const K_AUX12: u32 = 218;
-pub const K_L2_BUTTON: u32 = 218;
-pub const K_AUX13: u32 = 219;
-pub const K_R2_BUTTON: u32 = 219;
-pub const K_AUX14: u32 = 220;
-pub const K_C_BUTTON: u32 = 220;
-pub const K_AUX15: u32 = 221;
-pub const K_Z_BUTTON: u32 = 221;
-pub const K_AUX16: u32 = 222;
-pub const K_DPAD_UP: u32 = 222;
-pub const K_AUX17: u32 = 223;
-pub const K_DPAD_DOWN: u32 = 223;
-pub const K_AUX18: u32 = 224;
-pub const K_DPAD_LEFT: u32 = 224;
-pub const K_AUX19: u32 = 225;
-pub const K_DPAD_RIGHT: u32 = 225;
-pub const K_AUX20: u32 = 226;
-pub const K_MISC_BUTTON: u32 = 226;
-pub const K_AUX21: u32 = 227;
-pub const K_PADDLE1_BUTTON: u32 = 227;
-pub const K_AUX22: u32 = 228;
-pub const K_PADDLE2_BUTTON: u32 = 228;
-pub const K_AUX23: u32 = 229;
-pub const K_PADDLE3_BUTTON: u32 = 229;
-pub const K_AUX24: u32 = 230;
-pub const K_PADDLE4_BUTTON: u32 = 230;
-pub const K_AUX25: u32 = 231;
-pub const K_TOUCHPAD: u32 = 231;
-pub const K_AUX26: u32 = 232;
-pub const K_AUX27: u32 = 233;
-pub const K_AUX28: u32 = 234;
-pub const K_AUX29: u32 = 235;
-pub const K_AUX30: u32 = 236;
-pub const K_AUX31: u32 = 237;
-pub const K_AUX32: u32 = 238;
-pub const K_MWHEELDOWN: u32 = 239;
-pub const K_MWHEELUP: u32 = 240;
-pub const K_PAUSE: u32 = 255;
-pub const K_MOUSE1: u32 = 241;
-pub const K_MOUSE2: u32 = 242;
-pub const K_MOUSE3: u32 = 243;
-pub const K_MOUSE4: u32 = 244;
-pub const K_MOUSE5: u32 = 245;
+define_ref_parm! {
+    PARM_TEX_WIDTH,
+    PARM_TEX_HEIGHT,
+    PARM_TEX_SRC_WIDTH,
+    PARM_TEX_SRC_HEIGHT,
+    PARM_TEX_SKYBOX,
+    PARM_TEX_SKYTEXNUM,
+    PARM_TEX_LIGHTMAP,
+    PARM_TEX_TARGET,
+    PARM_TEX_TEXNUM,
+    PARM_TEX_FLAGS,
+    PARM_TEX_DEPTH,
+    PARM_TEX_GLFORMAT,
+    PARM_TEX_ENCODE,
+    PARM_TEX_MIPCOUNT,
+    PARM_BSP2_SUPPORTED,
+    PARM_SKY_SPHERE,
+    PARAM_GAMEPAUSED,
+    PARM_MAP_HAS_DELUXE,
+    PARM_MAX_ENTITIES,
+    PARM_WIDESCREEN,
+    PARM_FULLSCREEN,
+    PARM_SCREEN_WIDTH,
+    PARM_SCREEN_HEIGHT,
+    PARM_CLIENT_INGAME,
+    PARM_FEATURES,
+    PARM_ACTIVE_TMU,
+    PARM_LIGHTSTYLEVALUE,
+    PARM_MAX_IMAGE_UNITS,
+    PARM_CLIENT_ACTIVE,
+    PARM_REBUILD_GAMMA,
+    PARM_DEDICATED_SERVER,
+    PARM_SURF_SAMPLESIZE,
+    PARM_GL_CONTEXT_TYPE,
+    PARM_GLES_WRAPPER,
+    PARM_STENCIL_ACTIVE,
+    PARM_WATER_ALPHA,
+    PARM_TEX_MEMORY,
+    PARM_DELUXEDATA,
+    PARM_SHADOWDATA,
+}
 
-pub const MAX_PHYSENTS: usize = 600;
-pub const MAX_MOVEENTS: usize = 64;
-pub const MAX_CLIP_PLANES: usize = 5;
-pub const PM_NORMAL: u32 = 0;
-pub const PM_STUDIO_IGNORE: u32 = 1;
-pub const PM_STUDIO_BOX: u32 = 2;
-pub const PM_GLASS_IGNORE: u32 = 4;
-pub const PM_WORLD_ONLY: u32 = 8;
-pub const PM_CUSTOM_IGNORE: u32 = 16;
-pub const PM_TRACELINE_PHYSENTSONLY: u32 = 0;
-pub const PM_TRACELINE_ANYVISIBLE: u32 = 1;
-pub const MAX_ALIAS_NAME: u32 = 32;
-pub const MAX_LEVEL_CONNECTIONS: usize = 16;
-pub const FENTTABLE_PLAYER: u32 = 2147483648;
-pub const FENTTABLE_REMOVED: u32 = 1073741824;
-pub const FENTTABLE_MOVEABLE: u32 = 536870912;
-pub const FENTTABLE_GLOBAL: u32 = 268435456;
-pub const GFL_NOMODELS: u32 = 1;
-pub const GFL_NOSKILLS: u32 = 2;
-pub const GFL_RENDER_PICBUTTON_TEXT: u32 = 4;
-pub const GFL_HD_BACKGROUND: u32 = 8;
-pub const GFL_ANIMATED_TITLE: u32 = 16;
+pub const MAX_PHYSENTS: usize = ffi::player_move::MAX_PHYSENTS as usize;
+pub const MAX_MOVEENTS: usize = ffi::player_move::MAX_MOVEENTS as usize;
+pub const MAX_CLIP_PLANES: usize = ffi::player_move::MAX_CLIP_PLANES as usize;
 
-pub const PFILE_IGNOREBRACKET: u32 = 1;
-pub const PFILE_HANDLECOLON: u32 = 2;
-pub const PLATFORM_UPDATE_PAGE: &CStr = c"PlatformUpdatePage";
-pub const GENERIC_UPDATE_PAGE: &CStr = c"GenericUpdatePage";
-
-pub const MAX_PLAYERS: usize = 64;
-pub const MAX_TEAMS: usize = 64;
+pub use ffi::player_move::{
+    PM_CUSTOM_IGNORE, PM_GLASS_IGNORE, PM_NORMAL, PM_STUDIO_BOX, PM_STUDIO_IGNORE,
+    PM_TRACELINE_ANYVISIBLE, PM_TRACELINE_PHYSENTSONLY, PM_WORLD_ONLY,
+};
