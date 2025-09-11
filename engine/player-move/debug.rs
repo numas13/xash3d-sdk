@@ -1,5 +1,7 @@
 use shared::{consts::PM_STUDIO_BOX, ffi::common::vec3_t, math::ToAngleVectors};
 
+use crate::raw::PlayerMoveExt;
+
 const BOX_GAP: f32 = 0.0;
 const BOX_POINTS: [[usize; 4]; 6] = [
     [0, 4, 6, 2], // +X

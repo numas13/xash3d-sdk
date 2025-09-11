@@ -35,7 +35,7 @@ use shared::{
     raw::{EdictFlags, ModelType, MoveType, SoundFlags, UserCmdExt},
 };
 
-use crate::raw::playermove_s;
+use crate::raw::{playermove_s, PlayerMoveExt};
 
 const TIME_TO_DUCK: f32 = 0.4;
 const VEC_DUCK_VIEW: f32 = 12.0;
