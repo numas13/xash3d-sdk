@@ -1,3 +1,5 @@
+use core::mem;
+
 #[doc(hidden)]
 #[macro_export]
 macro_rules! const_assert {
@@ -43,6 +45,74 @@ macro_rules! const_assert_size_eq {
 }
 #[doc(inline)]
 pub use const_assert_size_eq;
+
+#[doc(hidden)]
+pub const fn size_of_return_value<T, U>(_: &impl FnOnce(&T) -> &U) -> usize {
+    core::mem::size_of::<U>()
+}
+
+/// Returns the size of a field in bytes of the given type.
+///
+/// # Examples
+///
+/// ```
+/// use xash3d_shared::macros::size_of_field;
+///
+/// struct Foo {
+///     f1: i8,
+///     f2: i16,
+///     bar: Bar,
+/// }
+///
+/// struct Bar {
+///     f4: i32,
+///     f8: i64,
+/// }
+///
+/// assert_eq!(size_of_field!(Foo, f1), 1);
+/// assert_eq!(size_of_field!(Foo, f2), 2);
+/// assert_eq!(size_of_field!(Foo, bar), core::mem::size_of::<Bar>());
+/// assert_eq!(size_of_field!(Foo, bar.f4), 4);
+/// assert_eq!(size_of_field!(Foo, bar.f8), 8);
+/// ```
+#[doc(hidden)]
+#[macro_export]
+macro_rules! size_of_field {
+    ($ty:ty, $($fields:tt)+ $(,)?) => ({
+        $crate::macros::size_of_return_value(&|t: &$ty| &t.$($fields)+)
+    });
+}
+#[doc(inline)]
+pub use size_of_field;
+
+const_assert_eq!(size_of_field!((u32, u64), 0), 4);
+const_assert_eq!(size_of_field!((u32, u64), 1), 8);
+
+struct Foo {
+    a: u16,
+    b: u32,
+    c: u64,
+}
+
+const_assert_eq!(size_of_field!(Foo, a), 2);
+const_assert_eq!(size_of_field!(Foo, b), 4);
+const_assert_eq!(size_of_field!(Foo, c), 8);
+
+struct Bar {
+    a: i8,
+    b: i64,
+    c: i128,
+    foo: Foo,
+}
+
+const_assert_eq!(size_of_field!(Bar, a), 1);
+const_assert_eq!(size_of_field!(Bar, b), 8);
+const_assert_eq!(size_of_field!(Bar, c), 16);
+
+const_assert_eq!(size_of_field!(Bar, foo), mem::size_of::<Foo>());
+const_assert_eq!(size_of_field!(Bar, foo.a), 2);
+const_assert_eq!(size_of_field!(Bar, foo.b), 4);
+const_assert_eq!(size_of_field!(Bar, foo.c), 8);
 
 #[doc(hidden)]
 #[macro_export]
