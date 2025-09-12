@@ -10,8 +10,9 @@ checksum = "b048fb63fd8b5923fc5aa7b340d8e156aec7ec02f0c78fa8a6ddc2613f6f71de"
 
 [[package]]
 name = "csz"
-version = "0.2.0"
-source = "git+https://github.com/numas13/csz.git#b3b1518e873f48f6c637a718c4b73be952ac1352"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8a757f623512cdd0385c57b4801b3430c6c210e9c81896eed6666bd7724f57cf"
 
 [[package]]
 name = "libc"
