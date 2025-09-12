@@ -26,6 +26,8 @@ macro_rules! define {
 define! {
     fn cosf(x: f32) -> f32;
     fn sinf(x: f32) -> f32;
+    fn tanf(x: f32) -> f32;
+    fn atanf(x: f32) -> f32;
     fn sqrtf(x: f32) -> f32;
     fn fmaxf(x: f32, y: f32) -> f32;
     fn fminf(x: f32, y: f32) -> f32;
@@ -33,6 +35,8 @@ define! {
 
     fn cos(x: f64) -> f64;
     fn sin(x: f64) -> f64;
+    fn tan(x: f64) -> f64;
+    fn atan(x: f64) -> f64;
     fn sqrt(x: f64) -> f64;
     fn fmax(x: f64, y: f64) -> f64;
     fn fmin(x: f64, y: f64) -> f64;

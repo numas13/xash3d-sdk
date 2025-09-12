@@ -13,7 +13,7 @@ use xash3d_ffi::{
     player_move::physent_s,
 };
 
-use crate::consts::MAX_MOVEENTS;
+use crate::{consts::MAX_MOVEENTS, render::DrawFlags};
 
 bitflags! {
     /// kbutton_t.state
@@ -326,21 +326,8 @@ bitflags! {
     }
 }
 
-bitflags! {
-    /// ref_viewpass_s.flags
-    #[derive(Copy, Clone, PartialEq, Eq, Debug, Default)]
-    #[repr(transparent)]
-    pub struct RefFlags: c_int {
-        /// pass should draw the world (otherwise it's player menu model)
-        const DRAW_WORLD        = 1 << 0;
-        /// special 6x pass to render cubemap/skybox sides
-        const DRAW_CUBEMAP      = 1 << 1;
-        /// overview mode is active
-        const DRAW_OVERVIEW     = 1 << 2;
-        /// nothing is drawn by the engine except clientDraw functions
-        const ONLY_CLIENTDRAW   = 1 << 3;
-    }
-}
+#[deprecated]
+pub type RefFlags = crate::render::DrawFlags;
 
 pub trait UserCmdExt {
     fn default() -> Self;
@@ -692,11 +679,11 @@ impl EntityStateExt for entity_state_s {
 }
 
 pub trait RefViewpassExt {
-    fn flags(&self) -> &RefFlags;
+    fn flags(&self) -> &DrawFlags;
 }
 
 impl RefViewpassExt for ref_viewpass_s {
-    fn flags(&self) -> &RefFlags {
+    fn flags(&self) -> &DrawFlags {
         unsafe { mem::transmute(&self.flags) }
     }
 }

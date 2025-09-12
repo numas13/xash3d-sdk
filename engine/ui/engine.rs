@@ -10,11 +10,13 @@ use csz::{CStrArray, CStrSlice, CStrThin};
 use shared::{
     borrow::{BorrowRef, Ref},
     engine::net::{netadr_s, NetApi},
+    entity::EntityType,
     export::impl_unsync_global,
     ffi::{
-        common::{kbutton_t, wrect_s},
+        common::{cl_entity_s, kbutton_t, wrect_s},
         menu::{gameinfo2_s, ui_enginefuncs_s, ui_extendedfuncs_s, GAMEINFO, HIMAGE},
     },
+    render::ViewPass,
     str::{AsCStrPtr, ToEngineStr},
 };
 
@@ -383,12 +385,26 @@ impl UiEngine {
         }
     }
 
-    // pub pfnGetPlayerModel: Option<unsafe extern "C" fn() -> *mut cl_entity_s>,
-    // pub pfnSetModel: Option<unsafe extern "C" fn(ed: *mut cl_entity_s, path: *const c_char)>,
-    // pub pfnClearScene: Option<unsafe extern "C" fn()>,
-    // pub pfnRenderScene: Option<unsafe extern "C" fn(rvp: *const ffi::ref_viewpass_s)>,
-    // pub CL_CreateVisibleEntity:
-    //     Option<unsafe extern "C" fn(type_: c_int, ent: *mut cl_entity_s) -> c_int>,
+    pub fn get_player_model_raw(&self) -> *mut cl_entity_s {
+        unsafe { unwrap!(self, pfnGetPlayerModel)() }
+    }
+
+    pub fn set_player_model_raw(&self, ent: &mut cl_entity_s, path: impl ToEngineStr) {
+        let path = path.to_engine_str();
+        unsafe { unwrap!(self, pfnSetModel)(ent, path.as_ptr()) }
+    }
+
+    pub fn clear_scene(&self) {
+        unsafe { unwrap!(self, pfnClearScene)() }
+    }
+
+    pub fn create_visible_entity_raw(&self, ent: &mut cl_entity_s, ty: EntityType) -> bool {
+        unsafe { unwrap!(self, CL_CreateVisibleEntity)(ty.into_raw(), ent) != 0 }
+    }
+
+    pub fn render_scene(&self, viewpass: ViewPass) {
+        unsafe { unwrap!(self, pfnRenderScene)(&viewpass.into_raw()) }
+    }
 
     pub fn host_error(&self, msg: impl ToEngineStr) -> ! {
         let msg = msg.to_engine_str();
