@@ -6,9 +6,10 @@ use cl::{
         SOLID_BSP, TE_BOUNCE_NULL,
     },
     engine::event::event_args_s,
+    entity::TempEntityFlags,
     ffi::{api::efx::TEMPENTITY, common::vec3_t},
     prelude::*,
-    raw::{RenderMode, SoundFlags, TempEntFlags},
+    raw::{RenderMode, SoundFlags},
 };
 use res::valve::{models, sound};
 
@@ -182,7 +183,7 @@ impl Events {
 
                 if !bolt.is_null() {
                     let bolt = unsafe { &mut *bolt };
-                    bolt.flags_mut().insert(TempEntFlags::CLIENTCUSTOM);
+                    bolt.flags_mut().insert(TempEntityFlags::CLIENTCUSTOM);
                     bolt.entity.baseline.vuser1 = pos;
                     bolt.entity.baseline.vuser2 = bolt_angles;
 

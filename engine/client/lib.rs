@@ -4,6 +4,7 @@
 pub mod macros;
 pub mod collections;
 pub mod engine;
+pub mod entity;
 pub mod export;
 pub mod input;
 pub mod instance;
@@ -15,6 +16,6 @@ pub mod sprite;
 mod studio;
 pub mod utils;
 
-pub use shared::{cell, color, consts, cvar, entity, ffi, math, str::ToEngineStr};
+pub use shared::{cell, color, consts, cvar, ffi, math, str::ToEngineStr};
 
 pub use crate::studio::*;

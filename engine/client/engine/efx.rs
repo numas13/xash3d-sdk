@@ -8,7 +8,10 @@ use shared::{
     str::{AsCStrPtr, ToEngineStr},
 };
 
-use crate::raw::{BeamEntity, RenderFx, RenderMode, TempEntFlags};
+use crate::{
+    entity::TempEntityFlags,
+    raw::{BeamEntity, RenderFx, RenderMode},
+};
 
 pub struct EfxApi {
     raw: *mut efx_api_s,
@@ -330,7 +333,7 @@ impl EfxApi {
         renderfx: RenderFx,
         a: f32,
         life: f32,
-        flags: TempEntFlags,
+        flags: TempEntityFlags,
     ) -> *mut TEMPENTITY {
         unsafe {
             // FIXME: ffi: why pos is mutable?

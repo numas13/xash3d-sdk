@@ -3,9 +3,10 @@ use core::ffi::c_int;
 use cl::{
     consts::{ATTN_NORM, CHAN_WEAPON, PITCH, PM_NORMAL, SOLID_BSP, TE_SPRITETRAIL},
     engine::event::event_args_s,
+    entity::TempEntityFlags,
     ffi::common::vec3_t,
     prelude::*,
-    raw::{BeamEntity, RenderFx, RenderMode, SoundFlags, TempEntFlags},
+    raw::{BeamEntity, RenderFx, RenderMode, SoundFlags},
 };
 use res::valve::{self, sound, sprites};
 
@@ -170,7 +171,7 @@ impl Events {
                         RenderFx::NoDissipation,
                         damage * n / 255.0,
                         damage * n * 0.5 * 0.1,
-                        TempEntFlags::FADEOUT,
+                        TempEntityFlags::FADEOUT,
                     );
 
                     let fwd = tr.endpos + tr.plane.normal;
@@ -202,7 +203,7 @@ impl Events {
                         RenderFx::NoDissipation,
                         damage / 255.0,
                         6.0,
-                        TempEntFlags::FADEOUT,
+                        TempEntityFlags::FADEOUT,
                     );
 
                     if has_punched {
@@ -253,7 +254,7 @@ impl Events {
                                     RenderFx::NoDissipation,
                                     damage / 255.0,
                                     6.0,
-                                    TempEntFlags::FADEOUT,
+                                    TempEntityFlags::FADEOUT,
                                 );
 
                                 let fwd = beam_tr.endpos - forward;
@@ -288,7 +289,7 @@ impl Events {
                             RenderFx::NoDissipation,
                             200.0 / 255.0,
                             0.3,
-                            TempEntFlags::FADEOUT,
+                            TempEntityFlags::FADEOUT,
                         );
 
                         damage = 0.0;
