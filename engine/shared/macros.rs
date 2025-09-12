@@ -85,6 +85,34 @@ macro_rules! size_of_field {
 #[doc(inline)]
 pub use size_of_field;
 
+/// Asserts that the size in bytes of `lhs` is equal to the size in bytes of a field of the `rhs.`
+///
+/// # Examples
+///
+/// ```
+/// use xash3d_shared::macros::const_assert_size_of_field_eq;
+///
+/// struct Foo {
+///     a: u16,
+///     b: u32,
+/// }
+///
+/// const_assert_size_of_field_eq!(u16, Foo, a);
+/// const_assert_size_of_field_eq!(u32, Foo, b);
+/// ```
+#[doc(hidden)]
+#[macro_export]
+macro_rules! const_assert_size_of_field_eq {
+    ($lhs:ty, $($rhs:tt)+) => {
+        $crate::macros::const_assert_eq!(
+            core::mem::size_of::<$lhs>(),
+            $crate::macros::size_of_field!($($rhs)+),
+        );
+    };
+}
+#[doc(inline)]
+pub use const_assert_size_of_field_eq;
+
 const_assert_eq!(size_of_field!((u32, u64), 0), 4);
 const_assert_eq!(size_of_field!((u32, u64), 1), 8);
 
@@ -97,6 +125,10 @@ struct Foo {
 const_assert_eq!(size_of_field!(Foo, a), 2);
 const_assert_eq!(size_of_field!(Foo, b), 4);
 const_assert_eq!(size_of_field!(Foo, c), 8);
+
+const_assert_size_of_field_eq!(u16, Foo, a);
+const_assert_size_of_field_eq!(u32, Foo, b);
+const_assert_size_of_field_eq!(u64, Foo, c);
 
 struct Bar {
     a: i8,
@@ -113,6 +145,11 @@ const_assert_eq!(size_of_field!(Bar, foo), mem::size_of::<Foo>());
 const_assert_eq!(size_of_field!(Bar, foo.a), 2);
 const_assert_eq!(size_of_field!(Bar, foo.b), 4);
 const_assert_eq!(size_of_field!(Bar, foo.c), 8);
+
+const_assert_size_of_field_eq!(Foo, Bar, foo);
+const_assert_size_of_field_eq!(u16, Bar, foo.a);
+const_assert_size_of_field_eq!(u32, Bar, foo.b);
+const_assert_size_of_field_eq!(u64, Bar, foo.c);
 
 #[doc(hidden)]
 #[macro_export]
