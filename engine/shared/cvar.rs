@@ -7,8 +7,9 @@ use core::{
 
 use alloc::{ffi::CString, string::String};
 use bitflags::bitflags;
-use cell::SyncOnceCell;
 use csz::{CStrBox, CStrThin};
+
+use crate::cell::SyncOnceCell;
 
 bitflags! {
     #[derive(Copy, Clone, PartialEq, Eq)]

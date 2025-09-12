@@ -40,10 +40,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "xash3d-cell"
-version = "0.1.0"
-
-[[package]]
 name = "xash3d-client"
 version = "0.1.0"
 dependencies = [
@@ -136,7 +132,6 @@ dependencies = [
  "csz",
  "libm",
  "log",
- "xash3d-cell",
  "xash3d-ffi",
 ]
 

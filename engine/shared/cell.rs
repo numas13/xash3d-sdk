@@ -1,5 +1,3 @@
-#![no_std]
-
 use core::{
     cell::OnceCell,
     ops::{Deref, DerefMut},

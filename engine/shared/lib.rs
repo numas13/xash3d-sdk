@@ -13,6 +13,7 @@ extern crate log;
 pub mod macros;
 
 pub mod borrow;
+pub mod cell;
 pub mod color;
 pub mod consts;
 pub mod cvar;
@@ -28,5 +29,4 @@ pub mod raw;
 pub mod str;
 pub mod utils;
 
-pub use cell;
 pub use xash3d_ffi as ffi;

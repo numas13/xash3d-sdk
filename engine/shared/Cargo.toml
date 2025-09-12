@@ -24,5 +24,4 @@ bitflags.workspace = true
 log.workspace = true
 csz.workspace = true
 xash3d-ffi.workspace = true
-cell.workspace = true
 libm = { workspace = true, optional = true }
