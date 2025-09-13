@@ -100,13 +100,13 @@ impl HudItem for Menu {
         }
 
         let engine = engine();
-        let screen = engine.get_screen_info();
-        let font_height = cmp::max(12, screen.iCharHeight);
+        let screen = engine.screen_info();
+        let font_height = cmp::max(12, screen.char_height());
         let nlc = self.data.chars().filter(|&c| c == '\n').count() as c_int;
         let start_x = 20;
         let mut x = start_x;
         let mut y =
-            screen.iHeight / 2 - (nlc / 2 * font_height) - (3 * font_height + font_height / 3);
+            screen.height() / 2 - (nlc / 2 * font_height) - (3 * font_height + font_height / 3);
         let mut color = RGB::WHITE;
         let mut ralign = false;
         let mut cur = self.data.as_str();
@@ -121,7 +121,7 @@ impl HudItem for Menu {
                     b'y' => color = RGB::new(255, 210, 64),
                     b'r' => color = RGB::new(210, 24, 0),
                     b'R' => {
-                        x = screen.iWidth / 2;
+                        x = screen.width() / 2;
                         ralign = true;
                     }
                     b'\\' => {

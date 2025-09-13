@@ -59,10 +59,10 @@ impl super::HudItem for Battery {
         };
 
         let color = state.color.scale_color(self.fade.alpha(state.time_delta));
-        let screen_info = engine.get_screen_info();
+        let screen_info = engine.screen_info();
         let width = empty.rect.width();
         let mut x = width * 3;
-        let mut y = screen_info.iHeight - state.num_height - state.num_height / 2;
+        let mut y = screen_info.height() - state.num_height - state.num_height / 2;
         let offset = empty.rect.height() / 6;
 
         engine.spr_set(empty.hspr, color);

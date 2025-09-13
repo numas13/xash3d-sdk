@@ -6,13 +6,11 @@ use core::{
 use alloc::{boxed::Box, vec, vec::Vec};
 use cl::{
     color::RGB,
-    ffi::{
-        client::{client_textmessage_s, SCREENINFO},
-        common::byte,
-    },
+    ffi::{client::client_textmessage_s, common::byte},
     math::fabsf,
     message::hook_message,
     prelude::*,
+    screen::ScreenInfo,
 };
 
 use crate::export::hud;
@@ -54,22 +52,22 @@ impl Msg {
         }
     }
 
-    fn draw(&self, state: &State, engine: &ClientEngine, screen: &SCREENINFO) {
+    fn draw(&self, state: &State, engine: &ClientEngine, screen: &ScreenInfo) {
         // TODO: utf8
 
         let mut length = 0;
         let mut total_width = 0;
-        let mut total_height = screen.iCharHeight;
+        let mut total_height = screen.char_height();
         for line in self.message.lines() {
             let width = line
                 .as_bytes()
                 .iter()
-                .map(|i| screen.charWidths[*i as usize] as c_int)
+                .map(|i| screen.char_width(*i) as c_int)
                 .sum();
 
             length += line.len() + 1;
             total_width = cmp::max(width, total_width);
-            total_height += screen.iCharHeight;
+            total_height += screen.char_height();
         }
 
         let time = state.time - self.start_time;
@@ -103,18 +101,18 @@ impl Msg {
             _ => todo!(),
         }
 
-        let mut y = position(self.y, total_height, 0, screen.iHeight);
+        let mut y = position(self.y, total_height, 0, screen.height());
         for line in self.message.lines() {
             let width = line
                 .as_bytes()
                 .iter()
-                .map(|i| screen.charWidths[*i as usize] as c_int)
+                .map(|i| screen.char_width(*i) as c_int)
                 .sum();
 
-            let mut x = position(self.x, width, total_width, screen.iWidth);
+            let mut x = position(self.x, width, total_width, screen.width());
             for &c in line.as_bytes() {
-                let x_next = x + screen.charWidths[c as usize] as c_int;
-                if x_next > screen.iWidth || x < 0 || y < 0 {
+                let x_next = x + screen.char_width(c) as c_int;
+                if x_next > screen.width() || x < 0 || y < 0 {
                     x = x_next;
                     continue;
                 }
@@ -150,7 +148,7 @@ impl Msg {
 
                 x = x_next;
             }
-            y += screen.iCharHeight;
+            y += screen.char_height();
         }
     }
 }
@@ -309,9 +307,9 @@ impl HudMessage {
         let full_width = half_width + title_life.rect.width();
         let full_height = title_life.rect.height();
         let engine = engine();
-        let screen = engine.get_screen_info();
-        let x = position(title.x, full_width, full_width, screen.iWidth);
-        let y = position(title.y, full_height, 0, screen.iHeight);
+        let screen = engine.screen_info();
+        let x = position(title.x, full_width, full_width, screen.width());
+        let y = position(title.y, full_height, 0, screen.height());
 
         engine.spr_set(title_half.hspr, color);
         engine.spr_draw_additive_rect(0, x, y, title_half.rect);
@@ -331,7 +329,7 @@ impl HudMessage {
         }
 
         let engine = engine();
-        let screen = engine.get_screen_info();
+        let screen = engine.screen_info();
         for i in self.messages.iter_mut() {
             if let Some(msg) = i {
                 if state.time <= msg.end_time() {

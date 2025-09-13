@@ -417,8 +417,8 @@ impl Input {
     fn get_relative_mouse_pos(&mut self) -> (c_int, c_int) {
         if !self.use_raw_input() {
             let engine = engine();
-            let screen = engine.get_screen_info();
-            let (cx, cy) = (screen.iWidth / 2, screen.iHeight / 2);
+            let screen = engine.screen_info();
+            let (cx, cy) = (screen.width() / 2, screen.height() / 2);
             let (mx, my) = if !self.mouse_raw_used {
                 engine.get_mouse_position()
             } else {

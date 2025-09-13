@@ -146,7 +146,7 @@ impl Weapon {
         }
 
         let engine = engine();
-        let screen = engine.get_screen_info();
+        let screen = engine.screen_info();
         let res = screen.sprite_resolution() as c_int;
 
         let load = |name: &CStr| {

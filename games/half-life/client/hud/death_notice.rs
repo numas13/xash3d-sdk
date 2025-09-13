@@ -218,13 +218,13 @@ impl HudItem for DeathNotice {
         }
 
         let engine = engine();
-        let screen = engine.get_screen_info();
+        let screen = engine.screen_info();
         let gap = cmp::max(
-            screen.iCharHeight,
+            screen.char_height(),
             self.skull.map_or(20, |s| s.rect.height()),
         );
 
-        let x = screen.iWidth - 4;
+        let x = screen.width() - 4;
         let mut y = DEATHNOTICE_TOP + 6;
 
         for notice in &self.list {

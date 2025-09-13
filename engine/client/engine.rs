@@ -14,7 +14,7 @@ use shared::{
     engine::net::NetApi,
     export::impl_unsync_global,
     ffi::{
-        client::{cl_enginefuncs_s, client_textmessage_s, hud_player_info_s, SCREENINFO},
+        client::{cl_enginefuncs_s, client_textmessage_s, hud_player_info_s},
         common::{cl_entity_s, event_args_s, vec3_t, wrect_s},
     },
     raw::WRectExt,
@@ -25,7 +25,7 @@ use crate::{
     color::{RGB, RGBA},
     cvar::{CVarFlags, CVarPtr},
     engine::{demo::DemoApi, efx::EfxApi, event::EventApi, tri::TriangleApi},
-    raw::ScreenInfoExt,
+    screen::ScreenInfo,
     sprite::{SpriteHandle, SpriteList},
 };
 
@@ -173,12 +173,12 @@ impl ClientEngine {
         }
     }
 
-    pub fn get_screen_info(&self) -> SCREENINFO {
-        unsafe {
-            let mut info = SCREENINFO::new();
-            assert_eq!(unwrap!(self, pfnGetScreenInfo)(&mut info), 1);
-            info
+    pub fn screen_info(&self) -> ScreenInfo {
+        let mut info = ScreenInfo::default();
+        if unsafe { unwrap!(self, pfnGetScreenInfo)(info.as_mut()) } != 1 {
+            panic!("screen_info: unexpected result from the engine");
         }
+        info
     }
 
     pub fn unset_crosshair(&self) {

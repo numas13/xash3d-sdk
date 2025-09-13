@@ -256,7 +256,7 @@ impl HudItem for WeaponMenu {
         self.selection = state.find_sprite("selection");
 
         let engine = engine();
-        let screen = engine.get_screen_info();
+        let screen = engine.screen_info();
         let scale = screen.scale();
 
         self.ab_width = 10 * scale as c_int;

@@ -286,7 +286,7 @@ impl State {
     fn vid_init(&mut self) {
         let engine = engine();
 
-        let screen_info = engine.get_screen_info();
+        let screen_info = engine.screen_info();
         self.res = screen_info.sprite_resolution();
 
         let sprite_list = engine.spr_get_list("sprites/hud.txt");
@@ -735,9 +735,9 @@ impl Hud {
         let Some(hspr) = self.logo_hspr else { return };
 
         let engine = engine();
-        let info = engine.get_screen_info();
+        let info = engine.screen_info();
         let (w, h) = engine.spr_size(hspr, 0);
-        let x = info.iWidth - w;
+        let x = info.width() - w;
         let y = h / 2;
         let frame = (self.state.time * 20.0) as usize % MAX_LOGO_FRAMES;
         let i = LOGO_FRAME[frame] - 1;

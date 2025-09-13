@@ -5,6 +5,6 @@ pub use crate::{
     engine::prelude::*,
     engine::ClientEngine,
     instance::{engine, studio},
-    raw::{HudPlayerInfoExt, RefParamsExt, ScreenInfoExt, TempEntityExt, WRectExt},
+    raw::{HudPlayerInfoExt, RefParamsExt, TempEntityExt, WRectExt},
     sprite::ClientSpriteExt,
 };

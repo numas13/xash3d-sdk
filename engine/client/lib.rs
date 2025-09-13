@@ -12,6 +12,7 @@ mod logger;
 pub mod message;
 pub mod prelude;
 pub mod raw;
+pub mod screen;
 pub mod sprite;
 mod studio;
 pub mod utils;

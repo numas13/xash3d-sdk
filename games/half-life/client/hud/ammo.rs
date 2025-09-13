@@ -44,17 +44,17 @@ impl HudItem for Ammo {
         let color = state.color.scale_color(a);
 
         let engine = engine();
-        let screen = engine.get_screen_info();
+        let screen = engine.screen_info();
         let ammo_width = state.num_width;
 
-        let mut y = screen.iHeight - state.num_height - state.num_height / 2;
+        let mut y = screen.height() - state.num_height - state.num_height / 2;
         y += (state.num_height as f32 * 0.2) as c_int;
 
         if let Some(ammo) = weapon.ammo[0] {
             let ammo_count = state.inv.ammo_count(ammo.ty) as c_int;
             let icon_width = ammo.icon.map_or(FALLBACK_WIDTH, |s| s.rect.width());
 
-            let mut x = screen.iWidth - icon_width;
+            let mut x = screen.width() - icon_width;
             if weapon.clip >= 0 {
                 x -= 8 * ammo_width;
                 x = state
@@ -86,7 +86,7 @@ impl HudItem for Ammo {
             if ammo_count > 0 {
                 let icon_width = ammo.icon.map_or(FALLBACK_WIDTH, |s| s.rect.width());
 
-                let mut x = screen.iWidth - icon_width;
+                let mut x = screen.width() - icon_width;
                 y -= state.num_height + state.num_height / 4;
 
                 x -= 4 * ammo_width;
