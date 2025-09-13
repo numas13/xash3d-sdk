@@ -7,13 +7,11 @@ use core::{
 
 use bitflags::bitflags;
 use xash3d_ffi::{
-    common::{
-        byte, entity_state_s, kbutton_t, model_s, ref_viewpass_s, usercmd_s, vec3_t, wrect_s,
-    },
+    common::{byte, entity_state_s, kbutton_t, model_s, usercmd_s, vec3_t, wrect_s},
     player_move::physent_s,
 };
 
-use crate::{consts::MAX_MOVEENTS, render::DrawFlags};
+use crate::consts::MAX_MOVEENTS;
 
 bitflags! {
     /// kbutton_t.state
@@ -651,15 +649,5 @@ impl EntityStateExt for entity_state_s {
 
     fn effects(&self) -> &Effects {
         unsafe { mem::transmute(&self.effects) }
-    }
-}
-
-pub trait RefViewpassExt {
-    fn flags(&self) -> &DrawFlags;
-}
-
-impl RefViewpassExt for ref_viewpass_s {
-    fn flags(&self) -> &DrawFlags {
-        unsafe { mem::transmute(&self.flags) }
     }
 }
