@@ -407,7 +407,7 @@ impl UiEngine {
     }
 
     pub fn render_scene(&self, viewpass: ViewPass) {
-        unsafe { unwrap!(self, pfnRenderScene)(&viewpass.into_raw()) }
+        unsafe { unwrap!(self, pfnRenderScene)(viewpass.as_ref()) }
     }
 
     pub fn host_error(&self, msg: impl ToEngineStr) -> ! {

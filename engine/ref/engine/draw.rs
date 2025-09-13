@@ -1,8 +1,11 @@
 use core::ffi::{c_char, c_int};
 
-use shared::ffi::{
-    api::render::{decallist_s, render_interface_s},
-    common::{cl_entity_s, model_s, ref_viewpass_s, vec2_t},
+use shared::{
+    ffi::{
+        api::render::{decallist_s, render_interface_s},
+        common::{cl_entity_s, model_s, vec2_t},
+    },
+    render::ViewPass,
 };
 
 pub enum Renderer {
@@ -23,15 +26,17 @@ impl Draw<'_> {
         self.raw.version
     }
 
-    pub fn gl_render_frame(&self, rvp: &ref_viewpass_s) -> Option<Renderer> {
-        self.raw.GL_RenderFrame.map(|f| match unsafe { f(rvp) } {
-            0 => Renderer::Engine,
-            1 => Renderer::Client,
-            n => {
-                error!("expected GL_RenderFrame result {n}");
-                Renderer::Engine
-            }
-        })
+    pub fn gl_render_frame(&self, rvp: &ViewPass) -> Option<Renderer> {
+        self.raw
+            .GL_RenderFrame
+            .map(|f| match unsafe { f(rvp.as_ref()) } {
+                0 => Renderer::Engine,
+                1 => Renderer::Client,
+                n => {
+                    error!("expected GL_RenderFrame result {n}");
+                    Renderer::Engine
+                }
+            })
     }
 
     pub fn gl_build_lightmaps(&self) -> Option<()> {

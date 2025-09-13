@@ -25,6 +25,7 @@ use shared::{
         },
     },
     raw::{TextureFlags, MAX_LIGHTSTYLES, MAX_RENDER_DECALS},
+    render::ViewPass,
     utils::{cstr_or_none, slice_from_raw_parts_or_empty},
 };
 
@@ -393,7 +394,7 @@ pub trait RefDll: UnsyncGlobal {
 
     fn gl_update_tex_size(&self, texture: TextureId, width: c_int, height: c_int, depth: c_int) {}
 
-    fn gl_draw_particles(&self, rvp: &ref_viewpass_s, trans_pass: bool, frame_time: f32) {}
+    fn gl_draw_particles(&self, rvp: &ViewPass, trans_pass: bool, frame_time: f32) {}
 
     fn light_vec(
         &self,
@@ -409,7 +410,7 @@ pub trait RefDll: UnsyncGlobal {
         ptr::null_mut()
     }
 
-    fn gl_render_frame(&self, rvp: &ref_viewpass_s) {}
+    fn gl_render_frame(&self, rvp: &ViewPass) {}
 
     fn gl_ortho_bounds(&self, mins: vec2_t, maxs: vec2_t) {}
 
@@ -1681,6 +1682,7 @@ impl<T: RefDll> RefDllExport for Export<T> {
     ) {
         let rvp = unsafe { rvp.as_ref().unwrap() };
         let dll = unsafe { T::global_assume_init_ref() };
+        let rvp = ViewPass::from_raw_ref(rvp);
         dll.gl_draw_particles(rvp, trans_pass != 0, frame_time);
     }
 
@@ -1707,6 +1709,7 @@ impl<T: RefDll> RefDllExport for Export<T> {
     unsafe extern "C" fn gl_render_frame(rvp: *const ref_viewpass_s) {
         let rvp = unsafe { rvp.as_ref().unwrap() };
         let dll = unsafe { T::global_assume_init_ref() };
+        let rvp = ViewPass::from_raw_ref(rvp);
         dll.gl_render_frame(rvp);
     }
 

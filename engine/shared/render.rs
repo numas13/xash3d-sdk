@@ -93,7 +93,7 @@ impl ViewPassBuilder {
         self.raw.viewport[3] = height;
         let x = width as f32 / tanf(self.raw.fov_x.to_radians() * 0.5);
         self.raw.fov_y = atanf(height as f32 / x).to_degrees() * 2.0;
-        ViewPass::from_raw(self.raw)
+        ViewPass::from(self.raw)
     }
 }
 
@@ -107,12 +107,12 @@ impl ViewPass {
         ViewPassBuilder::new()
     }
 
-    pub const fn from_raw(raw: ref_viewpass_s) -> ViewPass {
-        Self { raw }
+    pub const fn from_raw_ref(raw: &ref_viewpass_s) -> &ViewPass {
+        unsafe { mem::transmute(raw) }
     }
 
-    pub const fn into_raw(self) -> ref_viewpass_s {
-        self.raw
+    pub fn viewport(&self) -> [c_int; 4] {
+        self.raw.viewport
     }
 
     pub fn x(&self) -> i32 {
@@ -162,6 +162,30 @@ impl ViewPass {
     pub fn flags_mut(&mut self) -> &mut DrawFlags {
         const_assert_size_of_field_eq!(DrawFlags, ref_viewpass_s, flags);
         unsafe { mem::transmute(&mut self.raw.flags) }
+    }
+}
+
+impl From<ref_viewpass_s> for ViewPass {
+    fn from(raw: ref_viewpass_s) -> Self {
+        Self { raw }
+    }
+}
+
+impl From<ViewPass> for ref_viewpass_s {
+    fn from(value: ViewPass) -> Self {
+        value.raw
+    }
+}
+
+impl AsRef<ref_viewpass_s> for ViewPass {
+    fn as_ref(&self) -> &ref_viewpass_s {
+        &self.raw
+    }
+}
+
+impl AsMut<ref_viewpass_s> for ViewPass {
+    fn as_mut(&mut self) -> &mut ref_viewpass_s {
+        &mut self.raw
     }
 }
 
