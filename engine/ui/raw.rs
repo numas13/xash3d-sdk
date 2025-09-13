@@ -1,49 +1,21 @@
 use core::{ffi::c_int, mem};
 
-use bitflags::bitflags;
 use csz::CStrThin;
 use shared::ffi::{self, menu::gameinfo2_s};
 
 pub use shared::raw::*;
 
+#[deprecated(note = "use xash3d_ui::ffi::menu::GAMEINFO_VERSION instead")]
 pub const GAMEINFO_VERSION: c_int = ffi::menu::GAMEINFO_VERSION as c_int;
 
-bitflags! {
-    #[derive(Copy, Clone, PartialEq, Eq)]
-    #[repr(transparent)]
-    pub struct GameInfoFlags: u32 {
-        const NONE                  = 0;
-        const NOMODELS              = 1 << 0;
-        const NOSKILLS              = 1 << 1;
-        const RENDER_PICBUTTON_TEXT = 1 << 2;
-        const HD_BACKGROUND         = 1 << 3;
-        const ANIMATED_TITLE        = 1 << 4;
-    }
-}
+#[deprecated(note = "use xash3d_ui::game_info::GameInfoFlags instead")]
+pub type GameInfoFlags = crate::game_info::GameInfoFlags;
 
-#[derive(Copy, Clone, PartialEq, Eq)]
-#[non_exhaustive]
-#[repr(C)]
-pub enum GameType {
-    Normal = 0,
-    SingleplayerOnly = 1,
-    MultiplayerOnly = 2,
-}
+#[deprecated(note = "use xash3d_ui::game_info::GameType instead")]
+pub type GameType = crate::game_info::GameType;
 
-impl GameType {
-    pub fn is_normal(&self) -> bool {
-        matches!(self, Self::Normal)
-    }
-
-    pub fn is_singleplayer_only(&self) -> bool {
-        matches!(self, Self::SingleplayerOnly)
-    }
-
-    pub fn is_multiplayer_only(&self) -> bool {
-        matches!(self, Self::MultiplayerOnly)
-    }
-}
-
+#[deprecated(note = "the trait will be removed")]
+#[allow(deprecated)]
 pub trait GameInfo2Ext {
     fn gamefolder(&self) -> &CStrThin;
     fn startmap(&self) -> &CStrThin;
@@ -68,6 +40,7 @@ macro_rules! get_cstr {
     };
 }
 
+#[allow(deprecated)]
 impl GameInfo2Ext for gameinfo2_s {
     get_cstr! {
         gamefolder,

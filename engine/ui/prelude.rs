@@ -4,5 +4,7 @@ pub use crate::{
     engine::prelude::*,
     engine::UiEngine,
     instance::{engine, globals},
-    raw::GameInfo2Ext,
 };
+
+#[allow(deprecated)]
+pub use crate::raw::GameInfo2Ext;

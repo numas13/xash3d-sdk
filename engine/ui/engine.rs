@@ -14,7 +14,9 @@ use shared::{
     export::impl_unsync_global,
     ffi::{
         common::{cl_entity_s, kbutton_t, wrect_s},
-        menu::{gameinfo2_s, ui_enginefuncs_s, ui_extendedfuncs_s, GAMEINFO, HIMAGE},
+        menu::{
+            gameinfo2_s, ui_enginefuncs_s, ui_extendedfuncs_s, GAMEINFO, GAMEINFO_VERSION, HIMAGE,
+        },
     },
     render::ViewPass,
     str::{AsCStrPtr, ToEngineStr},
@@ -26,9 +28,11 @@ use crate::{
     cvar::{CVarFlags, CVarPtr},
     engine_types::{ActiveMenu, Point, Size},
     file::{Cursor, File, FileList},
-    game_info::GameInfo,
-    raw::GAMEINFO_VERSION,
+    game_info::GameInfo2,
 };
+
+#[allow(deprecated)]
+use crate::game_info::GameInfo;
 
 pub use shared::engine::{net, AddCmdError, BufferError};
 
@@ -98,6 +102,20 @@ impl fmt::Display for Protocol {
             Self::Xash49 => "49".fmt(f),
             Self::Current => "current".fmt(f),
         }
+    }
+}
+
+pub struct GameInfoVersionError(());
+
+impl fmt::Debug for GameInfoVersionError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_tuple("GameInfoVersionError").finish()
+    }
+}
+
+impl fmt::Display for GameInfoVersionError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fmt::Display::fmt("unexpected game info version", f)
     }
 }
 
@@ -762,16 +780,24 @@ impl UiEngine {
     // pub pfnCompareAdr: Option<unsafe extern "C" fn(a: *const c_void, b: *const c_void) -> c_int>,
     // pub pfnGetNativeObject: Option<unsafe extern "C" fn(name: *const c_char) -> *mut c_void>,
 
+    // TODO: return static lifetime?
+    pub fn game_info2_raw(&self) -> Result<&gameinfo2_s, GameInfoVersionError> {
+        let info = unsafe { unwrap!(self, ext.pfnGetGameInfo)(GAMEINFO_VERSION).as_ref() };
+        info.ok_or(GameInfoVersionError(()))
+    }
+
+    // TODO: return static lifetime?
+    pub fn game_info2(&self) -> Result<&GameInfo2, GameInfoVersionError> {
+        self.game_info2_raw().map(GameInfo2::from_raw_ref)
+    }
+
+    #[deprecated(note = "use game_info2_raw instead")]
     pub fn get_game_info_2(&self) -> Option<&gameinfo2_s> {
-        let info = unsafe { unwrap!(self, ext.pfnGetGameInfo)(GAMEINFO_VERSION) };
-        if !info.is_null() {
-            Some(unsafe { &*info })
-        } else {
-            None
-        }
+        self.game_info2_raw().ok()
     }
 
     pub fn get_mod_info(&self, mod_index: c_int) -> Option<&gameinfo2_s> {
+        // FIXME: how to detect if it is the index error or the info version error?
         let info = unsafe { unwrap!(self, ext.pfnGetModInfo)(GAMEINFO_VERSION, mod_index) };
         if !info.is_null() {
             Some(unsafe { &*info })
