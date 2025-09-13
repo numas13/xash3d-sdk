@@ -6,15 +6,9 @@ use core::{
 };
 
 use bitflags::bitflags;
-use xash3d_ffi::{
-    common::{byte, entity_state_s, kbutton_t, model_s, usercmd_s, vec3_t, wrect_s},
-    player_move::physent_s,
-};
+use xash3d_ffi::common::{entity_state_s, kbutton_t, model_s, usercmd_s, vec3_t, wrect_s};
 
-use crate::{
-    consts::MAX_MOVEENTS,
-    render::{RenderFx, RenderMode},
-};
+use crate::render::{RenderFx, RenderMode};
 
 bitflags! {
     /// kbutton_t.state
@@ -158,20 +152,6 @@ impl ModelType {
             _ => None,
         }
     }
-}
-
-/// used in mplane_s.type_
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Default)]
-#[repr(transparent)]
-pub struct PlaneType(pub byte);
-
-impl PlaneType {
-    // 0 - 2 are axial planes
-    pub const X: Self = Self(0);
-    pub const Y: Self = Self(1);
-    pub const Z: Self = Self(2);
-    // 3 needs alternate calc
-    pub const NONAXIAL: Self = Self(3);
 }
 
 bitflags! {
@@ -465,22 +445,6 @@ impl MoveType {
 impl From<MoveType> for c_int {
     fn from(value: MoveType) -> c_int {
         value as c_int
-    }
-}
-
-#[repr(C)]
-pub struct MoveEnts {
-    pub num: c_int,
-    pub ents: [physent_s; MAX_MOVEENTS],
-}
-
-impl MoveEnts {
-    pub fn as_slice(&self) -> &[physent_s] {
-        &self.ents[..self.num as usize]
-    }
-
-    pub fn as_slice_mut(&mut self) -> &mut [physent_s] {
-        &mut self.ents[..self.num as usize]
     }
 }
 
