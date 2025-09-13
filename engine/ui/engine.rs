@@ -105,20 +105,6 @@ impl fmt::Display for Protocol {
     }
 }
 
-pub struct GameInfoVersionError(());
-
-impl fmt::Debug for GameInfoVersionError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_tuple("GameInfoVersionError").finish()
-    }
-}
-
-impl fmt::Display for GameInfoVersionError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        fmt::Display::fmt("unexpected game info version", f)
-    }
-}
-
 #[derive(Default)]
 struct Borrows {
     keynum_to_str: BorrowRef,
@@ -781,32 +767,44 @@ impl UiEngine {
     // pub pfnGetNativeObject: Option<unsafe extern "C" fn(name: *const c_char) -> *mut c_void>,
 
     // TODO: return static lifetime?
-    pub fn game_info2_raw(&self) -> Result<&gameinfo2_s, GameInfoVersionError> {
-        let info = unsafe { unwrap!(self, ext.pfnGetGameInfo)(GAMEINFO_VERSION).as_ref() };
-        info.ok_or(GameInfoVersionError(()))
+    pub fn game_info2_raw(&self) -> Option<&gameinfo2_s> {
+        unsafe { unwrap!(self, ext.pfnGetGameInfo)(GAMEINFO_VERSION).as_ref() }
     }
 
     // TODO: return static lifetime?
-    pub fn game_info2(&self) -> Result<&GameInfo2, GameInfoVersionError> {
+    pub fn game_info2(&self) -> Option<&GameInfo2> {
         self.game_info2_raw().map(GameInfo2::from_raw_ref)
     }
 
-    #[deprecated(note = "use game_info2_raw instead")]
+    // TODO: return static lifetime?
+    pub fn mod_info_raw(&self, index: usize) -> Option<&gameinfo2_s> {
+        let index = index.try_into().ok()?;
+        unsafe { unwrap!(self, ext.pfnGetModInfo)(GAMEINFO_VERSION, index).as_ref() }
+    }
+
+    // TODO: return static lifetime?
+    pub fn mod_info(&self, index: usize) -> Option<&GameInfo2> {
+        self.mod_info_raw(index).map(GameInfo2::from_raw_ref)
+    }
+
+    // TODO: return static lifetime?
+    pub fn mod_info_iter(&self) -> impl Iterator<Item = &GameInfo2> {
+        (0..).map_while(|index| self.mod_info(index))
+    }
+
+    #[deprecated(note = "use game_info2 instead")]
     pub fn get_game_info_2(&self) -> Option<&gameinfo2_s> {
-        self.game_info2_raw().ok()
+        self.game_info2_raw()
     }
 
+    #[deprecated(note = "use mod_info instead")]
     pub fn get_mod_info(&self, mod_index: c_int) -> Option<&gameinfo2_s> {
-        // FIXME: how to detect if it is the index error or the info version error?
-        let info = unsafe { unwrap!(self, ext.pfnGetModInfo)(GAMEINFO_VERSION, mod_index) };
-        if !info.is_null() {
-            Some(unsafe { &*info })
-        } else {
-            None
-        }
+        self.mod_info_raw(mod_index as usize)
     }
 
+    #[deprecated]
     pub fn get_mod_info_iter(&self) -> impl Iterator<Item = &gameinfo2_s> {
+        #[allow(deprecated)]
         (0..).map_while(|i| self.get_mod_info(i))
     }
 }
