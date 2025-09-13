@@ -116,6 +116,7 @@ pub use const_assert_size_of_field_eq;
 const_assert_eq!(size_of_field!((u32, u64), 0), 4);
 const_assert_eq!(size_of_field!((u32, u64), 1), 8);
 
+#[allow(dead_code)]
 struct Foo {
     a: u16,
     b: u32,
@@ -130,6 +131,7 @@ const_assert_size_of_field_eq!(u16, Foo, a);
 const_assert_size_of_field_eq!(u32, Foo, b);
 const_assert_size_of_field_eq!(u64, Foo, c);
 
+#[allow(dead_code)]
 struct Bar {
     a: i8,
     b: i64,
