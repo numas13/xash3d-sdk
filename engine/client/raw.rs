@@ -150,26 +150,3 @@ impl RefParamsExt for ref_params_s {
         unsafe { &*self.cmd }
     }
 }
-
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
-#[repr(C)]
-pub enum EntityType {
-    Normal = 0,
-    Player = 1,
-    TempEntity = 2,
-    Beam = 3,
-    Fragmented = 4,
-}
-
-impl EntityType {
-    pub fn from_raw(raw: c_int) -> Option<Self> {
-        match raw {
-            0 => Some(Self::Normal),
-            1 => Some(Self::Player),
-            2 => Some(Self::TempEntity),
-            3 => Some(Self::Beam),
-            4 => Some(Self::Fragmented),
-            _ => None,
-        }
-    }
-}

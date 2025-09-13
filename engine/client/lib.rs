@@ -15,6 +15,6 @@ pub mod sprite;
 mod studio;
 pub mod utils;
 
-pub use shared::{cell, color, consts, cvar, ffi, math, str::ToEngineStr};
+pub use shared::{cell, color, consts, cvar, entity, ffi, math, str::ToEngineStr};
 
 pub use crate::studio::*;

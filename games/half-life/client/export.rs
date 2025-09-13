@@ -6,6 +6,7 @@ use core::{
 
 use cl::{
     collections::TempEntityList,
+    entity::EntityType,
     export::{export_dll, impl_unsync_global, ClientDll, UnsyncGlobal},
     ffi::{
         self,
@@ -19,7 +20,6 @@ use cl::{
             usercmd_s, vec3_t, weapon_data_s,
         },
     },
-    raw::EntityType,
 };
 use csz::CStrThin;
 

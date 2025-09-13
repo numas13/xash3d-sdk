@@ -8,6 +8,7 @@ use csz::CStrThin;
 use shared::{
     cvar::CVarPtr,
     engine::net::netadr_s,
+    entity::EntityType,
     ffi::{
         self,
         api::{
@@ -25,7 +26,7 @@ use shared::{
     utils::cstr_or_none,
 };
 
-use crate::{collections::TempEntityList, prelude::*, raw::EntityType};
+use crate::{collections::TempEntityList, prelude::*};
 
 pub use shared::export::{impl_unsync_global, UnsyncGlobal};
 
