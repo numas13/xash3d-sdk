@@ -13,17 +13,6 @@ pub use crate::input::KButtonExt;
 bitflags! {
     #[derive(Copy, Clone, PartialEq, Eq)]
     #[repr(transparent)]
-    pub struct PictureFlags: u32 {
-        const EXPAND_SOURCE = 1 << 0;
-        const KEEP_SOURCE   = 1 << 1;
-        const NEAREST       = 1 << 2;
-        const NOFLIP_TGA    = 1 << 3;
-    }
-}
-
-bitflags! {
-    #[derive(Copy, Clone, PartialEq, Eq)]
-    #[repr(transparent)]
     pub struct SoundFlags: c_int {
         const NONE              = 0;
         /// A scaled byte.

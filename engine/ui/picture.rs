@@ -3,9 +3,25 @@ use core::{
     fmt,
 };
 
-use shared::ffi::menu::HIMAGE;
+use bitflags::bitflags;
+use shared::ffi::{self, menu::HIMAGE};
 
-use crate::{color::RGBA, engine_types::Size, prelude::*, raw::PictureFlags};
+use crate::{color::RGBA, engine_types::Size, prelude::*};
+
+bitflags! {
+    #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
+    #[repr(transparent)]
+    pub struct PictureFlags: u32 {
+        const NONE          = 0;
+        /// Disable a texture filtering.
+        const NEAREST       = ffi::menu::PIC_NEAREST as u32;
+        /// Keep an image source.
+        const KEEP_SOURCE   = ffi::menu::PIC_KEEP_SOURCE as u32;
+        const NOFLIP_TGA    = ffi::menu::PIC_NOFLIP_TGA as u32;
+        /// Expand an image source to 32-bit RGBA.
+        const EXPAND_SOURCE = ffi::menu::PIC_EXPAND_SOURCE as u32;
+    }
+}
 
 #[derive(Debug)]
 pub enum PictureError {
@@ -34,7 +50,7 @@ pub struct Picture<T: AsRef<CStr> = &'static CStr> {
 impl<T: AsRef<CStr>> Picture<T> {
     fn new(path: T, buf: Option<&[u8]>, flags: PictureFlags) -> Result<Self, PictureError> {
         engine()
-            .pic_load(path.as_ref(), buf, flags.bits())
+            .pic_load_with_flags(path.as_ref(), buf, flags)
             .ok_or(PictureError::LoadError)
             .map(|raw| Self { raw, path })
     }

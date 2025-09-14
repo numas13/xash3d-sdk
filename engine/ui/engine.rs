@@ -29,6 +29,7 @@ use crate::{
     engine_types::{ActiveMenu, Point, Size},
     file::{Cursor, File, FileList},
     game_info::GameInfo2,
+    picture::PictureFlags,
 };
 
 #[allow(deprecated)]
@@ -157,18 +158,29 @@ impl UiEngine {
         &self.ext
     }
 
+    #[deprecated(note = "use pic_load_with_flags instead")]
     pub fn pic_load(
         &self,
         path: impl ToEngineStr,
         buf: Option<&[u8]>,
         flags: u32,
     ) -> Option<HIMAGE> {
+        self.pic_load_with_flags(path, buf, PictureFlags::from_bits_retain(flags))
+    }
+
+    pub fn pic_load_with_flags(
+        &self,
+        path: impl ToEngineStr,
+        buf: Option<&[u8]>,
+        flags: PictureFlags,
+    ) -> Option<HIMAGE> {
         let path = path.to_engine_str();
         let (buf, len) = buf
             .map(|i| (i.as_ptr(), i.len()))
             .unwrap_or((ptr::null(), 0));
-        let pic =
-            unsafe { unwrap!(self, pfnPIC_Load)(path.as_ptr(), buf, len as c_int, flags as c_int) };
+        let pic = unsafe {
+            unwrap!(self, pfnPIC_Load)(path.as_ptr(), buf, len as c_int, flags.bits() as c_int)
+        };
         (pic != 0).then_some(pic)
     }
 

@@ -14,6 +14,9 @@ pub type GameInfoFlags = crate::game_info::GameInfoFlags;
 #[deprecated(note = "use xash3d_ui::game_info::GameType instead")]
 pub type GameType = crate::game_info::GameType;
 
+#[deprecated(note = "use picture::PictureFlags instead")]
+pub type PictureFlags = crate::picture::PictureFlags;
+
 #[deprecated(note = "the trait will be removed")]
 #[allow(deprecated)]
 pub trait GameInfo2Ext {
