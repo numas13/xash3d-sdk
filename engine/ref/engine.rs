@@ -6,6 +6,7 @@ use core::{
 };
 
 use shared::{
+    bsp::MAX_MAP_LEAFS_BYTES,
     export::impl_unsync_global,
     ffi::{
         common::{efrag_s, mleaf_s, mnode_s, ref_overview_s, vec3_t},
@@ -19,7 +20,7 @@ use crate::{
     cvar::cvar_s,
     engine::draw::Draw,
     engine_types::*,
-    raw::{bsp::MAX_MAP_LEAFS_BYTES, GraphicApi, ImageFlags, OutputImageFlags},
+    raw::{GraphicApi, ImageFlags, OutputImageFlags},
 };
 
 pub use shared::engine::AddCmdError;

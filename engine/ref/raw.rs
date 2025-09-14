@@ -16,6 +16,8 @@ use shared::{
 
 pub use shared::raw::*;
 
+pub use crate::bsp;
+
 bitflags! {
     #[derive(Copy, Clone, PartialEq, Eq)]
     #[repr(transparent)]

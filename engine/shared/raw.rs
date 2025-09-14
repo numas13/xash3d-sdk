@@ -1,5 +1,3 @@
-pub mod bsp;
-
 use core::{ffi::c_int, mem, str};
 
 use bitflags::bitflags;
@@ -60,22 +58,8 @@ pub type ModelFlags = crate::model::ModelFlags;
 
 pub use crate::model::ModelExt;
 
-bitflags! {
-    /// msurface_s.flags
-    #[derive(Copy, Clone, PartialEq, Eq, Debug, Default)]
-    #[repr(transparent)]
-    pub struct SurfaceFlags: c_int {
-        const NONE              = 0;
-        const PLANEBACK         = 1 << 1; // plane should be negated
-        const DRAWSKY           = 1 << 2; // sky surface
-        const DRAWTURB_QUADS    = 1 << 3; // all subidivided polygons are quads
-        const DRAWTURB          = 1 << 4; // warp surface
-        const DRAWTILED         = 1 << 5; // face without lighmap
-        const CONVEYOR          = 1 << 6; // scrolled texture (was SURF_DRAWBACKGROUND)
-        const UNDERWATER        = 1 << 7; // caustics
-        const TRANSPARENT       = 1 << 8; // it's a transparent texture (was SURF_DONTWARP)
-    }
-}
+#[deprecated(note = "use SurfaceFlags instead")]
+pub type SurfaceFlags = crate::bsp::SurfaceFlags;
 
 #[deprecated]
 pub type RefFlags = crate::render::DrawFlags;
@@ -110,8 +94,11 @@ impl UserCmdExt for usercmd_s {
     }
 }
 
+// TODO: remove when defined in ffi crate
 pub const MAX_LIGHTSTYLES: usize = 256;
+pub const MAX_RENDER_DECALS: usize = 4096;
 
+#[deprecated(note = "will be removed")]
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(C)]
 pub enum SkyboxOrdering {
@@ -125,9 +112,6 @@ pub enum SkyboxOrdering {
 
 #[deprecated(note = "use render::TextureFlags instead")]
 pub type TextureFlags = crate::render::TextureFlags;
-
-/// Max rendering decals per a level.
-pub const MAX_RENDER_DECALS: usize = 4096;
 
 pub trait WRectExt {
     fn default() -> Self;
