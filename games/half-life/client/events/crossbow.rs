@@ -1,15 +1,11 @@
 use core::ffi::c_int;
 
 use cl::{
-    consts::{
-        ATTN_NORM, CHAN_BODY, CHAN_ITEM, CHAN_WEAPON, CONTENTS_WATER, PITCH, PITCH_NORM, PM_NORMAL,
-        SOLID_BSP, TE_BOUNCE_NULL,
-    },
+    consts::{CONTENTS_WATER, PITCH, PM_NORMAL, SOLID_BSP, TE_BOUNCE_NULL},
     engine::event::event_args_s,
     entity::TempEntityFlags,
     ffi::{api::efx::TEMPENTITY, common::vec3_t},
     prelude::*,
-    raw::SoundFlags,
     render::RenderMode,
 };
 use res::valve::{models, sound};
@@ -44,32 +40,18 @@ impl Events {
         let engine = engine();
         let ev = engine.event_api();
 
-        let sample = sound::weapons::XBOW_FIRE1;
-        let pitch = 93 + engine.random_int(0, 0xf);
-        ev.play_sound(
-            idx,
-            origin,
-            CHAN_WEAPON,
-            sample,
-            1.0,
-            ATTN_NORM,
-            SoundFlags::NONE,
-            pitch,
-        );
+        ev.build_sound_at(origin)
+            .entity(idx)
+            .channel_weapon()
+            .pitch(93 + engine.random_int(0, 0xf))
+            .play(sound::weapons::XBOW_FIRE1);
 
-        let sample = sound::weapons::XBOW_RELOAD1;
-        let vol = engine.random_float(0.95, 1.0);
-        let pitch = 93 + engine.random_int(0, 0xf);
-        ev.play_sound(
-            idx,
-            origin,
-            CHAN_ITEM,
-            sample,
-            vol,
-            ATTN_NORM,
-            SoundFlags::NONE,
-            pitch,
-        );
+        ev.build_sound_at(origin)
+            .entity(idx)
+            .channel_item()
+            .volume(engine.random_float(0.95, 1.0))
+            .pitch(93 + engine.random_int(0, 0xf))
+            .play(sound::weapons::XBOW_RELOAD1);
 
         if is_local(idx) {
             if args.iparam1 != 0 {
@@ -93,32 +75,18 @@ impl Events {
         let src = get_gun_position(args, origin);
         let end = src + forward * 8192.0;
 
-        let sample = sound::weapons::XBOW_FIRE1;
-        let pitch = 93 + engine.random_int(0, 0xf);
-        ev.play_sound(
-            idx,
-            origin,
-            CHAN_WEAPON,
-            sample,
-            1.0,
-            ATTN_NORM,
-            SoundFlags::NONE,
-            pitch,
-        );
+        ev.build_sound_at(origin)
+            .entity(idx)
+            .channel_weapon()
+            .pitch(93 + engine.random_int(0, 0xf))
+            .play(sound::weapons::XBOW_FIRE1);
 
-        let sample = sound::weapons::XBOW_RELOAD1;
-        let vol = engine.random_float(0.95, 1.0);
-        let pitch = 93 + engine.random_int(0, 0xf);
-        ev.play_sound(
-            idx,
-            origin,
-            CHAN_ITEM,
-            sample,
-            vol,
-            ATTN_NORM,
-            SoundFlags::NONE,
-            pitch,
-        );
+        ev.build_sound_at(origin)
+            .entity(idx)
+            .channel_item()
+            .volume(engine.random_float(0.95, 1.0))
+            .pitch(93 + engine.random_int(0, 0xf))
+            .play(sound::weapons::XBOW_RELOAD1);
 
         if is_local(idx) {
             if args.iparam1 != 0 {
@@ -141,29 +109,16 @@ impl Events {
                     0 => sound::weapons::XBOW_HITBOD1,
                     _ => sound::weapons::XBOW_HITBOD2,
                 };
-                ev.play_sound(
-                    idx,
-                    tr.endpos,
-                    CHAN_BODY,
-                    sample,
-                    1.0,
-                    ATTN_NORM,
-                    SoundFlags::NONE,
-                    PITCH_NORM,
-                );
+                ev.build_sound_at(tr.endpos)
+                    .entity(idx)
+                    .channel_body()
+                    .play(sample);
             } else if pe.rendermode == RenderMode::Normal as c_int {
-                let sample = sound::weapons::XBOW_HIT1;
-                let vol = engine.random_float(0.95, 1.0);
-                ev.play_sound(
-                    0,
-                    tr.endpos,
-                    CHAN_BODY,
-                    sample,
-                    vol,
-                    ATTN_NORM,
-                    SoundFlags::NONE,
-                    PITCH_NORM,
-                );
+                ev.build_sound_at(tr.endpos)
+                    .entity(0)
+                    .channel_body()
+                    .volume(engine.random_float(0.95, 1.0))
+                    .play(sound::weapons::XBOW_HIT1);
 
                 if engine.pm_point_contents(tr.endpos).0 != CONTENTS_WATER {
                     efx.spark_shower(tr.endpos);

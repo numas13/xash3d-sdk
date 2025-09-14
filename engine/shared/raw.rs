@@ -1,6 +1,5 @@
-use core::{ffi::c_int, mem, str};
+use core::{ffi::c_int, mem};
 
-use bitflags::bitflags;
 use xash3d_ffi::common::{usercmd_s, vec3_t, wrect_s};
 
 #[deprecated(note = "use input::KeyState instead")]
@@ -8,39 +7,8 @@ pub type KeyState = crate::input::KeyState;
 
 pub use crate::input::KButtonExt;
 
-bitflags! {
-    #[derive(Copy, Clone, PartialEq, Eq)]
-    #[repr(transparent)]
-    pub struct SoundFlags: c_int {
-        const NONE              = 0;
-        /// A scaled byte.
-        const VOLUME            = 1 << 0;
-        /// A byte.
-        const ATTENUATION       = 1 << 1;
-        /// Get sentence from a script.
-        const SEQUENCE          = 1 << 2;
-        /// A byte.
-        const PITCH             = 1 << 3;
-        /// Set if sound num is actually a sentence num.
-        const SENTENCE          = 1 << 4;
-        /// Stop the sound.
-        const STOP              = 1 << 5;
-        /// Change sound vol.
-        const CHANGE_VOL        = 1 << 6;
-        /// Change sound pitch.
-        const CHANGE_PITCH      = 1 << 7;
-        /// We're spawning, used in some cases for ambients (not sent across network).
-        const SPAWNING          = 1 << 8;
-        /// Not paused, not looped, for internal use.
-        const LOCALSOUND        = 1 << 9;
-        /// Stop all looping sounds on the entity.
-        const STOP_LOOPING      = 1 << 10;
-        /// Don't send sound from local player if prediction was enabled.
-        const FILTER_CLIENT     = 1 << 11;
-        /// Passed playing position and the forced end.
-        const RESTORE_POSITION  = 1 << 12;
-    }
-}
+#[deprecated(note = "use protocol::SoundFlags instead")]
+pub type SoundFlags = crate::sound::SoundFlags;
 
 #[deprecated(note = "use entity::Effects instead")]
 pub type Effects = crate::entity::Effects;

@@ -1,10 +1,9 @@
 use core::ffi::c_int;
 
 use cl::{
-    consts::{ATTN_NORM, CHAN_WEAPON, PITCH, TE_BOUNCE_SHOTSHELL, YAW},
+    consts::{PITCH, TE_BOUNCE_SHOTSHELL, YAW},
     engine::event::event_args_s,
     prelude::*,
-    raw::SoundFlags,
 };
 use res::valve::{models, sound};
 
@@ -52,20 +51,12 @@ impl Events {
         let soundtype = TE_BOUNCE_SHOTSHELL as c_int;
         eject_brass(si.origin, si.velocity, angles[YAW], shell, soundtype);
 
-        let sample = sound::weapons::SBARREL1;
-        let vol = engine.random_float(0.95, 1.0);
-        let pitch = 93 + engine.random_int(0, 0x1f);
-
-        ev.play_sound(
-            idx,
-            origin,
-            CHAN_WEAPON,
-            sample,
-            vol,
-            ATTN_NORM,
-            SoundFlags::NONE,
-            pitch,
-        );
+        ev.build_sound_at(origin)
+            .entity(idx)
+            .channel_weapon()
+            .volume(engine.random_float(0.95, 1.0))
+            .pitch(93 + engine.random_int(0, 0x1f))
+            .play(sound::weapons::SBARREL1);
 
         let src = get_gun_position(args, origin);
         let aiming = av.forward;
@@ -102,19 +93,12 @@ impl Events {
             eject_brass(si.origin, si.velocity, angles[YAW], shell, soundtype);
         }
 
-        let sample = sound::weapons::DBARREL1;
-        let vol = engine.random_float(0.99, 1.0);
-        let pitch = 85 + engine.random_int(0, 0x1f);
-        ev.play_sound(
-            idx,
-            origin,
-            CHAN_WEAPON,
-            sample,
-            vol,
-            ATTN_NORM,
-            SoundFlags::NONE,
-            pitch,
-        );
+        ev.build_sound_at(origin)
+            .entity(idx)
+            .volume(engine.random_float(0.99, 1.0))
+            .pitch(85 + engine.random_int(0, 0x1f))
+            .channel_weapon()
+            .play(sound::weapons::DBARREL1);
 
         let src = get_gun_position(args, origin);
         let aiming = av.forward;

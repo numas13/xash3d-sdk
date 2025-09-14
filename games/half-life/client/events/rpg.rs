@@ -1,11 +1,6 @@
 use core::ffi::c_int;
 
-use cl::{
-    consts::{ATTN_NORM, CHAN_ITEM, CHAN_WEAPON, PITCH, PITCH_NORM},
-    engine::event::event_args_s,
-    prelude::*,
-    raw::SoundFlags,
-};
+use cl::{consts::PITCH, engine::event::event_args_s, prelude::*};
 use res::valve::sound;
 
 use crate::export::view_mut;
@@ -36,29 +31,17 @@ impl Events {
         let engine = engine();
         let ev = engine.event_api();
 
-        let sample = sound::weapons::ROCKETFIRE1;
-        ev.play_sound(
-            idx,
-            origin,
-            CHAN_WEAPON,
-            sample,
-            0.9,
-            ATTN_NORM,
-            SoundFlags::NONE,
-            PITCH_NORM,
-        );
+        ev.build_sound_at(origin)
+            .entity(idx)
+            .channel_weapon()
+            .volume(0.9)
+            .play(sound::weapons::ROCKETFIRE1);
 
-        let sample = sound::weapons::GLAUNCHER;
-        ev.play_sound(
-            idx,
-            origin,
-            CHAN_ITEM,
-            sample,
-            0.7,
-            ATTN_NORM,
-            SoundFlags::NONE,
-            PITCH_NORM,
-        );
+        ev.build_sound_at(origin)
+            .entity(idx)
+            .channel_item()
+            .volume(0.7)
+            .play(sound::weapons::GLAUNCHER);
 
         if is_local(idx) {
             ev.weapon_animation(Rpg::Fire2 as c_int, 1);

@@ -1,11 +1,6 @@
 use core::ffi::c_int;
 
-use cl::{
-    consts::{ATTN_NORM, CHAN_WEAPON, PITCH, PITCH_NORM},
-    engine::event::event_args_s,
-    prelude::*,
-    raw::SoundFlags,
-};
+use cl::{consts::PITCH, engine::event::event_args_s, prelude::*};
 use res::valve::sound;
 
 use crate::export::view_mut;
@@ -45,18 +40,12 @@ impl Events {
             0 => sound::weapons::_357_SHOT1,
             _ => sound::weapons::_357_SHOT2,
         };
-        let vol = engine.random_float(0.8, 0.9);
 
-        ev.play_sound(
-            idx,
-            origin,
-            CHAN_WEAPON,
-            sample,
-            vol,
-            ATTN_NORM,
-            SoundFlags::NONE,
-            PITCH_NORM,
-        );
+        ev.build_sound_at(origin)
+            .entity(idx)
+            .channel_weapon()
+            .volume(engine.random_float(0.8, 0.9))
+            .play(sample);
 
         let src = get_gun_position(args, origin);
         let aiming = av.forward;

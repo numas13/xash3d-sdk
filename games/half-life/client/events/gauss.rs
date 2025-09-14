@@ -1,13 +1,13 @@
 use core::ffi::c_int;
 
 use cl::{
-    consts::{ATTN_NORM, CHAN_WEAPON, PITCH, PM_NORMAL, SOLID_BSP, TE_SPRITETRAIL},
+    consts::{PITCH, PM_NORMAL, SOLID_BSP, TE_SPRITETRAIL},
     engine::{efx::BeamEntity, event::event_args_s},
     entity::TempEntityFlags,
     ffi::common::vec3_t,
     prelude::*,
-    raw::SoundFlags,
     render::{RenderFx, RenderMode},
+    sound::{Channel, SoundFlags},
 };
 use res::valve::{self, sound, sprites};
 
@@ -35,7 +35,7 @@ impl Events {
         let engine = engine();
         let ev = engine.event_api();
         ev.kill_events(idx, valve::events::GAUSSSPIN);
-        ev.stop_sound(idx, CHAN_WEAPON, sound::ambience::PULSEMACHINE);
+        ev.stop_sound(idx, Channel::Weapon, sound::ambience::PULSEMACHINE);
     }
 
     pub(super) fn fire_gauss(&mut self, args: &mut event_args_s) {
@@ -69,19 +69,12 @@ impl Events {
         }
 
         let mut damage = args.fparam1;
-        let sample = sound::weapons::GAUSS2;
-        let vol = 0.5 + damage * (1.0 / 400.0);
-        let pitch = 85 + engine.random_int(0, 0x1f);
-        ev.play_sound(
-            idx,
-            origin,
-            CHAN_WEAPON,
-            sample,
-            vol,
-            ATTN_NORM,
-            SoundFlags::NONE,
-            pitch,
-        );
+        ev.build_sound_at(origin)
+            .entity(idx)
+            .channel_weapon()
+            .volume(0.5 + damage * (1.0 / 400.0))
+            .pitch(85 + engine.random_int(0, 0x1f))
+            .play(sound::weapons::GAUSS2);
 
         // FIXME: what range is used for colors? 0..=1 or 0..=255?
         let mut color = if primary_fire {
@@ -303,27 +296,17 @@ impl Events {
     }
 
     pub(super) fn spin_gauss(&mut self, args: &mut event_args_s) {
-        let idx = args.entindex;
-        let origin = args.origin();
-        let sample = sound::ambience::PULSEMACHINE;
-        let vol = 1.0;
-        let flags = if args.bparam1 != 0 {
-            SoundFlags::CHANGE_PITCH
-        } else {
-            SoundFlags::NONE
-        };
-        let pitch = args.iparam1;
-        let engine = engine();
-        let ev = engine.event_api();
-        ev.play_sound(
-            idx,
-            origin,
-            CHAN_WEAPON,
-            sample,
-            vol,
-            ATTN_NORM,
-            flags,
-            pitch,
-        );
+        engine()
+            .event_api()
+            .build_sound_at(args.origin())
+            .entity(args.entindex)
+            .channel_weapon()
+            .flags(if args.bparam1 != 0 {
+                SoundFlags::CHANGE_PITCH
+            } else {
+                SoundFlags::NONE
+            })
+            .pitch(args.iparam1)
+            .play(sound::ambience::PULSEMACHINE);
     }
 }

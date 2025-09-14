@@ -7,10 +7,9 @@ use shared::{
         common::{pmtrace_s, vec3_t},
         player_move::physent_s,
     },
+    sound::{Attenuation, Channel, Pitch, SoundFlags},
     str::{AsCStrPtr, ToEngineStr},
 };
-
-use crate::raw::SoundFlags;
 
 pub use shared::ffi::common::event_args_s;
 
@@ -33,6 +32,86 @@ impl EventArgsExt for event_args_s {
 
     fn velocity(&self) -> vec3_t {
         self.velocity.into()
+    }
+}
+
+pub struct SoundBuilder<'a> {
+    ev: &'a EventApi,
+    ent: c_int,
+    origin: vec3_t,
+    channel: Channel,
+    volume: f32,
+    attenuation: Attenuation,
+    flags: SoundFlags,
+    pitch: Pitch,
+}
+
+impl<'a> SoundBuilder<'a> {
+    pub fn entity(mut self, ent: c_int) -> Self {
+        self.ent = ent;
+        self
+    }
+
+    pub fn channel(mut self, channel: Channel) -> Self {
+        self.channel = channel;
+        self
+    }
+
+    pub fn channel_weapon(mut self) -> Self {
+        self.channel = Channel::Weapon;
+        self
+    }
+
+    pub fn channel_item(mut self) -> Self {
+        self.channel = Channel::Item;
+        self
+    }
+
+    pub fn channel_body(mut self) -> Self {
+        self.channel = Channel::Body;
+        self
+    }
+
+    pub fn channel_static(mut self) -> Self {
+        self.channel = Channel::Static;
+        self
+    }
+
+    pub fn volume(mut self, volume: f32) -> Self {
+        self.volume = volume;
+        self
+    }
+
+    pub fn attenuation(mut self, attn: impl Into<Attenuation>) -> Self {
+        self.attenuation = attn.into();
+        self
+    }
+
+    pub fn flags(mut self, flags: SoundFlags) -> Self {
+        self.flags = flags;
+        self
+    }
+
+    pub fn change_pitch(self) -> Self {
+        self.flags(SoundFlags::CHANGE_PITCH)
+    }
+
+    pub fn pitch(mut self, pitch: impl Into<Pitch>) -> Self {
+        self.pitch = pitch.into();
+        self
+    }
+
+    pub fn play(self, sample: impl ToEngineStr) {
+        self.ev.play_sound(
+            self.ent,
+            self.origin,
+            self.channel,
+            sample,
+            self.volume,
+            self.attenuation,
+            self.flags,
+            self.pitch,
+        );
     }
 }
 
@@ -75,17 +154,40 @@ impl EventApi {
         self.raw().version
     }
 
+    /// Returns a sound builder at given origin.
+    ///
+    /// The defaults are:
+    ///
+    /// * entity index is -1 (none).
+    /// * channel is [Channel::Auto].
+    /// * volume is 1.0 (100%).
+    /// * attenuation is [Attenuation::NORM].
+    /// * flags are cleared.
+    /// * pitch is [Pitch::NORM].
+    pub fn build_sound_at(&self, origin: vec3_t) -> SoundBuilder<'_> {
+        SoundBuilder {
+            ev: self,
+            ent: -1,
+            origin,
+            channel: Channel::Auto,
+            volume: 1.0,
+            attenuation: Attenuation::NORM,
+            flags: SoundFlags::NONE,
+            pitch: Pitch::NORM,
+        }
+    }
+
     #[allow(clippy::too_many_arguments)]
     pub fn play_sound(
         &self,
         ent: c_int,
         mut origin: vec3_t,
-        channel: c_int,
+        channel: Channel,
         sample: impl ToEngineStr,
         volume: f32,
-        attenuation: f32,
+        attenuation: impl Into<Attenuation>,
         flags: SoundFlags,
-        pitch: c_int,
+        pitch: impl Into<Pitch>,
     ) {
         let sample = sample.to_engine_str();
         unsafe {
@@ -93,19 +195,19 @@ impl EventApi {
             unwrap!(self, EV_PlaySound)(
                 ent,
                 origin.as_mut_ptr(),
-                channel,
+                channel.into(),
                 sample.as_ptr(),
                 volume,
-                attenuation,
+                attenuation.into().into(),
                 flags.bits(),
-                pitch,
+                pitch.into().into(),
             )
         }
     }
 
-    pub fn stop_sound(&self, ent: c_int, channel: c_int, sample: impl ToEngineStr) {
+    pub fn stop_sound(&self, ent: c_int, channel: Channel, sample: impl ToEngineStr) {
         let sample = sample.to_engine_str();
-        unsafe { unwrap!(self, EV_StopSound)(ent, channel, sample.as_ptr()) }
+        unsafe { unwrap!(self, EV_StopSound)(ent, channel.into(), sample.as_ptr()) }
     }
 
     pub fn find_model_index(&self, modelname: impl ToEngineStr) -> c_int {

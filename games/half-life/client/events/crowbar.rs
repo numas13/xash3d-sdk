@@ -1,11 +1,6 @@
 use core::ffi::c_int;
 
-use cl::{
-    consts::{ATTN_NORM, CHAN_WEAPON, PITCH_NORM},
-    engine::event::event_args_s,
-    prelude::*,
-    raw::SoundFlags,
-};
+use cl::{engine::event::event_args_s, prelude::*};
 use res::valve::sound;
 
 use super::{is_local, Events};
@@ -28,21 +23,12 @@ enum Crowbar {
 impl Events {
     pub(super) fn crowbar(&mut self, args: &mut event_args_s) {
         let idx = args.entindex;
-        let origin = args.origin();
         let engine = engine();
         let ev = engine.event_api();
-
-        let sample = sound::weapons::CBAR_MISS1;
-        ev.play_sound(
-            idx,
-            origin,
-            CHAN_WEAPON,
-            sample,
-            1.0,
-            ATTN_NORM,
-            SoundFlags::NONE,
-            PITCH_NORM,
-        );
+        ev.build_sound_at(args.origin())
+            .entity(idx)
+            .channel_weapon()
+            .play(sound::weapons::CBAR_MISS1);
 
         if is_local(idx) {
             self.swing = self.swing.wrapping_add(1);

@@ -1,10 +1,9 @@
 use core::ffi::c_int;
 
 use cl::{
-    consts::{ATTN_NORM, CHAN_WEAPON, PITCH, TE_BOUNCE_SHELL, YAW},
+    consts::{PITCH, TE_BOUNCE_SHELL, YAW},
     engine::event::event_args_s,
     prelude::*,
-    raw::SoundFlags,
 };
 use res::valve::{models, sound};
 
@@ -56,18 +55,11 @@ impl Events {
             0 => sound::weapons::HKS1,
             _ => sound::weapons::HKS2,
         };
-        let vol = 1.0;
-        let pitch = 94 + engine.random_int(0, 0xf);
-        ev.play_sound(
-            idx,
-            origin,
-            CHAN_WEAPON,
-            sample,
-            vol,
-            ATTN_NORM,
-            SoundFlags::NONE,
-            pitch,
-        );
+        ev.build_sound_at(origin)
+            .entity(idx)
+            .channel_weapon()
+            .pitch(94 + engine.random_int(0, 0xf))
+            .play(sample);
 
         let src = get_gun_position(args, origin);
         let aiming = av.forward;
@@ -92,16 +84,10 @@ impl Events {
             0 => sound::weapons::GLAUNCHER,
             _ => sound::weapons::GLAUNCHER2,
         };
-        let pitch = 94 + engine.random_int(0, 0xf);
-        ev.play_sound(
-            idx,
-            origin,
-            CHAN_WEAPON,
-            sample,
-            1.0,
-            ATTN_NORM,
-            SoundFlags::NONE,
-            pitch,
-        );
+        ev.build_sound_at(origin)
+            .entity(idx)
+            .channel_weapon()
+            .pitch(94 + engine.random_int(0, 0xf))
+            .play(sample);
     }
 }

@@ -1,11 +1,6 @@
 use core::ffi::{c_int, CStr};
 
-use cl::{
-    consts::{ATTN_NORM, CHAN_STATIC, CHAN_WEAPON},
-    engine::event::event_args_s,
-    prelude::*,
-    raw::SoundFlags,
-};
+use cl::{engine::event::event_args_s, prelude::*, sound::Channel};
 use res::valve::sound;
 
 use super::{is_local, Events};
@@ -46,52 +41,34 @@ impl Events {
 
         if startup {
             if fire_mode == FIRE_WIDE {
-                ev.play_sound(
-                    idx,
-                    origin,
-                    CHAN_WEAPON,
-                    EGON_SOUND_STARTUP,
-                    0.98,
-                    ATTN_NORM,
-                    SoundFlags::NONE,
-                    125,
-                );
+                ev.build_sound_at(origin)
+                    .entity(idx)
+                    .channel_weapon()
+                    .volume(0.98)
+                    .pitch(125)
+                    .play(EGON_SOUND_STARTUP);
             } else {
-                ev.play_sound(
-                    idx,
-                    origin,
-                    CHAN_WEAPON,
-                    EGON_SOUND_STARTUP,
-                    0.9,
-                    ATTN_NORM,
-                    SoundFlags::NONE,
-                    100,
-                );
+                ev.build_sound_at(origin)
+                    .entity(idx)
+                    .channel_weapon()
+                    .volume(0.9)
+                    .play(EGON_SOUND_STARTUP);
             }
         } else {
-            //
+            // silence clippy
             if fire_mode == FIRE_WIDE {
-                ev.play_sound(
-                    idx,
-                    origin,
-                    CHAN_STATIC,
-                    EGON_SOUND_RUN,
-                    0.98,
-                    ATTN_NORM,
-                    SoundFlags::NONE,
-                    125,
-                );
+                ev.build_sound_at(origin)
+                    .entity(idx)
+                    .channel_static()
+                    .volume(0.98)
+                    .pitch(125)
+                    .play(EGON_SOUND_RUN);
             } else {
-                ev.play_sound(
-                    idx,
-                    origin,
-                    CHAN_STATIC,
-                    EGON_SOUND_RUN,
-                    0.9,
-                    ATTN_NORM,
-                    SoundFlags::NONE,
-                    100,
-                );
+                ev.build_sound_at(origin)
+                    .entity(idx)
+                    .channel_static()
+                    .volume(0.9)
+                    .play(EGON_SOUND_RUN);
             }
         }
 
@@ -113,19 +90,14 @@ impl Events {
         let idx = args.entindex;
         let origin = args.origin();
 
-        ev.stop_sound(idx, CHAN_STATIC, EGON_SOUND_RUN);
+        ev.stop_sound(idx, Channel::Static, EGON_SOUND_RUN);
 
         if args.iparam1 != 0 {
-            ev.play_sound(
-                idx,
-                origin,
-                CHAN_WEAPON,
-                EGON_SOUND_OFF,
-                0.98,
-                ATTN_NORM,
-                SoundFlags::NONE,
-                100,
-            );
+            ev.build_sound_at(origin)
+                .entity(idx)
+                .channel_weapon()
+                .volume(0.98)
+                .play(EGON_SOUND_OFF);
         }
     }
 }

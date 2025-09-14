@@ -19,7 +19,7 @@ use shared::{
         player_move::{physent_s, playermove_s},
     },
     model::ModelType,
-    raw::SoundFlags,
+    sound::{Attenuation, Channel, Pitch, SoundFlags},
     str::{AsCStrPtr, ToEngineStr},
 };
 
@@ -88,12 +88,12 @@ pub trait PlayerMoveExt {
 
     fn play_sound(
         &self,
-        channel: c_int,
+        channel: Channel,
         sample: &CStr,
         volume: f32,
-        attenuation: f32,
+        attenuation: Attenuation,
         flags: SoundFlags,
-        pitch: c_int,
+        pitch: Pitch,
     );
 
     fn trace_texture(&self, ground: bool, start: vec3_t, end: vec3_t) -> Option<&'static CStr>;
@@ -235,21 +235,21 @@ impl PlayerMoveExt for playermove_s {
 
     fn play_sound(
         &self,
-        channel: c_int,
+        channel: Channel,
         sample: &CStr,
         volume: f32,
-        attenuation: f32,
+        attenuation: Attenuation,
         flags: SoundFlags,
-        pitch: c_int,
+        pitch: Pitch,
     ) {
         unsafe {
             pm_unwrap!(self, PM_PlaySound)(
-                channel,
+                channel.into(),
                 sample.as_ptr(),
                 volume,
-                attenuation,
+                attenuation.into(),
                 flags.bits(),
-                pitch,
+                pitch.into(),
             );
         }
     }

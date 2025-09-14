@@ -1,11 +1,6 @@
 use core::ffi::c_int;
 
-use cl::{
-    consts::{ATTN_NORM, CHAN_STATIC},
-    engine::event::event_args_s,
-    prelude::*,
-    raw::SoundFlags,
-};
+use cl::{engine::event::event_args_s, prelude::*, sound::Channel};
 use res::valve::sound;
 
 use super::Events;
@@ -16,9 +11,7 @@ impl Events {
         let origin = args.origin();
         let us_params = args.iparam1 as u16;
         let stop = args.bparam1 != 0;
-        let volume = (us_params & 0x3f) as f32 / 40.0;
         let noise = ((us_params >> 12) & 0x7) as c_int;
-        let pitch = (10.0 * ((us_params >> 6) & 0x3f) as f32) as c_int;
 
         let sample = match noise {
             1 => sound::plats::TTRAIN1,
@@ -34,18 +27,15 @@ impl Events {
         let ev = engine.event_api();
 
         if stop {
-            ev.stop_sound(idx, CHAN_STATIC, sample);
+            ev.stop_sound(idx, Channel::Static, sample);
         } else {
-            ev.play_sound(
-                idx,
-                origin,
-                CHAN_STATIC,
-                sample,
-                volume,
-                ATTN_NORM,
-                SoundFlags::CHANGE_PITCH,
-                pitch,
-            );
+            ev.build_sound_at(origin)
+                .entity(idx)
+                .channel_static()
+                .volume((us_params & 0x3f) as f32 / 40.0)
+                .change_pitch()
+                .pitch((10.0 * ((us_params >> 6) & 0x3f) as f32) as c_int)
+                .play(sample);
         }
     }
 }

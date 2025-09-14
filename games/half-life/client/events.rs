@@ -15,9 +15,7 @@ mod tripmine;
 use core::ffi::{c_int, CStr};
 
 use cl::{
-    consts::{
-        ATTN_NORM, CHAN_STATIC, EFLAG_FLESH_SOUND, MAX_PLAYERS, PITCH_NORM, PM_NORMAL, SOLID_BSP,
-    },
+    consts::{EFLAG_FLESH_SOUND, MAX_PLAYERS, PM_NORMAL, SOLID_BSP},
     engine::event::event_args_s,
     entity::{Effects, MoveType},
     ffi::{
@@ -27,8 +25,8 @@ use cl::{
     macros::hook_event,
     math::AngleVectorsAll,
     prelude::*,
-    raw::SoundFlags,
     render::RenderMode,
+    sound::Attenuation,
 };
 use csz::CStrArray;
 use res::valve::{self, sound};
@@ -203,7 +201,7 @@ fn play_texture_sound(
     let fvol;
     let fvolbar;
     let samples: &[&CStr];
-    let mut fattn = ATTN_NORM;
+    let mut fattn = Attenuation::NORM;
 
     match ch_texture_type {
         pm::CHAR_TEX_METAL => {
@@ -277,7 +275,7 @@ fn play_texture_sound(
             fvol = 1.0;
             fvolbar = 0.2;
             samples = &[sound::weapons::BULLET_HIT1, sound::weapons::BULLET_HIT2];
-            fattn = 1.0;
+            fattn = Attenuation::from(1.0);
         }
         _ => {
             fvol = 0.9;
@@ -287,17 +285,13 @@ fn play_texture_sound(
     }
 
     let sample = samples[engine.random_int(0, samples.len() as c_int - 1) as usize];
-    let pitch = 96 + engine.random_int(0, 0xf);
-    ev.play_sound(
-        0,
-        tr.endpos,
-        CHAN_STATIC,
-        sample,
-        fvol,
-        fattn,
-        SoundFlags::NONE,
-        pitch,
-    );
+    ev.build_sound_at(tr.endpos)
+        .entity(0)
+        .channel_static()
+        .volume(fvol)
+        .attenuation(fattn)
+        .pitch(96 + engine.random_int(0, 0xf))
+        .play(sample);
 
     fvolbar
 }
@@ -337,17 +331,9 @@ fn gunshot_decal_trace(tr: &pmtrace_s, decal_name: Option<&CStr>) {
             sound::weapons::RIC4,
             sound::weapons::RIC5,
         ];
-        let sample = samples[(rand % 5) as usize];
-        ev.play_sound(
-            -1,
-            tr.endpos,
-            0,
-            sample,
-            1.0,
-            ATTN_NORM,
-            SoundFlags::NONE,
-            PITCH_NORM,
-        );
+        ev.build_sound_at(tr.endpos)
+            .entity(-1)
+            .play(samples[(rand % 5) as usize]);
     }
 
     let Some(decal_name) = decal_name else { return };

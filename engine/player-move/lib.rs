@@ -21,11 +21,10 @@ use csz::{CStrArray, CStrThin};
 use shared::{
     cell::SyncOnceCell,
     consts::{
-        ATTN_NORM, CHAN_BODY, CHAN_VOICE, CONTENTS_CURRENT_0, CONTENTS_CURRENT_DOWN,
-        CONTENTS_EMPTY, CONTENTS_LADDER, CONTENTS_LAVA, CONTENTS_SLIME, CONTENTS_SOLID,
-        CONTENTS_TRANSLUCENT, CONTENTS_WATER, DEAD_DISCARDBODY, IN_ATTACK, IN_BACK, IN_DUCK,
-        IN_FORWARD, IN_JUMP, IN_MOVELEFT, IN_MOVERIGHT, IN_USE, MAX_CLIP_PLANES, MAX_PHYSENTS,
-        PITCH, PITCH_NORM, PM_NORMAL, ROLL, YAW,
+        CONTENTS_CURRENT_0, CONTENTS_CURRENT_DOWN, CONTENTS_EMPTY, CONTENTS_LADDER, CONTENTS_LAVA,
+        CONTENTS_SLIME, CONTENTS_SOLID, CONTENTS_TRANSLUCENT, CONTENTS_WATER, DEAD_DISCARDBODY,
+        IN_ATTACK, IN_BACK, IN_DUCK, IN_FORWARD, IN_JUMP, IN_MOVELEFT, IN_MOVERIGHT, IN_USE,
+        MAX_CLIP_PLANES, MAX_PHYSENTS, PITCH, PM_NORMAL, ROLL, YAW,
     },
     entity::{EdictFlags, MoveType},
     ffi::{
@@ -34,7 +33,8 @@ use shared::{
     },
     math::{self, fabsf, fmaxf, fminf, pow2, sqrtf, ToAngleVectors},
     model::ModelType,
-    raw::{SoundFlags, UserCmdExt},
+    raw::UserCmdExt,
+    sound::{Attenuation, Channel, Pitch, SoundFlags},
 };
 
 use crate::raw::PlayerMoveExt;
@@ -451,8 +451,14 @@ impl<'a> PlayerMove<'a> {
                 // nop
             } else if self.raw.flFallVelocity > PLAYER_MAX_SAFE_FALL_SPEED {
                 let s = c"player/pl_fallpain3.wav";
-                self.raw
-                    .play_sound(CHAN_VOICE, s, 1.0, ATTN_NORM, SoundFlags::NONE, PITCH_NORM);
+                self.raw.play_sound(
+                    Channel::Voice,
+                    s,
+                    1.0,
+                    Attenuation::NORM,
+                    SoundFlags::NONE,
+                    Pitch::NORM,
+                );
                 vol = 1.0;
             } else if self.raw.flFallVelocity > PLAYER_MAX_SAFE_FALL_SPEED / 2.0 {
                 let tfc = self
@@ -462,12 +468,12 @@ impl<'a> PlayerMove<'a> {
                 if tfc {
                     let s = c"player/pl_fallpain3.wav";
                     self.raw.play_sound(
-                        CHAN_VOICE,
+                        Channel::Voice,
                         s,
                         1.0,
-                        ATTN_NORM,
+                        Attenuation::NORM,
                         SoundFlags::NONE,
-                        PITCH_NORM,
+                        Pitch::NORM,
                     );
                 }
                 vol = 0.85;
@@ -850,12 +856,12 @@ impl<'a> PlayerMove<'a> {
 
         let play = |i, samples: &[&CStr]| {
             self.raw.play_sound(
-                CHAN_BODY,
+                Channel::Body,
                 samples[i as usize],
                 vol,
-                ATTN_NORM,
+                Attenuation::NORM,
                 SoundFlags::NONE,
-                PITCH_NORM,
+                Pitch::NORM,
             );
         };
         let rand = self.raw.random_int(0, 1) + self.raw.iStepLeft * 2;
@@ -973,8 +979,14 @@ impl<'a> PlayerMove<'a> {
                 c"player/pl_wade4.wav",
             ];
             let s = samples[self.raw.random_int(0, 3) as usize];
-            self.raw
-                .play_sound(CHAN_BODY, s, 1.0, ATTN_NORM, SoundFlags::NONE, PITCH_NORM);
+            self.raw.play_sound(
+                Channel::Body,
+                s,
+                1.0,
+                Attenuation::NORM,
+                SoundFlags::NONE,
+                Pitch::NORM,
+            );
         }
     }
 
@@ -1507,12 +1519,12 @@ impl<'a> PlayerMove<'a> {
                 ];
                 let sample = samples[self.raw.random_int(0, 3) as usize];
                 self.raw.play_sound(
-                    CHAN_BODY,
+                    Channel::Body,
                     sample,
                     1.0,
-                    ATTN_NORM,
+                    Attenuation::NORM,
                     SoundFlags::NONE,
-                    PITCH_NORM,
+                    Pitch::NORM,
                 );
             }
 
@@ -1534,12 +1546,12 @@ impl<'a> PlayerMove<'a> {
 
         if tfc {
             self.raw.play_sound(
-                CHAN_BODY,
+                Channel::Body,
                 c"player/plyrjmp8.wav",
                 0.5,
-                ATTN_NORM,
+                Attenuation::NORM,
                 SoundFlags::NONE,
-                PITCH_NORM,
+                Pitch::NORM,
             );
         } else {
             self.play_step_sound(map_texture_type_step_type(self.raw.chtexturetype), 1.0);

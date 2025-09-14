@@ -1,11 +1,6 @@
 use core::ffi::c_int;
 
-use cl::{
-    consts::{ATTN_NORM, CHAN_WEAPON, PITCH},
-    engine::event::event_args_s,
-    prelude::*,
-    raw::SoundFlags,
-};
+use cl::{consts::PITCH, engine::event::event_args_s, prelude::*};
 use res::valve::sound;
 
 use crate::export::view_mut;
@@ -43,15 +38,9 @@ impl Events {
             1 => sound::agrunt::AG_FIRE2,
             _ => sound::agrunt::AG_FIRE3,
         };
-        ev.play_sound(
-            idx,
-            origin,
-            CHAN_WEAPON,
-            sample,
-            1.0,
-            ATTN_NORM,
-            SoundFlags::NONE,
-            100,
-        );
+        ev.build_sound_at(origin)
+            .entity(idx)
+            .channel_weapon()
+            .play(sample);
     }
 }
