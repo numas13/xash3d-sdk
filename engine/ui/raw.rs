@@ -61,10 +61,6 @@ impl GameInfo2Ext for gameinfo2_s {
     }
 
     fn gamemode(&self) -> GameType {
-        match self.gamemode {
-            1 => GameType::SingleplayerOnly,
-            2 => GameType::MultiplayerOnly,
-            _ => GameType::Normal,
-        }
+        GameType::from_raw(self.gamemode).unwrap_or_default()
     }
 }

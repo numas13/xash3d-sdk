@@ -192,9 +192,10 @@ impl AsMut<ref_viewpass_s> for ViewPass {
 const RENDER_SCREEN_FADE_MODULATE: c_uint = ffi::render::kRenderScreenFadeModulate as c_uint;
 
 define_enum_for_primitive! {
-    #[derive(Copy, Clone, Debug, PartialEq, Eq)]
+    #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
     pub enum RenderMode: c_int as c_uint {
         /// src
+        #[default]
         Normal(ffi::common::kRenderNormal),
         /// c*a+dest*(1-a)
         TransColor(ffi::common::kRenderTransColor),
@@ -219,8 +220,9 @@ impl RenderMode {
 }
 
 define_enum_for_primitive! {
-    #[derive(Copy, Clone, PartialEq, Eq)]
+    #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
     pub enum RenderFx: c_int as c_uint {
+        #[default]
         None(ffi::common::kRenderFxNone),
         PulseSlow(ffi::common::kRenderFxPulseSlow),
         PulseFast(ffi::common::kRenderFxPulseFast),

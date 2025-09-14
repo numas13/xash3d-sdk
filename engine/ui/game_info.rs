@@ -27,8 +27,9 @@ bitflags! {
 }
 
 define_enum_for_primitive! {
-    #[derive(Copy, Clone, Debug, PartialEq, Eq)]
+    #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
     pub enum GameType: gametype_e {
+        #[default]
         Normal(ffi::menu::gametype_e_GAME_NORMAL),
         SingleplayerOnly(ffi::menu::gametype_e_GAME_SINGLEPLAYER_ONLY),
         MultiplayerOnly(ffi::menu::gametype_e_GAME_MULTIPLAYER_ONLY),
@@ -185,7 +186,7 @@ impl GameInfo2 {
     }
 
     pub fn game_mode(&self) -> GameType {
-        GameType::from_raw(self.raw.gamemode).unwrap_or(GameType::Normal)
+        GameType::from_raw(self.raw.gamemode).unwrap_or_default()
     }
 }
 
