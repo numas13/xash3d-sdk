@@ -622,30 +622,6 @@ impl WRectExt for wrect_s {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Eq)]
-#[repr(transparent)]
-pub struct BeamEntity(c_int);
-
-impl BeamEntity {
-    pub fn new(index: c_int, attachment: c_int) -> Self {
-        assert!(index & !0xfff == 0);
-        assert!(attachment & !0xf == 0);
-        Self(index | (attachment << 12))
-    }
-
-    pub fn bits(&self) -> c_int {
-        self.0
-    }
-
-    pub fn index(&self) -> c_int {
-        self.0 & 0xfff
-    }
-
-    pub fn attachment(&self) -> c_int {
-        (self.0 >> 12) & 0xf
-    }
-}
-
 pub trait ModelExt {
     fn model_type(&self) -> ModelType;
 }

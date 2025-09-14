@@ -2,11 +2,11 @@ use core::ffi::c_int;
 
 use cl::{
     consts::{ATTN_NORM, CHAN_WEAPON, PITCH, PM_NORMAL, SOLID_BSP, TE_SPRITETRAIL},
-    engine::event::event_args_s,
+    engine::{efx::BeamEntity, event::event_args_s},
     entity::TempEntityFlags,
     ffi::common::vec3_t,
     prelude::*,
-    raw::{BeamEntity, RenderFx, RenderMode, SoundFlags},
+    raw::{RenderFx, RenderMode, SoundFlags},
 };
 use res::valve::{self, sound, sprites};
 
@@ -122,7 +122,7 @@ impl Events {
                 }
 
                 efx.beam_ent_point(
-                    BeamEntity::new(idx, 1),
+                    BeamEntity::new(idx as u16, 1).unwrap(),
                     tr.endpos,
                     beam,
                     0.1,

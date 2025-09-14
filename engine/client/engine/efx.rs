@@ -10,8 +10,57 @@ use shared::{
 
 use crate::{
     entity::TempEntityFlags,
-    raw::{BeamEntity, RenderFx, RenderMode},
+    raw::{RenderFx, RenderMode},
 };
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[repr(transparent)]
+pub struct BeamEntity(u16);
+
+impl BeamEntity {
+    /// Creates `BeamEntity` if the given values are valid.
+    ///
+    /// The `index` is valid if it is less than `0x1000`. The `attachment` is valid if it is less
+    /// than `0x10`.
+    pub fn new(index: u16, attachment: u16) -> Option<BeamEntity> {
+        if index < 0x1000 && attachment < 0x10 {
+            Some(unsafe { Self::new_unchecked(index, attachment) })
+        } else {
+            None
+        }
+    }
+
+    /// Creates `BeamEntity` without checking whether arguments are valid. This results
+    /// in undefined behavior if arguments is not valid.
+    ///
+    /// # Safety
+    ///
+    /// * `index` must be less than `0x1000`.
+    /// * `attachment` must be less than `0x10`.
+    pub unsafe fn new_unchecked(index: u16, attachment: u16) -> BeamEntity {
+        Self((attachment << 12) | index)
+    }
+
+    /// Creates `BeamEntity` from a raw value.
+    pub fn from_bits(bits: u16) -> BeamEntity {
+        BeamEntity(bits)
+    }
+
+    /// Returns the underlying bits value.
+    pub fn bits(&self) -> u16 {
+        self.0
+    }
+
+    /// Returns the index.
+    pub fn index(&self) -> u16 {
+        self.0 & 0xfff
+    }
+
+    /// Returns the attachment.
+    pub fn attachment(&self) -> u16 {
+        self.0 >> 12
+    }
+}
 
 pub struct EfxApi {
     raw: *mut efx_api_s,
@@ -420,7 +469,7 @@ impl EfxApi {
         unsafe {
             // FIXME: ffi: why end is mutable?
             unwrap!(self, R_BeamEntPoint)(
-                start_ent.bits(),
+                start_ent.bits().into(),
                 end.as_mut_ptr(),
                 model_index,
                 life,
