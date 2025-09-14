@@ -6,12 +6,13 @@ use core::{
 use csz::CStrSlice;
 use sv::{
     consts::{EFLAG_SLERP, ENTITY_BEAM, ENTITY_NORMAL, SOLID_SLIDEBOX},
+    entity::MoveType,
     ffi::{
         common::{clientdata_s, entity_state_s, vec3_t},
         server::{edict_s, entvars_s},
     },
     prelude::*,
-    raw::{EdictFlags, Effects, MoveType},
+    raw::{EdictFlags, Effects},
     str::MapString,
 };
 

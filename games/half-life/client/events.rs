@@ -19,6 +19,7 @@ use cl::{
         ATTN_NORM, CHAN_STATIC, EFLAG_FLESH_SOUND, MAX_PLAYERS, PITCH_NORM, PM_NORMAL, SOLID_BSP,
     },
     engine::event::event_args_s,
+    entity::MoveType,
     ffi::{
         common::{pmtrace_s, vec3_t},
         player_move::physent_s,
@@ -26,7 +27,7 @@ use cl::{
     macros::hook_event,
     math::AngleVectorsAll,
     prelude::*,
-    raw::{Effects, MoveType, SoundFlags},
+    raw::{Effects, SoundFlags},
     render::RenderMode,
 };
 use csz::CStrArray;

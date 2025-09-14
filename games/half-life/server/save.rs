@@ -7,6 +7,7 @@ use core::{
 };
 
 use sv::{
+    entity::MoveType,
     export::RestoreResult,
     ffi::{
         common::vec3_t,
@@ -14,7 +15,7 @@ use sv::{
     },
     macros::define_entity_field,
     prelude::*,
-    raw::{FieldType, FtypeDesc, MoveType},
+    raw::{FieldType, FtypeDesc},
     str::MapString,
     utils::array_from_slice,
 };

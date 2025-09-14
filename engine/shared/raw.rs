@@ -397,57 +397,6 @@ bitflags! {
     }
 }
 
-/// entity_state_s.movetype
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
-#[repr(C)]
-pub enum MoveType {
-    None = 0,
-    // AngleNoClip = 1,
-    // AngleClip = 2,
-    Walk = 3,
-    Step = 4,
-    Fly = 5,
-    Toss = 6,
-    Push = 7,
-    NoClip = 8,
-    FlyMissile = 9,
-    Bounce = 10,
-    BounceMissile = 11,
-    Follow = 12,
-    PushStep = 13,
-    Compound = 14,
-}
-const_assert_size_eq!(MoveType, c_int);
-
-impl MoveType {
-    pub fn from_raw(raw: c_int) -> Option<Self> {
-        match raw {
-            0 => Some(Self::None),
-            // 1 => Some(Self::AngleNoClip),
-            // 2 => Some(Self::AngleClip),
-            3 => Some(Self::Walk),
-            4 => Some(Self::Step),
-            5 => Some(Self::Fly),
-            6 => Some(Self::Toss),
-            7 => Some(Self::Push),
-            8 => Some(Self::NoClip),
-            9 => Some(Self::FlyMissile),
-            10 => Some(Self::Bounce),
-            11 => Some(Self::BounceMissile),
-            12 => Some(Self::Follow),
-            13 => Some(Self::PushStep),
-            14 => Some(Self::Compound),
-            _ => None,
-        }
-    }
-}
-
-impl From<MoveType> for c_int {
-    fn from(value: MoveType) -> c_int {
-        value as c_int
-    }
-}
-
 pub trait WRectExt {
     fn default() -> Self;
 

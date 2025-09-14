@@ -27,12 +27,13 @@ use shared::{
         IN_FORWARD, IN_JUMP, IN_MOVELEFT, IN_MOVERIGHT, IN_USE, MAX_CLIP_PLANES, MAX_PHYSENTS,
         PITCH, PITCH_NORM, PM_NORMAL, ROLL, YAW,
     },
+    entity::MoveType,
     ffi::{
         common::{pmtrace_s, qboolean, vec3_t},
         player_move::{physent_s, playermove_s},
     },
     math::{self, fabsf, fmaxf, fminf, pow2, sqrtf, ToAngleVectors},
-    raw::{EdictFlags, ModelType, MoveType, SoundFlags, UserCmdExt},
+    raw::{EdictFlags, ModelType, SoundFlags, UserCmdExt},
 };
 
 use crate::raw::PlayerMoveExt;
@@ -1284,10 +1285,7 @@ impl<'a> PlayerMove<'a> {
 
         self.check_velocity();
 
-        if self.raw.movetype != MoveType::Fly as c_int
-            && self.raw.movetype != MoveType::BounceMissile as c_int
-            && self.raw.movetype != MoveType::FlyMissile as c_int
-        {
+        if MoveType::from_raw(self.raw.movetype).is_some_and(|t| !t.is_flying()) {
             self.add_gravity();
         }
 

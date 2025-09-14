@@ -13,11 +13,12 @@ use core::{
 
 use csz::{CStrSlice, CStrThin};
 use shared::{
+    entity::MoveType,
     ffi::{
         common::{hull_s, model_s, movevars_s, pmtrace_s, trace_t, vec3_t},
         player_move::{physent_s, playermove_s},
     },
-    raw::{EdictFlags, ModelType, MoveType, SoundFlags},
+    raw::{EdictFlags, ModelType, SoundFlags},
     str::{AsCStrPtr, ToEngineStr},
 };
 

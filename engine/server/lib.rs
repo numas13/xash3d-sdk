@@ -2,8 +2,10 @@
 
 #[macro_use]
 pub mod macros;
+
 pub mod consts;
 pub mod engine;
+pub mod entity;
 pub mod export;
 pub mod globals;
 pub mod instance;
