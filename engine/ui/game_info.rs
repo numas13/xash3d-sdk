@@ -158,10 +158,6 @@ impl GameInfo2 {
         unsafe { mem::transmute(raw) }
     }
 
-    pub fn as_raw(&self) -> &gameinfo2_s {
-        &self.raw
-    }
-
     pub fn info_version(&self) -> c_int {
         self.raw.gi_version
     }
@@ -190,6 +186,30 @@ impl GameInfo2 {
 
     pub fn game_mode(&self) -> GameType {
         GameType::from_raw(self.raw.gamemode).unwrap_or(GameType::Normal)
+    }
+}
+
+impl From<gameinfo2_s> for GameInfo2 {
+    fn from(raw: gameinfo2_s) -> Self {
+        Self { raw }
+    }
+}
+
+impl From<GameInfo2> for gameinfo2_s {
+    fn from(info: GameInfo2) -> Self {
+        info.raw
+    }
+}
+
+impl AsRef<gameinfo2_s> for GameInfo2 {
+    fn as_ref(&self) -> &gameinfo2_s {
+        &self.raw
+    }
+}
+
+impl AsMut<gameinfo2_s> for GameInfo2 {
+    fn as_mut(&mut self) -> &mut gameinfo2_s {
+        &mut self.raw
     }
 }
 
