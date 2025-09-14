@@ -1,7 +1,10 @@
 use shared::ffi::common::kbutton_t;
 
-use crate::{prelude::*, raw::KeyState};
+use crate::prelude::*;
 
+pub use shared::input::*;
+
+// TODO: add safe wrapper for kbutton_t and remove this trait
 pub trait KeyButtonExt {
     fn key_down(&mut self);
     fn key_up(&mut self);

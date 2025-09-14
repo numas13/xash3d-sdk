@@ -6,62 +6,14 @@ use core::{
 };
 
 use bitflags::bitflags;
-use xash3d_ffi::common::{entity_state_s, kbutton_t, model_s, usercmd_s, vec3_t, wrect_s};
+use xash3d_ffi::common::{entity_state_s, model_s, usercmd_s, vec3_t, wrect_s};
 
 use crate::render::{RenderFx, RenderMode};
 
-bitflags! {
-    /// kbutton_t.state
-    #[derive(Debug, Copy, Clone, Default, PartialEq, Eq)]
-    #[repr(transparent)]
-    pub struct KeyState: c_int {
-        const DOWN = 1 << 0;
-        const IMPULSE_DOWN = 1 << 1;
-        const ANY_DOWN = Self::DOWN.union(Self::IMPULSE_DOWN).bits();
-        const IMPULSE_UP = 1 << 2;
-    }
-}
+#[deprecated(note = "use input::KeyState instead")]
+pub type KeyState = crate::input::KeyState;
 
-pub trait KButtonExt {
-    fn new() -> Self;
-
-    fn state(&self) -> &KeyState;
-
-    fn state_mut(&mut self) -> &mut KeyState;
-
-    fn is_down(&self) -> bool {
-        self.state().contains(KeyState::DOWN)
-    }
-
-    fn is_up(&self) -> bool {
-        !self.is_down()
-    }
-
-    fn is_impulse_down(&self) -> bool {
-        self.state().intersects(KeyState::IMPULSE_DOWN)
-    }
-
-    fn is_impulse_up(&self) -> bool {
-        self.state().intersects(KeyState::IMPULSE_UP)
-    }
-}
-
-impl KButtonExt for kbutton_t {
-    fn new() -> Self {
-        kbutton_t {
-            down: [0; 2],
-            state: 0,
-        }
-    }
-
-    fn state(&self) -> &KeyState {
-        unsafe { mem::transmute(&self.state) }
-    }
-
-    fn state_mut(&mut self) -> &mut KeyState {
-        unsafe { mem::transmute(&mut self.state) }
-    }
-}
+pub use crate::input::KButtonExt;
 
 bitflags! {
     #[derive(Copy, Clone, PartialEq, Eq)]

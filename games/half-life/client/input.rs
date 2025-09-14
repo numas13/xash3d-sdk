@@ -11,11 +11,11 @@ use cl::{
         common::{kbutton_t, usercmd_s, vec3_t},
         keys,
     },
-    input::KeyButtonExt,
+    input::{KeyButtonExt, KeyState},
     macros::{hook_command, hook_command_key},
     math::{angle_mod, pow, sqrt, sqrtf},
     prelude::*,
-    raw::{KeyState, UserCmdExt},
+    raw::UserCmdExt,
 };
 use csz::{CStrBox, CStrThin};
 

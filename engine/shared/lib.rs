@@ -21,6 +21,7 @@ pub mod engine;
 pub mod engine_private;
 pub mod entity;
 pub mod export;
+pub mod input;
 pub mod logger;
 pub mod math;
 pub mod message;
