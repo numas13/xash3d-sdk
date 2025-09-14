@@ -6,7 +6,7 @@ use core::{
 };
 
 use bitflags::bitflags;
-use xash3d_ffi::common::{entity_state_s, model_s, usercmd_s, vec3_t, wrect_s};
+use xash3d_ffi::common::{entity_state_s, usercmd_s, vec3_t, wrect_s};
 
 use crate::render::{RenderFx, RenderMode};
 
@@ -82,29 +82,13 @@ bitflags! {
     }
 }
 
-/// model_s.type_
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
-#[repr(C)]
-pub enum ModelType {
-    Bad = -1,
-    Brush = 0,
-    Sprite = 1,
-    Alias = 2,
-    Studio = 3,
-}
+#[deprecated(note = "use model::ModelType instead")]
+pub type ModelType = crate::model::ModelType;
 
-impl ModelType {
-    pub fn from_raw(raw: c_int) -> Option<Self> {
-        match raw {
-            -1 => Some(Self::Bad),
-            0 => Some(Self::Brush),
-            1 => Some(Self::Sprite),
-            2 => Some(Self::Alias),
-            3 => Some(Self::Studio),
-            _ => None,
-        }
-    }
-}
+#[deprecated(note = "use model::ModelFlags instead")]
+pub type ModelFlags = crate::model::ModelFlags;
+
+pub use crate::model::ModelExt;
 
 bitflags! {
     /// msurface_s.flags
@@ -120,29 +104,6 @@ bitflags! {
         const CONVEYOR          = 1 << 6; // scrolled texture (was SURF_DRAWBACKGROUND)
         const UNDERWATER        = 1 << 7; // caustics
         const TRANSPARENT       = 1 << 8; // it's a transparent texture (was SURF_DONTWARP)
-    }
-}
-
-bitflags! {
-    /// model_s.flags
-    #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
-    #[repr(transparent)]
-    pub struct ModelFlags: c_int {
-        const CONVEYOR          = 1 << 0;
-        const HAS_ORIGIN        = 1 << 1;
-        // Model has only point hull.
-        const LIQUID            = 1 << 2;
-        // Model has transparent surfaces.
-        const TRANSPARENT       = 1 << 3;
-        // Lightmaps stored as RGB.
-        const COLORED_LIGHTING  = 1 << 4;
-
-        // uses 32-bit types.
-        const QBSP2             = 1 << 28;
-        /// It's a world model.
-        const WORLD             = 1 << 29;
-        /// A client sprite.
-        const CLIENT            = 1 << 30;
     }
 }
 
@@ -372,16 +333,6 @@ impl WRectExt for wrect_s {
 
     fn height(&self) -> c_int {
         self.bottom - self.top
-    }
-}
-
-pub trait ModelExt {
-    fn model_type(&self) -> ModelType;
-}
-
-impl ModelExt for model_s {
-    fn model_type(&self) -> ModelType {
-        ModelType::from_raw(self.type_).unwrap()
     }
 }
 

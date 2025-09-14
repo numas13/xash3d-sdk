@@ -33,7 +33,8 @@ use shared::{
         player_move::{physent_s, playermove_s},
     },
     math::{self, fabsf, fmaxf, fminf, pow2, sqrtf, ToAngleVectors},
-    raw::{EdictFlags, ModelType, SoundFlags, UserCmdExt},
+    model::ModelType,
+    raw::{EdictFlags, SoundFlags, UserCmdExt},
 };
 
 use crate::raw::PlayerMoveExt;

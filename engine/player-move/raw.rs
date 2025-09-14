@@ -18,7 +18,8 @@ use shared::{
         common::{hull_s, model_s, movevars_s, pmtrace_s, trace_t, vec3_t},
         player_move::{physent_s, playermove_s},
     },
-    raw::{EdictFlags, ModelType, SoundFlags},
+    model::ModelType,
+    raw::{EdictFlags, SoundFlags},
     str::{AsCStrPtr, ToEngineStr},
 };
 
