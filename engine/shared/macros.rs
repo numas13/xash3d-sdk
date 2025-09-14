@@ -207,8 +207,9 @@ macro_rules! define_enum_for_primitive {
         }
     ) => {
         $(#[$enum_attr])*
+        #[repr(C)]
         $vis enum $name {
-            $($(#[$variant_attr])* $variant,)+
+            $($(#[$variant_attr])* $variant = $($value)+ as isize,)+
         }
 
         impl $name {

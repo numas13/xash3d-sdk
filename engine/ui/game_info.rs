@@ -28,7 +28,6 @@ bitflags! {
 
 define_enum_for_primitive! {
     #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-    #[repr(C)]
     pub enum GameType: gametype_e {
         Normal(ffi::menu::gametype_e_GAME_NORMAL),
         SingleplayerOnly(ffi::menu::gametype_e_GAME_SINGLEPLAYER_ONLY),
