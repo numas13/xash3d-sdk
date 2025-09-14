@@ -3,7 +3,7 @@ use core::{
     num::NonZeroU32,
 };
 
-use shared::{color::RGBA, macros::const_assert_size_eq, math::sqrtf, raw::TextureFlags};
+use shared::{color::RGBA, macros::const_assert_size_eq, math::sqrtf, render::TextureFlags};
 
 /// A special name for missing texture.
 pub const UNUSED_TEXTURE_NAME: &CStr = c"*unused*";

@@ -24,8 +24,8 @@ use shared::{
             REF_API_VERSION,
         },
     },
-    raw::{TextureFlags, MAX_LIGHTSTYLES, MAX_RENDER_DECALS},
-    render::ViewPass,
+    raw::{MAX_LIGHTSTYLES, MAX_RENDER_DECALS},
+    render::{TextureFlags, ViewPass},
     utils::{cstr_or_none, slice_from_raw_parts_or_empty},
 };
 

@@ -4,7 +4,10 @@ use core::{
 };
 
 use bitflags::bitflags;
-use xash3d_ffi::common::{ref_viewpass_s, vec3_t};
+use xash3d_ffi::{
+    api::render::texFlags_t,
+    common::{ref_viewpass_s, vec3_t},
+};
 
 use crate::{
     ffi,
@@ -251,5 +254,80 @@ define_enum_for_primitive! {
         /// Keep this sprite from getting very small (SPRITES only!)
         ClampMinScale(ffi::common::kRenderFxClampMinScale),
         LightMultiplier(ffi::common::kRenderFxLightMultiplier),
+    }
+}
+
+bitflags! {
+    #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
+    #[repr(transparent)]
+    pub struct TextureFlags: texFlags_t {
+        /// Just for tabulate source.
+        const COLORMAP = ffi::api::render::texFlags_t_TF_COLORMAP;
+        /// Disable texfilter.
+        const NEAREST = ffi::api::render::texFlags_t_TF_NEAREST;
+        /// Some images keep source.
+        const KEEP_SOURCE = ffi::api::render::texFlags_t_TF_KEEP_SOURCE;
+        /// Steam background completely ignore tga attribute 0x20.
+        const NOFLIP_TGA = ffi::api::render::texFlags_t_TF_NOFLIP_TGA;
+        /// Don't keep source as 8-bit expand to RGBA.
+        const EXPAND_SOURCE = ffi::api::render::texFlags_t_TF_EXPAND_SOURCE;
+
+        /// This is GL_TEXTURE_RECTANGLE.
+        const RECTANGLE = ffi::api::render::texFlags_t_TF_RECTANGLE;
+        /// It's cubemap texture.
+        const CUBEMAP = ffi::api::render::texFlags_t_TF_CUBEMAP;
+        /// Custom texture filter used.
+        const DEPTHMAP = ffi::api::render::texFlags_t_TF_DEPTHMAP;
+        /// Image has an quake1 palette.
+        const QUAKEPAL = ffi::api::render::texFlags_t_TF_QUAKEPAL;
+        /// Force image to grayscale.
+        const LUMINANCE = ffi::api::render::texFlags_t_TF_LUMINANCE;
+        /// This is a part of skybox.
+        const SKYSIDE = ffi::api::render::texFlags_t_TF_SKYSIDE;
+        /// Clamp texcoords to [0..1] range.
+        const CLAMP = ffi::api::render::texFlags_t_TF_CLAMP;
+        /// Don't build mips for this image.
+        const NOMIPMAP = ffi::api::render::texFlags_t_TF_NOMIPMAP;
+        /// Sets by GL_UploadTexture.
+        const HAS_LUMA = ffi::api::render::texFlags_t_TF_HAS_LUMA;
+        /// Create luma from quake texture (only q1 textures contain luma-pixels).
+        const MAKELUMA = ffi::api::render::texFlags_t_TF_MAKELUMA;
+        /// Is a normalmap.
+        const NORMALMAP = ffi::api::render::texFlags_t_TF_NORMALMAP;
+        /// Image has alpha (used only for GL_CreateTexture).
+        const HAS_ALPHA = ffi::api::render::texFlags_t_TF_HAS_ALPHA;
+        /// Force upload monochrome textures as RGB (detail textures).
+        const FORCE_COLOR = ffi::api::render::texFlags_t_TF_FORCE_COLOR;
+        /// Allow to update already loaded texture.
+        const UPDATE = ffi::api::render::texFlags_t_TF_UPDATE;
+        /// Zero clamp for projected textures.
+        const BORDER = ffi::api::render::texFlags_t_TF_BORDER;
+        /// This is GL_TEXTURE_3D.
+        const TEXTURE_3D = ffi::api::render::texFlags_t_TF_TEXTURE_3D;
+        /// Bit who indicate lightmap page or deluxemap page.
+        const ATLAS_PAGE = ffi::api::render::texFlags_t_TF_ATLAS_PAGE;
+        /// Special texture mode for A2C.
+        const ALPHACONTRAST = ffi::api::render::texFlags_t_TF_ALPHACONTRAST;
+
+        /// This is set for first time when called glTexImage, otherwise it will be call glTexSubImage.
+        const IMG_UPLOADED = ffi::api::render::texFlags_t_TF_IMG_UPLOADED;
+        /// Float textures.
+        const ARB_FLOAT = ffi::api::render::texFlags_t_TF_ARB_FLOAT;
+        /// Disable comparing for depth textures.
+        const NOCOMPARE = ffi::api::render::texFlags_t_TF_NOCOMPARE;
+        /// Keep image as 16-bit (not 24).
+        const ARB_16BIT = ffi::api::render::texFlags_t_TF_ARB_16BIT;
+        /// Multisampling texture.
+        const MULTISAMPLE = ffi::api::render::texFlags_t_TF_MULTISAMPLE;
+        /// Allows toggling nearest filtering for TF_NOMIPMAP textures.
+        const ALLOW_NEAREST = ffi::api::render::texFlags_t_TF_ALLOW_NEAREST;
+
+        const SKY = Self::SKYSIDE.union(Self::NOMIPMAP).union(Self::ALLOW_NEAREST).bits();
+
+        const FONT = Self::NOMIPMAP.union(Self::CLAMP).union(Self::ALLOW_NEAREST).bits();
+
+        const IMAGE = Self::NOMIPMAP.union(Self::CLAMP).bits();
+
+        const DECAL = Self::CLAMP.bits();
     }
 }

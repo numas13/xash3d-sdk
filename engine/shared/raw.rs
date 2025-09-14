@@ -1,9 +1,6 @@
 pub mod bsp;
 
-use core::{
-    ffi::{c_int, c_uint},
-    mem, str,
-};
+use core::{ffi::c_int, mem, str};
 
 use bitflags::bitflags;
 use xash3d_ffi::common::{usercmd_s, vec3_t, wrect_s};
@@ -137,81 +134,8 @@ pub enum SkyboxOrdering {
     Down = 5,
 }
 
-bitflags! {
-    #[derive(Copy, Clone, PartialEq, Eq, Debug, Default)]
-    #[repr(transparent)]
-    pub struct TextureFlags: c_uint {
-        /// Just for tabulate source.
-        const COLORMAP          = 0;
-        /// Disable texfilter.
-        const NEAREST           = 1 << 0;
-        /// Some images keep source.
-        const KEEP_SOURCE       = 1 << 1;
-        /// Steam background completely ignore tga attribute 0x20.
-        const NOFLIP_TGA        = 1 << 2;
-        /// Don't keep source as 8-bit expand to RGBA.
-        const EXPAND_SOURCE     = 1 << 3;
-
-        /// This is GL_TEXTURE_RECTANGLE.
-        const RECTANGLE         = 1 << 5;
-        /// It's cubemap texture.
-        const CUBEMAP           = 1 << 6;
-        /// Custom texture filter used.
-        const DEPTHMAP          = 1 << 7;
-        /// Image has an quake1 palette.
-        const QUAKEPAL          = 1 << 8;
-        /// Force image to grayscale.
-        const LUMINANCE         = 1 << 9;
-        /// This is a part of skybox.
-        const SKYSIDE           = 1 << 10;
-        /// Clamp texcoords to [0..1] range.
-        const CLAMP             = 1 << 11;
-        /// Don't build mips for this image.
-        const NOMIPMAP          = 1 << 12;
-        /// Sets by GL_UploadTexture.
-        const HAS_LUMA          = 1 << 13;
-        /// Create luma from quake texture (only q1 textures contain luma-pixels).
-        const MAKELUMA          = 1 << 14;
-        /// Is a normalmap.
-        const NORMALMAP         = 1 << 15;
-        /// Image has alpha (used only for GL_CreateTexture).
-        const HAS_ALPHA         = 1 << 16;
-        /// Force upload monochrome textures as RGB (detail textures).
-        const FORCE_COLOR       = 1 << 17;
-        /// Allow to update already loaded texture.
-        const UPDATE            = 1 << 18;
-        /// Zero clamp for projected textures.
-        const BORDER            = 1 << 19;
-        /// This is GL_TEXTURE_3D.
-        const TEXTURE_3D        = 1 << 20;
-        /// Bit who indicate lightmap page or deluxemap page.
-        const ATLAS_PAGE        = 1 << 21;
-        /// Special texture mode for A2C.
-        const ALPHACONTRAST     = 1 << 22;
-
-        /// This is set for first time when called glTexImage, otherwise it will be call glTexSubImage.
-        const IMG_UPLOADED      = 1 << 25;
-        /// Float textures.
-        const ARB_FLOAT         = 1 << 26;
-        /// Disable comparing for depth textures.
-        const NOCOMPARE         = 1 << 27;
-        /// Keep image as 16-bit (not 24).
-        const ARB_16BIT         = 1 << 28;
-        /// Multisampling texture.
-        const MULTISAMPLE       = 1 << 29;
-        /// Allows toggling nearest filtering for TF_NOMIPMAP textures.
-        const ALLOW_NEAREST     = 1 << 30;
-    }
-}
-
-impl TextureFlags {
-    pub const SKY: Self = Self::SKYSIDE
-        .union(Self::NOMIPMAP)
-        .union(Self::ALLOW_NEAREST);
-    pub const FONT: Self = Self::NOMIPMAP.union(Self::CLAMP).union(Self::ALLOW_NEAREST);
-    pub const IMAGE: Self = Self::NOMIPMAP.union(Self::CLAMP);
-    pub const DECAL: Self = Self::CLAMP;
-}
+#[deprecated(note = "use render::TextureFlags instead")]
+pub type TextureFlags = crate::render::TextureFlags;
 
 /// Max rendering decals per a level.
 pub const MAX_RENDER_DECALS: usize = 4096;
