@@ -18,6 +18,8 @@ use shared::{
             gameinfo2_s, ui_enginefuncs_s, ui_extendedfuncs_s, GAMEINFO, GAMEINFO_VERSION, HIMAGE,
         },
     },
+    macros::define_enum_for_primitive,
+    misc::{Rect, Size},
     render::ViewPass,
     str::{AsCStrPtr, ToEngineStr},
 };
@@ -26,7 +28,6 @@ use crate::{
     color::{RGB, RGBA},
     consts::{MAX_STRING, MAX_SYSPATH},
     cvar::{CVarFlags, CVarPtr},
-    engine_types::{ActiveMenu, Point, Size},
     file::{Cursor, File, FileList},
     game_info::GameInfo2,
     picture::PictureFlags,
@@ -45,6 +46,16 @@ pub(crate) mod prelude {
 }
 
 pub use self::prelude::*;
+
+define_enum_for_primitive! {
+    #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
+    pub enum ActiveMenu: c_int {
+        #[default]
+        Console(0),
+        Game(1),
+        Menu(2),
+    }
+}
 
 #[derive(Copy, Clone, PartialEq, Eq)]
 pub enum Protocol {
@@ -106,6 +117,9 @@ impl fmt::Display for Protocol {
     }
 }
 
+type PicDrawFn =
+    unsafe extern "C" fn(x: c_int, y: c_int, width: c_int, height: c_int, prc: *const wrect_s);
+
 #[derive(Default)]
 struct Borrows {
     keynum_to_str: BorrowRef,
@@ -158,17 +172,7 @@ impl UiEngine {
         &self.ext
     }
 
-    #[deprecated(note = "use pic_load_with_flags instead")]
     pub fn pic_load(
-        &self,
-        path: impl ToEngineStr,
-        buf: Option<&[u8]>,
-        flags: u32,
-    ) -> Option<HIMAGE> {
-        self.pic_load_with_flags(path, buf, PictureFlags::from_bits_retain(flags))
-    }
-
-    pub fn pic_load_with_flags(
         &self,
         path: impl ToEngineStr,
         buf: Option<&[u8]>,
@@ -191,12 +195,12 @@ impl UiEngine {
         }
     }
 
-    pub fn pic_width(&self, pic: HIMAGE) -> c_int {
-        unsafe { unwrap!(self, pfnPIC_Width)(pic) }
+    pub fn pic_width(&self, pic: HIMAGE) -> u32 {
+        unsafe { unwrap!(self, pfnPIC_Width)(pic) as u32 }
     }
 
-    pub fn pic_height(&self, pic: HIMAGE) -> c_int {
-        unsafe { unwrap!(self, pfnPIC_Height)(pic) }
+    pub fn pic_height(&self, pic: HIMAGE) -> u32 {
+        unsafe { unwrap!(self, pfnPIC_Height)(pic) as u32 }
     }
 
     pub fn pic_size(&self, pic: HIMAGE) -> Size {
@@ -210,56 +214,32 @@ impl UiEngine {
         }
     }
 
-    pub fn pic_draw<P, S>(&self, pos: P, size: S, rect: Option<&wrect_s>)
-    where
-        P: Into<Point>,
-        S: Into<Size>,
-    {
-        let (x, y) = pos.into().components();
-        let (w, h) = size.into().components();
-        let r = rect.map(|i| i as *const _).unwrap_or(ptr::null());
+    fn pic_draw_impl(&self, area: Rect, pic_area: Option<Rect>, func: PicDrawFn) {
         unsafe {
-            unwrap!(self, pfnPIC_Draw)(x, y, w, h, r);
+            func(
+                area.x,
+                area.y,
+                area.width as c_int,
+                area.height as c_int,
+                pic_area.map(Into::into).as_ref().map_or(ptr::null(), |i| i),
+            );
         }
     }
 
-    pub fn pic_draw_holes<P, S>(&self, pos: P, size: S, rect: Option<&wrect_s>)
-    where
-        P: Into<Point>,
-        S: Into<Size>,
-    {
-        let (x, y) = pos.into().components();
-        let (w, h) = size.into().components();
-        let p = rect.map(|i| i as *const _).unwrap_or(ptr::null());
-        unsafe {
-            unwrap!(self, pfnPIC_DrawHoles)(x, y, w, h, p);
-        }
+    pub fn pic_draw(&self, area: Rect, pic_area: Option<Rect>) {
+        self.pic_draw_impl(area, pic_area, unwrap!(self, pfnPIC_Draw));
     }
 
-    pub fn pic_draw_trans<P, S>(&self, pos: P, size: S, rect: Option<&wrect_s>)
-    where
-        P: Into<Point>,
-        S: Into<Size>,
-    {
-        let (x, y) = pos.into().components();
-        let (w, h) = size.into().components();
-        let p = rect.map(|i| i as *const _).unwrap_or(ptr::null());
-        unsafe {
-            unwrap!(self, pfnPIC_DrawTrans)(x, y, w, h, p);
-        }
+    pub fn pic_draw_holes(&self, area: Rect, pic_area: Option<Rect>) {
+        self.pic_draw_impl(area, pic_area, unwrap!(self, pfnPIC_DrawHoles));
     }
 
-    pub fn pic_draw_additive<P, S>(&self, pos: P, size: S, rect: Option<&wrect_s>)
-    where
-        P: Into<Point>,
-        S: Into<Size>,
-    {
-        let (x, y) = pos.into().components();
-        let (w, h) = size.into().components();
-        let p = rect.map(|i| i as *const _).unwrap_or(ptr::null());
-        unsafe {
-            unwrap!(self, pfnPIC_DrawAdditive)(x, y, w, h, p);
-        }
+    pub fn pic_draw_trans(&self, area: Rect, pic_area: Option<Rect>) {
+        self.pic_draw_impl(area, pic_area, unwrap!(self, pfnPIC_DrawTrans));
+    }
+
+    pub fn pic_draw_additive(&self, area: Rect, pic_area: Option<Rect>) {
+        self.pic_draw_impl(area, pic_area, unwrap!(self, pfnPIC_DrawAdditive));
     }
 
     pub fn pic_enable_scissor(&self, x: c_int, y: c_int, width: c_int, height: c_int) {
@@ -270,17 +250,19 @@ impl UiEngine {
         unsafe { unwrap!(self, pfnPIC_DisableScissor)() }
     }
 
-    pub fn fill_rgba<P, S, C>(&self, pos: P, size: S, color: C)
-    where
-        P: Into<Point>,
-        S: Into<Size>,
-        C: Into<RGBA>,
-    {
-        let (x, y) = pos.into().components();
-        let (w, h) = size.into().components();
+    pub fn fill_rgba(&self, color: impl Into<RGBA>, area: Rect) {
         let [r, g, b, a] = color.into().into();
         unsafe {
-            unwrap!(self, pfnFillRGBA)(x, y, w, h, r, g, b, a);
+            unwrap!(self, pfnFillRGBA)(
+                area.x,
+                area.y,
+                area.width as c_int,
+                area.height as c_int,
+                r,
+                g,
+                b,
+                a,
+            );
         }
     }
 

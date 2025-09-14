@@ -1,9 +1,11 @@
 use core::{ffi::c_int, time::Duration};
 
 use csz::CStrThin;
-use shared::{export::impl_unsync_global, ffi::menu::ui_globalvars_s};
-
-use crate::Size;
+use shared::{
+    export::impl_unsync_global,
+    ffi::menu::ui_globalvars_s,
+    misc::{Rect, Size},
+};
 
 pub struct UiGlobals {
     raw: *mut ui_globalvars_s,
@@ -40,16 +42,20 @@ impl UiGlobals {
         Duration::from_secs_f32(self.frame_time_f32())
     }
 
-    pub fn screen_width(&self) -> c_int {
-        unsafe { (*self.raw).scrWidth }
+    pub fn screen_width(&self) -> u32 {
+        unsafe { (*self.raw).scrWidth as u32 }
     }
 
-    pub fn screen_height(&self) -> c_int {
-        unsafe { (*self.raw).scrHeight }
+    pub fn screen_height(&self) -> u32 {
+        unsafe { (*self.raw).scrHeight as u32 }
     }
 
     pub fn screen_size(&self) -> Size {
         Size::new(self.screen_width(), self.screen_height())
+    }
+
+    pub fn screen_area(&self) -> Rect {
+        self.screen_size().into()
     }
 
     pub fn max_clients(&self) -> c_int {

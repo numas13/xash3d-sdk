@@ -1,12 +1,15 @@
-use core::{
-    ffi::{c_int, CStr},
-    fmt,
-};
+use core::fmt;
 
 use bitflags::bitflags;
-use shared::ffi::{self, menu::HIMAGE};
+use shared::{
+    ffi,
+    misc::{Rect, Size},
+    str::ToEngineStr,
+};
 
-use crate::{color::RGBA, engine_types::Size, prelude::*};
+use crate::{color::RGBA, prelude::*};
+
+pub use ffi::menu::HIMAGE;
 
 bitflags! {
     #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
@@ -38,60 +41,74 @@ impl fmt::Display for PictureError {
     }
 }
 
-// FIXME: use core::error::Error when MSRV >= 1.81
+// TODO: use core::error::Error when MSRV >= 1.81
 #[cfg(feature = "std")]
 impl std::error::Error for PictureError {}
 
-pub struct Picture<T: AsRef<CStr> = &'static CStr> {
+#[derive(Copy, Clone, Debug, Default)]
+pub struct Picture {
     raw: HIMAGE,
-    path: T,
 }
 
-impl<T: AsRef<CStr>> Picture<T> {
-    fn new(path: T, buf: Option<&[u8]>, flags: PictureFlags) -> Result<Self, PictureError> {
+impl Picture {
+    pub const NONE: Self = Self { raw: 0 };
+
+    pub const fn new(raw: HIMAGE) -> Self {
+        Self { raw }
+    }
+
+    fn load_impl(
+        path: impl ToEngineStr,
+        buf: Option<&[u8]>,
+        flags: PictureFlags,
+    ) -> Result<Self, PictureError> {
         engine()
-            .pic_load_with_flags(path.as_ref(), buf, flags)
+            .pic_load(path, buf, flags)
             .ok_or(PictureError::LoadError)
-            .map(|raw| Self { raw, path })
+            .map(|raw| Self { raw })
     }
 
-    pub fn raw(&self) -> HIMAGE {
-        self.raw
+    pub fn load(path: impl ToEngineStr) -> Result<Self, PictureError> {
+        Self::load_impl(path, None, PictureFlags::empty())
     }
 
-    pub fn path(&self) -> &T {
-        &self.path
+    pub fn load_with_flags(
+        path: impl ToEngineStr,
+        flags: PictureFlags,
+    ) -> Result<Self, PictureError> {
+        Self::load_impl(path, None, flags)
+    }
+
+    pub fn create(path: impl ToEngineStr, buf: &[u8]) -> Result<Self, PictureError> {
+        Self::create_with_flags(path, buf, PictureFlags::empty())
     }
 
     pub fn create_with_flags(
-        path: T,
+        path: impl ToEngineStr,
         buf: &[u8],
         flags: PictureFlags,
     ) -> Result<Self, PictureError> {
+        let path = path.to_engine_str();
         if path.as_ref().to_bytes().starts_with(b"#") {
-            Self::new(path, Some(buf), flags)
+            Self::load_impl(path.as_ref(), Some(buf), flags)
         } else {
             Err(PictureError::InvalidPathError)
         }
     }
 
-    pub fn create(path: T, buf: &[u8]) -> Result<Self, PictureError> {
-        Self::create_with_flags(path, buf, PictureFlags::empty())
-    }
-
-    pub fn load(path: T, flags: PictureFlags) -> Result<Self, PictureError> {
-        Self::new(path, None, flags)
-    }
-
-    pub fn as_raw(&self) -> c_int {
+    pub fn as_raw(&self) -> HIMAGE {
         self.raw
     }
 
-    pub fn width(&self) -> c_int {
+    pub fn is_none(&self) -> bool {
+        self.raw == 0
+    }
+
+    pub fn width(&self) -> u32 {
         engine().pic_width(self.raw)
     }
 
-    pub fn height(&self) -> c_int {
+    pub fn height(&self) -> u32 {
         engine().pic_height(self.raw)
     }
 
@@ -99,18 +116,27 @@ impl<T: AsRef<CStr>> Picture<T> {
         engine().pic_size(self.raw)
     }
 
-    pub fn set_with_color<C: Into<RGBA>>(&self, color: C) {
-        engine().pic_set(self.raw, color);
+    pub fn draw(&self, color: impl Into<RGBA>, area: Rect, pic_area: Option<Rect>) {
+        let engine = engine();
+        engine.pic_set(self.raw, color);
+        engine.pic_draw(area, pic_area);
     }
 
-    pub fn set(&self) {
-        self.set_with_color(RGBA::WHITE);
+    pub fn draw_holes(&self, color: impl Into<RGBA>, area: Rect, pic_area: Option<Rect>) {
+        let engine = engine();
+        engine.pic_set(self.raw, color);
+        engine.pic_draw_holes(area, pic_area);
+    }
+
+    pub fn draw_trans(&self, color: impl Into<RGBA>, area: Rect, pic_area: Option<Rect>) {
+        let engine = engine();
+        engine.pic_set(self.raw, color);
+        engine.pic_draw_trans(area, pic_area);
+    }
+
+    pub fn draw_additive(&self, color: impl Into<RGBA>, area: Rect, pic_area: Option<Rect>) {
+        let engine = engine();
+        engine.pic_set(self.raw, color);
+        engine.pic_draw_additive(area, pic_area);
     }
 }
-
-// FIXME: The engine uses one id for all pictures with same path.
-// impl<T: AsRef<CStr>> Drop for Picture<T> {
-//     fn drop(&mut self) {
-//         engine().pic_free(self.path.as_ref());
-//     }
-// }

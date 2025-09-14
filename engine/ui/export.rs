@@ -29,11 +29,12 @@ pub trait UiDll: UnsyncGlobal {
         }
         let engine = engine();
         let globals = globals();
-        engine.fill_rgba((0, 0), globals.screen_size(), RGBA::BLACK);
+        let area = globals.screen_area();
+        engine.fill_rgba(RGBA::BLACK, area);
         let msg = c"UiDll::redraw is not implemented";
         let (w, h) = engine.console_string_size(msg);
-        let x = (globals.screen_width() - w) / 2;
-        let y = (globals.screen_height() - h) / 2;
+        let x = (area.width as c_int - w) / 2;
+        let y = (area.height as c_int - h) / 2;
         engine.draw_console_string(x, y, msg);
     }
 

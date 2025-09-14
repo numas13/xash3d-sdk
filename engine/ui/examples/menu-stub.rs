@@ -3,9 +3,9 @@ use std::{cell::Cell, ffi::c_int};
 use xash3d_ui::{
     color::RGBA,
     consts::keys,
+    engine::ActiveMenu::{Console, Menu},
     export::{export_dll, impl_unsync_global, UiDll},
     prelude::*,
-    ActiveMenu::{Console, Menu},
 };
 
 #[derive(Default)]
@@ -42,11 +42,12 @@ impl UiDll for Instance {
         }
         let engine = engine();
         let globals = globals();
-        engine.fill_rgba((0, 0), globals.screen_size(), RGBA::BLACK);
+        let area = globals.screen_area();
+        engine.fill_rgba(RGBA::BLACK, area);
         let text = c"Press Q to exit";
         let (w, h) = engine.console_string_size(text);
-        let x = (globals.screen_width() - w) / 2;
-        let y = (globals.screen_height() - h) / 2;
+        let x = (area.width as c_int - w) / 2;
+        let y = (area.height as c_int - h) / 2;
         engine.draw_console_string(x, y, text);
     }
 }

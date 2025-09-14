@@ -26,6 +26,7 @@ pub mod input;
 pub mod logger;
 pub mod math;
 pub mod message;
+pub mod misc;
 pub mod model;
 pub mod parser;
 pub mod prelude;
