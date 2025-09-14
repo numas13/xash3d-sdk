@@ -11,7 +11,10 @@ use xash3d_ffi::{
     player_move::physent_s,
 };
 
-use crate::consts::MAX_MOVEENTS;
+use crate::{
+    consts::MAX_MOVEENTS,
+    render::{RenderFx, RenderMode},
+};
 
 bitflags! {
     /// kbutton_t.state
@@ -108,119 +111,6 @@ bitflags! {
         const FILTER_CLIENT     = 1 << 11;
         /// Passed playing position and the forced end.
         const RESTORE_POSITION  = 1 << 12;
-    }
-}
-
-/// entity_state_s.rendermode
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
-#[repr(i32)]
-pub enum RenderMode {
-    /// src
-    Normal,
-    /// c*a+dest*(1-a)
-    TransColor,
-    /// src*a+dest*(1-a)
-    TransTexture,
-    /// src*a+dest -- No Z buffer checks
-    Glow,
-    /// src*srca+dest*(1-srca)
-    TransAlpha,
-    /// src*a+dest
-    TransAdd,
-
-    /// Special rendermode for screenfade modulate.
-    ///
-    /// Probably will be expanded at some point.
-    ScreenFadeModulate = 0x1000,
-}
-const_assert_size_eq!(RenderMode, c_int);
-
-impl RenderMode {
-    pub fn from_raw(raw: c_int) -> Option<RenderMode> {
-        match raw {
-            0 => Some(Self::Normal),
-            1 => Some(Self::TransColor),
-            2 => Some(Self::TransTexture),
-            3 => Some(Self::Glow),
-            4 => Some(Self::TransAlpha),
-            5 => Some(Self::TransAdd),
-            0x1000 => Some(Self::ScreenFadeModulate),
-            _ => None,
-        }
-    }
-
-    pub const fn is_opaque(&self) -> bool {
-        matches!(self, Self::Normal)
-    }
-}
-
-/// entity_state_s.renderfx
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-#[repr(C)]
-pub enum RenderFx {
-    None = 0,
-    PulseSlow,
-    PulseFast,
-    PulseSlowWide,
-    PulseFastWide,
-    FadeSlow,
-    FadeFast,
-    SolidSlow,
-    SolidFast,
-    StrobeSlow,
-    StrobeFast,
-    StrobeFaster,
-    FlickerSlow,
-    FlickerFast,
-    NoDissipation,
-    /// Distort/scale/translate flicker
-    Distort,
-    /// kRenderFxDistort + distance fade
-    Hologram,
-    /// kRenderAmt is the player index
-    DeadPlayer,
-    /// Scale up really big!
-    Explode,
-    /// Glowing Shell
-    GlowShell,
-    /// Keep this sprite from getting very small (SPRITES only!)
-    ClampMinScale,
-    LightMultiplier,
-}
-const_assert_size_eq!(RenderFx, c_int);
-
-impl RenderFx {
-    #[deprecated]
-    pub fn from_u32(value: u32) -> Option<RenderFx> {
-        Self::from_raw(value as c_int)
-    }
-
-    pub fn from_raw(value: c_int) -> Option<RenderFx> {
-        Some(match value {
-            0 => Self::None,
-            1 => Self::PulseSlow,
-            2 => Self::PulseFast,
-            3 => Self::PulseSlowWide,
-            4 => Self::PulseFastWide,
-            5 => Self::FadeSlow,
-            6 => Self::FadeFast,
-            7 => Self::SolidSlow,
-            8 => Self::SolidFast,
-            9 => Self::StrobeSlow,
-            10 => Self::StrobeFast,
-            11 => Self::StrobeFaster,
-            12 => Self::FlickerSlow,
-            13 => Self::FlickerFast,
-            14 => Self::NoDissipation,
-            15 => Self::Distort,
-            16 => Self::Hologram,
-            17 => Self::DeadPlayer,
-            18 => Self::Explode,
-            19 => Self::GlowShell,
-            20 => Self::ClampMinScale,
-            21 => Self::LightMultiplier,
-            _ => return None,
-        })
     }
 }
 

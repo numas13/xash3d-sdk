@@ -15,7 +15,7 @@ pub mod raw;
 pub mod texture;
 pub mod utils;
 
-pub use shared::{cell, color, cvar, ffi, math, parser, str::ToEngineStr};
+pub use shared::{cell, color, cvar, ffi, math, parser, render, str::ToEngineStr};
 
 // TODO: remove me
 pub use crate::engine_types::*;

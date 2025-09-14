@@ -6,7 +6,8 @@ use cl::{
     entity::TempEntityFlags,
     ffi::common::vec3_t,
     prelude::*,
-    raw::{RenderFx, RenderMode, SoundFlags},
+    raw::SoundFlags,
+    render::{RenderFx, RenderMode},
 };
 use res::valve::{self, sound, sprites};
 

@@ -26,7 +26,8 @@ use cl::{
     macros::hook_event,
     math::AngleVectorsAll,
     prelude::*,
-    raw::{Effects, MoveType, RenderMode, SoundFlags},
+    raw::{Effects, MoveType, SoundFlags},
+    render::RenderMode,
 };
 use csz::CStrArray;
 use res::valve::{self, sound};

@@ -1,9 +1,16 @@
-use core::{ffi::c_int, mem};
+use core::{
+    ffi::{c_int, c_uint},
+    mem,
+};
 
 use bitflags::bitflags;
 use xash3d_ffi::common::{ref_viewpass_s, vec3_t};
 
-use crate::math::{atanf, tanf};
+use crate::{
+    ffi,
+    macros::define_enum_for_primitive,
+    math::{atanf, tanf},
+};
 
 bitflags! {
     /// ref_viewpass_s.flags
@@ -155,5 +162,68 @@ impl ViewPass {
     pub fn flags_mut(&mut self) -> &mut DrawFlags {
         const_assert_size_of_field_eq!(DrawFlags, ref_viewpass_s, flags);
         unsafe { mem::transmute(&mut self.raw.flags) }
+    }
+}
+
+const RENDER_SCREEN_FADE_MODULATE: c_uint = ffi::render::kRenderScreenFadeModulate as c_uint;
+
+define_enum_for_primitive! {
+    #[derive(Copy, Clone, Debug, PartialEq, Eq)]
+    pub enum RenderMode: c_int as c_uint {
+        /// src
+        Normal(ffi::common::kRenderNormal),
+        /// c*a+dest*(1-a)
+        TransColor(ffi::common::kRenderTransColor),
+        /// src*a+dest*(1-a)
+        TransTexture(ffi::common::kRenderTransTexture),
+        /// src*a+dest -- No Z buffer checks
+        Glow(ffi::common::kRenderGlow),
+        /// src*srca+dest*(1-srca)
+        TransAlpha(ffi::common::kRenderTransAlpha),
+        /// src*a+dest
+        TransAdd(ffi::common::kRenderTransAdd),
+
+        /// Special rendermode for screenfade modulate.
+        ScreenFadeModulate(RENDER_SCREEN_FADE_MODULATE),
+    }
+}
+
+impl RenderMode {
+    pub const fn is_opaque(&self) -> bool {
+        matches!(self, Self::Normal)
+    }
+}
+
+define_enum_for_primitive! {
+    #[derive(Copy, Clone, PartialEq, Eq)]
+    pub enum RenderFx: c_int as c_uint {
+        None(ffi::common::kRenderFxNone),
+        PulseSlow(ffi::common::kRenderFxPulseSlow),
+        PulseFast(ffi::common::kRenderFxPulseFast),
+        PulseSlowWide(ffi::common::kRenderFxPulseSlowWide),
+        PulseFastWide(ffi::common::kRenderFxPulseFastWide),
+        FadeSlow(ffi::common::kRenderFxFadeSlow),
+        FadeFast(ffi::common::kRenderFxFadeFast),
+        SolidSlow(ffi::common::kRenderFxSolidSlow),
+        SolidFast(ffi::common::kRenderFxSolidFast),
+        StrobeSlow(ffi::common::kRenderFxStrobeSlow),
+        StrobeFast(ffi::common::kRenderFxStrobeFast),
+        StrobeFaster(ffi::common::kRenderFxStrobeFaster),
+        FlickerSlow(ffi::common::kRenderFxFlickerSlow),
+        FlickerFast(ffi::common::kRenderFxFlickerFast),
+        NoDissipation(ffi::common::kRenderFxNoDissipation),
+        /// Distort/scale/translate flicker
+        Distort(ffi::common::kRenderFxDistort),
+        /// kRenderFxDistort + distance fade
+        Hologram(ffi::common::kRenderFxHologram),
+        /// kRenderAmt is the player index
+        DeadPlayer(ffi::common::kRenderFxDeadPlayer),
+        /// Scale up really big!
+        Explode(ffi::common::kRenderFxExplode),
+        /// Glowing Shell
+        GlowShell(ffi::common::kRenderFxGlowShell),
+        /// Keep this sprite from getting very small (SPRITES only!)
+        ClampMinScale(ffi::common::kRenderFxClampMinScale),
+        LightMultiplier(ffi::common::kRenderFxLightMultiplier),
     }
 }

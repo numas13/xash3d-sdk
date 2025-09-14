@@ -10,7 +10,7 @@ use cl::{
     },
     math::sinf,
     prelude::*,
-    raw::RenderMode,
+    render::RenderMode,
 };
 use csz::CStrThin;
 

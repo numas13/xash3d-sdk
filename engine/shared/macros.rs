@@ -202,7 +202,7 @@ pub use cstringify;
 macro_rules! define_enum_for_primitive {
     (
         $(#[$enum_attr:meta])*
-        $vis:vis enum $name:ident: $ty:ty {
+        $vis:vis enum $name:ident: $ty:ty $(as $cast:ty)? {
             $($(#[$variant_attr:meta])* $variant:ident($($value:tt)+)),+ $(,)?
         }
     ) => {
@@ -215,7 +215,7 @@ macro_rules! define_enum_for_primitive {
         impl $name {
             /// Creates an enum if the given raw value is valid.
             pub fn from_raw(value: $ty) -> Option<Self> {
-                match value {
+                match value $(as $cast)? {
                     $($($value)+ => Some(Self::$variant),)+
                     _ => None,
                 }

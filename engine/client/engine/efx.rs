@@ -5,13 +5,11 @@ use shared::{
         api::efx::{efx_api_s, TEMPENTITY},
         common::{dlight_s, vec3_t, BEAM},
     },
+    render::{RenderFx, RenderMode},
     str::{AsCStrPtr, ToEngineStr},
 };
 
-use crate::{
-    entity::TempEntityFlags,
-    raw::{RenderFx, RenderMode},
-};
+use crate::entity::TempEntityFlags;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 #[repr(transparent)]

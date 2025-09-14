@@ -9,7 +9,8 @@ use cl::{
     entity::TempEntityFlags,
     ffi::{api::efx::TEMPENTITY, common::vec3_t},
     prelude::*,
-    raw::{RenderMode, SoundFlags},
+    raw::SoundFlags,
+    render::RenderMode,
 };
 use res::valve::{models, sound};
 
