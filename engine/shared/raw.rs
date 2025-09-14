@@ -6,9 +6,7 @@ use core::{
 };
 
 use bitflags::bitflags;
-use xash3d_ffi::common::{entity_state_s, usercmd_s, vec3_t, wrect_s};
-
-use crate::render::{RenderFx, RenderMode};
+use xash3d_ffi::common::{usercmd_s, vec3_t, wrect_s};
 
 #[deprecated(note = "use input::KeyState instead")]
 pub type KeyState = crate::input::KeyState;
@@ -60,27 +58,13 @@ bitflags! {
     }
 }
 
-bitflags! {
-    /// entity_state_s.effects
-    #[derive(Copy, Clone, Debug)]
-    #[repr(transparent)]
-    pub struct Effects: c_int {
-        const NONE                  = 0;
-        const BRIGHTFIELD           = 1 << 0;
-        const MUZZLEFLASH           = 1 << 1;
-        const BRIGHTLIGHT           = 1 << 2;
-        const DIMLIGHT              = 1 << 3;
-        const INVLIGHT              = 1 << 4;
-        const NOINTERP              = 1 << 5;
-        const LIGHT                 = 1 << 6;
-        const NODRAW                = 1 << 7;
-        const WATERSIDES            = 1 << 26;
-        const FULLBRIGHT            = 1 << 27;
-        const NOSHADOW              = 1 << 28;
-        const MERGE_VISIBILITY      = 1 << 29;
-        const REQUEST_PHS           = 1 << 30;
-    }
-}
+#[deprecated(note = "use entity::Effects instead")]
+pub type Effects = crate::entity::Effects;
+
+#[deprecated(note = "use entity::EdictFlags instead")]
+pub type EdictFlags = crate::entity::EdictFlags;
+
+pub use crate::entity::EntityStateExt;
 
 #[deprecated(note = "use model::ModelType instead")]
 pub type ModelType = crate::model::ModelType;
@@ -232,84 +216,6 @@ impl TextureFlags {
 /// Max rendering decals per a level.
 pub const MAX_RENDER_DECALS: usize = 4096;
 
-bitflags! {
-    /// clientdata_s.flags
-    #[derive(Copy, Clone, PartialEq, Eq)]
-    #[repr(transparent)]
-    pub struct EdictFlags: c_int {
-        /// Changes the SV_Movestep() behavior to not need to be on ground.
-        const FLY           = 1 << 0;
-        /// Changes the SV_Movestep() behavior to not need to be on ground (but stay in water).
-        const SWIM          = 1 << 1;
-        const CONVEYOR      = 1 << 2;
-        const CLIENT        = 1 << 3;
-        const INWATER       = 1 << 4;
-        const MONSTER       = 1 << 5;
-        const GODMODE       = 1 << 6;
-        const NOTARGET      = 1 << 7;
-        /// Don't send entity to local host, it's predicting this entity itself.
-        const SKIPLOCALHOST = 1 << 8;
-        /// At rest / on the ground.
-        const ONGROUND      = 1 << 9;
-        /// Not all corners are valid.
-        const PARTIALGROUND = 1 << 10;
-        /// Player jumping out of water.
-        const WATERJUMP     = 1 << 11;
-        /// Player is frozen for 3rd person camera.
-        const FROZEN        = 1 << 12;
-        /// JAC: fake client, simulated server side; don't send network messages to them.
-        const FAKECLIENT    = 1 << 13;
-        /// Player flag -- Player is fully crouched.
-        const DUCKING       = 1 << 14;
-        /// Apply floating force to this entity when in water.
-        const FLOAT         = 1 << 15;
-        /// Worldgraph has this ent listed as something that blocks a connection.
-        const GRAPHED       = 1 << 16;
-
-        // UNDONE: Do we need these?
-        const IMMUNE_WATER  = 1 << 17;
-        const IMMUNE_SLIME  = 1 << 18;
-        const IMMUNE_LAVA   = 1 << 19;
-
-        /// This is a spectator proxy.
-        const PROXY         = 1 << 20;
-        /// Brush model flag.
-        ///
-        /// Call think every frame regardless of nextthink - ltime (for
-        /// constantly changing velocity/path).
-        const ALWAYSTHINK   = 1 << 21;
-        /// Base velocity has been applied this frame.
-        ///
-        /// Used to convert base velocity into momentum.
-        const BASEVELOCITY  = 1 << 22;
-        /// Only collide in with monsters who have FL_MONSTERCLIP set.
-        const MONSTERCLIP   = 1 << 23;
-        /// Player is _controlling_ a train.
-        ///
-        /// Movement commands should be ignored on client during prediction.
-        const ONTRAIN       = 1 << 24;
-        /// Not moveable/removeable brush entity.
-        ///
-        /// Really part of the world, but represented as an entity for transparency or something.
-        const WORLDBRUSH    = 1 << 25;
-        /// This client is a spectator.
-        ///
-        /// Don't run touch functions, etc.
-        const SPECTATOR     = 1 << 26;
-        /// Predicted laser spot from rocket launcher.
-        const LASERDOT      = 1 << 27;
-
-        /// This is a custom entity.
-        const CUSTOMENTITY  = 1 << 29;
-        /// This entity is marked for death.
-        ///
-        /// This allows the engine to kill ents at the appropriate time.
-        const KILLME        = 1 << 30;
-        /// Entity is dormant, no updates to client.
-        const DORMANT       = 1 << 31;
-    }
-}
-
 pub trait WRectExt {
     fn default() -> Self;
 
@@ -333,27 +239,5 @@ impl WRectExt for wrect_s {
 
     fn height(&self) -> c_int {
         self.bottom - self.top
-    }
-}
-
-pub trait EntityStateExt {
-    fn renderfx(&self) -> RenderFx;
-
-    fn rendermode(&self) -> RenderMode;
-
-    fn effects(&self) -> &Effects;
-}
-
-impl EntityStateExt for entity_state_s {
-    fn renderfx(&self) -> RenderFx {
-        RenderFx::from_raw(self.renderfx).unwrap()
-    }
-
-    fn rendermode(&self) -> RenderMode {
-        RenderMode::from_raw(self.rendermode).unwrap()
-    }
-
-    fn effects(&self) -> &Effects {
-        unsafe { mem::transmute(&self.effects) }
     }
 }

@@ -6,13 +6,13 @@ use core::{
 use csz::CStrThin;
 use pm::{VEC_DUCK_HULL_MIN, VEC_HULL_MIN};
 use sv::{
+    entity::EdictFlags,
     export::{export_dll, impl_unsync_global, RestoreResult, ServerDll, SpawnResult},
     ffi::{
         common::{clientdata_s, entity_state_s, vec3_t},
         server::{edict_s, KeyValueData, SAVERESTOREDATA, TYPEDESCRIPTION},
     },
     prelude::*,
-    raw::EdictFlags,
 };
 
 use crate::{

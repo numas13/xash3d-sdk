@@ -27,14 +27,14 @@ use shared::{
         IN_FORWARD, IN_JUMP, IN_MOVELEFT, IN_MOVERIGHT, IN_USE, MAX_CLIP_PLANES, MAX_PHYSENTS,
         PITCH, PITCH_NORM, PM_NORMAL, ROLL, YAW,
     },
-    entity::MoveType,
+    entity::{EdictFlags, MoveType},
     ffi::{
         common::{pmtrace_s, qboolean, vec3_t},
         player_move::{physent_s, playermove_s},
     },
     math::{self, fabsf, fmaxf, fminf, pow2, sqrtf, ToAngleVectors},
     model::ModelType,
-    raw::{EdictFlags, SoundFlags, UserCmdExt},
+    raw::{SoundFlags, UserCmdExt},
 };
 
 use crate::raw::PlayerMoveExt;

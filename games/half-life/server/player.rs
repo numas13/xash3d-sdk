@@ -2,10 +2,9 @@ use core::{ffi::c_int, ptr};
 
 use sv::{
     consts::{DAMAGE_AIM, DEAD_NO, SOLID_SLIDEBOX},
-    entity::MoveType,
+    entity::{EdictFlags, Effects, MoveType},
     ffi::server::{edict_s, entvars_s},
     prelude::*,
-    raw::{EdictFlags, Effects},
     str::MapString,
 };
 
