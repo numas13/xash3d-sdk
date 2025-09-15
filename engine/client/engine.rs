@@ -43,6 +43,63 @@ pub use self::prelude::*;
 pub type UserMsgHookFn =
     Option<unsafe extern "C" fn(name: *const c_char, size: c_int, buf: *mut c_void) -> c_int>;
 
+pub struct PlayerInfo {
+    raw: hud_player_info_s,
+}
+
+impl PlayerInfo {
+    pub fn from_raw(raw: hud_player_info_s) -> Option<PlayerInfo> {
+        if !raw.name.is_null() {
+            assert!(!raw.model.is_null(), "the model name pointer must not be null");
+            Some(Self { raw })
+        } else {
+            None
+        }
+    }
+
+    pub fn as_raw(&self) -> &hud_player_info_s {
+        &self.raw
+    }
+
+    pub fn name(&self) -> &CStrThin {
+        // SAFETY: checked in from_raw
+        unsafe { CStrThin::from_ptr(self.raw.name) }
+    }
+
+    pub fn ping(&self) -> u32 {
+        self.raw.ping as u32
+    }
+
+    pub fn packet_loss_percent(&self) -> u8 {
+        self.raw.packetloss
+    }
+
+    pub fn is_this_player(&self) -> bool {
+        self.raw.thisplayer != 0
+    }
+
+    pub fn is_spectator(&self) -> bool {
+        self.raw.spectator != 0
+    }
+
+    pub fn model(&self) -> &CStrThin {
+        // SAFETY: the pointer is non-null
+        unsafe { CStrThin::from_ptr(self.raw.model) }
+    }
+
+    pub fn top_color(&self) -> i16 {
+        self.raw.topcolor
+    }
+
+    pub fn bottom_color(&self) -> i16 {
+        self.raw.bottomcolor
+    }
+
+    pub fn steam_id(&self) -> u64 {
+        self.raw.m_nSteamID
+    }
+}
+
 pub struct ClientEngine {
     raw: cl_enginefuncs_s,
     tri_api: TriangleApi,
@@ -228,16 +285,11 @@ impl ClientEngine {
         unsafe { unwrap!(self, pfnClientCmd)(cmd.as_ptr()) }
     }
 
-    pub fn get_player_info(&self, entity: c_int) -> Option<hud_player_info_s> {
+    pub fn get_player_info(&self, entity: c_int) -> Option<PlayerInfo> {
         unsafe {
             let mut info = MaybeUninit::uninit();
             unwrap!(self, pfnGetPlayerInfo)(entity, info.as_mut_ptr());
-            let info = info.assume_init();
-            if !info.name.is_null() {
-                Some(info)
-            } else {
-                None
-            }
+            PlayerInfo::from_raw(info.assume_init())
         }
     }
 

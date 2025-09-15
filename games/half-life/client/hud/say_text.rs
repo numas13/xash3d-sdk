@@ -63,7 +63,7 @@ impl SayText {
         let engine = engine();
         if bytes[0] == SAY_MESSAGE && client > 0 {
             if let Some(info) = engine.get_player_info(client) {
-                let name = info.name().unwrap().to_bytes();
+                let name = info.name().to_bytes();
                 if bytes[1..].starts_with(name) {
                     name_len = name.len();
                     color = state.get_client_color(client);

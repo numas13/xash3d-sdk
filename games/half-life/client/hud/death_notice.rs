@@ -109,9 +109,8 @@ impl DeathNotice {
 
         let killer = if !suicide {
             engine.get_player_info(killer_id as c_int).map(|info| {
-                let name = unsafe { CStrThin::from_ptr(info.name) };
                 let color = state.get_client_color(killer_id as c_int);
-                Player::new(name, color)
+                Player::new(info.name(), color)
             })
         } else {
             None
@@ -119,12 +118,8 @@ impl DeathNotice {
 
         let player_kill = victim_id != u8::MAX;
         let victim = if player_kill {
-            let name = engine
-                .get_player_info(victim_id as c_int)
-                .map_or(c"unknown".into(), |info| unsafe {
-                    CStrThin::from_ptr(info.name)
-                });
-
+            let info = engine.get_player_info(victim_id as c_int);
+            let name = info.as_ref().map_or(c"unknown".into(), |info| info.name());
             let color = state.get_client_color(victim_id as c_int);
             Victim::Player(Player::new(name, color))
         } else {

@@ -117,12 +117,11 @@ impl HudItem for ScoreBoard {
                 engine.fill_rgba_blend(x, y, w, h, state.color.rgba(128));
             }
 
-            let name = info.name().unwrap();
-            let th = engine.console_string_height(name);
-            engine.draw_console_string(name_x, y + (h - th) / 2, name);
+            let th = engine.console_string_height(info.name());
+            engine.draw_console_string(name_x, y + (h - th) / 2, info.name());
 
             let mut x = fields_x;
-            for i in [score.frags, score.deaths, info.ping, -1] {
+            for i in [score.frags, score.deaths, info.ping() as i16, -1] {
                 x += w;
                 let mut buf = CStrArray::<256>::new();
                 write!(buf.cursor(), "{i}").ok();

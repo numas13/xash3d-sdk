@@ -1,14 +1,8 @@
 use core::mem;
 
-use csz::CStrThin;
-
-use shared::{
-    ffi::{
-        api::efx::TEMPENTITY,
-        client::hud_player_info_s,
-        common::{movevars_s, ref_params_s, usercmd_s},
-    },
-    utils::cstr_or_none,
+use shared::ffi::{
+    api::efx::TEMPENTITY,
+    common::{movevars_s, ref_params_s, usercmd_s},
 };
 
 use crate::entity::TempEntityFlags;
@@ -28,16 +22,6 @@ impl TempEntityExt for TEMPENTITY {
 
     fn flags_mut(&mut self) -> &mut TempEntityFlags {
         unsafe { mem::transmute(&mut self.flags) }
-    }
-}
-
-pub trait HudPlayerInfoExt {
-    fn name(&self) -> Option<&CStrThin>;
-}
-
-impl HudPlayerInfoExt for hud_player_info_s {
-    fn name(&self) -> Option<&CStrThin> {
-        unsafe { cstr_or_none(self.name) }
     }
 }
 
