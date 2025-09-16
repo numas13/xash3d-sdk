@@ -8,12 +8,83 @@ use shared::{
     color::RGBA,
     ffi::{
         self,
-        render::{ilFlags_t, imgFlags_t},
+        render::{ilFlags_t, imgFlags_t, pixformat_t},
     },
-    macros::const_assert_size_eq,
+    macros::{const_assert_size_eq, define_enum_for_primitive},
     math::sqrtf,
     render::TextureFlags,
 };
+
+define_enum_for_primitive! {
+    #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
+    pub enum PixelFormat: pixformat_t {
+        /// An unknown pixel format.
+        #[default]
+        Unknown(ffi::render::pixformat_t_PF_UNKNOWN),
+        /// Inflated palette (768 bytes).
+        Indexed24(ffi::render::pixformat_t_PF_INDEXED_24),
+        /// Deflated palette (1024 bytes).
+        Indexed32(ffi::render::pixformat_t_PF_INDEXED_32),
+        /// Normal RGBA buffer.
+        Rgba32(ffi::render::pixformat_t_PF_RGBA_32),
+        /// big endian RGBA (MacOS).
+        Bgra32(ffi::render::pixformat_t_PF_BGRA_32),
+        /// Uncompressed dds or another 24-bit image.
+        Rgb24(ffi::render::pixformat_t_PF_RGB_24),
+        /// Big-endian RGB (MacOS).
+        Bgr24(ffi::render::pixformat_t_PF_BGR_24),
+        Luminance(ffi::render::pixformat_t_PF_LUMINANCE),
+        /// s3tc DXT1/BC1 format.
+        Dxt1(ffi::render::pixformat_t_PF_DXT1),
+        /// s3tc DXT3/BC2 format.
+        Dxt3(ffi::render::pixformat_t_PF_DXT3),
+        /// s3tc DXT5/BC3 format.
+        Dxt5(ffi::render::pixformat_t_PF_DXT5),
+        /// latc ATI2N/BC5 format.
+        Ati2(ffi::render::pixformat_t_PF_ATI2),
+        Bc4Signed(ffi::render::pixformat_t_PF_BC4_SIGNED),
+        Bc4Unsigned(ffi::render::pixformat_t_PF_BC4_UNSIGNED),
+        Bc5Signed(ffi::render::pixformat_t_PF_BC5_SIGNED),
+        Bc5Unsigned(ffi::render::pixformat_t_PF_BC5_UNSIGNED),
+        /// bptc BC6H signed FP16 format.
+        Bc6hSigned(ffi::render::pixformat_t_PF_BC6H_SIGNED),
+        /// bptc BC6H unsigned FP16 format.
+        Bc6hUnsigned(ffi::render::pixformat_t_PF_BC6H_UNSIGNED),
+        /// bptc BC7 format.
+        Bc7Unorm(ffi::render::pixformat_t_PF_BC7_UNORM),
+        Bc7Srgb(ffi::render::pixformat_t_PF_BC7_SRGB),
+        /// Raw KTX2 data, used for yet unsupported KTX2 subformats.
+        Ktx2Raw(ffi::render::pixformat_t_PF_KTX2_RAW),
+    }
+}
+
+impl PixelFormat {
+    pub const fn is_raw(&self) -> bool {
+        matches!(
+            self,
+            Self::Rgba32 | Self::Bgra32 | Self::Rgb24 | Self::Bgr24 | Self::Luminance
+        )
+    }
+
+    pub const fn is_compressed(&self) -> bool {
+        matches!(
+            self,
+            Self::Dxt1
+                | Self::Dxt3
+                | Self::Dxt5
+                | Self::Ati2
+                | Self::Bc4Signed
+                | Self::Bc4Unsigned
+                | Self::Bc5Signed
+                | Self::Bc5Unsigned
+                | Self::Bc6hSigned
+                | Self::Bc6hUnsigned
+                | Self::Bc7Unorm
+                | Self::Bc7Srgb
+                | Self::Ktx2Raw
+        )
+    }
+}
 
 bitflags! {
     /// Image flags.

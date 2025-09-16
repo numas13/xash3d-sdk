@@ -10,7 +10,6 @@ use csz::CStrThin;
 use shared::{
     consts::RefParm,
     cvar::CVarFlags,
-    ffi::common::uint,
     ffi::render::{convar_s, rgbdata_t},
 };
 
@@ -63,70 +62,8 @@ pub enum demo_mode {
     QUAKE1 = 2,
 }
 
-/// rgbdata_s.type_
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Default)]
-#[non_exhaustive]
-#[repr(C)]
-pub enum PixelFormat {
-    #[default]
-    UNKNOWN = 0,
-    INDEXED_24,
-    INDEXED_32,
-    RGBA_32,
-    BGRA_32,
-    RGB_24,
-    BGR_24,
-    LUMINANCE,
-    DXT1,
-    DXT3,
-    DXT5,
-    ATI2,
-    BC4_SIGNED,
-    BC4_UNSIGNED,
-    BC5_SIGNED,
-    BC5_UNSIGNED,
-    BC6H_SIGNED,
-    BC6H_UNSIGNED,
-    BC7_UNORM,
-    BC7_SRGB,
-    KTX2_RAW,
-    TOTALCOUNT,
-}
-
-impl PixelFormat {
-    pub fn from_raw(raw: uint) -> Option<Self> {
-        if raw <= PixelFormat::TOTALCOUNT as uint {
-            Some(unsafe { mem::transmute::<uint, Self>(raw) })
-        } else {
-            None
-        }
-    }
-    pub const fn is_raw(&self) -> bool {
-        matches!(
-            self,
-            Self::RGBA_32 | Self::BGRA_32 | Self::RGB_24 | Self::BGR_24 | Self::LUMINANCE
-        )
-    }
-
-    pub const fn is_compressed(&self) -> bool {
-        matches!(
-            self,
-            Self::DXT1
-                | Self::DXT3
-                | Self::DXT5
-                | Self::ATI2
-                | Self::BC4_SIGNED
-                | Self::BC4_UNSIGNED
-                | Self::BC5_SIGNED
-                | Self::BC5_UNSIGNED
-                | Self::BC6H_SIGNED
-                | Self::BC6H_UNSIGNED
-                | Self::BC7_UNORM
-                | Self::BC7_SRGB
-                | Self::KTX2_RAW
-        )
-    }
-}
+#[deprecated(note = "use texture::PixelFormat instead")]
+pub type PixelFormat = crate::texture::PixelFormat;
 
 #[deprecated(note = "use texture::ImageFlags instead")]
 pub type ImageFlags = crate::texture::ImageFlags;
