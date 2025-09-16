@@ -251,7 +251,7 @@ impl<'a> PlayerMove<'a> {
             return;
         }
 
-        let Some(file) = self.raw.load_file(c"sound/materials.txt", 5) else {
+        let Some(file) = self.load_file(c"sound/materials.txt", 5) else {
             return;
         };
 
@@ -285,18 +285,18 @@ impl<'a> PlayerMove<'a> {
             if pe.model.is_null() {
                 continue;
             }
-            if self.raw.get_model_type(unsafe { &*pe.model }) != ModelType::Brush {
+            if self.get_model_type(unsafe { &*pe.model }) != ModelType::Brush {
                 continue;
             }
             if pe.skin != CONTENTS_LADDER {
                 continue;
             }
 
-            let (hull, mut test) = self.raw.hull_for_bsp(pe);
+            let (hull, mut test) = self.hull_for_bsp(pe);
             let hull = unsafe { &*hull };
             let num = hull.firstclipnode;
             test = self.raw.origin - test;
-            if self.raw.hull_point_contents(hull, num, test) != CONTENTS_EMPTY {
+            if self.hull_point_contents(hull, num, test) != CONTENTS_EMPTY {
                 return pe;
             }
         }
@@ -403,7 +403,7 @@ impl<'a> PlayerMove<'a> {
     fn push_entity(&mut self, push: &vec3_t) -> pmtrace_s {
         let push = *push;
         let end = self.raw.origin + push;
-        let trace = self.raw.player_trace(self.raw.origin, end, PM_NORMAL, -1);
+        let trace = self.player_trace(self.raw.origin, end, PM_NORMAL, -1);
         self.raw.origin = trace.endpos;
         if trace.fraction < 1.0 && trace.allsolid == 0 {
             self.add_to_touched(trace, self.raw.velocity);
@@ -451,7 +451,7 @@ impl<'a> PlayerMove<'a> {
                 // nop
             } else if self.raw.flFallVelocity > PLAYER_MAX_SAFE_FALL_SPEED {
                 let s = c"player/pl_fallpain3.wav";
-                self.raw.play_sound(
+                self.play_sound(
                     Channel::Voice,
                     s,
                     1.0,
@@ -461,13 +461,9 @@ impl<'a> PlayerMove<'a> {
                 );
                 vol = 1.0;
             } else if self.raw.flFallVelocity > PLAYER_MAX_SAFE_FALL_SPEED / 2.0 {
-                let tfc = self
-                    .raw
-                    .info_value_for_key::<i32>(self.raw.physinfo(), c"tfc")
-                    == Some(1);
-                if tfc {
+                if let Some(1) = self.info_value_for_key::<i32>(self.raw.physinfo(), c"tfc") {
                     let s = c"player/pl_fallpain3.wav";
-                    self.raw.play_sound(
+                    self.play_sound(
                         Channel::Voice,
                         s,
                         1.0,
@@ -508,7 +504,7 @@ impl<'a> PlayerMove<'a> {
         self.raw.watertype = CONTENTS_EMPTY;
         self.raw.waterlevel = 0;
 
-        let (cont, truecont) = self.raw.point_contents(point);
+        let (cont, truecont) = self.point_contents(point);
 
         let is_water = |cont| cont > CONTENTS_TRANSLUCENT && cont <= CONTENTS_WATER;
         if is_water(cont) {
@@ -517,12 +513,12 @@ impl<'a> PlayerMove<'a> {
 
             let heightover2 = self.raw.height() * 0.5;
             point[2] = self.raw.origin[2] + heightover2;
-            let cont = self.raw.point_contents(point).0;
+            let cont = self.point_contents(point).0;
             if is_water(cont) {
                 self.raw.waterlevel = 2;
 
                 point[2] = self.raw.origin[2] + self.raw.view_ofs[2];
-                let cont = self.raw.point_contents(point).0;
+                let cont = self.point_contents(point).0;
                 if is_water(cont) {
                     self.raw.waterlevel = 3;
                 }
@@ -568,12 +564,12 @@ impl<'a> PlayerMove<'a> {
         self.raw.usehull = 2;
         let mut start = self.raw.origin.copy_with_z(self.raw.origin[2] + WJ_HEIGHT);
         let end = start + flat_forward * 24.0;
-        let trace = self.raw.player_trace(start, end, PM_NORMAL, -1);
+        let trace = self.player_trace(start, end, PM_NORMAL, -1);
         if trace.fraction < 1.0 && fabsf(trace.plane.normal[2]) < 0.1 {
             self.raw.movedir = trace.plane.normal * -50.0;
             start[2] += self.raw.player_maxs[savehull][2] - WJ_HEIGHT;
             let end = start + flat_forward * 24.0;
-            let trace = self.raw.player_trace(start, end, PM_NORMAL, -1);
+            let trace = self.player_trace(start, end, PM_NORMAL, -1);
             if trace.fraction == 1.0 {
                 self.raw.waterjumptime = 2000.0;
                 self.raw.velocity[2] = 225.0;
@@ -589,7 +585,7 @@ impl<'a> PlayerMove<'a> {
 
         static mut STUCK_CHECK_TIME: [[f32; 2]; MAX_CLIENTS] = [[0.0; 2]; MAX_CLIENTS];
 
-        let (hitent, mut trace_result) = self.raw.test_player_position(self.raw.origin);
+        let (hitent, mut trace_result) = self.test_player_position(self.raw.origin);
         if hitent == -1 {
             self.reset_stuck_offsets();
             return 0;
@@ -604,7 +600,7 @@ impl<'a> PlayerMove<'a> {
             for _ in 0..=54 {
                 let (_, offset) = self.get_random_stuck_offsets();
                 let test = base + offset;
-                let (ent, tr) = self.raw.test_player_position(test);
+                let (ent, tr) = self.test_player_position(test);
                 trace_result = tr;
                 if ent == -1 {
                     self.reset_stuck_offsets();
@@ -615,7 +611,7 @@ impl<'a> PlayerMove<'a> {
         }
 
         let idx = if self.raw.is_server() { 0 } else { 1 };
-        let time = self.raw.float_time();
+        let time = self.system_time_f64();
 
         let player_index = self.raw.player_index as usize;
         if unsafe { STUCK_CHECK_TIME[player_index][idx] } >= time as f32 - PM_CHECKSTUCK_MINTIME {
@@ -625,11 +621,11 @@ impl<'a> PlayerMove<'a> {
             STUCK_CHECK_TIME[player_index][idx] = time as f32;
         }
 
-        self.raw.stuck_touch(hitent, &mut trace_result);
+        self.stuck_touch(hitent, &mut trace_result);
 
         let (index, offset) = self.get_random_stuck_offsets();
         let test = base + offset;
-        let (hitent, _) = self.raw.test_player_position(test);
+        let (hitent, _) = self.test_player_position(test);
         if hitent == -1 {
             self.reset_stuck_offsets();
             if index >= 27 {
@@ -653,7 +649,7 @@ impl<'a> PlayerMove<'a> {
                     let mut y = -xyminmax;
                     while y <= xyminmax {
                         let test = base + vec3_t::new(x, y, z);
-                        if self.raw.test_player_position(test).0 == -1 {
+                        if self.test_player_position(test).0 == -1 {
                             self.raw.origin = test;
                             return 0;
                         }
@@ -686,7 +682,7 @@ impl<'a> PlayerMove<'a> {
             start[2] = self.raw.origin[2] + self.raw.player_mins[self.raw.usehull as usize][2];
             stop[2] = start[2] - 34.0;
 
-            let trace = self.raw.player_trace(start, stop, PM_NORMAL, -1);
+            let trace = self.player_trace(start, stop, PM_NORMAL, -1);
             let mut friction = self.raw.movevars().friction;
             if trace.fraction == 1.0 {
                 friction *= self.raw.movevars().edgefriction;
@@ -737,7 +733,7 @@ impl<'a> PlayerMove<'a> {
         if self.raw.velocity[2] > 180.0 {
             self.raw.onground = -1;
         } else {
-            let trace = self.raw.player_trace(self.raw.origin, point, PM_NORMAL, -1);
+            let trace = self.player_trace(self.raw.origin, point, PM_NORMAL, -1);
 
             if trace.plane.normal[2] < 0.7 {
                 self.raw.onground = -1;
@@ -761,7 +757,7 @@ impl<'a> PlayerMove<'a> {
     fn catagorize_texture_type(&mut self) {
         let start = self.raw.origin;
         let end = self.raw.origin - vec3_t::new(0.0, 0.0, 64.0);
-        let name = match self.raw.trace_texture(self.raw.onground != 0, start, end) {
+        let name = match self.trace_texture(self.raw.onground != 0, start, end) {
             Some(s) => s.to_bytes(),
             None => {
                 self.raw.texture_name_clear();
@@ -782,7 +778,7 @@ impl<'a> PlayerMove<'a> {
     fn fix_player_crouch_stuck(&mut self, direction: c_int) {
         let mut origin = self.raw.origin;
         for _ in 0..37 {
-            let (hitent, _) = self.raw.test_player_position(origin);
+            let (hitent, _) = self.test_player_position(origin);
             if hitent != -1 {
                 self.raw.origin = origin;
                 return;
@@ -855,7 +851,7 @@ impl<'a> PlayerMove<'a> {
         }
 
         let play = |i, samples: &[&CStr]| {
-            self.raw.play_sound(
+            self.play_sound(
                 Channel::Body,
                 samples[i as usize],
                 vol,
@@ -864,7 +860,7 @@ impl<'a> PlayerMove<'a> {
                 Pitch::NORM,
             );
         };
-        let rand = self.raw.random_int(0, 1) + self.raw.iStepLeft * 2;
+        let rand = self.random_int(0, 1) + self.raw.iStepLeft * 2;
 
         match step {
             STEP_CONCRETE => {
@@ -913,11 +909,7 @@ impl<'a> PlayerMove<'a> {
                 play(rand, samples);
             }
             STEP_TILE => {
-                let rand = if self.raw.random_int(0, 4) != 0 {
-                    4
-                } else {
-                    rand
-                };
+                let rand = if self.random_int(0, 4) != 0 { 4 } else { rand };
                 let samples = &[
                     c"player/pl_tile1.wav",
                     c"player/pl_tile3.wav",
@@ -978,8 +970,8 @@ impl<'a> PlayerMove<'a> {
                 c"player/pl_wade3.wav",
                 c"player/pl_wade4.wav",
             ];
-            let s = samples[self.raw.random_int(0, 3) as usize];
-            self.raw.play_sound(
+            let s = samples[self.random_int(0, 3) as usize];
+            self.play_sound(
                 Channel::Body,
                 s,
                 1.0,
@@ -1023,9 +1015,9 @@ impl<'a> PlayerMove<'a> {
         let time = |walk, run| if walking { walk } else { run };
         let (step, mut vol, time_step_sound) = if ladder {
             (STEP_LADDER, 0.35, 350)
-        } else if let (CONTENTS_WATER, _) = self.raw.point_contents(knee) {
+        } else if let (CONTENTS_WATER, _) = self.point_contents(knee) {
             (STEP_WADE, 0.65, 600)
-        } else if let (CONTENTS_WATER, _) = self.raw.point_contents(feet) {
+        } else if let (CONTENTS_WATER, _) = self.point_contents(feet) {
             (STEP_SLOSH, volume(0.2, 0.5), time(400, 300))
         } else {
             let (vol, time) = match self.raw.chtexturetype {
@@ -1190,10 +1182,10 @@ impl<'a> PlayerMove<'a> {
             new_origin += self.raw.player_mins[1] - self.raw.player_mins[0];
         }
 
-        let trace = self.raw.player_trace(new_origin, new_origin, PM_NORMAL, -1);
+        let trace = self.player_trace(new_origin, new_origin, PM_NORMAL, -1);
         if trace.startsolid == 0 {
             self.raw.usehull = 0;
-            let trace = self.raw.player_trace(new_origin, new_origin, PM_NORMAL, -1);
+            let trace = self.player_trace(new_origin, new_origin, PM_NORMAL, -1);
             if trace.startsolid != 0 {
                 self.raw.usehull = 1;
                 return;
@@ -1219,12 +1211,9 @@ impl<'a> PlayerMove<'a> {
         self.raw.movetype = MoveType::Fly as c_int;
         self.raw.gravity = 0.0;
 
-        let (model_mins, model_maxs) = self.raw.get_model_bounds(unsafe { &*ladder.model });
+        let (model_mins, model_maxs) = self.get_model_bounds(unsafe { &*ladder.model });
         let ladder_center = (model_mins + model_maxs) * 0.5;
-        let trace = self
-            .raw
-            .trace_model(ladder, self.raw.origin, ladder_center)
-            .0;
+        let trace = self.trace_model(ladder, self.raw.origin, ladder_center).0;
         if trace.fraction == 1.0 {
             return;
         } else if self.raw.cmd.is_button(IN_JUMP) {
@@ -1263,7 +1252,7 @@ impl<'a> PlayerMove<'a> {
 
             let mut floor = self.raw.origin;
             floor[2] += self.raw.player_mins[self.raw.usehull()][2] - 1.0;
-            let on_floor = self.raw.point_contents(floor).0 == CONTENTS_SOLID;
+            let on_floor = self.point_contents(floor).0 == CONTENTS_SOLID;
             if on_floor && normal > 0.0 {
                 self.raw.velocity += trace.plane.normal * MAX_CLIMB_SPEED;
             }
@@ -1366,7 +1355,7 @@ impl<'a> PlayerMove<'a> {
             }
 
             let end = self.raw.origin + self.raw.velocity * time_left;
-            let trace = self.raw.player_trace(self.raw.origin, end, PM_NORMAL, -1);
+            let trace = self.player_trace(self.raw.origin, end, PM_NORMAL, -1);
             all_fraction += trace.fraction;
             if trace.allsolid != 0 {
                 self.raw.velocity = vec3_t::ZERO;
@@ -1488,7 +1477,7 @@ impl<'a> PlayerMove<'a> {
             return;
         }
 
-        let tfc = self.raw.info_value_for_key(self.raw.physinfo(), c"tfc");
+        let tfc = self.info_value_for_key(self.raw.physinfo(), c"tfc");
         let tfc = tfc == Some(1_i32);
         if tfc && self.raw.deadflag == DEAD_DISCARDBODY + 1 {
             return;
@@ -1517,8 +1506,8 @@ impl<'a> PlayerMove<'a> {
                     c"player/pl_wade3.wav",
                     c"player/pl_wade4.wav",
                 ];
-                let sample = samples[self.raw.random_int(0, 3) as usize];
-                self.raw.play_sound(
+                let sample = samples[self.random_int(0, 3) as usize];
+                self.play_sound(
                     Channel::Body,
                     sample,
                     1.0,
@@ -1545,7 +1534,7 @@ impl<'a> PlayerMove<'a> {
         self.prevent_mega_bunny_jumping();
 
         if tfc {
-            self.raw.play_sound(
+            self.play_sound(
                 Channel::Body,
                 c"player/plyrjmp8.wav",
                 0.5,
@@ -1557,9 +1546,7 @@ impl<'a> PlayerMove<'a> {
             self.play_step_sound(map_texture_type_step_type(self.raw.chtexturetype), 1.0);
         }
 
-        let cansuperjump = self
-            .raw
-            .info_value_for_key::<i32>(self.raw.physinfo(), c"slj");
+        let cansuperjump = self.info_value_for_key::<i32>(self.raw.physinfo(), c"slj");
         if self.raw.bInDuck != 0 || self.raw.flags().contains(EdictFlags::DUCKING) {
             if cansuperjump == Some(1)
                 && self.raw.cmd.is_button(IN_DUCK)
@@ -1616,7 +1603,7 @@ impl<'a> PlayerMove<'a> {
                 self.raw.velocity[1] * self.raw.frametime,
                 0.0,
             );
-        let trace = self.raw.player_trace(self.raw.origin, dest, PM_NORMAL, -1);
+        let trace = self.player_trace(self.raw.origin, dest, PM_NORMAL, -1);
         if trace.fraction == 1.0 {
             self.raw.origin = trace.endpos;
             return;
@@ -1638,7 +1625,7 @@ impl<'a> PlayerMove<'a> {
         let mut dest = self.raw.origin;
         dest[2] += self.raw.movevars().stepsize;
 
-        let trace = self.raw.player_trace(self.raw.origin, dest, PM_NORMAL, -1);
+        let trace = self.player_trace(self.raw.origin, dest, PM_NORMAL, -1);
         if trace.startsolid == 0 && trace.allsolid == 0 {
             self.raw.origin = trace.endpos;
         }
@@ -1648,7 +1635,7 @@ impl<'a> PlayerMove<'a> {
         let mut dest = self.raw.origin;
         dest[2] -= self.raw.movevars().stepsize;
 
-        let trace = self.raw.player_trace(self.raw.origin, dest, PM_NORMAL, -1);
+        let trace = self.player_trace(self.raw.origin, dest, PM_NORMAL, -1);
         if trace.plane.normal[2] < 0.7 {
             self.raw.origin = down;
             self.raw.velocity = downvel;
@@ -1740,7 +1727,7 @@ impl<'a> PlayerMove<'a> {
         let end = self.raw.origin + self.raw.velocity * self.raw.frametime;
         let mut start = end;
         start[2] += self.raw.movevars().stepsize + 1.0;
-        let trace = self.raw.player_trace(start, end, PM_NORMAL, -1);
+        let trace = self.player_trace(start, end, PM_NORMAL, -1);
         if trace.startsolid == 0 && trace.allsolid == 0 {
             self.raw.origin = trace.endpos;
             return;

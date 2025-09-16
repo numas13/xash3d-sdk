@@ -50,7 +50,7 @@ pub struct PlayerInfo {
 impl PlayerInfo {
     pub fn from_raw(raw: hud_player_info_s) -> Option<PlayerInfo> {
         if !raw.name.is_null() {
-            assert!(!raw.model.is_null(), "the model name pointer must not be null");
+            assert!(!raw.model.is_null(), "model must not be null");
             Some(Self { raw })
         } else {
             None

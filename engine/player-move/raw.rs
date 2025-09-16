@@ -23,6 +23,8 @@ use shared::{
     str::{AsCStrPtr, ToEngineStr},
 };
 
+use crate::PlayerMove;
+
 pub struct MemFile {
     data: *mut u8,
     len: usize,
@@ -74,75 +76,11 @@ pub trait PlayerMoveExt {
 
     fn height(&self) -> f32;
 
-    fn float_time(&self) -> f64;
-
     fn movetype(&self) -> MoveType;
 
     fn texture_name(&self) -> &CStrThin;
 
     fn texture_name_clear(&mut self) -> &mut CStrSlice;
-
-    fn random_int(&self, min: c_int, max: c_int) -> c_int;
-
-    fn random_float(&self, min: f32, max: f32) -> f32;
-
-    fn play_sound(
-        &self,
-        channel: Channel,
-        sample: &CStr,
-        volume: f32,
-        attenuation: Attenuation,
-        flags: SoundFlags,
-        pitch: Pitch,
-    );
-
-    fn trace_texture(&self, ground: bool, start: vec3_t, end: vec3_t) -> Option<&'static CStr>;
-
-    fn point_contents(&self, point: vec3_t) -> (c_int, c_int);
-
-    fn hull_point_contents(&self, hull: &hull_s, num: c_int, test: vec3_t) -> c_int;
-
-    fn file_size(&self, path: &CStr) -> c_int;
-
-    fn load_file(&self, path: &CStr, usehunk: c_int) -> Option<MemFile>;
-
-    fn player_trace(&self, start: vec3_t, end: vec3_t, flags: c_int, ignore_pe: c_int)
-        -> pmtrace_s;
-
-    fn test_player_position(&self, point: vec3_t) -> (c_int, pmtrace_s);
-
-    fn get_model_type(&self, model: &model_s) -> ModelType;
-
-    fn get_model_bounds(&self, model: &model_s) -> (vec3_t, vec3_t);
-
-    fn hull_for_bsp(&self, pe: &physent_s) -> (*mut hull_s, vec3_t);
-
-    fn trace_model(&self, pe: &physent_s, start: vec3_t, end: vec3_t) -> (trace_t, f32);
-
-    fn info_value_for_key_raw(
-        &self,
-        physinfo: impl ToEngineStr,
-        key: impl ToEngineStr,
-    ) -> *const c_char;
-
-    fn info_value_for_key<T: FromStr>(
-        &self,
-        physinfo: impl ToEngineStr,
-        key: impl ToEngineStr,
-    ) -> Option<T>;
-
-    fn stuck_touch(&self, hitent: c_int, trace_result: &mut pmtrace_s);
-
-    fn particle(&self, origin: vec3_t, color: c_int, life: f32, zpos: c_int, zvel: c_int);
-}
-
-macro_rules! pm_unwrap {
-    ($self:expr, $name:ident) => {
-        match $self.$name {
-            Some(func) => func,
-            None => panic!("playermove_s.{} is null", stringify!($name)),
-        }
-    };
 }
 
 impl PlayerMoveExt for playermove_s {
@@ -207,10 +145,6 @@ impl PlayerMoveExt for playermove_s {
         self.player_mins[usehull][2] + self.player_maxs[usehull][2]
     }
 
-    fn float_time(&self) -> f64 {
-        unsafe { pm_unwrap!(self, Sys_FloatTime)() }
-    }
-
     fn movetype(&self) -> MoveType {
         MoveType::from_raw(self.movetype).unwrap()
     }
@@ -222,18 +156,34 @@ impl PlayerMoveExt for playermove_s {
     fn texture_name_clear(&mut self) -> &mut CStrSlice {
         CStrSlice::new_in_slice(&mut self.sztexturename)
     }
+}
 
-    fn random_int(&self, min: c_int, max: c_int) -> c_int {
+macro_rules! pm_unwrap {
+    ($self:expr, $name:ident) => {
+        match $self.raw.$name {
+            Some(func) => func,
+            None => panic!("playermove_s.{} is null", stringify!($name)),
+        }
+    };
+}
+
+#[allow(dead_code)]
+impl PlayerMove<'_> {
+    pub fn system_time_f64(&self) -> f64 {
+        unsafe { pm_unwrap!(self, Sys_FloatTime)() }
+    }
+
+    pub fn random_int(&self, min: c_int, max: c_int) -> c_int {
         assert!(min >= 0, "min must be greater than or equal to zero");
         assert!(min <= max, "min must be less than or equal to max");
         unsafe { pm_unwrap!(self, RandomLong)(min, max) }
     }
 
-    fn random_float(&self, min: f32, max: f32) -> f32 {
+    pub fn random_float(&self, min: f32, max: f32) -> f32 {
         unsafe { pm_unwrap!(self, RandomFloat)(min, max) }
     }
 
-    fn play_sound(
+    pub fn play_sound(
         &self,
         channel: Channel,
         sample: &CStr,
@@ -254,7 +204,7 @@ impl PlayerMoveExt for playermove_s {
         }
     }
 
-    fn trace_texture(&self, ground: bool, start: vec3_t, end: vec3_t) -> Option<&'static CStr> {
+    pub fn trace_texture(&self, ground: bool, start: vec3_t, end: vec3_t) -> Option<&'static CStr> {
         let mut start = start;
         let mut end = end;
         unsafe {
@@ -272,7 +222,7 @@ impl PlayerMoveExt for playermove_s {
         }
     }
 
-    fn point_contents(&self, point: vec3_t) -> (c_int, c_int) {
+    pub fn point_contents(&self, point: vec3_t) -> (c_int, c_int) {
         let mut point = point;
         unsafe {
             let mut truecont = MaybeUninit::uninit();
@@ -283,18 +233,18 @@ impl PlayerMoveExt for playermove_s {
         }
     }
 
-    fn hull_point_contents(&self, hull: &hull_s, num: c_int, test: vec3_t) -> c_int {
+    pub fn hull_point_contents(&self, hull: &hull_s, num: c_int, test: vec3_t) -> c_int {
         let mut hull = *hull;
         let mut test = test;
         // FIXME: ffi: why hull and test are mutable?
         unsafe { pm_unwrap!(self, PM_HullPointContents)(&mut hull, num, test.as_mut_ptr()) }
     }
 
-    fn file_size(&self, path: &CStr) -> c_int {
+    pub fn file_size(&self, path: &CStr) -> c_int {
         unsafe { pm_unwrap!(self, COM_FileSize)(path.as_ptr()) }
     }
 
-    fn load_file(&self, path: &CStr, usehunk: c_int) -> Option<MemFile> {
+    pub fn load_file(&self, path: &CStr, usehunk: c_int) -> Option<MemFile> {
         unsafe {
             let mut len = MaybeUninit::uninit();
             let data = pm_unwrap!(self, COM_LoadFile)(path.as_ptr(), usehunk, len.as_mut_ptr());
@@ -302,7 +252,7 @@ impl PlayerMoveExt for playermove_s {
                 Some(MemFile {
                     data,
                     len: len.assume_init() as usize,
-                    free: self.COM_FreeFile.unwrap(),
+                    free: self.raw.COM_FreeFile.unwrap(),
                 })
             } else {
                 None
@@ -310,7 +260,7 @@ impl PlayerMoveExt for playermove_s {
         }
     }
 
-    fn player_trace(
+    pub fn player_trace(
         &self,
         start: vec3_t,
         end: vec3_t,
@@ -325,7 +275,7 @@ impl PlayerMoveExt for playermove_s {
         }
     }
 
-    fn test_player_position(&self, point: vec3_t) -> (c_int, pmtrace_s) {
+    pub fn test_player_position(&self, point: vec3_t) -> (c_int, pmtrace_s) {
         let mut point = point;
         // FIXME: ffi: why point is mutable?
         unsafe {
@@ -336,14 +286,14 @@ impl PlayerMoveExt for playermove_s {
         }
     }
 
-    fn get_model_type(&self, model: &model_s) -> ModelType {
+    pub fn get_model_type(&self, model: &model_s) -> ModelType {
         let model = model as *const model_s;
         // FIXME: ffi: why model is mutable?
         let raw = unsafe { pm_unwrap!(self, PM_GetModelType)(model.cast_mut()) };
         ModelType::from_raw(raw).unwrap()
     }
 
-    fn get_model_bounds(&self, model: &model_s) -> (vec3_t, vec3_t) {
+    pub fn get_model_bounds(&self, model: &model_s) -> (vec3_t, vec3_t) {
         let model = model as *const model_s;
         // FIXME: ffi: why model is mutable?
         unsafe {
@@ -358,7 +308,7 @@ impl PlayerMoveExt for playermove_s {
         }
     }
 
-    fn hull_for_bsp(&self, pe: &physent_s) -> (*mut hull_s, vec3_t) {
+    pub fn hull_for_bsp(&self, pe: &physent_s) -> (*mut hull_s, vec3_t) {
         let pe = pe as *const physent_s;
         // FIXME: ffi: why pe is mutable?
         unsafe {
@@ -368,7 +318,7 @@ impl PlayerMoveExt for playermove_s {
         }
     }
 
-    fn trace_model(&self, pe: &physent_s, start: vec3_t, end: vec3_t) -> (trace_t, f32) {
+    pub fn trace_model(&self, pe: &physent_s, start: vec3_t, end: vec3_t) -> (trace_t, f32) {
         let pe = pe as *const physent_s;
         let mut start = start;
         let mut end = end;
@@ -385,7 +335,7 @@ impl PlayerMoveExt for playermove_s {
         }
     }
 
-    fn info_value_for_key_raw(
+    pub fn info_value_for_key_raw(
         &self,
         physinfo: impl ToEngineStr,
         key: impl ToEngineStr,
@@ -395,7 +345,7 @@ impl PlayerMoveExt for playermove_s {
         unsafe { pm_unwrap!(self, PM_Info_ValueForKey)(physinfo.as_ptr(), key.as_ptr()) }
     }
 
-    fn info_value_for_key<T: FromStr>(
+    pub fn info_value_for_key<T: FromStr>(
         &self,
         physinfo: impl ToEngineStr,
         key: impl ToEngineStr,
@@ -405,13 +355,13 @@ impl PlayerMoveExt for playermove_s {
         s.parse::<T>().ok()
     }
 
-    fn stuck_touch(&self, hitent: c_int, trace_result: &mut pmtrace_s) {
+    pub fn stuck_touch(&self, hitent: c_int, trace_result: &mut pmtrace_s) {
         unsafe {
             pm_unwrap!(self, PM_StuckTouch)(hitent, trace_result);
         }
     }
 
-    fn particle(&self, origin: vec3_t, color: c_int, life: f32, zpos: c_int, zvel: c_int) {
+    pub fn particle(&self, origin: vec3_t, color: c_int, life: f32, zpos: c_int, zvel: c_int) {
         unsafe {
             pm_unwrap!(self, PM_Particle)(origin.as_ptr(), color, life, zpos, zvel);
         }

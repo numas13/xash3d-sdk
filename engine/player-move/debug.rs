@@ -22,7 +22,7 @@ impl super::PlayerMove<'_> {
         let mut curdist = 0.0;
         while curdist <= len {
             let curpos = start + diff * curdist;
-            self.raw.particle(curpos, color, PARTICLE_LIFETIME, 0, 0);
+            self.particle(curpos, color, PARTICLE_LIFETIME, 0, 0);
             curdist += linestep;
         }
     }
@@ -46,7 +46,7 @@ impl super::PlayerMove<'_> {
 
         if !pe.model.is_null() {
             let model = unsafe { &*pe.model };
-            let (mins, maxs) = self.raw.get_model_bounds(model);
+            let (mins, maxs) = self.get_model_bounds(model);
 
             for (i, point) in points.iter_mut().enumerate() {
                 let x = if i & 1 != 0 {
@@ -117,7 +117,7 @@ impl super::PlayerMove<'_> {
         let start = self.raw.origin;
         let start = start.copy_with_z(self.raw.origin[2] + self.raw.view_ofs[2]);
         let end = start + forward * raydist;
-        let trace = self.raw.player_trace(start, end, PM_STUDIO_BOX, -1);
+        let trace = self.player_trace(start, end, PM_STUDIO_BOX, -1);
         if trace.ent > 0 {
             self.draw_phys_ent_bbox(trace.ent, color);
         }
