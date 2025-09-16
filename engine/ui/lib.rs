@@ -16,7 +16,6 @@ pub mod instance;
 mod logger;
 pub mod picture;
 pub mod prelude;
-pub mod raw;
 pub mod utils;
 
 pub use shared::{cell, color, cvar, entity, ffi, math, misc, parser, render, str::ToEngineStr};

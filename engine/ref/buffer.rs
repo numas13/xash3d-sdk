@@ -1,11 +1,8 @@
 use core::{
     ffi::{c_int, c_void},
-    fmt,
     ops::{Deref, DerefMut},
     slice,
 };
-
-use shared::ffi::render::rgbdata_t;
 
 use crate::prelude::*;
 
@@ -130,67 +127,5 @@ impl Drop for SwBufferLock<'_> {
         unsafe {
             engine().sw_unlock_buffer();
         }
-    }
-}
-
-pub struct RgbData {
-    pub(crate) raw: *mut rgbdata_t,
-}
-
-impl Clone for RgbData {
-    fn clone(&self) -> Self {
-        let raw = unsafe { engine().fs_copy_image(self.raw) };
-        assert!(!raw.is_null());
-        Self { raw }
-    }
-}
-
-impl Drop for RgbData {
-    fn drop(&mut self) {
-        unsafe {
-            engine().fs_free_image(self.raw);
-        }
-    }
-}
-
-impl Deref for RgbData {
-    type Target = rgbdata_t;
-
-    fn deref(&self) -> &Self::Target {
-        unsafe { &*self.raw }
-    }
-}
-
-impl DerefMut for RgbData {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        unsafe { &mut *self.raw }
-    }
-}
-
-pub struct SaveImageError(pub(crate) ());
-
-impl fmt::Display for SaveImageError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.write_str("failed to save an image")
-    }
-}
-
-impl fmt::Debug for SaveImageError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_tuple("SaveImageError").finish()
-    }
-}
-
-pub struct FatPvsError(pub(crate) ());
-
-impl fmt::Display for FatPvsError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.write_str("The buffer size must be greater or equal to {MAX_MAP_LEAFS_BYTES}")
-    }
-}
-
-impl fmt::Debug for FatPvsError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_tuple("FatPvsError").finish()
     }
 }

@@ -30,7 +30,6 @@ pub mod misc;
 pub mod model;
 pub mod parser;
 pub mod prelude;
-pub mod raw;
 pub mod render;
 pub mod sound;
 pub mod str;

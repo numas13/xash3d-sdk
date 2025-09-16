@@ -4,5 +4,7 @@ pub use crate::{
     engine::prelude::*,
     engine::RefEngine,
     instance::{engine, globals},
-    raw::{ConVarExt, RgbDataExt},
 };
+
+#[allow(deprecated)]
+pub use crate::cvar::ConVarExt;

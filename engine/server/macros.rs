@@ -25,17 +25,23 @@ macro_rules! define_field {
             $name,
             $fieldtype,
             $count,
-            $crate::raw::FtypeDesc::GLOBAL
+            $crate::save::FtypeDesc::GLOBAL
         )
     };
     ($ty:ty, $name:ident, $fieldtype:expr, global) => {
-        $crate::macros::field!($ty, $name, $fieldtype, 1, $crate::raw::FtypeDesc::GLOBAL)
+        $crate::macros::field!($ty, $name, $fieldtype, 1, $crate::save::FtypeDesc::GLOBAL)
     };
     ($ty:ty, $name:ident, $fieldtype:expr, $count:expr) => {
-        $crate::macros::field!($ty, $name, $fieldtype, $count, $crate::raw::FtypeDesc::NONE)
+        $crate::macros::field!(
+            $ty,
+            $name,
+            $fieldtype,
+            $count,
+            $crate::save::FtypeDesc::NONE
+        )
     };
     ($ty:ty, $name:ident, $fieldtype:expr) => {
-        $crate::macros::field!($ty, $name, $fieldtype, 1, $crate::raw::FtypeDesc::NONE)
+        $crate::macros::field!($ty, $name, $fieldtype, 1, $crate::save::FtypeDesc::NONE)
     };
 }
 #[doc(inline)]
@@ -50,7 +56,7 @@ macro_rules! define_entity_field {
             $name,
             $fieldtype,
             $count,
-            $crate::raw::FtypeDesc::GLOBAL
+            $crate::save::FtypeDesc::GLOBAL
         )
     };
     ($name:ident, $fieldtype:expr, global) => {
@@ -59,7 +65,7 @@ macro_rules! define_entity_field {
             $name,
             $fieldtype,
             1,
-            $crate::raw::FtypeDesc::GLOBAL
+            $crate::save::FtypeDesc::GLOBAL
         )
     };
     ($name:ident, $fieldtype:expr, $count:expr) => {
@@ -68,7 +74,7 @@ macro_rules! define_entity_field {
             $name,
             $fieldtype,
             $count,
-            $crate::raw::FtypeDesc::NONE
+            $crate::save::FtypeDesc::NONE
         )
     };
     ($name:ident, $fieldtype:expr) => {
@@ -77,7 +83,7 @@ macro_rules! define_entity_field {
             $name,
             $fieldtype,
             1,
-            $crate::raw::FtypeDesc::NONE
+            $crate::save::FtypeDesc::NONE
         )
     };
 }

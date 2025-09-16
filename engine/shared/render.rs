@@ -7,6 +7,7 @@ use bitflags::bitflags;
 use xash3d_ffi::{
     api::render::texFlags_t,
     common::{ref_viewpass_s, vec3_t},
+    render::ref_parm_e,
 };
 
 use crate::{
@@ -14,6 +15,9 @@ use crate::{
     macros::define_enum_for_primitive,
     math::{atanf, tanf},
 };
+
+pub const MAX_LIGHTSTYLES: usize = 256;
+pub const MAX_RENDER_DECALS: usize = 4096;
 
 bitflags! {
     /// ref_viewpass_s.flags
@@ -330,4 +334,66 @@ bitflags! {
 
         const DECAL = Self::CLAMP.bits();
     }
+}
+
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
+#[repr(transparent)]
+pub struct RefParm(ref_parm_e);
+
+impl RefParm {
+    pub const fn new(raw: c_int) -> RefParm {
+        Self(raw)
+    }
+
+    pub const fn as_raw(&self) -> c_int {
+        self.0
+    }
+}
+
+macro_rules! define_ref_parm {
+    ($($(#[$attr:meta])* const $name:ident;)*) => {
+        $(pub const $name: RefParm = RefParm::new(ffi::api::render::$name);)*
+    };
+}
+
+define_ref_parm! {
+    const PARM_TEX_WIDTH;
+    const PARM_TEX_HEIGHT;
+    const PARM_TEX_SRC_WIDTH;
+    const PARM_TEX_SRC_HEIGHT;
+    const PARM_TEX_SKYBOX;
+    const PARM_TEX_SKYTEXNUM;
+    const PARM_TEX_LIGHTMAP;
+    const PARM_TEX_TARGET;
+    const PARM_TEX_TEXNUM;
+    const PARM_TEX_FLAGS;
+    const PARM_TEX_DEPTH;
+    const PARM_TEX_GLFORMAT;
+    const PARM_TEX_ENCODE;
+    const PARM_TEX_MIPCOUNT;
+    const PARM_BSP2_SUPPORTED;
+    const PARM_SKY_SPHERE;
+    const PARAM_GAMEPAUSED;
+    const PARM_MAP_HAS_DELUXE;
+    const PARM_MAX_ENTITIES;
+    const PARM_WIDESCREEN;
+    const PARM_FULLSCREEN;
+    const PARM_SCREEN_WIDTH;
+    const PARM_SCREEN_HEIGHT;
+    const PARM_CLIENT_INGAME;
+    const PARM_FEATURES;
+    const PARM_ACTIVE_TMU;
+    const PARM_LIGHTSTYLEVALUE;
+    const PARM_MAX_IMAGE_UNITS;
+    const PARM_CLIENT_ACTIVE;
+    const PARM_REBUILD_GAMMA;
+    const PARM_DEDICATED_SERVER;
+    const PARM_SURF_SAMPLESIZE;
+    const PARM_GL_CONTEXT_TYPE;
+    const PARM_GLES_WRAPPER;
+    const PARM_STENCIL_ACTIVE;
+    const PARM_WATER_ALPHA;
+    const PARM_TEX_MEMORY;
+    const PARM_DELUXEDATA;
+    const PARM_SHADOWDATA;
 }

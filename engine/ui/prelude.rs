@@ -7,4 +7,4 @@ pub use crate::{
 };
 
 #[allow(deprecated)]
-pub use crate::raw::GameInfo2Ext;
+pub use crate::game_info::GameInfo2Ext;

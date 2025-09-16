@@ -1,46 +1,14 @@
 use core::{
-    ffi::{c_char, c_int, c_short, c_uint},
+    ffi::{c_char, c_short, c_uint},
     mem,
 };
 
 use bitflags::bitflags;
-use csz::{CStrSlice, CStrThin};
+use csz::CStrThin;
 use shared::{
-    ffi::server::{KeyValueData, ENTITYTABLE, LEVELLIST, SAVERESTOREDATA, TYPEDESCRIPTION},
+    ffi::server::{KeyValueData, ENTITYTABLE, SAVERESTOREDATA, TYPEDESCRIPTION},
     utils::{cstr_or_none, slice_from_raw_parts_or_empty, slice_from_raw_parts_or_empty_mut},
 };
-
-pub use shared::raw::*;
-
-pub use crate::entity::EntityVarsExt;
-
-pub trait LevelListExt {
-    fn map_name(&self) -> &CStrThin;
-
-    fn map_name_new(&mut self) -> &mut CStrSlice;
-
-    fn landmark_name(&self) -> &CStrThin;
-
-    fn landmark_name_new(&mut self) -> &mut CStrSlice;
-}
-
-impl LevelListExt for LEVELLIST {
-    fn map_name(&self) -> &CStrThin {
-        unsafe { CStrThin::from_ptr(self.mapName.as_ptr()) }
-    }
-
-    fn map_name_new(&mut self) -> &mut CStrSlice {
-        CStrSlice::new_in_slice(&mut self.mapName)
-    }
-
-    fn landmark_name(&self) -> &CStrThin {
-        unsafe { CStrThin::from_ptr(self.landmarkName.as_ptr()) }
-    }
-
-    fn landmark_name_new(&mut self) -> &mut CStrSlice {
-        CStrSlice::new_in_slice(&mut self.landmarkName)
-    }
-}
 
 pub trait KeyValueDataExt {
     /// Returns the class name of an entity related to the data.
@@ -76,7 +44,7 @@ impl KeyValueDataExt for KeyValueData {
     }
 
     fn set_handled(&mut self, handled: bool) {
-        self.fHandled = handled as c_int;
+        self.fHandled = handled.into();
     }
 }
 

@@ -5,6 +5,8 @@ pub use crate::{
     engine::prelude::*,
     engine::ClientEngine,
     instance::{engine, studio},
-    raw::{RefParamsExt, TempEntityExt, WRectExt},
-    sprite::ClientSpriteExt,
+};
+
+pub use crate::{
+    entity::TempEntityExt, misc::WRectExt, render::RefParamsExt, sprite::ClientSpriteExt,
 };

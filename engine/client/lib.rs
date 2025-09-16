@@ -11,12 +11,12 @@ pub mod instance;
 mod logger;
 pub mod message;
 pub mod prelude;
-pub mod raw;
+pub mod render;
 pub mod screen;
 pub mod sprite;
 mod studio;
 pub mod utils;
 
-pub use shared::{cell, color, consts, cvar, ffi, math, model, render, sound, str::ToEngineStr};
+pub use shared::{cell, color, consts, cvar, ffi, math, misc, model, sound, str::ToEngineStr};
 
 pub use crate::studio::*;

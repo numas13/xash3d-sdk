@@ -15,7 +15,7 @@ use sv::{
     },
     macros::define_entity_field,
     prelude::*,
-    raw::{FieldType, FtypeDesc},
+    save::{FieldType, FtypeDesc},
     str::MapString,
     utils::array_from_slice,
 };

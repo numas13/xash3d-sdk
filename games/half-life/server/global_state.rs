@@ -6,7 +6,7 @@ use sv::{
     cell::SyncOnceCell,
     ffi::server::{edict_s, SAVERESTOREDATA, TYPEDESCRIPTION},
     macros::define_field,
-    raw::FieldType,
+    save::FieldType,
     str::MapString,
 };
 

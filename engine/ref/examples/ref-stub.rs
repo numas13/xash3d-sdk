@@ -1,10 +1,10 @@
 use std::cell::RefCell;
 
 use xash3d_ref::{
+    buffer::SwBuffer,
     engine::GraphicApi,
     export::{export_dll, impl_unsync_global, RefDll},
     prelude::*,
-    SwBuffer,
 };
 
 #[derive(Default)]

@@ -235,3 +235,53 @@ impl fmt::Debug for GameInfo2 {
             .finish()
     }
 }
+
+#[deprecated(note = "the trait will be removed")]
+pub trait GameInfo2Ext {
+    fn gamefolder(&self) -> &CStrThin;
+    fn startmap(&self) -> &CStrThin;
+    fn trainmap(&self) -> &CStrThin;
+    fn demomap(&self) -> &CStrThin;
+    fn title(&self) -> &CStrThin;
+    fn iconpath(&self) -> &CStrThin;
+    fn version(&self) -> &CStrThin;
+    fn game_url(&self) -> &CStrThin;
+    fn update_url(&self) -> &CStrThin;
+    fn type_(&self) -> &CStrThin;
+    fn date(&self) -> &CStrThin;
+    fn flags(&self) -> &GameInfoFlags;
+    fn gamemode(&self) -> GameType;
+}
+
+macro_rules! get_cstr {
+    ($($field:ident),* $(,)?) => {
+        $(fn $field(&self) -> &CStrThin {
+            unsafe { CStrThin::from_ptr(self.$field.as_ptr()) }
+        })*
+    };
+}
+
+#[allow(deprecated)]
+impl GameInfo2Ext for gameinfo2_s {
+    get_cstr! {
+        gamefolder,
+        startmap,
+        trainmap,
+        demomap,
+        title,
+        iconpath,
+        version,
+        game_url,
+        update_url,
+        type_,
+        date,
+    }
+
+    fn flags(&self) -> &GameInfoFlags {
+        unsafe { mem::transmute(&self.flags) }
+    }
+
+    fn gamemode(&self) -> GameType {
+        GameType::from_raw(self.gamemode).unwrap_or_default()
+    }
+}

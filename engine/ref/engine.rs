@@ -2,7 +2,7 @@ pub mod draw;
 
 use core::{
     ffi::{c_char, c_int, c_void},
-    ptr,
+    fmt, ptr,
 };
 
 use shared::{
@@ -18,11 +18,11 @@ use shared::{
 };
 
 use crate::{
-    consts::RefParm,
+    buffer::SwBuffer,
     cvar::cvar_s,
     engine::draw::Draw,
-    engine_types::*,
-    texture::{ImageFlags, OutputImageFlags},
+    render::RefParm,
+    texture::{ImageFlags, OutputImageFlags, RgbData},
 };
 
 pub use shared::engine::AddCmdError;
@@ -44,6 +44,34 @@ define_enum_for_primitive! {
         OpenGL(ffi::render::ref_graphic_apis_e_REF_GL),
         // Direct3D
         Direct3D(ffi::render::ref_graphic_apis_e_REF_D3D),
+    }
+}
+
+pub struct SaveImageError(pub(crate) ());
+
+impl fmt::Display for SaveImageError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.write_str("failed to save an image")
+    }
+}
+
+impl fmt::Debug for SaveImageError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_tuple("SaveImageError").finish()
+    }
+}
+
+pub struct FatPvsError(pub(crate) ());
+
+impl fmt::Display for FatPvsError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.write_str("The buffer size must be greater or equal to {MAX_MAP_LEAFS_BYTES}")
+    }
+}
+
+impl fmt::Debug for FatPvsError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_tuple("FatPvsError").finish()
     }
 }
 

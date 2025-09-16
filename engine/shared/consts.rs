@@ -1,5 +1,3 @@
-use core::ffi::c_int;
-
 use xash3d_ffi as ffi;
 
 pub const MAX_PLAYERS: usize = 64;
@@ -40,68 +38,6 @@ pub const MAX_SYSPATH: usize = ffi::common::MAX_SYSPATH as usize;
 pub const MAX_MAP_HULLS: usize = ffi::common::MAX_MAP_HULLS as usize;
 
 pub use ffi::common::{ENTITY_BEAM, ENTITY_NORMAL};
-
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
-#[repr(transparent)]
-pub struct RefParm(c_int);
-
-impl RefParm {
-    pub const fn new(raw: c_int) -> RefParm {
-        Self(raw)
-    }
-
-    pub const fn as_raw(&self) -> c_int {
-        self.0
-    }
-}
-
-macro_rules! define_ref_parm {
-    ($($name:ident),* $(,)?) => {
-        $(pub const $name: RefParm = RefParm::new(ffi::api::render::$name);)*
-    };
-}
-
-define_ref_parm! {
-    PARM_TEX_WIDTH,
-    PARM_TEX_HEIGHT,
-    PARM_TEX_SRC_WIDTH,
-    PARM_TEX_SRC_HEIGHT,
-    PARM_TEX_SKYBOX,
-    PARM_TEX_SKYTEXNUM,
-    PARM_TEX_LIGHTMAP,
-    PARM_TEX_TARGET,
-    PARM_TEX_TEXNUM,
-    PARM_TEX_FLAGS,
-    PARM_TEX_DEPTH,
-    PARM_TEX_GLFORMAT,
-    PARM_TEX_ENCODE,
-    PARM_TEX_MIPCOUNT,
-    PARM_BSP2_SUPPORTED,
-    PARM_SKY_SPHERE,
-    PARAM_GAMEPAUSED,
-    PARM_MAP_HAS_DELUXE,
-    PARM_MAX_ENTITIES,
-    PARM_WIDESCREEN,
-    PARM_FULLSCREEN,
-    PARM_SCREEN_WIDTH,
-    PARM_SCREEN_HEIGHT,
-    PARM_CLIENT_INGAME,
-    PARM_FEATURES,
-    PARM_ACTIVE_TMU,
-    PARM_LIGHTSTYLEVALUE,
-    PARM_MAX_IMAGE_UNITS,
-    PARM_CLIENT_ACTIVE,
-    PARM_REBUILD_GAMMA,
-    PARM_DEDICATED_SERVER,
-    PARM_SURF_SAMPLESIZE,
-    PARM_GL_CONTEXT_TYPE,
-    PARM_GLES_WRAPPER,
-    PARM_STENCIL_ACTIVE,
-    PARM_WATER_ALPHA,
-    PARM_TEX_MEMORY,
-    PARM_DELUXEDATA,
-    PARM_SHADOWDATA,
-}
 
 pub const MAX_PHYSENTS: usize = ffi::player_move::MAX_PHYSENTS as usize;
 pub const MAX_MOVEENTS: usize = ffi::player_move::MAX_MOVEENTS as usize;

@@ -10,7 +10,7 @@ use sv::{
     },
     macros::define_field,
     prelude::*,
-    raw::FieldType,
+    save::FieldType,
     str::MapString,
 };
 

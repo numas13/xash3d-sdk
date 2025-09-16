@@ -1,8 +1,9 @@
-use core::ffi::c_int;
+use core::{ffi::c_int, mem};
 
 use bitflags::bitflags;
 
 pub use shared::entity::*;
+use shared::ffi::api::efx::TEMPENTITY;
 
 bitflags! {
     #[derive(Copy, Clone, Debug)]
@@ -30,5 +31,21 @@ bitflags! {
         const NOMODEL               = 1 << 18;
         const CLIENTCUSTOM          = 1 << 19;
         const SCALE                 = 1 << 20;
+    }
+}
+
+pub trait TempEntityExt {
+    fn flags(&self) -> &TempEntityFlags;
+
+    fn flags_mut(&mut self) -> &mut TempEntityFlags;
+}
+
+impl TempEntityExt for TEMPENTITY {
+    fn flags(&self) -> &TempEntityFlags {
+        unsafe { mem::transmute(&self.flags) }
+    }
+
+    fn flags_mut(&mut self) -> &mut TempEntityFlags {
+        unsafe { mem::transmute(&mut self.flags) }
     }
 }

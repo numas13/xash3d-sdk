@@ -3,13 +3,13 @@ use core::{
     iter, ptr,
 };
 
-use csz::CStrThin;
+use csz::{CStrSlice, CStrThin};
 use shared::{
     export::impl_unsync_global,
     ffi::{
         self,
         common::vec3_t,
-        server::{edict_s, enginefuncs_s, ALERT_TYPE},
+        server::{edict_s, enginefuncs_s, ALERT_TYPE, LEVELLIST},
     },
     str::{AsCStrPtr, ToEngineStr},
 };
@@ -32,6 +32,34 @@ pub use self::prelude::*;
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(transparent)]
 pub struct EntOffset(pub c_int);
+
+pub trait LevelListExt {
+    fn map_name(&self) -> &CStrThin;
+
+    fn map_name_new(&mut self) -> &mut CStrSlice;
+
+    fn landmark_name(&self) -> &CStrThin;
+
+    fn landmark_name_new(&mut self) -> &mut CStrSlice;
+}
+
+impl LevelListExt for LEVELLIST {
+    fn map_name(&self) -> &CStrThin {
+        unsafe { CStrThin::from_ptr(self.mapName.as_ptr()) }
+    }
+
+    fn map_name_new(&mut self) -> &mut CStrSlice {
+        CStrSlice::new_in_slice(&mut self.mapName)
+    }
+
+    fn landmark_name(&self) -> &CStrThin {
+        unsafe { CStrThin::from_ptr(self.landmarkName.as_ptr()) }
+    }
+
+    fn landmark_name_new(&mut self) -> &mut CStrSlice {
+        CStrSlice::new_in_slice(&mut self.landmarkName)
+    }
+}
 
 pub struct ServerEngine {
     raw: enginefuncs_s,

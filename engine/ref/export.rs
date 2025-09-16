@@ -8,7 +8,6 @@ use core::{
 use csz::{CStrSlice, CStrThin};
 use shared::{
     color::RGBA,
-    consts::RefParm,
     ffi::{
         api::{
             render::{decallist_s, lightstyle_t, texFlags_t},
@@ -24,15 +23,11 @@ use shared::{
             REF_API_VERSION,
         },
     },
-    raw::{MAX_LIGHTSTYLES, MAX_RENDER_DECALS},
-    render::{TextureFlags, ViewPass},
+    render::{RefParm, TextureFlags, ViewPass, MAX_LIGHTSTYLES, MAX_RENDER_DECALS},
     utils::{cstr_or_none, slice_from_raw_parts_or_empty},
 };
 
-use crate::{
-    raw::SKYBOX_MAX_SIDES,
-    texture::{TextureId, UNUSED_TEXTURE_NAME},
-};
+use crate::texture::{TextureId, SKYBOX_MAX_SIDES, UNUSED_TEXTURE_NAME};
 
 pub use shared::export::{impl_unsync_global, UnsyncGlobal};
 

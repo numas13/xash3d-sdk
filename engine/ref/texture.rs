@@ -1,6 +1,8 @@
 use core::{
     ffi::{c_int, c_uint, CStr},
+    mem,
     num::NonZeroU32,
+    ops::{Deref, DerefMut},
 };
 
 use bitflags::bitflags;
@@ -8,12 +10,16 @@ use shared::{
     color::RGBA,
     ffi::{
         self,
-        render::{ilFlags_t, imgFlags_t, pixformat_t},
+        render::{ilFlags_t, imgFlags_t, pixformat_t, rgbdata_s},
     },
     macros::{const_assert_size_eq, define_enum_for_primitive},
     math::sqrtf,
     render::TextureFlags,
 };
+
+use crate::prelude::*;
+
+pub const SKYBOX_MAX_SIDES: usize = ffi::render::SKYBOX_MAX_SIDES as usize;
 
 define_enum_for_primitive! {
     #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
@@ -295,5 +301,53 @@ impl TextureId {
 
     pub(crate) fn to_ffi(id: Option<Self>) -> c_int {
         id.map_or(0, |i| i.raw() as c_int)
+    }
+}
+
+pub struct RgbData {
+    pub(crate) raw: *mut rgbdata_s,
+}
+
+impl RgbData {
+    pub fn flags(&self) -> &OutputImageFlags {
+        unsafe { mem::transmute(&self.flags) }
+    }
+
+    pub fn flags_mut(&mut self) -> &mut OutputImageFlags {
+        unsafe { mem::transmute(&mut self.flags) }
+    }
+
+    pub fn type_(&self) -> PixelFormat {
+        PixelFormat::from_raw(self.type_).unwrap()
+    }
+}
+
+impl Clone for RgbData {
+    fn clone(&self) -> Self {
+        let raw = unsafe { engine().fs_copy_image(self.raw) };
+        assert!(!raw.is_null());
+        Self { raw }
+    }
+}
+
+impl Drop for RgbData {
+    fn drop(&mut self) {
+        unsafe {
+            engine().fs_free_image(self.raw);
+        }
+    }
+}
+
+impl Deref for RgbData {
+    type Target = rgbdata_s;
+
+    fn deref(&self) -> &Self::Target {
+        unsafe { &*self.raw }
+    }
+}
+
+impl DerefMut for RgbData {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        unsafe { &mut *self.raw }
     }
 }

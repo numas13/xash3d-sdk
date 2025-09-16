@@ -17,7 +17,7 @@ use shared::{
         client::{cl_enginefuncs_s, client_textmessage_s, hud_player_info_s},
         common::{cl_entity_s, event_args_s, vec3_t, wrect_s},
     },
-    raw::WRectExt,
+    misc::WRectExt,
     str::{AsCStrPtr, ToEngineStr},
 };
 
