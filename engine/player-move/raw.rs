@@ -120,6 +120,11 @@ impl PlayerMove<'_> {
     pub fn texture_name_clear(&mut self) -> &mut CStrSlice {
         CStrSlice::new_in_slice(&mut self.raw.sztexturename)
     }
+
+    pub fn move_vector(&self) -> vec3_t {
+        let cmd = &self.raw.cmd;
+        vec3_t::new(cmd.forwardmove, cmd.sidemove, cmd.upmove)
+    }
 }
 
 macro_rules! pm_unwrap {

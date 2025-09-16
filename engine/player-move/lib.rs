@@ -161,6 +161,23 @@ fn spline_fraction(value: f32, scale: f32) -> f32 {
     3.0 * value_squared - 2.0 * value_squared * value
 }
 
+struct WishMove {
+    vel: vec3_t,
+    dir: vec3_t,
+    speed: f32,
+}
+
+impl WishMove {
+    fn new(mut vel: vec3_t, max_speed: f32) -> Self {
+        let (dir, mut speed) = vel.normalize_length();
+        if speed > max_speed {
+            vel *= max_speed / speed;
+            speed = max_speed;
+        }
+        Self { vel, dir, speed }
+    }
+}
+
 struct PlayerMove<'a> {
     raw: &'a mut playermove_s,
     ladder: bool,
@@ -1047,6 +1064,28 @@ impl<'a> PlayerMove<'a> {
     // #[no_mangle]
     // static mut vJumpAngles: vec3_t = vec3_t::ZERO;
 
+    fn normalize_angle_vectors(&mut self) {
+        self.raw.forward = self.raw.forward.normalize();
+        self.raw.right = self.raw.right.normalize();
+    }
+
+    fn normalize_angle_vectors_no_z(&mut self) {
+        self.raw.forward[2] = 0.0;
+        self.raw.right[2] = 0.0;
+        self.normalize_angle_vectors();
+    }
+
+    fn wish_vel(&self) -> vec3_t {
+        let mut vel = self.raw.forward * self.raw.cmd.forwardmove;
+        vel += self.raw.right * self.raw.cmd.sidemove;
+        vel[2] += self.raw.cmd.upmove;
+        vel
+    }
+
+    fn wish_move(&self, vel: vec3_t) -> WishMove {
+        WishMove::new(vel, self.raw.maxspeed)
+    }
+
     fn spectator_move(&mut self) {
         if self.raw.iuser1 == OBS_ROAMING {
             // TODO: client only
@@ -1070,28 +1109,19 @@ impl<'a> PlayerMove<'a> {
                 self.raw.velocity *= fmaxf(0.0, speed - drop) / speed;
             }
 
-            self.raw.forward = self.raw.forward.normalize();
-            self.raw.right = self.raw.right.normalize();
+            self.normalize_angle_vectors();
+            let wish = WishMove::new(self.wish_vel(), self.movevars().spectatormaxspeed);
 
-            let mut wishvel = self.raw.forward * self.raw.cmd.forwardmove
-                + self.raw.right * self.raw.cmd.sidemove;
-            wishvel[2] += self.raw.cmd.upmove;
-            let (wishdir, mut wishspeed) = wishvel.normalize_length();
-            if wishspeed > self.movevars().spectatormaxspeed {
-                wishvel *= self.movevars().spectatormaxspeed / wishspeed;
-                wishspeed = self.movevars().spectatormaxspeed;
-            }
-
-            let currentspeed = self.raw.velocity.dot_product(wishdir);
-            let addspeed = wishspeed - currentspeed;
+            let currentspeed = self.raw.velocity.dot_product(wish.dir);
+            let addspeed = wish.speed - currentspeed;
             if addspeed <= 0.0 {
                 return;
             }
             let accelspeed = fminf(
                 addspeed,
-                self.movevars().accelerate * self.raw.frametime * wishspeed,
+                self.movevars().accelerate * self.raw.frametime * wish.speed,
             );
-            self.raw.velocity += wishdir * accelspeed;
+            self.raw.velocity += wish.dir * accelspeed;
             self.raw.origin += self.raw.velocity * self.raw.frametime;
         } else {
             if self.raw.iuser2 <= 0 {
@@ -1253,14 +1283,8 @@ impl<'a> PlayerMove<'a> {
     }
 
     fn no_clip(&mut self) {
-        self.raw.forward = self.raw.forward.normalize();
-        self.raw.right = self.raw.right.normalize();
-
-        let mut wishvel =
-            self.raw.forward * self.raw.cmd.forwardmove + self.raw.right * self.raw.cmd.sidemove;
-        wishvel[2] += self.raw.cmd.upmove;
-
-        self.raw.origin += wishvel * self.raw.frametime;
+        self.normalize_angle_vectors();
+        self.raw.origin += self.wish_vel() * self.raw.frametime;
         self.raw.velocity = vec3_t::ZERO;
     }
 
@@ -1560,24 +1584,11 @@ impl<'a> PlayerMove<'a> {
     }
 
     fn walk_move(&mut self) {
-        self.raw.forward[2] = 0.0;
-        self.raw.forward = self.raw.forward.normalize();
-
-        self.raw.right[2] = 0.0;
-        self.raw.right = self.raw.right.normalize();
-
-        let mut wishvel =
-            self.raw.forward * self.raw.cmd.forwardmove + self.raw.right * self.raw.cmd.sidemove;
-        wishvel[2] = 0.0;
-        let (wishdir, mut wishspeed) = wishvel.normalize_length();
-
-        if wishspeed > self.raw.maxspeed {
-            wishvel *= self.raw.maxspeed / wishspeed;
-            wishspeed = self.raw.maxspeed;
-        }
+        self.normalize_angle_vectors_no_z();
+        let wish = self.wish_move(self.wish_vel().copy_with_z(0.0));
 
         self.raw.velocity[2] = 0.0;
-        self.accelerate(&wishdir, wishspeed, self.movevars().accelerate);
+        self.accelerate(&wish.dir, wish.speed, self.movevars().accelerate);
         self.raw.velocity[2] = 0.0;
         self.raw.velocity += self.raw.basevelocity;
 
@@ -1648,48 +1659,23 @@ impl<'a> PlayerMove<'a> {
     }
 
     fn air_move(&mut self) {
-        self.raw.forward[2] = 0.0;
-        self.raw.forward = self.raw.forward.normalize();
-
-        self.raw.right[2] = 0.0;
-        self.raw.right = self.raw.right.normalize();
-
-        let mut wishvel =
-            self.raw.forward * self.raw.cmd.forwardmove + self.raw.right * self.raw.cmd.sidemove;
-        wishvel[2] = 0.0;
-
-        let (wishdir, mut wishspeed) = wishvel.normalize_length();
-        if wishspeed > self.raw.maxspeed {
-            wishvel *= self.raw.maxspeed / wishspeed;
-            wishspeed = self.raw.maxspeed;
-        }
-
-        self.air_accelerate(&wishdir, wishspeed, self.movevars().airaccelerate);
-
+        self.normalize_angle_vectors_no_z();
+        let wish = self.wish_move(self.wish_vel().copy_with_z(0.0));
+        self.air_accelerate(&wish.dir, wish.speed, self.movevars().airaccelerate);
         self.raw.velocity += self.raw.basevelocity;
-
         self.fly_move();
     }
 
     fn water_move(&mut self) {
-        let mut wishvel =
-            self.raw.forward * self.raw.cmd.forwardmove + self.raw.right * self.raw.cmd.sidemove;
-
-        if self.raw.cmd.forwardmove == 0.0
-            && self.raw.cmd.sidemove == 0.0
-            && self.raw.cmd.upmove == 0.0
-        {
-            wishvel[2] -= 60.0;
-        } else {
-            wishvel[2] += self.raw.cmd.upmove;
-        }
-
-        let mut wishspeed = wishvel.length();
-        if wishspeed > self.raw.maxspeed {
-            wishvel *= self.raw.maxspeed / wishspeed;
-            wishspeed = self.raw.maxspeed;
-        }
-        wishspeed *= 0.8;
+        let mut wish = {
+            let wishvel = if self.move_vector() != vec3_t::ZERO {
+                self.wish_vel()
+            } else {
+                vec3_t::new(0.0, 0.0, -60.0)
+            };
+            self.wish_move(wishvel)
+        };
+        wish.speed *= 0.8;
 
         self.raw.velocity += self.raw.basevelocity;
         let mut newspeed = 0.0;
@@ -1703,16 +1689,16 @@ impl<'a> PlayerMove<'a> {
             self.raw.velocity *= newspeed / speed;
         }
 
-        if wishspeed < 0.1 {
+        if wish.speed < 0.1 {
             return;
         }
 
-        let addspeed = wishspeed - newspeed;
+        let addspeed = wish.speed - newspeed;
         if addspeed > 0.0 {
-            wishvel = wishvel.normalize();
+            wish.vel = wish.vel.normalize();
             let accelspeed =
-                self.movevars().accelerate * wishspeed * self.raw.frametime * self.raw.friction;
-            self.raw.velocity += wishvel * fminf(accelspeed, addspeed);
+                self.movevars().accelerate * wish.speed * self.raw.frametime * self.raw.friction;
+            self.raw.velocity += wish.vel * fminf(accelspeed, addspeed);
         }
 
         let end = self.raw.origin + self.raw.velocity * self.raw.frametime;
