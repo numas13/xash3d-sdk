@@ -1,7 +1,7 @@
 use core::ffi::c_int;
 
 use bitflags::bitflags;
-use xash3d_ffi::common::{model_s, modtype_t};
+use xash3d_ffi::common::modtype_t;
 
 use crate::ffi;
 
@@ -36,16 +36,5 @@ bitflags! {
         const WORLD             = ffi::common::MODEL_WORLD;
         /// A client sprite.
         const CLIENT            = ffi::common::MODEL_CLIENT;
-    }
-}
-
-// TODO: add safe wrapper for model_s and remove this trait
-pub trait ModelExt {
-    fn model_type(&self) -> ModelType;
-}
-
-impl ModelExt for model_s {
-    fn model_type(&self) -> ModelType {
-        ModelType::from_raw(self.type_).unwrap()
     }
 }

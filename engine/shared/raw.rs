@@ -24,8 +24,6 @@ pub type ModelType = crate::model::ModelType;
 #[deprecated(note = "use model::ModelFlags instead")]
 pub type ModelFlags = crate::model::ModelFlags;
 
-pub use crate::model::ModelExt;
-
 #[deprecated(note = "use SurfaceFlags instead")]
 pub type SurfaceFlags = crate::bsp::SurfaceFlags;
 
