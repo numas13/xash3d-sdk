@@ -18,11 +18,8 @@ use shared::{
 };
 
 use crate::{
-    consts::RefParm,
-    cvar::cvar_s,
-    engine::draw::Draw,
-    engine_types::*,
-    raw::{ImageFlags, OutputImageFlags},
+    consts::RefParm, cvar::cvar_s, engine::draw::Draw, engine_types::*, raw::ImageFlags,
+    texture::OutputImageFlags,
 };
 
 pub use shared::engine::AddCmdError;

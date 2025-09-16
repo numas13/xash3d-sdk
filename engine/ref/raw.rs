@@ -144,37 +144,8 @@ bitflags! {
     }
 }
 
-bitflags! {
-    /// rgbdata_s.flags
-    #[derive(Copy, Clone, PartialEq, Eq, Debug, Default)]
-    #[repr(transparent)]
-    pub struct OutputImageFlags: c_uint {
-        const CUBEMAP       = 1 << 0;   // it's 6-sides cubemap buffer
-        const HAS_ALPHA     = 1 << 1;   // image contain alpha-channel
-        const HAS_COLOR     = 1 << 2;   // image contain RGB-channel
-        const COLORINDEX    = 1 << 3;   // all colors in palette is gradients of last color (decals)
-        const HAS_LUMA      = 1 << 4;   // image has luma pixels (q1-style maps)
-        const SKYBOX        = 1 << 5;   // only used by FS_SaveImage - for write right suffixes
-        const QUAKESKY      = 1 << 6;   // it's a quake sky double layered clouds (so keep it as 8 bit)
-        const DDS_FORMAT    = 1 << 7;   // a hint for GL loader
-        const MULTILAYER    = 1 << 8;   // to differentiate from 3D texture
-        const ONEBIT_ALPHA  = 1 << 9;   // binary alpha
-        const QUAKEPAL      = 1 << 10;  // image has quake1 palette
-
-        // Image_Process manipulation flags
-        const FLIP_X        = 1 << 16;  // flip the image by width
-        const FLIP_Y        = 1 << 17;  // flip the image by height
-        const ROT_90        = 1 << 18;  // flip from upper left corner to down right corner
-        const ROT180        = Self::FLIP_X.union(Self::FLIP_Y).bits();
-        const ROT270        = Self::FLIP_X.union(Self::FLIP_Y).union(Self::ROT_90).bits();
-        const RESAMPLE      = 1 << 20;  // resample image to specified dims
-        const FORCE_RGBA    = 1 << 23;  // force image to RGBA buffer
-        const MAKE_LUMA     = 1 << 24;  // create luma texture from indexed
-        const QUANTIZE      = 1 << 25;  // make indexed image from 24 or 32- bit image
-        const LIGHTGAMMA    = 1 << 26;  // apply gamma for image
-        const REMAP         = 1 << 27;  // interpret width and height as top and bottom color
-    }
-}
+#[deprecated(note = "use texture::OutputImageFlags instead")]
+pub type OutputImageFlags = crate::texture::OutputImageFlags;
 
 #[deprecated(note = "use engine::GraphicApi instead")]
 pub type GraphicApi = crate::engine::GraphicApi;
@@ -274,6 +245,7 @@ pub const PARM_GET_ELIGHTS_PTR: RefParm = RefParm::new(-22);
 /// Pass -1 to query global filtering settings.
 pub const PARM_TEX_FILTERING: RefParm = RefParm::new(-0x10000);
 
+#[allow(deprecated)]
 pub trait RgbDataExt {
     fn flags(&self) -> &OutputImageFlags;
 
@@ -282,6 +254,7 @@ pub trait RgbDataExt {
     fn type_(&self) -> PixelFormat;
 }
 
+#[allow(deprecated)]
 impl RgbDataExt for rgbdata_t {
     fn flags(&self) -> &OutputImageFlags {
         unsafe { mem::transmute(&self.flags) }

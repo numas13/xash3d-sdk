@@ -3,7 +3,66 @@ use core::{
     num::NonZeroU32,
 };
 
-use shared::{color::RGBA, macros::const_assert_size_eq, math::sqrtf, render::TextureFlags};
+use bitflags::bitflags;
+use shared::{
+    color::RGBA,
+    ffi::{self, render::imgFlags_t},
+    macros::const_assert_size_eq,
+    math::sqrtf,
+    render::TextureFlags,
+};
+
+bitflags! {
+    /// Output image flags.
+    #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
+    #[repr(transparent)]
+    pub struct OutputImageFlags: imgFlags_t {
+        const NONE          = 0;
+        /// The image is a 6-sides cubemap buffer.
+        const CUBEMAP       = ffi::render::imgFlags_t_IMAGE_CUBEMAP;
+        /// The image contains an alpha channel.
+        const HAS_ALPHA     = ffi::render::imgFlags_t_IMAGE_HAS_ALPHA;
+        /// The image contains a RGB channels.
+        const HAS_COLOR     = ffi::render::imgFlags_t_IMAGE_HAS_COLOR;
+        /// All colors in palette is gradients of last color (decals).
+        const COLORINDEX    = ffi::render::imgFlags_t_IMAGE_COLORINDEX;
+        /// The image has luma pixels (q1-style maps).
+        const HAS_LUMA      = ffi::render::imgFlags_t_IMAGE_HAS_LUMA;
+        /// Only used by [crate::engine::RefEngine::fs_save_image] for write right suffixes.
+        const SKYBOX        = ffi::render::imgFlags_t_IMAGE_SKYBOX;
+        /// It is a quake sky double layered clouds (so keep it as 8 bit).
+        const QUAKESKY      = ffi::render::imgFlags_t_IMAGE_QUAKESKY;
+        /// A hint for GL loader.
+        const DDS_FORMAT    = ffi::render::imgFlags_t_IMAGE_DDS_FORMAT;
+        /// To differentiate from 3D texture.
+        const MULTILAYER    = ffi::render::imgFlags_t_IMAGE_MULTILAYER;
+        /// The alpha channel is 1 bit long.
+        const ONEBIT_ALPHA  = ffi::render::imgFlags_t_IMAGE_ONEBIT_ALPHA;
+        /// The image has quake1 palette.
+        const QUAKEPAL      = ffi::render::imgFlags_t_IMAGE_QUAKEPAL;
+
+        /// Flip the image by width.
+        const FLIP_X        = ffi::render::imgFlags_t_IMAGE_FLIP_X;
+        /// Flip the image by height.
+        const FLIP_Y        = ffi::render::imgFlags_t_IMAGE_FLIP_Y;
+        /// Flip from upper left corner to down right corner.
+        const ROT_90        = ffi::render::imgFlags_t_IMAGE_ROT_90;
+        const ROT180        = ffi::render::imgFlags_t_IMAGE_ROT180;
+        const ROT270        = ffi::render::imgFlags_t_IMAGE_ROT270;
+        /// Resample the image to specified dims.
+        const RESAMPLE      = ffi::render::imgFlags_t_IMAGE_RESAMPLE;
+        /// Force the image to RGBA buffer.
+        const FORCE_RGBA    = ffi::render::imgFlags_t_IMAGE_FORCE_RGBA;
+        /// Create the luma texture from indexed.
+        const MAKE_LUMA     = ffi::render::imgFlags_t_IMAGE_MAKE_LUMA;
+        /// Make the indexed image from 24-bit or 32-bit image.
+        const QUANTIZE      = ffi::render::imgFlags_t_IMAGE_QUANTIZE;
+        /// Apply gamma for the image.
+        const LIGHTGAMMA    = ffi::render::imgFlags_t_IMAGE_LIGHTGAMMA;
+        /// Interpret the width and the height as top and bottom color.
+        const REMAP         = ffi::render::imgFlags_t_IMAGE_REMAP;
+    }
+}
 
 /// A special name for missing texture.
 pub const UNUSED_TEXTURE_NAME: &CStr = c"*unused*";
