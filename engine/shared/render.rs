@@ -352,7 +352,7 @@ impl RefParm {
 
 macro_rules! define_ref_parm {
     ($($(#[$attr:meta])* const $name:ident;)*) => {
-        $(pub const $name: RefParm = RefParm::new(ffi::api::render::$name);)*
+        $($(#[$attr])* pub const $name: RefParm = RefParm::new(ffi::api::render::$name);)*
     };
 }
 

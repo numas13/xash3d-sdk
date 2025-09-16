@@ -1,9 +1,8 @@
 use core::{cell::Cell, ffi::c_int};
 
 use cl::{
-    collections::TempEntityList,
     consts::{DEAD_NO, PM_STUDIO_BOX, PM_WORLD_ONLY, YAW},
-    entity::{EntityType, TempEntityFlags},
+    entity::{EntityType, TempEntityFlags, TempEntityList},
     ffi::{
         api::efx::TEMPENTITY,
         common::{cl_entity_s, clientdata_s, entity_state_s, vec3_t, weapon_data_s},

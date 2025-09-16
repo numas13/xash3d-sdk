@@ -25,7 +25,7 @@ use shared::{
     utils::cstr_or_none,
 };
 
-use crate::{collections::TempEntityList, prelude::*};
+use crate::{entity::TempEntityList, prelude::*};
 
 pub use shared::export::{impl_unsync_global, UnsyncGlobal};
 

@@ -2,7 +2,7 @@
 
 #[macro_use]
 pub mod macros;
-pub mod collections;
+
 pub mod engine;
 pub mod entity;
 pub mod export;

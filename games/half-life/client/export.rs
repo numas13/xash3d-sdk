@@ -5,8 +5,7 @@ use core::{
 };
 
 use cl::{
-    collections::TempEntityList,
-    entity::EntityType,
+    entity::{EntityType, TempEntityList},
     export::{export_dll, impl_unsync_global, ClientDll, UnsyncGlobal},
     ffi::{
         self,
