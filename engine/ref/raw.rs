@@ -176,16 +176,8 @@ bitflags! {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
-#[repr(C)]
-pub enum GraphicApi {
-    // hypothetical: just make a surface to draw on, in software
-    Software,
-    // create GL context
-    OpenGL,
-    // Direct3D
-    Direct3D,
-}
+#[deprecated(note = "use engine::GraphicApi instead")]
+pub type GraphicApi = crate::engine::GraphicApi;
 
 pub const CVAR_SENTINEL: usize = 0xdeadbeefdeadbeef_u64 as usize;
 

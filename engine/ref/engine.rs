@@ -9,9 +9,11 @@ use shared::{
     bsp::MAX_MAP_LEAFS_BYTES,
     export::impl_unsync_global,
     ffi::{
+        self,
         common::{efrag_s, mleaf_s, mnode_s, ref_overview_s, vec3_t},
         render::{convar_s, ref_api_s, rgbdata_t},
     },
+    macros::define_enum_for_primitive,
     str::{AsCStrPtr, ToEngineStr},
 };
 
@@ -20,7 +22,7 @@ use crate::{
     cvar::cvar_s,
     engine::draw::Draw,
     engine_types::*,
-    raw::{GraphicApi, ImageFlags, OutputImageFlags},
+    raw::{ImageFlags, OutputImageFlags},
 };
 
 pub use shared::engine::AddCmdError;
@@ -32,6 +34,18 @@ pub(crate) mod prelude {
 }
 
 pub use self::prelude::*;
+
+define_enum_for_primitive! {
+    #[derive(Copy, Clone, Debug, PartialEq, Eq)]
+    pub enum GraphicApi: ffi::render::ref_graphic_apis_e {
+        // hypothetical: just make a surface to draw on, in software
+        Software(ffi::render::ref_graphic_apis_e_REF_SOFTWARE),
+        // create GL context
+        OpenGL(ffi::render::ref_graphic_apis_e_REF_GL),
+        // Direct3D
+        Direct3D(ffi::render::ref_graphic_apis_e_REF_D3D),
+    }
+}
 
 pub struct RefEngine {
     raw: ref_api_s,

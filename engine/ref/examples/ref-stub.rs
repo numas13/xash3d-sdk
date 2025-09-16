@@ -1,9 +1,9 @@
 use std::cell::RefCell;
 
 use xash3d_ref::{
+    engine::GraphicApi,
     export::{export_dll, impl_unsync_global, RefDll},
     prelude::*,
-    raw::GraphicApi,
     SwBuffer,
 };
 
