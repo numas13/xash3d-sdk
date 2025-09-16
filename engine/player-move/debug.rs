@@ -1,7 +1,5 @@
 use shared::{consts::PM_STUDIO_BOX, ffi::common::vec3_t, math::ToAngleVectors};
 
-use crate::raw::PlayerMoveExt;
-
 const BOX_GAP: f32 = 0.0;
 const BOX_POINTS: [[usize; 4]; 6] = [
     [0, 4, 6, 2], // +X
@@ -169,8 +167,8 @@ impl super::PlayerMove<'_> {
         let color = 132;
         if true {
             self.draw_bbox(
-                self.raw.player_mins[self.raw.usehull()],
-                self.raw.player_maxs[self.raw.usehull()],
+                self.raw.player_mins[self.usehull()],
+                self.raw.player_maxs[self.usehull()],
                 self.raw.origin,
                 color,
             );

@@ -37,8 +37,6 @@ use shared::{
     sound::{Attenuation, Channel, Pitch, SoundFlags},
 };
 
-use crate::raw::PlayerMoveExt;
-
 const TIME_TO_DUCK: f32 = 0.4;
 const VEC_DUCK_VIEW: f32 = 12.0;
 const PM_DEAD_VIEWHEIGHT: f32 = -8.0;
@@ -232,13 +230,13 @@ impl<'a> PlayerMove<'a> {
 
     fn reset_stuck_offsets(&self) {
         unsafe {
-            STUCK_LAST[self.raw.player_index as usize][self.raw.is_server() as usize] = 0;
+            STUCK_LAST[self.raw.player_index as usize][self.is_server() as usize] = 0;
         }
     }
 
     fn get_random_stuck_offsets(&self) -> (c_int, vec3_t) {
         let index = self.raw.player_index as usize;
-        let server = self.raw.is_server() as usize;
+        let server = self.is_server() as usize;
         let v = unsafe { &mut STUCK_LAST[index][server] };
         let index = *v % 54;
         *v += 1;
@@ -329,23 +327,22 @@ impl<'a> PlayerMove<'a> {
         }
 
         if self
-            .raw
             .flags()
             .intersects(EdictFlags::FROZEN | EdictFlags::ONTRAIN)
-            || self.raw.is_dead()
+            || self.is_dead()
         {
             self.raw.cmd.move_vector_set(vec3_t::ZERO);
         }
 
         self.drop_punch_angle();
 
-        if self.raw.is_alive() {
+        if self.is_alive() {
             let v_angle = self.raw.cmd.viewangles + self.raw.punchangle;
             self.raw.angles[ROLL] = math::calc_roll(
                 v_angle,
                 self.raw.velocity,
-                self.raw.movevars().rollangle,
-                self.raw.movevars().rollspeed,
+                self.movevars().rollangle,
+                self.movevars().rollspeed,
             ) * 4.0;
             self.raw.angles[PITCH] = v_angle[PITCH];
             self.raw.angles[YAW] = v_angle[YAW];
@@ -353,7 +350,7 @@ impl<'a> PlayerMove<'a> {
             self.raw.angles = self.raw.oldangles;
         }
 
-        if self.raw.is_dead() {
+        if self.is_dead() {
             self.raw.view_ofs[2] = PM_DEAD_VIEWHEIGHT;
         }
 
@@ -424,7 +421,7 @@ impl<'a> PlayerMove<'a> {
         fix_nan(&mut self.raw.velocity, "velocity");
         fix_nan(&mut self.raw.origin, "origin");
 
-        let max = self.raw.movevars().maxvelocity;
+        let max = self.movevars().maxvelocity;
         let min = -max;
 
         if self.raw.velocity.iter().any(|&i| i < min || i > max) {
@@ -442,7 +439,7 @@ impl<'a> PlayerMove<'a> {
 
     fn check_falling(&mut self) {
         if self.raw.onground != -1
-            && !self.raw.is_dead()
+            && !self.is_dead()
             && self.raw.flFallVelocity >= PLAYER_FALL_PUNCH_THRESHOLD
         {
             let mut vol = 0.5;
@@ -461,7 +458,7 @@ impl<'a> PlayerMove<'a> {
                 );
                 vol = 1.0;
             } else if self.raw.flFallVelocity > PLAYER_MAX_SAFE_FALL_SPEED / 2.0 {
-                if let Some(1) = self.info_value_for_key::<i32>(self.raw.physinfo(), c"tfc") {
+                if let Some(1) = self.info_value_for_key::<i32>(self.physinfo(), c"tfc") {
                     let s = c"player/pl_fallpain3.wav";
                     self.play_sound(
                         Channel::Voice,
@@ -511,7 +508,7 @@ impl<'a> PlayerMove<'a> {
             self.raw.watertype = cont;
             self.raw.waterlevel = 1;
 
-            let heightover2 = self.raw.height() * 0.5;
+            let heightover2 = self.height() * 0.5;
             point[2] = self.raw.origin[2] + heightover2;
             let cont = self.point_contents(point).0;
             if is_water(cont) {
@@ -560,7 +557,7 @@ impl<'a> PlayerMove<'a> {
             return;
         }
 
-        let savehull = self.raw.usehull();
+        let savehull = self.usehull();
         self.raw.usehull = 2;
         let mut start = self.raw.origin.copy_with_z(self.raw.origin[2] + WJ_HEIGHT);
         let end = start + flat_forward * 24.0;
@@ -574,7 +571,7 @@ impl<'a> PlayerMove<'a> {
                 self.raw.waterjumptime = 2000.0;
                 self.raw.velocity[2] = 225.0;
                 self.raw.oldbuttons |= IN_JUMP as c_int;
-                self.raw.flags_mut().insert(EdictFlags::WATERJUMP);
+                self.flags_mut().insert(EdictFlags::WATERJUMP);
             }
         }
         self.raw.usehull = savehull as c_int;
@@ -593,7 +590,7 @@ impl<'a> PlayerMove<'a> {
 
         let base = self.raw.origin;
 
-        if (self.raw.is_client() || self.raw.is_singleplayer())
+        if (self.is_client() || self.is_singleplayer())
             && (hitent == 0 || !self.raw.physents[hitent as usize].model.is_null())
         {
             self.reset_stuck_offsets();
@@ -610,7 +607,7 @@ impl<'a> PlayerMove<'a> {
             }
         }
 
-        let idx = if self.raw.is_server() { 0 } else { 1 };
+        let idx = if self.is_server() { 0 } else { 1 };
         let time = self.system_time_f64();
 
         let player_index = self.raw.player_index as usize;
@@ -683,13 +680,13 @@ impl<'a> PlayerMove<'a> {
             stop[2] = start[2] - 34.0;
 
             let trace = self.player_trace(start, stop, PM_NORMAL, -1);
-            let mut friction = self.raw.movevars().friction;
+            let mut friction = self.movevars().friction;
             if trace.fraction == 1.0 {
-                friction *= self.raw.movevars().edgefriction;
+                friction *= self.movevars().edgefriction;
             }
             friction *= self.raw.friction;
 
-            let contol = fmaxf(speed, self.raw.movevars().stopspeed);
+            let contol = fmaxf(speed, self.movevars().stopspeed);
             drop += contol * friction * self.raw.frametime;
         }
 
@@ -697,7 +694,7 @@ impl<'a> PlayerMove<'a> {
     }
 
     fn accelerate(&mut self, wishdir: &vec3_t, wishspeed: f32, accel: f32) {
-        if self.raw.is_dead() || self.raw.waterjumptime != 0.0 {
+        if self.is_dead() || self.raw.waterjumptime != 0.0 {
             return;
         }
 
@@ -710,7 +707,7 @@ impl<'a> PlayerMove<'a> {
     }
 
     fn air_accelerate(&mut self, wishdir: &vec3_t, wishspeed: f32, accel: f32) {
-        if self.raw.is_dead() || self.raw.waterjumptime != 0.0 {
+        if self.is_dead() || self.raw.waterjumptime != 0.0 {
             return;
         }
         let wishspd = fminf(wishspeed, 30.0);
@@ -760,19 +757,18 @@ impl<'a> PlayerMove<'a> {
         let name = match self.trace_texture(self.raw.onground != 0, start, end) {
             Some(s) => s.to_bytes(),
             None => {
-                self.raw.texture_name_clear();
+                self.texture_name_clear();
                 self.raw.chtexturetype = CHAR_TEX_CONCRETE;
                 return;
             }
         };
 
         let name = strip_texture_prefix(name);
-        self.raw
-            .texture_name_clear()
+        self.texture_name_clear()
             .cursor()
             .write_bytes(name)
             .unwrap();
-        self.raw.chtexturetype = find_texture_type(self.raw.texture_name());
+        self.raw.chtexturetype = find_texture_type(self.texture_name());
     }
 
     fn fix_player_crouch_stuck(&mut self, direction: c_int) {
@@ -793,7 +789,7 @@ impl<'a> PlayerMove<'a> {
         } else {
             1.0
         };
-        self.raw.velocity[2] -= ent_gravity * self.raw.movevars().gravity * self.raw.frametime;
+        self.raw.velocity[2] -= ent_gravity * self.movevars().gravity * self.raw.frametime;
         self.raw.velocity[2] += self.raw.basevelocity[2] * self.raw.frametime;
         self.raw.basevelocity[2] = 0.0;
         self.check_velocity();
@@ -810,8 +806,7 @@ impl<'a> PlayerMove<'a> {
             1.0
         };
 
-        self.raw.velocity[2] -=
-            ent_gravity * self.raw.movevars().gravity * self.raw.frametime * 0.5;
+        self.raw.velocity[2] -= ent_gravity * self.movevars().gravity * self.raw.frametime * 0.5;
         self.raw.velocity[2] += self.raw.basevelocity[2] * self.raw.frametime;
         self.raw.basevelocity[2] = 0.0;
 
@@ -829,8 +824,7 @@ impl<'a> PlayerMove<'a> {
             1.0
         };
 
-        self.raw.velocity[2] -=
-            ent_gravity * self.raw.movevars().gravity * self.raw.frametime * 0.5;
+        self.raw.velocity[2] -= ent_gravity * self.movevars().gravity * self.raw.frametime * 0.5;
 
         self.check_velocity();
     }
@@ -840,8 +834,8 @@ impl<'a> PlayerMove<'a> {
 
         if self.raw.runfuncs == 0 {
             return;
-        } else if self.raw.is_multiplayer() {
-            if self.raw.movevars().footsteps == 0 {
+        } else if self.is_multiplayer() {
+            if self.movevars().footsteps == 0 {
                 return;
             }
             let vel = vec3_t::new(self.raw.velocity[0], self.raw.velocity[1], 0.0);
@@ -983,7 +977,7 @@ impl<'a> PlayerMove<'a> {
     }
 
     fn update_step_sound(&mut self) {
-        if self.raw.flTimeStepSound > 0 || self.raw.flags().contains(EdictFlags::FROZEN) {
+        if self.raw.flTimeStepSound > 0 || self.flags().contains(EdictFlags::FROZEN) {
             return;
         }
 
@@ -991,9 +985,8 @@ impl<'a> PlayerMove<'a> {
 
         let speed = self.raw.velocity.length();
         let ladder = self.raw.movetype == MoveType::Fly as c_int
-            && !self.raw.flags().contains(EdictFlags::IMMUNE_LAVA);
-        let (velwalk, velrun, flduck) = if self.raw.flags().contains(EdictFlags::DUCKING) || ladder
-        {
+            && !self.flags().contains(EdictFlags::IMMUNE_LAVA);
+        let (velwalk, velrun, flduck) = if self.flags().contains(EdictFlags::DUCKING) || ladder {
             (60.0, 80.0, 100)
         } else {
             (120.0, 210.0, 0)
@@ -1037,7 +1030,7 @@ impl<'a> PlayerMove<'a> {
         };
         self.raw.flTimeStepSound = time_step_sound + flduck;
 
-        if self.raw.flags().contains(EdictFlags::DUCKING) {
+        if self.flags().contains(EdictFlags::DUCKING) {
             vol *= 0.35;
         }
 
@@ -1071,8 +1064,8 @@ impl<'a> PlayerMove<'a> {
             if speed < 1.0 {
                 self.raw.velocity = vec3_t::ZERO;
             } else {
-                let friction = self.raw.movevars().friction * 1.5;
-                let control = fminf(speed, self.raw.movevars().stopspeed);
+                let friction = self.movevars().friction * 1.5;
+                let control = fminf(speed, self.movevars().stopspeed);
                 let drop = control * friction * self.raw.frametime;
                 self.raw.velocity *= fmaxf(0.0, speed - drop) / speed;
             }
@@ -1084,9 +1077,9 @@ impl<'a> PlayerMove<'a> {
                 + self.raw.right * self.raw.cmd.sidemove;
             wishvel[2] += self.raw.cmd.upmove;
             let (wishdir, mut wishspeed) = wishvel.normalize_length();
-            if wishspeed > self.raw.movevars().spectatormaxspeed {
-                wishvel *= self.raw.movevars().spectatormaxspeed / wishspeed;
-                wishspeed = self.raw.movevars().spectatormaxspeed;
+            if wishspeed > self.movevars().spectatormaxspeed {
+                wishvel *= self.movevars().spectatormaxspeed / wishspeed;
+                wishspeed = self.movevars().spectatormaxspeed;
             }
 
             let currentspeed = self.raw.velocity.dot_product(wishdir);
@@ -1096,7 +1089,7 @@ impl<'a> PlayerMove<'a> {
             }
             let accelspeed = fminf(
                 addspeed,
-                self.raw.movevars().accelerate * self.raw.frametime * wishspeed,
+                self.movevars().accelerate * self.raw.frametime * wishspeed,
             );
             self.raw.velocity += wishdir * accelspeed;
             self.raw.origin += self.raw.velocity * self.raw.frametime;
@@ -1106,7 +1099,6 @@ impl<'a> PlayerMove<'a> {
             }
 
             if let Some(i) = self
-                .raw
                 .physents()
                 .iter()
                 .position(|i| i.info == self.raw.iuser2)
@@ -1131,22 +1123,21 @@ impl<'a> PlayerMove<'a> {
             self.raw.oldbuttons &= !IN_DUCK as c_int;
         }
 
-        if self.raw.iuser3 != 0 || self.raw.is_dead() {
-            if self.raw.flags().contains(Flags::DUCKING) {
+        if self.raw.iuser3 != 0 || self.is_dead() {
+            if self.flags().contains(Flags::DUCKING) {
                 self.un_duck();
             }
             return;
         }
 
-        if self.raw.flags().contains(Flags::DUCKING) {
+        if self.flags().contains(Flags::DUCKING) {
             self.raw.cmd.forwardmove *= PLAYER_DUCKING_MULTIPLIER;
             self.raw.cmd.sidemove *= PLAYER_DUCKING_MULTIPLIER;
             self.raw.cmd.upmove *= PLAYER_DUCKING_MULTIPLIER;
         }
 
         if self.raw.cmd.is_button(IN_DUCK) {
-            if button_pressed & IN_DUCK as c_int != 0 && !self.raw.flags().contains(Flags::DUCKING)
-            {
+            if button_pressed & IN_DUCK as c_int != 0 && !self.flags().contains(Flags::DUCKING) {
                 self.raw.flDuckTime = 1000.0;
                 self.raw.bInDuck = true.into();
             }
@@ -1155,7 +1146,7 @@ impl<'a> PlayerMove<'a> {
                 if self.raw.flDuckTime / 1000.0 <= 1.0 - TIME_TO_DUCK || self.raw.onground == -1 {
                     self.raw.usehull = 1;
                     self.raw.view_ofs[2] = VEC_DUCK_VIEW;
-                    self.raw.flags_mut().insert(Flags::DUCKING);
+                    self.flags_mut().insert(Flags::DUCKING);
                     self.raw.bInDuck = false.into();
 
                     if self.raw.onground != -1 {
@@ -1171,7 +1162,7 @@ impl<'a> PlayerMove<'a> {
                         (VEC_DUCK_VIEW - more) * duck_fraction + VEC_VIEW_Z * (1.0 - duck_fraction);
                 }
             }
-        } else if self.raw.bInDuck != 0 || self.raw.flags().contains(Flags::DUCKING) {
+        } else if self.raw.bInDuck != 0 || self.flags().contains(Flags::DUCKING) {
             self.un_duck();
         }
     }
@@ -1191,7 +1182,7 @@ impl<'a> PlayerMove<'a> {
                 return;
             }
 
-            self.raw.flags_mut().remove(EdictFlags::DUCKING);
+            self.flags_mut().remove(EdictFlags::DUCKING);
             self.raw.bInDuck = false.into();
             self.raw.view_ofs[2] = VEC_VIEW_Z;
             self.raw.flDuckTime = 0.0;
@@ -1223,7 +1214,7 @@ impl<'a> PlayerMove<'a> {
         }
 
         let mut speed = fminf(self.raw.maxspeed, MAX_CLIMB_SPEED);
-        if self.raw.flags().contains(Flags::DUCKING) {
+        if self.flags().contains(Flags::DUCKING) {
             speed *= PLAYER_DUCKING_MULTIPLIER;
         }
 
@@ -1251,7 +1242,7 @@ impl<'a> PlayerMove<'a> {
             self.raw.velocity = lateral + trace.plane.normal.cross_product(perp) * -normal;
 
             let mut floor = self.raw.origin;
-            floor[2] += self.raw.player_mins[self.raw.usehull()][2] - 1.0;
+            floor[2] += self.raw.player_mins[self.usehull()][2] - 1.0;
             let on_floor = self.point_contents(floor).0 == CONTENTS_SOLID;
             if on_floor && normal > 0.0 {
                 self.raw.velocity += trace.plane.normal * MAX_CLIMB_SPEED;
@@ -1319,7 +1310,7 @@ impl<'a> PlayerMove<'a> {
         self.raw.velocity = clip_velocity(self.raw.velocity, trace.plane.normal, backoff).1;
 
         if trace.plane.normal[2] > 0.7 {
-            if self.raw.velocity[2] < self.raw.movevars().gravity * self.raw.frametime {
+            if self.raw.velocity[2] < self.movevars().gravity * self.raw.frametime {
                 self.raw.onground = trace.ent;
                 self.raw.velocity[2] = 0.0;
             }
@@ -1395,7 +1386,7 @@ impl<'a> PlayerMove<'a> {
                 for plane in &planes[..numplanes] {
                     let mut overbounce = 1.0;
                     if plane[2] <= 0.7 {
-                        overbounce += self.raw.movevars().bounce * (1.0 - self.raw.friction);
+                        overbounce += self.movevars().bounce * (1.0 - self.raw.friction);
                     };
                     let new_velocity = clip_velocity(original_velocity, *plane, overbounce).1;
                     self.raw.velocity = new_velocity;
@@ -1452,7 +1443,7 @@ impl<'a> PlayerMove<'a> {
         self.raw.waterjumptime -= self.raw.cmd.msec as f32;
         if self.raw.waterjumptime < 0.0 || self.raw.waterlevel == 0 {
             self.raw.waterjumptime = 0.0;
-            self.raw.flags_mut().remove(EdictFlags::WATERJUMP);
+            self.flags_mut().remove(EdictFlags::WATERJUMP);
         }
 
         self.raw.velocity[0] = self.raw.movedir[0];
@@ -1472,12 +1463,12 @@ impl<'a> PlayerMove<'a> {
     }
 
     fn jump(&mut self) {
-        if self.raw.is_dead() {
+        if self.is_dead() {
             self.raw.oldbuttons |= IN_JUMP as c_int;
             return;
         }
 
-        let tfc = self.info_value_for_key(self.raw.physinfo(), c"tfc");
+        let tfc = self.info_value_for_key(self.physinfo(), c"tfc");
         let tfc = tfc == Some(1_i32);
         if tfc && self.raw.deadflag == DEAD_DISCARDBODY + 1 {
             return;
@@ -1546,8 +1537,8 @@ impl<'a> PlayerMove<'a> {
             self.play_step_sound(map_texture_type_step_type(self.raw.chtexturetype), 1.0);
         }
 
-        let cansuperjump = self.info_value_for_key::<i32>(self.raw.physinfo(), c"slj");
-        if self.raw.bInDuck != 0 || self.raw.flags().contains(EdictFlags::DUCKING) {
+        let cansuperjump = self.info_value_for_key::<i32>(self.physinfo(), c"slj");
+        if self.raw.bInDuck != 0 || self.flags().contains(EdictFlags::DUCKING) {
             if cansuperjump == Some(1)
                 && self.raw.cmd.is_button(IN_DUCK)
                 && self.raw.flDuckTime > 0.0
@@ -1586,7 +1577,7 @@ impl<'a> PlayerMove<'a> {
         }
 
         self.raw.velocity[2] = 0.0;
-        self.accelerate(&wishdir, wishspeed, self.raw.movevars().accelerate);
+        self.accelerate(&wishdir, wishspeed, self.movevars().accelerate);
         self.raw.velocity[2] = 0.0;
         self.raw.velocity += self.raw.basevelocity;
 
@@ -1623,7 +1614,7 @@ impl<'a> PlayerMove<'a> {
         self.raw.velocity = originalvel;
 
         let mut dest = self.raw.origin;
-        dest[2] += self.raw.movevars().stepsize;
+        dest[2] += self.movevars().stepsize;
 
         let trace = self.player_trace(self.raw.origin, dest, PM_NORMAL, -1);
         if trace.startsolid == 0 && trace.allsolid == 0 {
@@ -1633,7 +1624,7 @@ impl<'a> PlayerMove<'a> {
         self.fly_move();
 
         let mut dest = self.raw.origin;
-        dest[2] -= self.raw.movevars().stepsize;
+        dest[2] -= self.movevars().stepsize;
 
         let trace = self.player_trace(self.raw.origin, dest, PM_NORMAL, -1);
         if trace.plane.normal[2] < 0.7 {
@@ -1673,7 +1664,7 @@ impl<'a> PlayerMove<'a> {
             wishspeed = self.raw.maxspeed;
         }
 
-        self.air_accelerate(&wishdir, wishspeed, self.raw.movevars().airaccelerate);
+        self.air_accelerate(&wishdir, wishspeed, self.movevars().airaccelerate);
 
         self.raw.velocity += self.raw.basevelocity;
 
@@ -1704,8 +1695,8 @@ impl<'a> PlayerMove<'a> {
         let mut newspeed = 0.0;
         let speed = self.raw.velocity.length();
         if speed != 0.0 {
-            newspeed = speed
-                - self.raw.frametime * speed * self.raw.movevars().friction * self.raw.friction;
+            newspeed =
+                speed - self.raw.frametime * speed * self.movevars().friction * self.raw.friction;
             if newspeed < 0.0 {
                 newspeed = 0.0;
             }
@@ -1720,13 +1711,13 @@ impl<'a> PlayerMove<'a> {
         if addspeed > 0.0 {
             wishvel = wishvel.normalize();
             let accelspeed =
-                self.raw.movevars().accelerate * wishspeed * self.raw.frametime * self.raw.friction;
+                self.movevars().accelerate * wishspeed * self.raw.frametime * self.raw.friction;
             self.raw.velocity += wishvel * fminf(accelspeed, addspeed);
         }
 
         let end = self.raw.origin + self.raw.velocity * self.raw.frametime;
         let mut start = end;
-        start[2] += self.raw.movevars().stepsize + 1.0;
+        start[2] += self.movevars().stepsize + 1.0;
         let trace = self.player_trace(start, end, PM_NORMAL, -1);
         if trace.startsolid == 0 && trace.allsolid == 0 {
             self.raw.origin = trace.endpos;
@@ -1749,11 +1740,11 @@ impl<'a> PlayerMove<'a> {
         self.raw.right = av.right;
         self.raw.up = av.up;
 
-        if cfg!(feature = "debug") && self.raw.is_client() {
+        if cfg!(feature = "debug") && self.is_client() {
             self.show_clip_box();
         }
 
-        if self.raw.spectator != 0 || self.raw.iuser1 > 0 {
+        if self.is_spectator() || self.raw.iuser1 > 0 {
             self.spectator_move();
             self.catagorize_position();
             return;
@@ -1778,7 +1769,7 @@ impl<'a> PlayerMove<'a> {
         }
 
         let ladder;
-        if self.raw.is_alive() && !self.raw.flags().contains(EdictFlags::ONTRAIN) {
+        if self.is_alive() && !self.flags().contains(EdictFlags::ONTRAIN) {
             ladder = self.ladder();
             if !ladder.is_null() {
                 self.ladder = true;
@@ -1791,7 +1782,7 @@ impl<'a> PlayerMove<'a> {
 
         self.duck();
 
-        if self.raw.is_alive() && !self.raw.flags().contains(EdictFlags::ONTRAIN) {
+        if self.is_alive() && !self.flags().contains(EdictFlags::ONTRAIN) {
             if !ladder.is_null() {
                 self.ladder_move(unsafe { &*ladder });
             } else if self.raw.movetype != MoveType::Walk as c_int
@@ -1801,7 +1792,7 @@ impl<'a> PlayerMove<'a> {
             }
         }
 
-        match self.raw.movetype() {
+        match self.movetype() {
             MoveType::None => {}
             MoveType::NoClip => self.no_clip(),
             MoveType::Toss => self.physics_toss(),
@@ -1822,7 +1813,7 @@ impl<'a> PlayerMove<'a> {
                 self.raw.velocity -= self.raw.basevelocity;
             }
             MoveType::Walk => {
-                if !self.raw.in_water() {
+                if !self.in_water() {
                     self.add_correct_gravity();
                 }
 
@@ -1881,7 +1872,7 @@ impl<'a> PlayerMove<'a> {
 
                     self.check_velocity();
 
-                    if !self.raw.in_water() {
+                    if !self.in_water() {
                         self.fixup_gravity_velocity();
                     }
 
@@ -1972,9 +1963,9 @@ pub fn player_move(pm: &mut playermove_s, is_server: bool) {
     let mut pm = PlayerMove::new(pm);
     pm.player_move(is_server);
     let onground = pm.raw.onground != -1;
-    pm.raw.flags_mut().set(EdictFlags::ONGROUND, onground);
+    pm.flags_mut().set(EdictFlags::ONGROUND, onground);
 
-    if pm.raw.is_singleplayer() && pm.raw.movetype == MoveType::Walk as c_int {
+    if pm.is_singleplayer() && pm.raw.movetype == MoveType::Walk as c_int {
         pm.raw.friction = 1.0;
     }
 }

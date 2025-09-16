@@ -18,6 +18,7 @@ use shared::{
         common::{hull_s, model_s, movevars_s, pmtrace_s, trace_t, vec3_t},
         player_move::{physent_s, playermove_s},
     },
+    macros::const_assert_size_of_field_eq,
     model::ModelType,
     sound::{Attenuation, Channel, Pitch, SoundFlags},
     str::{AsCStrPtr, ToEngineStr},
@@ -45,116 +46,79 @@ impl Drop for MemFile {
     }
 }
 
-pub trait PlayerMoveExt {
-    fn flags(&self) -> &EdictFlags;
-
-    fn flags_mut(&mut self) -> &mut EdictFlags;
-
-    fn movevars(&self) -> &movevars_s;
-
-    fn usehull(&self) -> usize;
-
-    fn physents(&self) -> &[physent_s];
-
-    fn physinfo(&self) -> &CStrThin;
-
-    fn is_server(&self) -> bool;
-
-    fn is_client(&self) -> bool;
-
-    fn is_multiplayer(&self) -> bool;
-
-    fn is_singleplayer(&self) -> bool;
-
-    fn is_dead(&self) -> bool;
-
-    fn is_alive(&self) -> bool;
-
-    fn is_spectator(&self) -> bool;
-
-    fn in_water(&self) -> bool;
-
-    fn height(&self) -> f32;
-
-    fn movetype(&self) -> MoveType;
-
-    fn texture_name(&self) -> &CStrThin;
-
-    fn texture_name_clear(&mut self) -> &mut CStrSlice;
-}
-
-impl PlayerMoveExt for playermove_s {
-    fn flags(&self) -> &EdictFlags {
-        unsafe { mem::transmute(&self.flags) }
+impl PlayerMove<'_> {
+    pub fn flags(&self) -> EdictFlags {
+        EdictFlags::from_bits_retain(self.raw.flags)
     }
 
-    fn flags_mut(&mut self) -> &mut EdictFlags {
-        unsafe { mem::transmute(&mut self.flags) }
+    pub fn flags_mut(&mut self) -> &mut EdictFlags {
+        const_assert_size_of_field_eq!(EdictFlags, playermove_s, flags);
+        unsafe { mem::transmute(&mut self.raw.flags) }
     }
 
-    fn movevars(&self) -> &movevars_s {
-        unsafe { &*self.movevars }
+    pub fn movevars(&self) -> &movevars_s {
+        unsafe { &*self.raw.movevars }
     }
 
-    fn usehull(&self) -> usize {
-        self.usehull as usize
+    pub fn usehull(&self) -> usize {
+        self.raw.usehull as usize
     }
 
-    fn physents(&self) -> &[physent_s] {
-        &self.physents[..self.numphysent as usize]
+    pub fn physents(&self) -> &[physent_s] {
+        &self.raw.physents[..self.raw.numphysent as usize]
     }
 
-    fn physinfo(&self) -> &CStrThin {
-        unsafe { CStrThin::from_ptr(self.physinfo.as_ptr()) }
+    pub fn physinfo(&self) -> &CStrThin {
+        unsafe { CStrThin::from_ptr(self.raw.physinfo.as_ptr()) }
     }
 
-    fn is_server(&self) -> bool {
-        self.server != 0
+    pub fn is_server(&self) -> bool {
+        self.raw.server != 0
     }
 
-    fn is_client(&self) -> bool {
+    pub fn is_client(&self) -> bool {
         !self.is_server()
     }
 
-    fn is_multiplayer(&self) -> bool {
-        self.multiplayer != 0
+    pub fn is_multiplayer(&self) -> bool {
+        self.raw.multiplayer != 0
     }
 
-    fn is_singleplayer(&self) -> bool {
+    pub fn is_singleplayer(&self) -> bool {
         !self.is_multiplayer()
     }
 
-    fn is_dead(&self) -> bool {
-        self.dead != 0
+    pub fn is_dead(&self) -> bool {
+        self.raw.dead != 0
     }
 
-    fn is_alive(&self) -> bool {
+    pub fn is_alive(&self) -> bool {
         !self.is_dead()
     }
 
-    fn is_spectator(&self) -> bool {
-        self.spectator != 0
+    pub fn is_spectator(&self) -> bool {
+        self.raw.spectator != 0
     }
 
-    fn in_water(&self) -> bool {
-        self.waterlevel > 1
+    pub fn in_water(&self) -> bool {
+        self.raw.waterlevel > 1
     }
 
-    fn height(&self) -> f32 {
-        let usehull = self.usehull as usize;
-        self.player_mins[usehull][2] + self.player_maxs[usehull][2]
+    pub fn height(&self) -> f32 {
+        let usehull = self.usehull();
+        self.raw.player_mins[usehull][2] + self.raw.player_maxs[usehull][2]
     }
 
-    fn movetype(&self) -> MoveType {
-        MoveType::from_raw(self.movetype).unwrap()
+    pub fn movetype(&self) -> MoveType {
+        MoveType::from_raw(self.raw.movetype).unwrap()
     }
 
-    fn texture_name(&self) -> &CStrThin {
-        unsafe { CStrThin::from_ptr(self.sztexturename.as_ptr()) }
+    pub fn texture_name(&self) -> &CStrThin {
+        unsafe { CStrThin::from_ptr(self.raw.sztexturename.as_ptr()) }
     }
 
-    fn texture_name_clear(&mut self) -> &mut CStrSlice {
-        CStrSlice::new_in_slice(&mut self.sztexturename)
+    pub fn texture_name_clear(&mut self) -> &mut CStrSlice {
+        CStrSlice::new_in_slice(&mut self.raw.sztexturename)
     }
 }
 
