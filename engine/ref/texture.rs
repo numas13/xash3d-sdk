@@ -6,11 +6,41 @@ use core::{
 use bitflags::bitflags;
 use shared::{
     color::RGBA,
-    ffi::{self, render::imgFlags_t},
+    ffi::{
+        self,
+        render::{ilFlags_t, imgFlags_t},
+    },
     macros::const_assert_size_eq,
     math::sqrtf,
     render::TextureFlags,
 };
+
+bitflags! {
+    /// Image flags.
+    #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
+    #[repr(transparent)]
+    pub struct ImageFlags: ilFlags_t {
+        const NONE              = 0;
+        /// Lerping images during resample.
+        const USE_LERPING       = ffi::render::ilFlags_t_IL_USE_LERPING;
+        /// Do not expand paletted images.
+        const KEEP_8BIT         = ffi::render::ilFlags_t_IL_KEEP_8BIT;
+        /// Allow to overwrite stored images.
+        const ALLOW_OVERWRITE   = ffi::render::ilFlags_t_IL_ALLOW_OVERWRITE;
+        /// Steam background completely ignore tga attribute 0x20 (stupid lammers!).
+        const DONTFLIP_TGA      = ffi::render::ilFlags_t_IL_DONTFLIP_TGA;
+        /// DXT compression is support.
+        const DDS_HARDWARE      = ffi::render::ilFlags_t_IL_DDS_HARDWARE;
+        /// The special mode for load gradient decals.
+        const LOAD_DECAL        = ffi::render::ilFlags_t_IL_LOAD_DECAL;
+        /// Overview required some unique operations.
+        const OVERVIEW          = ffi::render::ilFlags_t_IL_OVERVIEW;
+        /// Special mode for player decals.
+        const LOAD_PLAYER_DECAL = ffi::render::ilFlags_t_IL_LOAD_PLAYER_DECAL;
+        /// Renderer can consume raw KTX2 files (e.g. ref_vk).
+        const KTX2_RAW          = ffi::render::ilFlags_t_IL_KTX2_RAW;
+    }
+}
 
 bitflags! {
     /// Output image flags.

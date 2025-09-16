@@ -1,7 +1,7 @@
 #![allow(non_camel_case_types)]
 
 use core::{
-    ffi::{c_int, c_uint, CStr},
+    ffi::{c_int, CStr},
     mem, ptr,
 };
 
@@ -128,21 +128,8 @@ impl PixelFormat {
     }
 }
 
-bitflags! {
-    #[derive(Copy, Clone, PartialEq, Eq)]
-    #[repr(transparent)]
-    pub struct ImageFlags: c_uint {
-        const USE_LERPING       = 1 << 0; // lerping images during resample
-        const KEEP_8BIT         = 1 << 1; // don't expand paletted images
-        const ALLOW_OVERWRITE   = 1 << 2; // allow to overwrite stored images
-        const DONTFLIP_TGA      = 1 << 3; // Steam background completely ignore tga attribute 0x20 (stupid lammers!)
-        const DDS_HARDWARE      = 1 << 4; // DXT compression is support
-        const LOAD_DECAL        = 1 << 5; // special mode for load gradient decals
-        const OVERVIEW          = 1 << 6; // overview required some unque operations
-        const LOAD_PLAYER_DECAL = 1 << 7; // special mode for player decals
-        const KTX2_RAW          = 1 << 8; // renderer can consume raw KTX2 files (e.g. ref_vk)
-    }
-}
+#[deprecated(note = "use texture::ImageFlags instead")]
+pub type ImageFlags = crate::texture::ImageFlags;
 
 #[deprecated(note = "use texture::OutputImageFlags instead")]
 pub type OutputImageFlags = crate::texture::OutputImageFlags;
