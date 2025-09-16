@@ -1,6 +1,6 @@
 use core::{ffi::c_int, mem};
 
-use xash3d_ffi::common::{usercmd_s, vec3_t, wrect_s};
+use xash3d_ffi::common::wrect_s;
 
 #[deprecated(note = "use input::KeyState instead")]
 pub type KeyState = crate::input::KeyState;
@@ -31,36 +31,6 @@ pub type SurfaceFlags = crate::bsp::SurfaceFlags;
 
 #[deprecated]
 pub type RefFlags = crate::render::DrawFlags;
-
-pub trait UserCmdExt {
-    fn default() -> Self;
-
-    fn move_vector(&self) -> vec3_t;
-
-    fn move_vector_set(&mut self, vec: vec3_t);
-
-    fn is_button(&self, button: c_int) -> bool;
-}
-
-impl UserCmdExt for usercmd_s {
-    fn default() -> Self {
-        unsafe { mem::zeroed() }
-    }
-
-    fn move_vector(&self) -> vec3_t {
-        vec3_t::new(self.forwardmove, self.sidemove, self.upmove)
-    }
-
-    fn move_vector_set(&mut self, vec: vec3_t) {
-        self.forwardmove = vec[0];
-        self.sidemove = vec[1];
-        self.upmove = vec[2];
-    }
-
-    fn is_button(&self, button: c_int) -> bool {
-        self.buttons as c_int & button != 0
-    }
-}
 
 // TODO: remove when defined in ffi crate
 pub const MAX_LIGHTSTYLES: usize = 256;

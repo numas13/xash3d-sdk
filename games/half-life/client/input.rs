@@ -15,7 +15,6 @@ use cl::{
     macros::{hook_command, hook_command_key},
     math::{angle_mod, pow, sqrt, sqrtf},
     prelude::*,
-    raw::UserCmdExt,
 };
 use csz::{CStrBox, CStrThin};
 
@@ -627,7 +626,7 @@ impl Input {
 
     pub fn create_move(&mut self, frametime: f32, active: bool) -> usercmd_s {
         let engine = engine();
-        let mut cmd = usercmd_s::default();
+        let mut cmd: usercmd_s = unsafe { mem::zeroed() };
 
         if active {
             let mut viewangles = engine.get_view_angles();
@@ -671,7 +670,10 @@ impl Input {
                 );
 
                 if fmov > spd {
-                    cmd.move_vector_set(cmd.move_vector() * (spd / fmov));
+                    let r = spd / fmov;
+                    cmd.forwardmove *= r;
+                    cmd.sidemove *= r;
+                    cmd.upmove *= r;
                 }
             }
 

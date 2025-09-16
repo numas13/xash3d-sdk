@@ -1,7 +1,7 @@
 use core::{
     ffi::{c_char, c_int, c_uint, c_void},
     marker::PhantomData,
-    ptr, slice,
+    mem, ptr, slice,
 };
 
 use csz::CStrThin;
@@ -22,7 +22,6 @@ use shared::{
         },
         player_move::playermove_s,
     },
-    raw::UserCmdExt,
     utils::cstr_or_none,
 };
 
@@ -75,7 +74,7 @@ pub trait ClientDll: UnsyncGlobal {
     fn accumulate(&self) {}
 
     fn create_move(&self, frametime: f32, active: bool) -> usercmd_s {
-        usercmd_s::default()
+        unsafe { mem::zeroed() }
     }
 
     fn is_third_person(&self) -> bool {

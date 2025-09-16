@@ -125,6 +125,16 @@ impl PlayerMove<'_> {
         let cmd = &self.raw.cmd;
         vec3_t::new(cmd.forwardmove, cmd.sidemove, cmd.upmove)
     }
+
+    pub fn set_move_vector(&mut self, v: vec3_t) {
+        self.raw.cmd.forwardmove = v[0];
+        self.raw.cmd.sidemove = v[1];
+        self.raw.cmd.upmove = v[2];
+    }
+
+    pub fn is_button(&self, button: c_int) -> bool {
+        self.raw.cmd.buttons as c_int & button != 0
+    }
 }
 
 macro_rules! pm_unwrap {

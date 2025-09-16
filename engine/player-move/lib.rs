@@ -33,7 +33,6 @@ use shared::{
     },
     math::{self, fabsf, fmaxf, fminf, pow2, sqrtf, ToAngleVectors},
     model::ModelType,
-    raw::UserCmdExt,
     sound::{Attenuation, Channel, Pitch, SoundFlags},
 };
 
@@ -326,21 +325,19 @@ impl<'a> PlayerMove<'a> {
     }
 
     fn check_paramters(&mut self) {
-        let spd = self.raw.cmd.move_vector().length();
+        let spd = self.move_vector().length();
         let maxspeed = self.raw.clientmaxspeed;
         if maxspeed != 0.0 {
             self.raw.maxspeed = fminf(maxspeed, self.raw.maxspeed);
         }
 
-        if self.raw.onground != -1 && self.raw.cmd.is_button(IN_USE) {
+        if self.raw.onground != -1 && self.is_button(IN_USE) {
             self.raw.maxspeed *= 1.0 / 3.0;
         }
 
         if spd != 0.0 && spd > self.raw.maxspeed {
             let ratio = self.raw.maxspeed / spd;
-            self.raw
-                .cmd
-                .move_vector_set(self.raw.cmd.move_vector() * ratio);
+            self.set_move_vector(self.move_vector() * ratio);
         }
 
         if self
@@ -348,7 +345,7 @@ impl<'a> PlayerMove<'a> {
             .intersects(EdictFlags::FROZEN | EdictFlags::ONTRAIN)
             || self.is_dead()
         {
-            self.raw.cmd.move_vector_set(vec3_t::ZERO);
+            self.set_move_vector(vec3_t::ZERO);
         }
 
         self.drop_punch_angle();
@@ -648,7 +645,7 @@ impl<'a> PlayerMove<'a> {
             return 0;
         }
 
-        if self.raw.cmd.is_button(IN_JUMP | IN_DUCK | IN_ATTACK)
+        if self.is_button(IN_JUMP | IN_DUCK | IN_ATTACK)
             && self.raw.physents[hitent as usize].player != 0
         {
             let xystep = 8.0;
@@ -1147,7 +1144,7 @@ impl<'a> PlayerMove<'a> {
         let buttons_changed = self.raw.oldbuttons ^ self.raw.cmd.buttons as c_int;
         let button_pressed = buttons_changed & self.raw.cmd.buttons as c_int;
 
-        if self.raw.cmd.is_button(IN_DUCK) {
+        if self.is_button(IN_DUCK) {
             self.raw.oldbuttons |= IN_DUCK as c_int;
         } else {
             self.raw.oldbuttons &= !IN_DUCK as c_int;
@@ -1166,7 +1163,7 @@ impl<'a> PlayerMove<'a> {
             self.raw.cmd.upmove *= PLAYER_DUCKING_MULTIPLIER;
         }
 
-        if self.raw.cmd.is_button(IN_DUCK) {
+        if self.is_button(IN_DUCK) {
             if button_pressed & IN_DUCK as c_int != 0 && !self.flags().contains(Flags::DUCKING) {
                 self.raw.flDuckTime = 1000.0;
                 self.raw.bInDuck = true.into();
@@ -1237,7 +1234,7 @@ impl<'a> PlayerMove<'a> {
         let trace = self.trace_model(ladder, self.raw.origin, ladder_center).0;
         if trace.fraction == 1.0 {
             return;
-        } else if self.raw.cmd.is_button(IN_JUMP) {
+        } else if self.is_button(IN_JUMP) {
             self.raw.movetype = MoveType::Walk as c_int;
             self.raw.velocity = trace.plane.normal * 270.0;
             return;
@@ -1250,16 +1247,16 @@ impl<'a> PlayerMove<'a> {
 
         let mut forward = 0.0;
         let mut side = 0.0;
-        if self.raw.cmd.is_button(IN_BACK) {
+        if self.is_button(IN_BACK) {
             forward -= speed;
         }
-        if self.raw.cmd.is_button(IN_FORWARD) {
+        if self.is_button(IN_FORWARD) {
             forward += speed;
         }
-        if self.raw.cmd.is_button(IN_MOVELEFT) {
+        if self.is_button(IN_MOVELEFT) {
             side -= speed;
         }
-        if self.raw.cmd.is_button(IN_MOVERIGHT) {
+        if self.is_button(IN_MOVERIGHT) {
             side += speed;
         }
 
@@ -1564,7 +1561,7 @@ impl<'a> PlayerMove<'a> {
         let cansuperjump = self.info_value_for_key::<i32>(self.physinfo(), c"slj");
         if self.raw.bInDuck != 0 || self.flags().contains(EdictFlags::DUCKING) {
             if cansuperjump == Some(1)
-                && self.raw.cmd.is_button(IN_DUCK)
+                && self.is_button(IN_DUCK)
                 && self.raw.flDuckTime > 0.0
                 && self.raw.velocity.length() > 50.0
             {
@@ -1786,7 +1783,7 @@ impl<'a> PlayerMove<'a> {
             MoveType::Fly => {
                 self.check_water();
 
-                if self.raw.cmd.is_button(IN_JUMP) {
+                if self.is_button(IN_JUMP) {
                     if ladder.is_null() {
                         self.jump();
                     }
@@ -1820,7 +1817,7 @@ impl<'a> PlayerMove<'a> {
                         self.raw.waterjumptime = 0.0;
                     }
 
-                    if self.raw.cmd.is_button(IN_JUMP) {
+                    if self.is_button(IN_JUMP) {
                         self.jump();
                     } else {
                         self.raw.oldbuttons &= !IN_JUMP as c_int;
@@ -1831,7 +1828,7 @@ impl<'a> PlayerMove<'a> {
 
                     self.catagorize_position();
                 } else {
-                    if self.raw.cmd.is_button(IN_JUMP) {
+                    if self.is_button(IN_JUMP) {
                         if ladder.is_null() {
                             self.jump();
                         }
