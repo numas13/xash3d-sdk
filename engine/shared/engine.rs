@@ -1,8 +1,11 @@
 pub mod net;
 
 use core::{
+    cmp::Ordering,
     ffi::{c_char, c_int},
-    fmt,
+    fmt, hash,
+    marker::PhantomData,
+    ops::Deref,
     time::Duration,
 };
 
@@ -11,8 +14,73 @@ use csz::CStrThin;
 use crate::{
     color::RGB,
     cvar::{GetCvar, SetCvar},
+    export::UnsyncGlobal,
     str::{AsCStrPtr, ToEngineStr},
 };
+
+/// A wrapper for an engine struct that can not be send or called from other threads.
+pub struct EngineRef<T> {
+    phantom: PhantomData<*const T>,
+}
+
+impl<T> EngineRef<T> {
+    /// Creates a new `EngineRef<T>`.
+    ///
+    /// # Safety
+    ///
+    /// Must be called only in the engine thread and `T` must be initialized.
+    pub unsafe fn new() -> Self {
+        Self {
+            phantom: PhantomData,
+        }
+    }
+}
+
+impl<T: UnsyncGlobal> Deref for EngineRef<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        unsafe { T::global_assume_init_ref() }
+    }
+}
+
+impl<T> Copy for EngineRef<T> {}
+
+impl<T> Clone for EngineRef<T> {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+
+impl<T> PartialEq for EngineRef<T> {
+    fn eq(&self, _: &Self) -> bool {
+        true
+    }
+}
+
+impl<T> Eq for EngineRef<T> {}
+
+impl<T> PartialOrd for EngineRef<T> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl<T> Ord for EngineRef<T> {
+    fn cmp(&self, _: &Self) -> Ordering {
+        Ordering::Equal
+    }
+}
+
+impl<T> fmt::Debug for EngineRef<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("EngineRef").finish()
+    }
+}
+
+impl<T> hash::Hash for EngineRef<T> {
+    fn hash<H: hash::Hasher>(&self, _: &mut H) {}
+}
 
 /// The error type which is returned if a buffer capacity is no sufficient to hold all data.
 #[derive(Debug)]
