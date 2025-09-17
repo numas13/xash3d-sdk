@@ -29,18 +29,18 @@ macro_rules! define_server {
             $(
                 #[allow(non_upper_case_globals)]
                 $(#[$meta])*
-                static mut $name: sv::cvar::cvar_s = {
+                static mut $name: sv::ffi::common::cvar_s = {
                     use $crate::cvar::flags::*;
 
                     #[allow(unused_variables)]
                     let flags = NONE;
                     $(let flags = $flags;)?
 
-                    sv::cvar::cvar_s {
-                        name: sv::macros::cstringify!($name).as_ptr(),
+                    sv::ffi::common::cvar_s {
+                        name: sv::macros::cstringify!($name).as_ptr().cast_mut(),
                         string: $value.as_ptr() as *mut core::ffi::c_char,
                         value: 0.0,
-                        flags,
+                        flags: flags.bits(),
                         next: core::ptr::null_mut(),
                     }
                 };

@@ -7,17 +7,13 @@ use csz::{CStrSlice, CStrThin};
 use shared::{
     export::impl_unsync_global,
     ffi::{
-        self,
-        common::vec3_t,
+        common::{cvar_s, vec3_t},
         server::{edict_s, enginefuncs_s, ALERT_TYPE, LEVELLIST},
     },
     str::{AsCStrPtr, ToEngineStr},
 };
 
-use crate::{
-    cvar::{cvar_s, CVarPtr},
-    str::MapString,
-};
+use crate::{cvar::CVarPtr, str::MapString};
 
 pub use shared::engine::AddCmdError;
 
@@ -364,7 +360,6 @@ impl ServerEngine {
     // pub pfnWriteEntity: Option<unsafe extern "C" fn(iValue: c_int)>,
 
     pub fn cvar_register(&self, cvar: &'static mut cvar_s) {
-        let cvar = cvar as *mut cvar_s as *mut ffi::common::cvar_s;
         unsafe { unwrap!(self, pfnCVarRegister)(cvar) }
     }
 

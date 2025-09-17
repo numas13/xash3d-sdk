@@ -10,7 +10,7 @@ use shared::{
     export::impl_unsync_global,
     ffi::{
         self,
-        common::{efrag_s, mleaf_s, mnode_s, ref_overview_s, vec3_t},
+        common::{cvar_s, efrag_s, mleaf_s, mnode_s, ref_overview_s, vec3_t},
         render::{convar_s, ref_api_s, rgbdata_t},
     },
     macros::define_enum_for_primitive,
@@ -19,7 +19,6 @@ use shared::{
 
 use crate::{
     buffer::SwBuffer,
-    cvar::cvar_s,
     engine::draw::Draw,
     render::RefParm,
     texture::{ImageFlags, OutputImageFlags, RgbData},

@@ -1,13 +1,9 @@
-use core::{
-    ffi::{c_char, CStr},
-    ops::Deref,
-    ptr,
-    str::Utf8Error,
-};
+use core::{ffi::CStr, ops::Deref, ptr, str::Utf8Error};
 
 use alloc::{ffi::CString, string::String};
 use bitflags::bitflags;
 use csz::{CStrBox, CStrThin};
+use xash3d_ffi::common::cvar_s;
 
 use crate::cell::SyncOnceCell;
 
@@ -51,61 +47,6 @@ bitflags! {
         const FILTERCHARS           = 1 << 12;
         /// This cvar's string cannot contain file paths that are above the current directory.
         const NOBADPATHS            = 1 << 13;
-    }
-}
-
-// TODO: replace with ffi::cvar_s
-#[allow(non_camel_case_types)]
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct cvar_s {
-    pub name: *const c_char,
-    pub string: *mut c_char,
-    pub flags: CVarFlags,
-    pub value: f32,
-    pub next: *mut cvar_s,
-}
-
-/// SAFETY: engine is single-threaded
-unsafe impl Sync for cvar_s {}
-
-impl cvar_s {
-    pub const fn new(name: &'static CStr, value: f32, flags: CVarFlags) -> Self {
-        Self {
-            name: name.as_ptr(),
-            string: ptr::null_mut(),
-            flags,
-            value,
-            next: ptr::null_mut(),
-        }
-    }
-
-    pub fn name(&self) -> &CStr {
-        unsafe { CStr::from_ptr(self.name) }
-    }
-
-    pub fn string(&self) -> &CStr {
-        unsafe { CStr::from_ptr(self.string) }
-    }
-
-    pub fn flags(&self) -> CVarFlags {
-        self.flags
-    }
-
-    pub fn value(&self) -> f32 {
-        self.value
-    }
-
-    pub fn value_as_bool(&self) -> bool {
-        self.value() != 0.0
-    }
-
-    pub fn next_var(&mut self) -> Option<&mut Self> {
-        if self.next.is_null() {
-            None
-        } else {
-            Some(unsafe { &mut *self.next })
-        }
     }
 }
 
@@ -158,11 +99,11 @@ impl CVarPtr {
         self.raw.is_null()
     }
 
-    pub fn name(self) -> &'static CStr {
+    pub fn name(self) -> &'static CStrThin {
         if !self.raw.is_null() {
-            unsafe { (*self.raw).name() }
+            unsafe { CStrThin::from_ptr((*self.raw).name) }
         } else {
-            c"undefined"
+            c"undefined".into()
         }
     }
 
@@ -175,14 +116,14 @@ impl CVarPtr {
         }
     }
 
-    pub fn value_str(&self) -> &CStr {
+    pub fn value_str(&self) -> &CStrThin {
         if !self.raw.is_null() {
             let ptr = unsafe { ptr::read(&(*self.raw).string) };
             assert!(!ptr.is_null());
-            unsafe { CStr::from_ptr(ptr) }
+            unsafe { CStrThin::from_ptr(ptr) }
         } else {
             error!("CVarPtr: read from null cvar");
-            c""
+            c"".into()
         }
     }
 
@@ -208,7 +149,7 @@ impl Deref for CVarPtr {
     }
 }
 
-pub type GetCVarFn = fn(&CStr, &CStr, CVarFlags) -> CVarPtr;
+pub type GetCVarFn = fn(&CStrThin, &CStrThin, CVarFlags) -> CVarPtr;
 
 static GET_CVAR: SyncOnceCell<GetCVarFn> = unsafe { SyncOnceCell::new() };
 
@@ -242,8 +183,9 @@ impl Deref for CVar {
     type Target = CVarPtr;
 
     fn deref(&self) -> &Self::Target {
-        self.ptr
-            .get_or_init(|| GET_CVAR.get().unwrap()(self.name, self.value, self.flags))
+        self.ptr.get_or_init(|| {
+            GET_CVAR.get().unwrap()(self.name.into(), self.value.into(), self.flags)
+        })
     }
 }
 
