@@ -17,7 +17,7 @@ use shared::{
     render::TextureFlags,
 };
 
-use crate::prelude::*;
+use crate::engine::RefEngineRef;
 
 pub const SKYBOX_MAX_SIDES: usize = ffi::render::SKYBOX_MAX_SIDES as usize;
 
@@ -305,6 +305,7 @@ impl TextureId {
 }
 
 pub struct RgbData {
+    pub(crate) engine: RefEngineRef,
     pub(crate) raw: *mut rgbdata_s,
 }
 
@@ -324,16 +325,19 @@ impl RgbData {
 
 impl Clone for RgbData {
     fn clone(&self) -> Self {
-        let raw = unsafe { engine().fs_copy_image(self.raw) };
+        let raw = unsafe { self.engine.fs_copy_image(self.raw) };
         assert!(!raw.is_null());
-        Self { raw }
+        Self {
+            engine: self.engine,
+            raw,
+        }
     }
 }
 
 impl Drop for RgbData {
     fn drop(&mut self) {
         unsafe {
-            engine().fs_free_image(self.raw);
+            self.engine.fs_free_image(self.raw);
         }
     }
 }

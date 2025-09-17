@@ -1,12 +1,10 @@
 use core::ffi::c_int;
 
-use shared::{export::impl_unsync_global, ffi::render::ref_globals_s};
+use shared::ffi::render::ref_globals_s;
 
 pub struct RefGlobals {
     raw: *mut ref_globals_s,
 }
-
-impl_unsync_global!(RefGlobals);
 
 impl RefGlobals {
     pub(crate) fn new(raw: *mut ref_globals_s) -> Self {

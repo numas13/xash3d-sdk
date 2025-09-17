@@ -11,7 +11,7 @@ use shared::{
     ffi::{
         self,
         common::{cvar_s, efrag_s, mleaf_s, mnode_s, ref_overview_s, vec3_t},
-        render::{convar_s, ref_api_s, rgbdata_t},
+        render::{convar_s, ref_api_s, ref_globals_s, rgbdata_t},
     },
     macros::define_enum_for_primitive,
     str::{AsCStrPtr, ToEngineStr},
@@ -20,11 +20,12 @@ use shared::{
 use crate::{
     buffer::SwBuffer,
     engine::draw::Draw,
+    globals::RefGlobals,
     render::RefParm,
     texture::{ImageFlags, OutputImageFlags, RgbData},
 };
 
-pub use shared::engine::AddCmdError;
+pub use shared::engine::{AddCmdError, EngineRef};
 
 pub(crate) mod prelude {
     pub use shared::engine::{
@@ -33,6 +34,8 @@ pub(crate) mod prelude {
 }
 
 pub use self::prelude::*;
+
+pub type RefEngineRef = EngineRef<RefEngine>;
 
 define_enum_for_primitive! {
     #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -76,6 +79,7 @@ impl fmt::Debug for FatPvsError {
 
 pub struct RefEngine {
     raw: ref_api_s,
+    pub globals: RefGlobals,
 }
 
 impl_unsync_global!(RefEngine);
@@ -90,8 +94,11 @@ macro_rules! unwrap {
 }
 
 impl RefEngine {
-    pub(crate) fn new(raw: &ref_api_s) -> Self {
-        Self { raw: *raw }
+    pub(crate) fn new(raw: &ref_api_s, globals: *mut ref_globals_s) -> Self {
+        Self {
+            raw: *raw,
+            globals: RefGlobals::new(globals),
+        }
     }
 
     pub fn raw(&self) -> &ref_api_s {
@@ -311,7 +318,7 @@ impl RefEngine {
         let mut buffer = SwBuffer {
             width,
             height,
-            ..SwBuffer::default()
+            ..SwBuffer::new(unsafe { RefEngineRef::new() })
         };
         let res = unsafe {
             unwrap!(self, SW_CreateBuffer)(
@@ -421,7 +428,8 @@ impl RefEngine {
             .unwrap_or((ptr::null_mut(), 0));
         let raw = unsafe { unwrap!(self, FS_LoadImage)(filename.as_ptr(), buffer, size) };
         if !raw.is_null() {
-            Some(RgbData { raw })
+            let engine = unsafe { RefEngineRef::new() };
+            Some(RgbData { engine, raw })
         } else {
             None
         }

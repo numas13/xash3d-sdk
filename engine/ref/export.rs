@@ -27,13 +27,16 @@ use shared::{
     utils::{cstr_or_none, slice_from_raw_parts_or_empty},
 };
 
-use crate::texture::{TextureId, SKYBOX_MAX_SIDES, UNUSED_TEXTURE_NAME};
+use crate::{
+    engine::RefEngineRef,
+    texture::{TextureId, SKYBOX_MAX_SIDES, UNUSED_TEXTURE_NAME},
+};
 
 pub use shared::export::{impl_unsync_global, UnsyncGlobal};
 
 #[allow(unused_variables)]
 pub trait RefDll: UnsyncGlobal {
-    fn new() -> Option<Self>;
+    fn new(engine: RefEngineRef) -> Option<Self>;
 
     fn get_config_name(&self) -> Option<&'static CStrThin> {
         None
@@ -966,7 +969,7 @@ fn texture_name<'a>(name: *const c_char) -> Option<&'a CStrThin> {
 
 impl<T: RefDll> RefDllExport for Export<T> {
     unsafe extern "C" fn init() -> qboolean {
-        match T::new() {
+        match T::new(unsafe { RefEngineRef::new() }) {
             Some(instance) => unsafe {
                 (&mut *T::global_as_mut_ptr()).write(instance);
                 1

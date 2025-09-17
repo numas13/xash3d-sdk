@@ -4,10 +4,10 @@ use core::{
     slice,
 };
 
-use crate::prelude::*;
+use crate::engine::RefEngineRef;
 
-#[derive(Default)]
 pub struct SwBuffer {
+    pub(crate) engine: RefEngineRef,
     pub(crate) width: c_int,
     pub(crate) height: c_int,
     pub(crate) stride: u32,
@@ -18,6 +18,19 @@ pub struct SwBuffer {
 }
 
 impl SwBuffer {
+    pub fn new(engine: RefEngineRef) -> Self {
+        Self {
+            engine,
+            width: 0,
+            height: 0,
+            stride: 0,
+            bpp: 0,
+            r_mask: 0,
+            g_mask: 0,
+            b_mask: 0,
+        }
+    }
+
     pub fn width(&self) -> usize {
         self.width as usize
     }
@@ -67,8 +80,7 @@ impl SwBuffer {
     }
 
     pub fn lock(&mut self, width: c_int, height: c_int) -> Option<SwBufferLock<'_>> {
-        let engine = engine();
-        let data = unsafe { engine.sw_lock_buffer() };
+        let data = unsafe { self.engine.sw_lock_buffer() };
         if !data.is_null() && width == self.width && height == self.height {
             Some(SwBufferLock { buf: self, data })
         } else {
@@ -125,7 +137,7 @@ impl DerefMut for SwBufferLock<'_> {
 impl Drop for SwBufferLock<'_> {
     fn drop(&mut self) {
         unsafe {
-            engine().sw_unlock_buffer();
+            self.engine.sw_unlock_buffer();
         }
     }
 }

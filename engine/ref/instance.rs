@@ -1,8 +1,8 @@
 use shared::{export::UnsyncGlobal, ffi};
 
-use crate::{engine::RefEngine, globals::RefGlobals};
+use crate::engine::RefEngine;
 
-/// Initialize the global [RefEngine] and [RefGlobals] instances.
+/// Initialize the global [RefEngine] and [crate::globals::RefGlobals] instances.
 ///
 /// # Safety
 ///
@@ -11,27 +11,9 @@ pub unsafe fn init_engine(
     engine_funcs: &ffi::render::ref_api_t,
     globals: *mut ffi::render::ref_globals_t,
 ) {
+    let engine = RefEngine::new(engine_funcs, globals);
     unsafe {
-        (*RefEngine::global_as_mut_ptr()).write(RefEngine::new(engine_funcs));
-        (*RefGlobals::global_as_mut_ptr()).write(RefGlobals::new(globals));
+        (*RefEngine::global_as_mut_ptr()).write(engine);
     }
     crate::logger::init_console_logger();
-}
-
-/// Returns a reference to the global [RefEngine] instance.
-///
-/// # Safety
-///
-/// Must not be called before [init_engine].
-pub fn engine() -> &'static RefEngine {
-    unsafe { RefEngine::global_assume_init_ref() }
-}
-
-/// Returns a reference to the global [RefGlobals] instance.
-///
-/// # Safety
-///
-/// Must not be called before [init_engine].
-pub fn globals() -> &'static RefGlobals {
-    unsafe { RefGlobals::global_assume_init_ref() }
 }
