@@ -13,13 +13,14 @@ macro_rules! link_entity {
         #[no_mangle]
         unsafe extern "C" fn $name(ev: *mut sv::ffi::server::entvars_s) {
             use $crate::private_data::Private;
+            let engine = unsafe { sv::engine::ServerEngineRef::new() };
             let ent = if !ev.is_null() {
                 unsafe { (*ev).pContainingEntity }
             } else {
-                sv::instance::engine().create_entity()
+                engine.create_entity()
             };
             let ent = unsafe { &mut *ent };
-            ent.private_init($create);
+            ent.private_init(engine, $create);
         }
     };
 }

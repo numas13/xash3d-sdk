@@ -6,36 +6,23 @@ use core::{
 };
 
 use csz::CStrThin;
-use shared::macros::const_assert_size_eq;
-
-use crate::instance::engine;
 
 pub use shared::str::ToEngineStr;
 
+use crate::prelude::*;
+
 /// A string that valid until the end of the current map.
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-#[repr(transparent)]
 pub struct MapString {
+    engine: ServerEngineRef,
     // TODO: replace with NonZero<c_int> when MSRV >= 1.79
     index: NonZeroI32,
 }
-const_assert_size_eq!(c_int, MapString);
-const_assert_size_eq!(c_int, Option<MapString>);
 
 impl MapString {
     /// Creates a new string from the given index.
-    pub fn from_index(index: c_int) -> Option<Self> {
-        NonZeroI32::new(index).map(|index| Self { index })
-    }
-
-    /// Tries to create a new map string from a given `string`.
-    pub fn try_new(string: impl ToEngineStr) -> Option<Self> {
-        engine().alloc_map_string(string)
-    }
-
-    /// Creates a new map string from a given `string`.
-    pub fn new(string: impl ToEngineStr) -> Self {
-        Self::try_new(string).expect("failed to allocate a map string")
+    pub fn from_index(engine: ServerEngineRef, index: c_int) -> Option<Self> {
+        NonZeroI32::new(index).map(|index| Self { engine, index })
     }
 
     pub const fn index(&self) -> c_int {
@@ -43,7 +30,7 @@ impl MapString {
     }
 
     pub fn as_thin(&self) -> &CStrThin {
-        engine()
+        self.engine
             .find_map_string(self)
             .unwrap_or(c"<invalid MapString>".into())
     }

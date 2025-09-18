@@ -7,7 +7,7 @@ use csz::CStrThin;
 use pm::{VEC_DUCK_HULL_MIN, VEC_HULL_MIN};
 use sv::{
     entity::EdictFlags,
-    export::{export_dll, impl_unsync_global, RestoreResult, ServerDll, SpawnResult},
+    export::{export_dll, impl_unsync_global, RestoreResult, ServerDll, SpawnResult, UnsyncGlobal},
     ffi::{
         common::{clientdata_s, entity_state_s, vec3_t},
         server::{edict_s, KeyValueData, SAVERESTOREDATA, TYPEDESCRIPTION},
@@ -17,24 +17,36 @@ use sv::{
 
 use crate::{
     gamerules::game_rules,
-    global_state::{global_state, EntityState},
+    global_state::{EntityState, GlobalState},
     player,
     private_data::{Private, PrivateDataRef},
     save, triggers,
 };
 
-struct Instance {}
-
-impl Default for Instance {
-    fn default() -> Self {
-        crate::cvar::init();
-        Self {}
-    }
+pub fn global_state() -> &'static GlobalState {
+    unsafe { &Dll::global_assume_init_ref().global_state }
 }
 
-impl_unsync_global!(Instance);
+struct Dll {
+    engine: ServerEngineRef,
+    global_state: GlobalState,
+}
 
-impl ServerDll for Instance {
+impl_unsync_global!(Dll);
+
+impl ServerDll for Dll {
+    fn new(engine: ServerEngineRef) -> Self {
+        crate::cvar::init(engine);
+        Self {
+            engine,
+            global_state: GlobalState::new(engine),
+        }
+    }
+
+    fn engine(&self) -> ServerEngineRef {
+        self.engine
+    }
+
     fn dispatch_spawn(&self, ent: &mut edict_s) -> SpawnResult {
         let Some(ent) = ent.private_mut() else {
             return SpawnResult::Delete;
@@ -59,7 +71,7 @@ impl ServerDll for Instance {
         if let Some(globalname) = ent.vars().globalname() {
             let global_state = global_state();
             let mut entities = global_state.entities.borrow_mut();
-            let map_name = globals().map_name().unwrap();
+            let map_name = self.engine.globals.map_name().unwrap();
             if let Some(global) = entities.find(globalname) {
                 if global.is_dead() {
                     return SpawnResult::Delete;
@@ -101,11 +113,11 @@ impl ServerDll for Instance {
     fn dispatch_blocked(&self, _blocked: &mut edict_s, _other: &mut edict_s) {}
 
     fn dispatch_key_value(&self, ent: &mut edict_s, data: &mut KeyValueData) {
-        save::dispatch_key_value(ent, data);
+        save::dispatch_key_value(self.engine, ent, data);
     }
 
     fn dispatch_save(&self, ent: &mut edict_s, save_data: &mut SAVERESTOREDATA) {
-        save::dispatch_save(ent, save_data);
+        save::dispatch_save(self.engine, ent, save_data);
     }
 
     fn dispatch_restore(
@@ -114,7 +126,7 @@ impl ServerDll for Instance {
         save_data: &mut SAVERESTOREDATA,
         global_entity: bool,
     ) -> RestoreResult {
-        save::dispatch_restore(ent, save_data, global_entity)
+        save::dispatch_restore(self.engine, ent, save_data, global_entity)
     }
 
     fn dispatch_object_collsion_box(&self, ent: &mut edict_s) {
@@ -128,7 +140,7 @@ impl ServerDll for Instance {
         base_data: *mut c_void,
         fields: &mut [TYPEDESCRIPTION],
     ) {
-        save::write_fields(save_data, name.as_c_str(), base_data, fields);
+        save::write_fields(self.engine, save_data, name.as_c_str(), base_data, fields);
     }
 
     fn save_read_fields(
@@ -138,7 +150,13 @@ impl ServerDll for Instance {
         base_data: *mut c_void,
         fields: &mut [TYPEDESCRIPTION],
     ) {
-        save::read_fields(&mut *save_data, name.as_c_str(), base_data, fields);
+        save::read_fields(
+            self.engine,
+            &mut *save_data,
+            name.as_c_str(),
+            base_data,
+            fields,
+        );
     }
 
     fn save_global_state(&self, save_data: &mut SAVERESTOREDATA) {
@@ -158,7 +176,7 @@ impl ServerDll for Instance {
     }
 
     fn client_put_in_server(&self, ent: &mut edict_s) {
-        player::client_put_in_server(ent);
+        player::client_put_in_server(self.engine, ent);
     }
 
     fn client_command(&self, ent: &mut edict_s) {
@@ -166,17 +184,17 @@ impl ServerDll for Instance {
         let classname = classname
             .as_ref()
             .map_or(c"unknown".into(), |s| s.as_thin());
-        let engine = engine();
+        let engine = self.engine;
         let cmd = engine.cmd_argv(0);
         let args = engine.cmd_args_raw().unwrap_or_default();
         debug!("{classname}: client command \"{cmd} {args}\"");
     }
 
     fn parms_change_level(&self) {
-        if let Some(mut save_data) = globals().save_data() {
+        if let Some(mut save_data) = self.engine.globals.save_data() {
             let save_data = unsafe { save_data.as_mut() };
             save_data.connectionCount =
-                triggers::build_change_list(&mut save_data.levelList) as c_int;
+                triggers::build_change_list(self.engine, &mut save_data.levelList) as c_int;
         }
     }
 
@@ -205,7 +223,7 @@ impl ServerDll for Instance {
             org += VEC_HULL_MIN - VEC_DUCK_HULL_MIN;
         }
 
-        let engine = engine();
+        let engine = self.engine;
         unsafe {
             *pvs = engine.set_pvs(org);
             *pas = engine.set_pas(org);
@@ -213,7 +231,7 @@ impl ServerDll for Instance {
     }
 
     fn update_client_data(&self, ent: &edict_s, send_weapons: bool, cd: &mut clientdata_s) {
-        crate::todo::update_client_data(ent, send_weapons, cd);
+        crate::todo::update_client_data(self.engine, ent, send_weapons, cd);
     }
 
     fn add_to_full_pack(
@@ -226,7 +244,7 @@ impl ServerDll for Instance {
         player: bool,
         set: *mut c_uchar,
     ) -> bool {
-        crate::todo::add_to_full_pack(state, e, ent, host, hostflags, player, set)
+        crate::todo::add_to_full_pack(self.engine, state, e, ent, host, hostflags, player, set)
     }
 
     fn create_baseline(
@@ -255,4 +273,4 @@ impl ServerDll for Instance {
     }
 }
 
-export_dll!(Instance);
+export_dll!(Dll);

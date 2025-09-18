@@ -12,7 +12,6 @@ use sv::{
         server::{edict_s, entvars_s},
     },
     prelude::*,
-    str::MapString,
 };
 
 use crate::{
@@ -20,12 +19,16 @@ use crate::{
     private_data::Private,
 };
 
-pub fn update_client_data(ent: &edict_s, sendweapons: bool, cd: &mut clientdata_s) {
+pub fn update_client_data(
+    engine: ServerEngineRef,
+    ent: &edict_s,
+    sendweapons: bool,
+    cd: &mut clientdata_s,
+) {
     if ent.pvPrivateData.is_null() {
         return;
     }
 
-    let engine = engine();
     let ev = &ent.v;
 
     // TODO:
@@ -72,7 +75,9 @@ pub fn update_client_data(ent: &edict_s, sendweapons: bool, cd: &mut clientdata_
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn add_to_full_pack(
+    engine: ServerEngineRef,
     state: &mut entity_state_s,
     e: c_int,
     ent: &edict_s,
@@ -93,7 +98,6 @@ pub fn add_to_full_pack(
         return false;
     }
 
-    let engine = engine();
     if !ptr::eq(ent, host) && !engine.check_visibility(ent, set) {
         return false;
     }
@@ -172,7 +176,7 @@ pub fn add_to_full_pack(
     state.owner = 0;
     if !ent.v.owner.is_null() {
         let owner = engine.ent_index(unsafe { &*ent.v.owner });
-        if owner >= 1 && owner <= globals().max_clients() {
+        if owner >= 1 && owner <= engine.globals.max_clients() {
             state.owner = owner;
         }
     }
@@ -288,6 +292,7 @@ pub fn dispatch_object_collision_box(ent: &mut edict_s) {
 
 #[derive(Debug)]
 pub struct Stub {
+    pub engine: ServerEngineRef,
     pub vars: *mut entvars_s,
     pub name: &'static CStr,
 }
@@ -301,8 +306,12 @@ impl EntityVars for Stub {
 }
 
 impl Entity for Stub {
+    fn engine(&self) -> ServerEngineRef {
+        self.engine
+    }
+
     fn spawn(&mut self) -> bool {
-        let classname = MapString::new(self.name);
+        let classname = self.engine.new_map_string(self.name);
         let ev = self.vars_mut();
         ev.classname = classname.index();
         true
@@ -311,8 +320,8 @@ impl Entity for Stub {
 
 macro_rules! link_entity_stub {
     ($($name:ident),* $(,)?) => {
-        $($crate::macros::link_entity!($name, |vars| {
-            $crate::todo::Stub { vars, name: sv::macros::cstringify!($name) }
+        $($crate::macros::link_entity!($name, |engine, vars| {
+            $crate::todo::Stub { engine, vars, name: sv::macros::cstringify!($name) }
         });)*
     };
 }

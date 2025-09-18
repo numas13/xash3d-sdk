@@ -3,9 +3,9 @@ use core::{cell::RefCell, ffi::c_int, mem::MaybeUninit, ptr};
 use alloc::collections::linked_list::LinkedList;
 use csz::{CStrArray, CStrThin};
 use sv::{
-    cell::SyncOnceCell,
     ffi::server::{edict_s, SAVERESTOREDATA, TYPEDESCRIPTION},
     macros::define_field,
+    prelude::*,
     save::FieldType,
     str::MapString,
 };
@@ -148,26 +148,28 @@ const GLOBAL_ENTITY_FIELDS: [TYPEDESCRIPTION; 3] = [
 ];
 
 pub struct GlobalState {
+    engine: ServerEngineRef,
     pub entities: RefCell<Entities>,
     pub last_spawn: RefCell<*mut edict_s>,
 }
 
 impl GlobalState {
-    fn new() -> Self {
+    pub fn new(engine: ServerEngineRef) -> Self {
         Self {
+            engine,
             entities: RefCell::new(Entities::new()),
             last_spawn: RefCell::new(ptr::null_mut()),
         }
     }
 
     pub fn save(&self, save_data: &mut SAVERESTOREDATA) -> save::Result<()> {
-        let _helper = SaveRestore::new(save_data);
+        let _helper = SaveRestore::new(self.engine, save_data);
         debug!("TODO: SaveGlobalState");
         Ok(())
     }
 
     pub fn restore(&self, save_data: &mut SAVERESTOREDATA) -> save::Result<()> {
-        let mut helper = SaveRestore::new(save_data);
+        let mut helper = SaveRestore::new(self.engine, save_data);
         self.reset();
 
         let mut global_state = GlobalStateSave { list_count: 0 };
@@ -194,10 +196,4 @@ impl GlobalState {
         self.entities.borrow_mut().clear();
         // TODO: init_hud = true
     }
-}
-
-static GLOBAL_STATE: SyncOnceCell<GlobalState> = unsafe { SyncOnceCell::new() };
-
-pub fn global_state() -> &'static GlobalState {
-    GLOBAL_STATE.get_or_init(GlobalState::new)
 }

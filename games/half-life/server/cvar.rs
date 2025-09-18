@@ -46,8 +46,7 @@ macro_rules! define_server {
                 };
             )*
 
-            pub(super) fn init() {
-                let engine = sv::instance::engine();
+            pub(super) fn init(engine: sv::engine::ServerEngineRef) {
                 unsafe {
                     $(engine.cvar_register(&mut *core::ptr::addr_of_mut!($name));)*
                 }
@@ -405,15 +404,15 @@ define_server! {
     pub static sv_busters(c"0");
 }
 
-pub fn init() {
+pub fn init(engine: ServerEngineRef) {
     sv_gravity.get_ptr();
     sv_aim.get_ptr();
     sv_allow_autoaim.get_ptr();
     mp_footsteps.get_ptr();
 
     // XXX: server dll use different API for cvar registration
-    self::register::init();
+    self::register::init(engine);
     self::get_ptrs();
 
-    engine().server_command(c"exec skill.cfg\n");
+    engine.server_command(c"exec skill.cfg\n");
 }

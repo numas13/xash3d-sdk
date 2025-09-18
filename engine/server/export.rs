@@ -62,6 +62,10 @@ impl From<RestoreResult> for c_int {
 #[allow(unused_variables)]
 #[allow(clippy::missing_safety_doc)]
 pub trait ServerDll: UnsyncGlobal {
+    fn new(engine: ServerEngineRef) -> Self;
+
+    fn engine(&self) -> ServerEngineRef;
+
     fn dispatch_spawn(&self, ent: &mut edict_s) -> SpawnResult;
 
     fn dispatch_think(&self, ent: &mut edict_s);
@@ -236,7 +240,7 @@ pub trait ServerDll: UnsyncGlobal {
         filename: &CStrThin,
         disconnect_message: &mut CStrArray<256>,
     ) -> bool {
-        if !engine().get_cvar::<bool>(c"mp_consistency") {
+        if !self.engine().get_cvar::<bool>(c"mp_consistency") {
             // server does not care
             return false;
         }
@@ -267,11 +271,11 @@ pub trait ServerDll: UnsyncGlobal {
     }
 }
 
-pub fn dll_functions<T: ServerDll + Default>() -> DLL_FUNCTIONS {
+pub fn dll_functions<T: ServerDll>() -> DLL_FUNCTIONS {
     Export::<T>::dll_functions()
 }
 
-pub fn new_dll_functions<T: ServerDll + Default>() -> NEW_DLL_FUNCTIONS {
+pub fn new_dll_functions<T: ServerDll>() -> NEW_DLL_FUNCTIONS {
     Export::<T>::new_dll_functions()
 }
 
@@ -524,10 +528,11 @@ struct Export<T> {
     dll: PhantomData<T>,
 }
 
-impl<T: ServerDll + Default> ServerDllExport for Export<T> {
+impl<T: ServerDll> ServerDllExport for Export<T> {
     unsafe extern "C" fn init() {
+        let engine = unsafe { ServerEngineRef::new() };
         unsafe {
-            (&mut *T::global_as_mut_ptr()).write(T::default());
+            (&mut *T::global_as_mut_ptr()).write(T::new(engine));
         }
     }
 
@@ -970,14 +975,13 @@ macro_rules! export_dll {
     ($server_dll:ty $($init:block)?) => {
         #[no_mangle]
         unsafe extern "C" fn GiveFnptrsToDll(
-            eng_funcs: Option<&$crate::ffi::server::enginefuncs_s>,
+            eng_funcs: *const $crate::ffi::server::enginefuncs_s,
             globals: *mut $crate::ffi::server::globalvars_t,
         ) {
-            let eng_funcs = eng_funcs.unwrap();
             unsafe {
+                let eng_funcs = eng_funcs.as_ref().unwrap();
                 $crate::instance::init_engine(eng_funcs, globals);
             }
-            $crate::cvar::init(|name, _, _| $crate::instance::engine().get_cvar_ptr(name));
         }
 
         #[no_mangle]

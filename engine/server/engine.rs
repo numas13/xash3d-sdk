@@ -8,14 +8,14 @@ use shared::{
     export::impl_unsync_global,
     ffi::{
         common::{cvar_s, vec3_t},
-        server::{edict_s, enginefuncs_s, ALERT_TYPE, LEVELLIST},
+        server::{edict_s, enginefuncs_s, globalvars_t, ALERT_TYPE, LEVELLIST},
     },
     str::{AsCStrPtr, ToEngineStr},
 };
 
-use crate::{cvar::CVarPtr, str::MapString};
+use crate::{cvar::CVarPtr, globals::ServerGlobals, str::MapString};
 
-pub use shared::engine::AddCmdError;
+pub use shared::engine::{AddCmdError, EngineRef};
 
 pub(crate) mod prelude {
     pub use shared::engine::{
@@ -24,6 +24,8 @@ pub(crate) mod prelude {
 }
 
 pub use self::prelude::*;
+
+pub type ServerEngineRef = EngineRef<ServerEngine>;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(transparent)]
@@ -59,6 +61,7 @@ impl LevelListExt for LEVELLIST {
 
 pub struct ServerEngine {
     raw: enginefuncs_s,
+    pub globals: ServerGlobals,
 }
 
 impl_unsync_global!(ServerEngine);
@@ -74,8 +77,12 @@ macro_rules! unwrap {
 
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
 impl ServerEngine {
-    pub(crate) fn new(raw: &enginefuncs_s) -> Self {
-        Self { raw: *raw }
+    pub(crate) fn new(raw: &enginefuncs_s, globals: *mut globalvars_t) -> Self {
+        let engine = unsafe { ServerEngineRef::new() };
+        Self {
+            raw: *raw,
+            globals: ServerGlobals::new(engine, globals),
+        }
     }
 
     pub fn raw(&self) -> &enginefuncs_s {
@@ -388,10 +395,17 @@ impl ServerEngine {
         unsafe { unwrap!(self, pfnFreeEntPrivateData)(edict) }
     }
 
-    pub(crate) fn alloc_map_string(&self, value: impl ToEngineStr) -> Option<MapString> {
-        let value = value.to_engine_str();
-        let index = unsafe { unwrap!(self, pfnAllocString)(value.as_ptr()) };
-        MapString::from_index(index)
+    /// Tries to create a new map string from a given `string`.
+    pub fn try_alloc_map_string(&self, string: impl ToEngineStr) -> Option<MapString> {
+        let string = string.to_engine_str();
+        let index = unsafe { unwrap!(self, pfnAllocString)(string.as_ptr()) };
+        MapString::from_index(unsafe { ServerEngineRef::new() }, index)
+    }
+
+    /// Creates a new map string from a given `string`.
+    pub fn new_map_string(&self, string: impl ToEngineStr) -> MapString {
+        self.try_alloc_map_string(string)
+            .expect("failed to allocate a map string")
     }
 
     pub(crate) fn find_map_string<'a>(&self, string: &'a MapString) -> Option<&'a CStrThin> {

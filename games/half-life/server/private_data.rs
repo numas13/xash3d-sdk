@@ -103,9 +103,9 @@ pub struct PrivateDataRef {
 }
 
 impl PrivateDataRef {
-    pub fn new<T: Entity>(ent: &mut edict_s, data: T) -> Self {
+    pub fn new<T: Entity>(engine: ServerEngineRef, ent: &mut edict_s, data: T) -> Self {
         let len = mem::size_of::<PrivateData<T>>();
-        let raw = engine().alloc_ent_private_data(ent, len);
+        let raw = engine.alloc_ent_private_data(ent, len);
         unsafe {
             PrivateData::init(&mut *raw.cast(), data);
             Self::from_raw(raw)
@@ -174,15 +174,15 @@ pub trait Private {
     /// # Panics
     ///
     /// Panics if private data is initialized already.
-    fn private_init<T, F>(&mut self, init: F) -> &mut T
+    fn private_init<T, F>(&mut self, engine: ServerEngineRef, init: F) -> &mut T
     where
         T: Entity,
-        F: FnOnce(*mut entvars_s) -> T,
+        F: FnOnce(ServerEngineRef, *mut entvars_s) -> T,
     {
         let ent = self.as_ent_mut();
         assert!(ent.pvPrivateData.is_null());
-        let data = init(&mut ent.v);
-        let mut private = PrivateDataRef::new(ent, data);
+        let data = init(engine, &mut ent.v);
+        let mut private = PrivateDataRef::new(engine, ent, data);
         let data = private.as_mut().as_mut_ptr();
         ent.pvPrivateData = unsafe { private.into_raw().cast() };
         unsafe { &mut *data.cast() }

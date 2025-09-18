@@ -1,24 +1,20 @@
 use core::{ffi::c_int, ptr::NonNull, time::Duration};
 
-use shared::{
-    export::impl_unsync_global,
-    ffi::{
-        common::vec3_t,
-        server::{globalvars_t, SAVERESTOREDATA},
-    },
+use shared::ffi::{
+    common::vec3_t,
+    server::{globalvars_t, SAVERESTOREDATA},
 };
 
-use crate::str::MapString;
+use crate::{prelude::*, str::MapString};
 
 pub struct ServerGlobals {
+    engine: ServerEngineRef,
     raw: *mut globalvars_t,
 }
 
-impl_unsync_global!(ServerGlobals);
-
 impl ServerGlobals {
-    pub(crate) fn new(raw: *mut globalvars_t) -> Self {
-        Self { raw }
+    pub(crate) fn new(engine: ServerEngineRef, raw: *mut globalvars_t) -> Self {
+        Self { engine, raw }
     }
 
     pub fn raw(&self) -> *const globalvars_t {
@@ -38,11 +34,11 @@ impl ServerGlobals {
     }
 
     pub fn map_name(&self) -> Option<MapString> {
-        MapString::from_index(unsafe { &*self.raw }.mapname)
+        MapString::from_index(self.engine, unsafe { &*self.raw }.mapname)
     }
 
     pub fn start_spot(&self) -> Option<MapString> {
-        MapString::from_index(unsafe { &*self.raw }.startspot)
+        MapString::from_index(self.engine, unsafe { &*self.raw }.startspot)
     }
 
     pub fn is_deathmatch(&self) -> bool {

@@ -2,8 +2,7 @@ pub use shared::prelude::*;
 
 pub use crate::{
     engine::prelude::*,
-    engine::ServerEngine,
-    instance::{engine, globals},
+    engine::{ServerEngine, ServerEngineRef},
 };
 
 pub use crate::{

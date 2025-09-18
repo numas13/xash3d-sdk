@@ -2,7 +2,7 @@ use core::mem;
 
 use shared::ffi::server::entvars_s;
 
-use crate::str::MapString;
+use crate::{engine::ServerEngineRef, str::MapString};
 
 pub use shared::entity::*;
 
@@ -29,23 +29,33 @@ pub trait EntityVarsExt {
 
 impl EntityVarsExt for entvars_s {
     fn classname(&self) -> Option<MapString> {
-        MapString::from_index(self.classname)
+        // TODO: remove me
+        let engine = unsafe { ServerEngineRef::new() };
+        MapString::from_index(engine, self.classname)
     }
 
     fn globalname(&self) -> Option<MapString> {
-        MapString::from_index(self.globalname)
+        // TODO: remove me
+        let engine = unsafe { ServerEngineRef::new() };
+        MapString::from_index(engine, self.globalname)
     }
 
     fn model(&self) -> Option<MapString> {
-        MapString::from_index(self.model)
+        // TODO: remove me
+        let engine = unsafe { ServerEngineRef::new() };
+        MapString::from_index(engine, self.model)
     }
 
     fn viewmodel(&self) -> Option<MapString> {
-        MapString::from_index(self.viewmodel)
+        // TODO: remove me
+        let engine = unsafe { ServerEngineRef::new() };
+        MapString::from_index(engine, self.viewmodel)
     }
 
     fn weaponmodel(&self) -> Option<MapString> {
-        MapString::from_index(self.weaponmodel)
+        // TODO: remove me
+        let engine = unsafe { ServerEngineRef::new() };
+        MapString::from_index(engine, self.weaponmodel)
     }
 
     fn flags(&self) -> &EdictFlags {

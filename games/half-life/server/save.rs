@@ -21,9 +21,7 @@ use sv::{
 };
 
 use crate::{
-    entity::ObjectCaps,
-    global_state::{global_state, EntityState},
-    private_data::Private,
+    entity::ObjectCaps, export::global_state, global_state::EntityState, private_data::Private,
 };
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -138,6 +136,7 @@ struct Header<'a> {
 }
 
 pub struct SaveRestore<'a> {
+    engine: ServerEngineRef,
     pub data: &'a mut SAVERESTOREDATA,
     global: bool,
     precache: bool,
@@ -145,8 +144,9 @@ pub struct SaveRestore<'a> {
 
 #[allow(dead_code)]
 impl<'a> SaveRestore<'a> {
-    pub fn new(data: &'a mut SAVERESTOREDATA) -> Self {
+    pub fn new(engine: ServerEngineRef, data: &'a mut SAVERESTOREDATA) -> Self {
         Self {
+            engine,
             data,
             global: false,
             precache: true,
@@ -334,13 +334,13 @@ impl<'a> SaveRestore<'a> {
                             output.copy_from_slice(data);
                         }
                         F::MODELNAME | F::SOUNDNAME | F::STRING => {
-                            let engine = engine();
+                            let engine = self.engine;
                             let mut iter = data.split_inclusive(|&i| i == b'\0');
                             for dst in output.chunks_mut(size) {
                                 let chunk = iter.next().unwrap();
                                 let str = CStr::from_bytes_with_nul(chunk).unwrap();
                                 if !str.is_empty() {
-                                    let id = MapString::new(str);
+                                    let id = engine.new_map_string(str);
                                     dst.copy_from_slice(&id.index().to_ne_bytes());
                                     if self.precache {
                                         match field.field_type() {
@@ -374,7 +374,7 @@ impl<'a> SaveRestore<'a> {
                             let src = data.chunks(size);
                             for (dst, src) in dst.zip(src) {
                                 let index = c_int::from_le_bytes(array_from_slice(src));
-                                let ent = engine().entity_of_ent_index(index);
+                                let ent = self.engine.entity_of_ent_index(index);
                                 dst.copy_from_slice(&(ent as usize).to_ne_bytes());
                             }
                         }
@@ -493,28 +493,30 @@ fn field_size(ty: FieldType) -> usize {
 }
 
 pub fn write_fields(
+    engine: ServerEngineRef,
     save_data: &mut SAVERESTOREDATA,
     name: &CStr,
     base_data: *mut c_void,
     fields: &[TYPEDESCRIPTION],
 ) {
-    if let Err(err) = SaveRestore::new(save_data).write_fields(name, base_data, fields) {
+    if let Err(err) = SaveRestore::new(engine, save_data).write_fields(name, base_data, fields) {
         error!("save::write_fields({name:?}): {err}");
     }
 }
 
 pub fn read_fields(
+    engine: ServerEngineRef,
     save_data: &mut SAVERESTOREDATA,
     name: &CStr,
     base_data: *mut c_void,
     fields: &[TYPEDESCRIPTION],
 ) {
-    if let Err(err) = SaveRestore::new(save_data).read_fields(name, base_data, fields) {
+    if let Err(err) = SaveRestore::new(engine, save_data).read_fields(name, base_data, fields) {
         error!("save::read_fields({name:?}): {err}");
     }
 }
 
-fn entvars_key_value(ev: &mut entvars_s, data: &mut KeyValueData) {
+fn entvars_key_value(engine: ServerEngineRef, ev: &mut entvars_s, data: &mut KeyValueData) {
     let key_name = data.key_name();
     let field = ENTVARS_DESCRIPTION
         .iter()
@@ -527,7 +529,7 @@ fn entvars_key_value(ev: &mut entvars_s, data: &mut KeyValueData) {
 
         match field.field_type() {
             FieldType::MODELNAME | FieldType::SOUNDNAME | FieldType::STRING => {
-                let s = MapString::new(value);
+                let s = engine.new_map_string(value);
                 unsafe {
                     ptr::write(p.cast::<c_int>(), s.index());
                 }
@@ -565,8 +567,8 @@ fn entvars_key_value(ev: &mut entvars_s, data: &mut KeyValueData) {
     }
 }
 
-pub fn dispatch_key_value(ent: &mut edict_s, data: &mut KeyValueData) {
-    entvars_key_value(&mut ent.v, data);
+pub fn dispatch_key_value(engine: ServerEngineRef, ent: &mut edict_s, data: &mut KeyValueData) {
+    entvars_key_value(engine, &mut ent.v, data);
 
     if data.handled() || data.class_name().is_none() {
         return;
@@ -577,7 +579,7 @@ pub fn dispatch_key_value(ent: &mut edict_s, data: &mut KeyValueData) {
     }
 }
 
-pub fn dispatch_save(ent: &mut edict_s, save_data: &mut SAVERESTOREDATA) {
+pub fn dispatch_save(engine: ServerEngineRef, ent: &mut edict_s, save_data: &mut SAVERESTOREDATA) {
     let size = save_data.size;
     let current_index = save_data.currentIndex as usize;
     let table = &mut save_data.table_mut()[current_index];
@@ -594,20 +596,23 @@ pub fn dispatch_save(ent: &mut edict_s, save_data: &mut SAVERESTOREDATA) {
 
     if entity.vars().movetype == MoveType::Push.into() {
         let delta = entity.vars().nextthink - entity.vars().ltime;
-        entity.vars_mut().ltime = globals().map_time_f32();
+        entity.vars_mut().ltime = engine.globals.map_time_f32();
         entity.vars_mut().nextthink = entity.vars().ltime + delta;
     }
 
     table.location = size;
     table.classname = entity.vars().classname;
 
-    entity.save(&mut SaveRestore::new(save_data)).unwrap();
+    entity
+        .save(&mut SaveRestore::new(engine, save_data))
+        .unwrap();
 
     let table = &mut save_data.table_mut()[current_index];
     table.size = size - table.location;
 }
 
 pub fn dispatch_restore(
+    engine: ServerEngineRef,
     mut ent: *mut edict_s,
     save_data: &mut SAVERESTOREDATA,
     global_entity: bool,
@@ -615,14 +620,14 @@ pub fn dispatch_restore(
     let mut global_vars = MaybeUninit::<entvars_s>::uninit();
 
     if global_entity {
-        let mut restore = SaveRestore::new(save_data);
+        let mut restore = SaveRestore::new(engine, save_data);
         restore.precache_mode(false);
         restore
             .read_ent_vars(c"ENTVARS", global_vars.as_mut_ptr())
             .unwrap();
     }
 
-    let mut restore = SaveRestore::new(save_data);
+    let mut restore = SaveRestore::new(engine, save_data);
     let mut old_offset = vec3_t::ZERO;
 
     if global_entity {
@@ -642,7 +647,7 @@ pub fn dispatch_restore(
         old_offset = restore.data.vecLandmarkOffset;
         let classname = tmp_vars.classname().unwrap();
         let globalname = tmp_vars.globalname().unwrap();
-        if let Some(new_ent) = find_global_entity(classname, globalname) {
+        if let Some(new_ent) = find_global_entity(engine, classname, globalname) {
             let new_ent = unsafe { &mut *new_ent };
             restore.global_mode(true);
             restore.data.vecLandmarkOffset -= new_ent.v.mins;
@@ -650,7 +655,7 @@ pub fn dispatch_restore(
             ent = new_ent;
             entities.update(
                 unsafe { &*ent }.v.globalname().unwrap(),
-                globals().map_name().unwrap(),
+                engine.globals.map_name().unwrap(),
             );
         } else {
             return RestoreResult::Ok;
@@ -672,18 +677,18 @@ pub fn dispatch_restore(
         restore.data.vecLandmarkOffset = old_offset;
         if let Some(entity) = entity {
             let origin = entity.vars().origin;
-            engine().set_origin(entity.ent_mut(), origin);
+            engine.set_origin(entity.ent_mut(), origin);
             entity.override_reset();
             return RestoreResult::Ok;
         }
     } else if let Some(entity) = entity {
         if let Some(globalname) = entity.vars().globalname() {
+            let globals = &engine.globals;
             let mut entities = global_state().entities.borrow_mut();
             if let Some(global) = entities.find(globalname) {
                 if global.is_dead() {
                     return RestoreResult::Delete;
                 }
-                let globals = globals();
                 if globals.map_name().unwrap().as_thin() != global.map_name() {
                     entity.make_dormant();
                 }
@@ -691,7 +696,7 @@ pub fn dispatch_restore(
                 let globalname = entity.globalname();
                 let classname = entity.classname();
                 error!("Global entity \"{globalname}\" (\"{classname}\") not in table!!!");
-                entities.add(globalname, globals().map_name().unwrap(), EntityState::On);
+                entities.add(globalname, globals.map_name().unwrap(), EntityState::On);
             }
         }
     }
@@ -699,8 +704,12 @@ pub fn dispatch_restore(
     RestoreResult::Ok
 }
 
-fn find_global_entity(classname: MapString, globalname: MapString) -> Option<*mut edict_s> {
-    engine()
+fn find_global_entity(
+    engine: ServerEngineRef,
+    classname: MapString,
+    globalname: MapString,
+) -> Option<*mut edict_s> {
+    engine
         .find_ent_by_globalname_iter(&globalname)
         .find(|&ent| {
             if let Some(private) = unsafe { &mut *ent }.private_mut() {

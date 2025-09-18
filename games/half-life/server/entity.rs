@@ -97,6 +97,8 @@ pub trait EntityVars {
 
 #[allow(dead_code)]
 pub trait Entity: EntityVars + Cast + Any {
+    fn engine(&self) -> ServerEngineRef;
+
     fn vars(&self) -> &entvars_s {
         unsafe { &*self.vars_ptr() }
     }
@@ -152,7 +154,7 @@ pub trait Entity: EntityVars + Cast + Any {
         if let (true, Some(model)) = (ev.modelindex != 0, ev.model()) {
             let mins = ev.mins;
             let maxs = ev.maxs;
-            let engine = engine();
+            let engine = self.engine();
             engine.precache_model(&model);
             engine.set_model(self.ent_mut(), &model);
             engine.set_size(self.ent_mut(), mins, maxs);

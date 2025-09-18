@@ -43,8 +43,8 @@ pub trait GameRules {
 pub struct HalfLifeRules {}
 
 impl HalfLifeRules {
-    pub fn new() -> Self {
-        engine().server_command("exec spserver.cfg\n");
+    pub fn new(engine: ServerEngineRef) -> Self {
+        engine.server_command("exec spserver.cfg\n");
         // TODO: refresh skill data
 
         Self {}
@@ -79,16 +79,14 @@ pub fn game_rules() -> Option<&'static dyn GameRules> {
     game_rules.as_deref()
 }
 
-pub fn install_game_rules() {
-    let engine = engine();
-
+pub fn install_game_rules(engine: ServerEngineRef) {
     engine.server_command(c"exec game.cfg\n");
     engine.server_execute();
 
-    if !globals().is_deathmatch() {
+    if !engine.globals.is_deathmatch() {
         // TODO: g_teamplay = 0;
         unsafe {
-            game_rules_set(Box::new(HalfLifeRules::new()));
+            game_rules_set(Box::new(HalfLifeRules::new(engine)));
         }
         return;
     } else {

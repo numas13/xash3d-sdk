@@ -10,12 +10,13 @@ use crate::{
 };
 
 pub struct World {
+    engine: ServerEngineRef,
     vars: *mut entvars_s,
 }
 
 impl World {
-    fn new(vars: *mut entvars_s) -> Self {
-        Self { vars }
+    fn new(engine: ServerEngineRef, vars: *mut entvars_s) -> Self {
+        Self { engine, vars }
     }
 }
 
@@ -28,6 +29,10 @@ impl EntityVars for World {
 }
 
 impl Entity for World {
+    fn engine(&self) -> ServerEngineRef {
+        self.engine
+    }
+
     fn spawn(&mut self) -> bool {
         // TODO: global_game_over = false;
         self.precache();
@@ -35,11 +40,11 @@ impl Entity for World {
     }
 
     fn precache(&mut self) {
-        let engine = engine();
+        let engine = self.engine;
         engine.set_cvar(c"sv_gravity", c"800");
         engine.set_cvar(c"sv_stepsize", c"18");
         engine.set_cvar(c"room_type", c"0");
-        install_game_rules();
+        install_game_rules(engine);
     }
 
     fn key_value(&mut self, data: &mut KeyValueData) {

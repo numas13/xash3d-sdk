@@ -36,6 +36,7 @@ link_entity_stub! {
 }
 
 pub struct ChangeLevel {
+    engine: ServerEngineRef,
     vars: *mut entvars_s,
     map_name: CStrArray<MAP_NAME_MAX>,
     landmark_name: CStrArray<MAP_NAME_MAX>,
@@ -44,8 +45,9 @@ pub struct ChangeLevel {
 }
 
 impl ChangeLevel {
-    fn new(vars: *mut entvars_s) -> Self {
+    fn new(engine: ServerEngineRef, vars: *mut entvars_s) -> Self {
         Self {
+            engine,
             vars,
             map_name: CStrArray::new(),
             landmark_name: CStrArray::new(),
@@ -55,13 +57,13 @@ impl ChangeLevel {
     }
 
     fn init_trigger(&mut self) {
+        let engine = self.engine;
         let ev = self.vars_mut();
         if ev.angles != vec3_t::ZERO {
-            set_move_dir(ev);
+            set_move_dir(engine, ev);
         }
         ev.solid = SOLID_TRIGGER;
         ev.movetype = MoveType::None.into();
-        let engine = engine();
         engine.set_model(unsafe { &mut *ev.pContainingEntity }, &ev.model().unwrap());
         if engine.get_cvar_float(c"showtriggers") == 0.0 {
             ev.effects_mut().insert(Effects::NODRAW);
@@ -75,21 +77,22 @@ impl ChangeLevel {
             return;
         }
 
+        let globals = &self.engine.globals;
         let ev = unsafe { &mut *self.vars };
-        let time = globals().map_time_f32();
+        let time = globals.map_time_f32();
         if time == ev.dmgtime {
             return;
         }
 
         ev.dmgtime = time;
 
-        let landmark = find_landmark(self.landmark_name.as_thin());
-        let engine = engine();
+        let landmark = find_landmark(self.engine, self.landmark_name.as_thin());
+        let engine = self.engine;
         let mut next_spot = cstr!("");
         if !engine.is_null_ent(landmark) {
             next_spot = self.landmark_name.as_thin();
             unsafe {
-                globals().set_landmark_offset((*landmark).v.origin);
+                globals.set_landmark_offset((*landmark).v.origin);
             }
         }
 
@@ -107,6 +110,10 @@ impl EntityVars for ChangeLevel {
 }
 
 impl Entity for ChangeLevel {
+    fn engine(&self) -> ServerEngineRef {
+        self.engine
+    }
+
     fn object_caps(&self) -> ObjectCaps {
         ObjectCaps::NONE
     }
@@ -132,7 +139,7 @@ impl Entity for ChangeLevel {
             self.landmark_name.cursor().write_c_str(value).unwrap();
             data.set_handled(true);
         } else if name == c"changetarget" {
-            self.target = Some(MapString::new(value));
+            self.target = Some(self.engine.new_map_string(value));
             data.set_handled(true);
         } else if name == c"changedelay" {
             let s = value.to_str().ok();
@@ -222,20 +229,20 @@ fn add_transition_to_list(
     true
 }
 
-fn set_move_dir(ev: &mut entvars_s) {
+fn set_move_dir(engine: ServerEngineRef, ev: &mut entvars_s) {
     if ev.angles == vec3_t::new(0.0, -1.0, 0.0) {
         ev.movedir = vec3_t::new(0.0, 0.0, 1.0);
     } else if ev.angles == vec3_t::new(0.0, -2.0, 0.0) {
         ev.movedir = vec3_t::new(0.0, 0.0, -1.0);
     } else {
-        engine().make_vectors(ev.angles);
-        ev.movedir = globals().forward();
+        engine.make_vectors(ev.angles);
+        ev.movedir = engine.globals.forward();
     }
     ev.angles = vec3_t::ZERO;
 }
 
-fn find_landmark(landmark_name: &CStrThin) -> *mut edict_s {
-    engine()
+fn find_landmark(engine: ServerEngineRef, landmark_name: &CStrThin) -> *mut edict_s {
+    engine
         .find_ent_by_targetname_iter(landmark_name)
         .find(|&ent| {
             let classname = unsafe { &*ent }.v.classname().unwrap();
@@ -244,7 +251,11 @@ fn find_landmark(landmark_name: &CStrThin) -> *mut edict_s {
         .unwrap_or(ptr::null_mut())
 }
 
-fn in_transition_volume(ent: *mut edict_s, volume_name: &CStrThin) -> bool {
+fn in_transition_volume(
+    engine: ServerEngineRef,
+    ent: *mut edict_s,
+    volume_name: &CStrThin,
+) -> bool {
     let mut ent = unsafe { &*ent }.private().unwrap();
 
     if ent.object_caps().intersects(ObjectCaps::FORCE_TRANSITION) {
@@ -255,7 +266,6 @@ fn in_transition_volume(ent: *mut edict_s, volume_name: &CStrThin) -> bool {
         ent = unsafe { &*ent.vars().aiment }.private().unwrap();
     }
 
-    let engine = engine();
     let mut ent_volume = engine.find_ent_by_target_name(ptr::null_mut(), volume_name);
     while !engine.is_null_ent(ent_volume) {
         if let Some(volume) = unsafe { &*ent_volume }.private() {
@@ -269,10 +279,9 @@ fn in_transition_volume(ent: *mut edict_s, volume_name: &CStrThin) -> bool {
     false
 }
 
-pub fn build_change_list(level_list: &mut [LEVELLIST]) -> usize {
+pub fn build_change_list(engine: ServerEngineRef, level_list: &mut [LEVELLIST]) -> usize {
     const MAX_ENTITY: usize = 512;
 
-    let engine = engine();
     let mut ent = engine.find_ent_by_classname(ptr::null_mut(), c"trigger_changelevel");
     if engine.is_null_ent(ent) {
         return 0;
@@ -282,7 +291,7 @@ pub fn build_change_list(level_list: &mut [LEVELLIST]) -> usize {
         if let Some(trigger) = unsafe { &mut *ent }.downcast_mut::<ChangeLevel>() {
             let map_name = trigger.map_name.as_thin();
             let landmark_name = trigger.landmark_name.as_thin();
-            let landmark = find_landmark(landmark_name);
+            let landmark = find_landmark(engine, landmark_name);
             if !landmark.is_null()
                 && add_transition_to_list(level_list, count, map_name, landmark_name, landmark)
             {
@@ -295,10 +304,10 @@ pub fn build_change_list(level_list: &mut [LEVELLIST]) -> usize {
         ent = engine.find_ent_by_classname(ent, c"trigger_changelevel");
     }
 
-    if let Some(mut save_data) = globals().save_data() {
+    if let Some(mut save_data) = engine.globals.save_data() {
         let save_data = unsafe { save_data.as_mut() };
         if !save_data.table().is_empty() {
-            let mut save_helper = SaveRestore::new(save_data);
+            let mut save_helper = SaveRestore::new(engine, save_data);
             for (i, level) in level_list.iter().enumerate().take(count) {
                 let mut ent_count = 0;
                 let mut ent_list = [ptr::null_mut(); MAX_ENTITY];
@@ -329,7 +338,8 @@ pub fn build_change_list(level_list: &mut [LEVELLIST]) -> usize {
 
                 for j in 0..ent_count {
                     let landmark_name = level.landmark_name();
-                    if ent_flags[j] != 0 && in_transition_volume(ent_list[j], landmark_name) {
+                    if ent_flags[j] != 0 && in_transition_volume(engine, ent_list[j], landmark_name)
+                    {
                         if let Some(index) = save_helper.entity_index(ent_list[j]) {
                             save_helper.entity_flags_set(index, ent_flags[j] | (1 << i));
                         }
