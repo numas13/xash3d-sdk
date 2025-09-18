@@ -5,8 +5,6 @@ use res::valve::sound;
 
 use crate::export::view_mut;
 
-use super::{is_local, Events};
-
 #[allow(dead_code)]
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -23,7 +21,7 @@ enum Rpg {
     FidgetUl,
 }
 
-impl Events {
+impl super::Events {
     pub(super) fn fire_rpg(&mut self, args: &mut event_args_s) {
         let idx = args.entindex;
         let origin = args.origin();
@@ -43,7 +41,7 @@ impl Events {
             .volume(0.7)
             .play(sound::weapons::GLAUNCHER);
 
-        if is_local(idx) {
+        if self.utils.is_local(idx) {
             ev.weapon_animation(Rpg::Fire2 as c_int, 1);
 
             view_mut().punch_axis(PITCH, -5.0);

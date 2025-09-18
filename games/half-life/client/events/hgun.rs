@@ -5,8 +5,6 @@ use res::valve::sound;
 
 use crate::export::view_mut;
 
-use super::{is_local, Events};
-
 #[allow(dead_code)]
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -19,7 +17,7 @@ enum Hgun {
     Shoot,
 }
 
-impl Events {
+impl super::Events {
     pub(super) fn fire_hornet_gun(&mut self, args: &mut event_args_s) {
         let engine = engine();
         let ev = engine.event_api();
@@ -28,7 +26,7 @@ impl Events {
         let origin = args.origin();
         let _fire_mode = args.iparam1;
 
-        if is_local(idx) {
+        if self.utils.is_local(idx) {
             ev.weapon_animation(Hgun::Shoot as c_int, 1);
             view_mut().punch_axis(PITCH, engine.random_int(0, 2) as f32);
         }

@@ -3,8 +3,6 @@ use core::ffi::{c_int, CStr};
 use cl::{engine::event::event_args_s, prelude::*, sound::Channel};
 use res::valve::sound;
 
-use super::{is_local, Events};
-
 #[allow(dead_code)]
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -28,7 +26,7 @@ const EGON_SOUND_OFF: &CStr = sound::weapons::EGON_OFF1;
 const EGON_SOUND_RUN: &CStr = sound::weapons::EGON_RUN3;
 const EGON_SOUND_STARTUP: &CStr = sound::weapons::EGON_WINDUP2;
 
-impl Events {
+impl super::Events {
     pub(super) fn fire_egon(&mut self, args: &mut event_args_s) {
         let engine = engine();
         let ev = engine.event_api();
@@ -72,7 +70,7 @@ impl Events {
             }
         }
 
-        if is_local(idx) {
+        if self.utils.is_local(idx) {
             let seq = match engine.random_int(0, 3) {
                 0 => Egon::Fire1,
                 1 => Egon::Fire2,

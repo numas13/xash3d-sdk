@@ -3,8 +3,6 @@ use core::ffi::c_int;
 use cl::{engine::event::event_args_s, prelude::*};
 use res::valve::sound;
 
-use super::{is_local, Events};
-
 #[allow(dead_code)]
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -20,7 +18,7 @@ enum Crowbar {
     Attack3Hit,
 }
 
-impl Events {
+impl super::Events {
     pub(super) fn crowbar(&mut self, args: &mut event_args_s) {
         let idx = args.entindex;
         let engine = engine();
@@ -30,7 +28,7 @@ impl Events {
             .channel_weapon()
             .play(sound::weapons::CBAR_MISS1);
 
-        if is_local(idx) {
+        if self.utils.is_local(idx) {
             self.swing = self.swing.wrapping_add(1);
             let seq = match self.swing % 3 {
                 0 => Crowbar::Attack1Miss,

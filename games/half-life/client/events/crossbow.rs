@@ -12,8 +12,6 @@ use res::valve::{models, sound};
 
 use crate::export::view_mut;
 
-use super::{get_gun_position, is_local, Events};
-
 #[allow(dead_code)]
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -32,7 +30,7 @@ enum Crossbow {
     Holster2,
 }
 
-impl Events {
+impl super::Events {
     pub(super) fn fire_crossbow(&mut self, args: &mut event_args_s) {
         let idx = args.entindex;
         let origin = args.origin();
@@ -53,7 +51,7 @@ impl Events {
             .pitch(93 + engine.random_int(0, 0xf))
             .play(sound::weapons::XBOW_RELOAD1);
 
-        if is_local(idx) {
+        if self.utils.is_local(idx) {
             if args.iparam1 != 0 {
                 ev.weapon_animation(Crossbow::Fire1 as c_int, 1);
             } else if args.iparam2 != 0 {
@@ -72,7 +70,7 @@ impl Events {
         let ev = engine.event_api();
         let efx = engine.efx_api();
 
-        let src = get_gun_position(args, origin);
+        let src = self.utils.get_gun_position(args, origin);
         let end = src + forward * 8192.0;
 
         ev.build_sound_at(origin)
@@ -88,7 +86,7 @@ impl Events {
             .pitch(93 + engine.random_int(0, 0xf))
             .play(sound::weapons::XBOW_RELOAD1);
 
-        if is_local(idx) {
+        if self.utils.is_local(idx) {
             if args.iparam1 != 0 {
                 ev.weapon_animation(Crossbow::Fire1 as c_int, 1);
             } else if args.iparam2 != 0 {

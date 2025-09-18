@@ -13,7 +13,7 @@ use res::valve::{self, sound, sprites};
 
 use crate::export::view_mut;
 
-use super::{decal_gunshot, get_gun_position, is_local, muzzle_flash, Bullet, Events};
+use super::Bullet;
 
 #[allow(dead_code)]
 #[derive(Copy, Clone)]
@@ -30,7 +30,7 @@ enum Gauss {
     Draw,
 }
 
-impl Events {
+impl super::Events {
     fn stop_previous_gauss(&self, idx: c_int) {
         let engine = engine();
         let ev = engine.event_api();
@@ -58,7 +58,7 @@ impl Events {
         let glow = ev.find_model_index(sprites::HOTGLOW);
         let balls = glow;
 
-        if is_local(idx) {
+        if self.utils.is_local(idx) {
             ev.weapon_animation(Gauss::Fire2 as c_int, 2);
             view_mut().punch_axis(PITCH, -2.0);
 
@@ -89,7 +89,7 @@ impl Events {
 
         let width = if primary_fire { 1.0 } else { 2.5 };
 
-        let mut src = get_gun_position(args, origin);
+        let mut src = self.utils.get_gun_position(args, origin);
         let mut dest = src + forward * 8192.0;
         let mut first_beam = true;
         let mut has_punched = false;
@@ -111,8 +111,8 @@ impl Events {
 
             if first_beam {
                 first_beam = false;
-                if is_local(idx) {
-                    muzzle_flash();
+                if self.utils.is_local(idx) {
+                    self.utils.muzzle_flash();
                 }
 
                 efx.beam_ent_point(
@@ -186,7 +186,7 @@ impl Events {
                     let n = if n == 0.0 { 0.1 } else { n };
                     damage *= 1.0 - n;
                 } else {
-                    decal_gunshot(&tr, Bullet::Monster12mm);
+                    self.utils.decal_gunshot(&tr, Bullet::Monster12mm);
 
                     efx.temp_sprite(
                         tr.endpos,
@@ -237,7 +237,7 @@ impl Events {
                                     100.0,
                                 );
 
-                                decal_gunshot(&beam_tr, Bullet::Monster12mm);
+                                self.utils.decal_gunshot(&beam_tr, Bullet::Monster12mm);
 
                                 efx.temp_sprite(
                                     beam_tr.endpos,

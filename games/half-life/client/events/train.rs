@@ -3,9 +3,7 @@ use core::ffi::c_int;
 use cl::{engine::event::event_args_s, prelude::*, sound::Channel};
 use res::valve::sound;
 
-use super::Events;
-
-impl Events {
+impl super::Events {
     pub(super) fn train_pitch_adjust(&mut self, args: &mut event_args_s) {
         let idx = args.entindex;
         let origin = args.origin();

@@ -9,10 +9,7 @@ use res::valve::{models, sound};
 
 use crate::export::view_mut;
 
-use super::{
-    eject_brass, fire_bullets, get_default_shell_info, get_gun_position, is_local, muzzle_flash,
-    Bullet, Events,
-};
+use super::Bullet;
 
 #[allow(dead_code)]
 #[derive(Copy, Clone)]
@@ -28,7 +25,7 @@ enum Mp5 {
     Fire3,
 }
 
-impl Events {
+impl super::Events {
     pub(super) fn fire_mp5(&mut self, args: &mut event_args_s) {
         let idx = args.entindex;
         let origin = args.origin();
@@ -39,17 +36,20 @@ impl Events {
         let ev = engine.event_api();
         let shell = ev.find_model_index(models::SHELL);
 
-        if is_local(idx) {
-            muzzle_flash();
+        if self.utils.is_local(idx) {
+            self.utils.muzzle_flash();
             let rand = engine.random_int(0, 2);
             ev.weapon_animation(Mp5::Fire1 as c_int + rand, 2);
             let pitch = engine.random_float(-2.0, 2.0);
             view_mut().punch_axis(PITCH, pitch);
         }
 
-        let si = get_default_shell_info(args, origin, velocity, av, 20.0, -12.0, 6.0);
+        let si = self
+            .utils
+            .get_default_shell_info(args, origin, velocity, av, 20.0, -12.0, 6.0);
         let soundtype = TE_BOUNCE_SHELL as c_int;
-        eject_brass(si.origin, si.velocity, angles[YAW], shell, soundtype);
+        self.utils
+            .eject_brass(si.origin, si.velocity, angles[YAW], shell, soundtype);
 
         let sample = match engine.random_int(0, 1) {
             0 => sound::weapons::HKS1,
@@ -61,12 +61,13 @@ impl Events {
             .pitch(94 + engine.random_int(0, 0xf))
             .play(sample);
 
-        let src = get_gun_position(args, origin);
+        let src = self.utils.get_gun_position(args, origin);
         let aiming = av.forward;
         let bullet = Bullet::PlayerMp5;
         let tracer = Some((2, &mut self.tracer_count[idx as usize - 1]));
         let spread = (args.fparam1, args.fparam2);
-        fire_bullets(idx, av, 1, src, aiming, 8192.0, bullet, tracer, spread);
+        self.utils
+            .fire_bullets(idx, av, 1, src, aiming, 8192.0, bullet, tracer, spread);
     }
 
     pub(super) fn fire_mp5_2(&mut self, args: &mut event_args_s) {
@@ -75,7 +76,7 @@ impl Events {
         let engine = engine();
         let ev = engine.event_api();
 
-        if is_local(idx) {
+        if self.utils.is_local(idx) {
             ev.weapon_animation(Mp5::Launch as c_int, 2);
             view_mut().punch_axis(PITCH, -10.0);
         }

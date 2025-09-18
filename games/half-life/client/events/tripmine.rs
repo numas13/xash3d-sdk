@@ -2,8 +2,6 @@ use core::ffi::c_int;
 
 use cl::{consts::PM_NORMAL, engine::event::event_args_s, prelude::*};
 
-use super::{is_local, Events};
-
 #[allow(dead_code)]
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -19,10 +17,10 @@ enum Tripmine {
     Ground,
 }
 
-impl Events {
+impl super::Events {
     pub(super) fn fire_tripmine(&mut self, args: &mut event_args_s) {
         let idx = args.entindex;
-        if !is_local(idx) {
+        if !self.utils.is_local(idx) {
             return;
         }
 
