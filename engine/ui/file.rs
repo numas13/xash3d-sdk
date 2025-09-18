@@ -7,16 +7,17 @@ use core::{
 
 use csz::CStrThin;
 
-use crate::prelude::*;
+use crate::engine::UiEngineRef;
 
 pub struct File {
+    engine: UiEngineRef,
     data: *mut u8,
     len: usize,
 }
 
 impl File {
-    pub(crate) unsafe fn new(data: *mut u8, len: usize) -> Self {
-        Self { data, len }
+    pub(crate) unsafe fn new(engine: UiEngineRef, data: *mut u8, len: usize) -> Self {
+        Self { engine, data, len }
     }
 
     pub fn as_slice(&self) -> &[u8] {
@@ -49,7 +50,7 @@ impl DerefMut for File {
 impl Drop for File {
     fn drop(&mut self) {
         unsafe {
-            engine().free_file(self.data.cast());
+            self.engine.free_file(self.data.cast());
         }
     }
 }

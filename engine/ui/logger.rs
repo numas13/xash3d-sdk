@@ -7,11 +7,15 @@ struct Console;
 
 impl EngineConsoleLogger for Console {
     fn get_cvar_float(name: &CStrThin) -> f32 {
-        engine().get_cvar(name)
+        // TODO: remove me
+        let engine = unsafe { UiEngineRef::new() };
+        engine.get_cvar(name)
     }
 
     fn console_print(s: &CStrThin) {
-        engine().console_print(s);
+        // TODO: remove me
+        let engine = unsafe { UiEngineRef::new() };
+        engine.console_print(s);
     }
 }
 

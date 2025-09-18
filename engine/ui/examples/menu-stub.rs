@@ -3,22 +3,32 @@ use std::{cell::Cell, ffi::c_int};
 use xash3d_ui::{
     color::RGBA,
     consts::keys,
-    engine::ActiveMenu::{Console, Menu},
+    engine::{
+        ActiveMenu::{Console, Menu},
+        UiEngineRef,
+    },
     export::{export_dll, impl_unsync_global, UiDll},
     prelude::*,
 };
 
-#[derive(Default)]
-pub struct Instance {
+pub struct Dll {
+    engine: UiEngineRef,
     active: Cell<bool>,
 }
 
-impl_unsync_global!(Instance);
+impl_unsync_global!(Dll);
 
-impl UiDll for Instance {
+impl UiDll for Dll {
+    fn new(engine: UiEngineRef) -> Self {
+        Self {
+            engine,
+            active: Cell::new(false),
+        }
+    }
+
     fn set_active_menu(&self, active: bool) {
         self.active.set(active);
-        engine().set_key_dest([Console, Menu][active as usize]);
+        self.engine.set_key_dest([Console, Menu][active as usize]);
     }
 
     fn is_visible(&self) -> bool {
@@ -31,7 +41,7 @@ impl UiDll for Instance {
         }
         match key as u8 {
             keys::K_ESCAPE => self.set_active_menu(false),
-            keys::K_Q => engine().client_cmd(c"quit"),
+            keys::K_Q => self.engine.client_cmd(c"quit"),
             _ => {}
         }
     }
@@ -40,8 +50,8 @@ impl UiDll for Instance {
         if !self.is_visible() {
             return;
         }
-        let engine = engine();
-        let globals = globals();
+        let engine = self.engine;
+        let globals = &engine.globals;
         let area = globals.screen_area();
         engine.fill_rgba(RGBA::BLACK, area);
         let text = c"Press Q to exit";
@@ -52,4 +62,4 @@ impl UiDll for Instance {
     }
 }
 
-export_dll!(Instance);
+export_dll!(Dll);

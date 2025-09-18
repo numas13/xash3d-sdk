@@ -29,8 +29,8 @@ impl fmt::Display for EscapeCommand<'_> {
     }
 }
 
-pub fn escape_command(src: &str) -> EscapeCommand<'_> {
-    EscapeCommand::new(src, engine().get_cvar(c"cmd_scripting"))
+pub fn escape_command(engine: UiEngineRef, src: &str) -> EscapeCommand<'_> {
+    EscapeCommand::new(src, engine.get_cvar(c"cmd_scripting"))
 }
 
 #[cfg(test)]

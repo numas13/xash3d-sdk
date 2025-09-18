@@ -2,8 +2,7 @@ pub use shared::prelude::*;
 
 pub use crate::{
     engine::prelude::*,
-    engine::UiEngine,
-    instance::{engine, globals},
+    engine::{UiEngine, UiEngineRef},
 };
 
 #[allow(deprecated)]

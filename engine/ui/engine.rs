@@ -15,7 +15,8 @@ use shared::{
     ffi::{
         common::{cl_entity_s, kbutton_t, wrect_s},
         menu::{
-            gameinfo2_s, ui_enginefuncs_s, ui_extendedfuncs_s, GAMEINFO, GAMEINFO_VERSION, HIMAGE,
+            gameinfo2_s, ui_enginefuncs_s, ui_extendedfuncs_s, ui_globalvars_s, GAMEINFO,
+            GAMEINFO_VERSION, HIMAGE,
         },
     },
     macros::define_enum_for_primitive,
@@ -30,13 +31,14 @@ use crate::{
     cvar::{CVarFlags, CVarPtr},
     file::{Cursor, File, FileList},
     game_info::GameInfo2,
-    picture::PictureFlags,
+    globals::UiGlobals,
+    picture::{Picture, PictureFlags},
 };
 
 #[allow(deprecated)]
 use crate::game_info::GameInfo;
 
-pub use shared::engine::{net, AddCmdError, BufferError};
+pub use shared::engine::{net, AddCmdError, BufferError, EngineRef};
 
 pub(crate) mod prelude {
     pub use shared::engine::{
@@ -46,6 +48,8 @@ pub(crate) mod prelude {
 }
 
 pub use self::prelude::*;
+
+pub type UiEngineRef = EngineRef<UiEngine>;
 
 define_enum_for_primitive! {
     #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
@@ -117,6 +121,25 @@ impl fmt::Display for Protocol {
     }
 }
 
+#[derive(Debug)]
+pub enum PictureError {
+    LoadError,
+    InvalidPathError,
+}
+
+impl fmt::Display for PictureError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Self::LoadError => "failed to load a picture".fmt(f),
+            Self::InvalidPathError => "invalid picture path".fmt(f),
+        }
+    }
+}
+
+// TODO: use core::error::Error when MSRV >= 1.81
+#[cfg(feature = "std")]
+impl std::error::Error for PictureError {}
+
 type PicDrawFn =
     unsafe extern "C" fn(x: c_int, y: c_int, width: c_int, height: c_int, prc: *const wrect_s);
 
@@ -130,6 +153,7 @@ pub struct UiEngine {
     ext: ui_extendedfuncs_s,
     net_api: NetApi,
     borrows: Borrows,
+    pub globals: UiGlobals,
 }
 
 impl_unsync_global!(UiEngine);
@@ -150,12 +174,13 @@ macro_rules! unwrap {
 }
 
 impl UiEngine {
-    pub(crate) fn new(raw: &ui_enginefuncs_s) -> Self {
+    pub(crate) fn new(raw: &ui_enginefuncs_s, globals: *mut ui_globalvars_s) -> Self {
         Self {
             raw: *raw,
             ext: unsafe { mem::zeroed() },
             borrows: Default::default(),
             net_api: NetApi::new(ptr::null_mut()),
+            globals: UiGlobals::new(globals),
         }
     }
 
@@ -172,7 +197,7 @@ impl UiEngine {
         &self.ext
     }
 
-    pub fn pic_load(
+    pub fn pic_load_raw(
         &self,
         path: impl ToEngineStr,
         buf: Option<&[u8]>,
@@ -186,6 +211,48 @@ impl UiEngine {
             unwrap!(self, pfnPIC_Load)(path.as_ptr(), buf, len as c_int, flags.bits() as c_int)
         };
         (pic != 0).then_some(pic)
+    }
+
+    fn pic_load_impl(
+        &self,
+        path: impl ToEngineStr,
+        buf: Option<&[u8]>,
+        flags: PictureFlags,
+    ) -> Result<Picture, PictureError> {
+        let engine = unsafe { UiEngineRef::new() };
+        self.pic_load_raw(path, buf, flags)
+            .ok_or(PictureError::LoadError)
+            .map(|raw| Picture::new(engine, raw))
+    }
+
+    pub fn pic_load(&self, path: impl ToEngineStr) -> Result<Picture, PictureError> {
+        self.pic_load_impl(path, None, PictureFlags::empty())
+    }
+
+    pub fn pic_load_with_flags(
+        &self,
+        path: impl ToEngineStr,
+        flags: PictureFlags,
+    ) -> Result<Picture, PictureError> {
+        self.pic_load_impl(path, None, flags)
+    }
+
+    pub fn pic_create(&self, path: impl ToEngineStr, buf: &[u8]) -> Result<Picture, PictureError> {
+        self.pic_create_with_flags(path, buf, PictureFlags::empty())
+    }
+
+    pub fn pic_create_with_flags(
+        &self,
+        path: impl ToEngineStr,
+        buf: &[u8],
+        flags: PictureFlags,
+    ) -> Result<Picture, PictureError> {
+        let path = path.to_engine_str();
+        if path.as_ref().to_bytes().starts_with(b"#") {
+            self.pic_load_impl(path.as_ref(), Some(buf), flags)
+        } else {
+            Err(PictureError::InvalidPathError)
+        }
     }
 
     pub fn pic_free(&self, path: impl ToEngineStr) {
@@ -452,7 +519,8 @@ impl UiEngine {
         let mut len = 0;
         let data = unsafe { unwrap!(self, COM_LoadFile)(path.as_ptr(), &mut len) };
         if !data.is_null() {
-            Some(unsafe { File::new(data.cast(), len as usize) })
+            let engine = unsafe { UiEngineRef::new() };
+            Some(unsafe { File::new(engine, data.cast(), len as usize) })
         } else {
             None
         }

@@ -13,30 +13,19 @@ use shared::{
     },
 };
 
-use crate::{color::RGBA, prelude::*};
+use crate::{color::RGBA, engine::UiEngineRef};
 
 pub use shared::export::{impl_unsync_global, UnsyncGlobal};
 
 #[allow(unused_variables)]
 pub trait UiDll: UnsyncGlobal {
+    fn new(engine: UiEngineRef) -> Self;
+
     fn vid_init(&self) -> bool {
         true
     }
 
-    fn redraw(&self, time: f32) {
-        if !self.is_visible() {
-            return;
-        }
-        let engine = engine();
-        let globals = globals();
-        let area = globals.screen_area();
-        engine.fill_rgba(RGBA::BLACK, area);
-        let msg = c"UiDll::redraw is not implemented";
-        let (w, h) = engine.console_string_size(msg);
-        let x = (area.width as c_int - w) / 2;
-        let y = (area.height as c_int - h) / 2;
-        engine.draw_console_string(x, y, msg);
-    }
+    fn redraw(&self, time: f32);
 
     fn set_active_menu(&self, active: bool);
 
@@ -109,11 +98,11 @@ pub trait UiDll: UnsyncGlobal {
     fn connection_progress_parse_server_info(&self, server: &CStrThin) {}
 }
 
-pub fn ui_functions<T: UiDll + Default>() -> UI_FUNCTIONS {
+pub fn ui_functions<T: UiDll>() -> UI_FUNCTIONS {
     Export::<T>::ui_functions()
 }
 
-pub fn ui_extended_functions<T: UiDll + Default>() -> UI_EXTENDED_FUNCTIONS {
+pub fn ui_extended_functions<T: UiDll>() -> UI_EXTENDED_FUNCTIONS {
     Export::<T>::ui_extended_functions()
 }
 
@@ -232,10 +221,11 @@ struct Export<T> {
     phantom: PhantomData<T>,
 }
 
-impl<T: UiDll + Default> UiDllExport for Export<T> {
+impl<T: UiDll> UiDllExport for Export<T> {
     unsafe extern "C" fn init() {
         unsafe {
-            (&mut *T::global_as_mut_ptr()).write(T::default());
+            let engine = UiEngineRef::new();
+            (&mut *T::global_as_mut_ptr()).write(T::new(engine));
         }
     }
 
@@ -402,7 +392,7 @@ impl<T: UiDll + Default> UiDllExport for Export<T> {
 /// # Safety
 ///
 /// Must be called only once.
-pub unsafe fn get_menu_api<T: UiDll + Default>(
+pub unsafe fn get_menu_api<T: UiDll>(
     dll_funcs: Option<&mut UI_FUNCTIONS>,
     eng_funcs: Option<&ffi::menu::ui_enginefuncs_s>,
     globals: *mut ffi::menu::ui_globalvars_s,
@@ -424,7 +414,7 @@ pub unsafe fn get_menu_api<T: UiDll + Default>(
 /// # Safety
 ///
 /// Must be called only once after [get_menu_api].
-pub unsafe fn get_ext_api<T: UiDll + Default>(
+pub unsafe fn get_ext_api<T: UiDll>(
     version: c_int,
     dll_funcs: Option<&mut ffi::menu::UI_EXTENDED_FUNCTIONS>,
     eng_funcs: Option<&ffi::menu::ui_extendedfuncs_s>,
