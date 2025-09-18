@@ -12,19 +12,21 @@ use crate::{
 const LIFE: f32 = 1.0 / 60.0;
 
 pub struct Geiger {
+    engine: ClientEngineRef,
     range: u16,
     time: f32,
 }
 
 impl Geiger {
-    pub fn new() -> Self {
-        hook_message!(Geiger, |msg| {
+    pub fn new(engine: ClientEngineRef) -> Self {
+        hook_message!(engine, Geiger, |_, msg| {
             let x = msg.read_u8()?;
             hud().items.get_mut::<Geiger>().range = (x as u16) << 2;
             Ok(())
         });
 
         Self {
+            engine,
             range: 0,
             time: 0.0,
         }
@@ -108,7 +110,7 @@ impl HudItem for Geiger {
             }
         }
 
-        let engine = engine();
+        let engine = self.engine;
         let rand = || engine.rand();
         let vol = vol * (rand() & 127) as f32 / 255.0 + 0.25;
 

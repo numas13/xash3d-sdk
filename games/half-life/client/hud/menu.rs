@@ -15,6 +15,7 @@ use super::{HudItem, State};
 const MAX_MENU_STRING: usize = 512;
 
 pub struct Menu {
+    engine: ClientEngineRef,
     time: f32,
     waiting_more: bool,
     data: String,
@@ -22,10 +23,11 @@ pub struct Menu {
 }
 
 impl Menu {
-    pub fn new() -> Self {
-        hook_message!(ShowMenu, Menu::msg_show_menu);
+    pub fn new(engine: ClientEngineRef) -> Self {
+        hook_message!(engine, ShowMenu, Menu::msg_show_menu);
 
         Self {
+            engine,
             time: 0.0,
             waiting_more: false,
             data: String::with_capacity(MAX_MENU_STRING),
@@ -54,7 +56,7 @@ impl Menu {
         }
 
         let mut buf = String::with_capacity(self.data.len());
-        super::text_message::localise_string(&mut buf, &self.data);
+        super::text_message::localise_string(self.engine, &mut buf, &self.data);
         self.data = buf;
 
         self.time = if time > 0 {
@@ -70,12 +72,12 @@ impl Menu {
         if item > 0 && self.slots & (1 << (item - 1)) != 0 {
             let mut buf = CStrArray::<128>::new();
             writeln!(buf.cursor(), "menuselect {item}").ok();
-            engine().client_cmd(buf.as_c_str());
+            self.engine.client_cmd(buf.as_c_str());
             self.time = 0.0;
         }
     }
 
-    pub fn msg_show_menu(msg: &mut Message) -> Result<(), MessageError> {
+    pub fn msg_show_menu(_: ClientEngineRef, msg: &mut Message) -> Result<(), MessageError> {
         let slots = msg.read_u16()?;
         let time = msg.read_u8()?;
         let more = msg.read_u8()? != 0;
@@ -99,7 +101,7 @@ impl HudItem for Menu {
             return;
         }
 
-        let engine = engine();
+        let engine = self.engine;
         let screen = engine.screen_info();
         let font_height = cmp::max(12, screen.char_height());
         let nlc = self.data.chars().filter(|&c| c == '\n').count() as c_int;

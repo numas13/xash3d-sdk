@@ -1,8 +1,8 @@
 use core::ffi::c_int;
 
-use shared::{export::UnsyncGlobal, ffi};
+use shared::{cvar::CVarPtr, export::UnsyncGlobal, ffi};
 
-use crate::{engine::prelude::*, engine::ClientEngine, studio::Studio};
+use crate::{prelude::*, studio::Studio};
 
 fn check_version(engine: &ClientEngine, name: &str, version: c_int, expected: c_int) -> bool {
     if version == expected {
@@ -48,17 +48,22 @@ pub unsafe fn init_engine(engine_funcs: &ffi::client::cl_enginefuncs_s) -> bool 
     unsafe {
         (*ClientEngine::global_as_mut_ptr()).write(engine);
     }
+
+    crate::cvar::init(|name, value, flags| {
+        // TODO: remove me
+        let engine = unsafe { ClientEngineRef::new() };
+        let ptr = engine.get_cvar(name);
+        if ptr.is_null() {
+            engine
+                .register_variable(name, value, flags)
+                .unwrap_or(CVarPtr::null())
+        } else {
+            ptr
+        }
+    });
+
     crate::logger::init_console_logger();
     true
-}
-
-/// Returns a reference to the global [ClientEngine] instance.
-///
-/// # Safety
-///
-/// Must not be called before [init_engine].
-pub fn engine() -> &'static ClientEngine {
-    unsafe { ClientEngine::global_assume_init_ref() }
 }
 
 /// Initialize the global [Studio] instance.

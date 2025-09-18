@@ -19,7 +19,7 @@ enum Hgun {
 
 impl super::Events {
     pub(super) fn fire_hornet_gun(&mut self, args: &mut event_args_s) {
-        let engine = engine();
+        let engine = self.engine;
         let ev = engine.event_api();
 
         let idx = args.entindex;

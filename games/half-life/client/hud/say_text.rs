@@ -27,14 +27,15 @@ struct Line {
 }
 
 pub struct SayText {
+    engine: ClientEngineRef,
     scroll_time: f32,
     line_height: c_int,
     lines: VecDeque<Line>,
 }
 
 impl SayText {
-    pub fn new() -> Self {
-        hook_message!(SayText, |msg| {
+    pub fn new(engine: ClientEngineRef) -> Self {
+        hook_message!(engine, SayText, |_, msg| {
             let client_index = msg.read_u8()? as c_int;
             let text = msg.read_cstr()?;
             let hud = hud();
@@ -45,6 +46,7 @@ impl SayText {
         });
 
         Self {
+            engine,
             scroll_time: 0.0,
             line_height: 0,
             lines: Default::default(),
@@ -60,7 +62,7 @@ impl SayText {
         let mut name_len = 0;
         let mut color = RGB::WHITE;
 
-        let engine = engine();
+        let engine = self.engine;
         if bytes[0] == SAY_MESSAGE && client > 0 {
             if let Some(info) = engine.get_player_info(client) {
                 let name = info.name().to_bytes();
@@ -102,7 +104,7 @@ impl HudItem for SayText {
     }
 
     fn vid_init(&mut self, _: &mut State) {
-        self.line_height = engine().console_string_height(c"test");
+        self.line_height = self.engine.console_string_height(c"test");
     }
 
     fn draw(&mut self, state: &mut State) {
@@ -110,7 +112,7 @@ impl HudItem for SayText {
             return;
         }
 
-        let engine = engine();
+        let engine = self.engine;
 
         let saytext_time = cvar::hud_saytext_time.value();
         self.scroll_time = fminf(self.scroll_time, state.time + saytext_time);

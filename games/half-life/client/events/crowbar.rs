@@ -21,7 +21,7 @@ enum Crowbar {
 impl super::Events {
     pub(super) fn crowbar(&mut self, args: &mut event_args_s) {
         let idx = args.entindex;
-        let engine = engine();
+        let engine = self.engine;
         let ev = engine.event_api();
         ev.build_sound_at(args.origin())
             .entity(idx)

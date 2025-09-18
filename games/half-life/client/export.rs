@@ -19,55 +19,71 @@ use cl::{
             usercmd_s, vec3_t, weapon_data_s,
         },
     },
+    prelude::*,
 };
 use csz::CStrThin;
 
-#[derive(Default)]
-pub struct Instance {
-    events: RefCell<crate::events::Events>,
-    entities: RefCell<crate::entity::Entities>,
-    input: RefCell<crate::input::Input>,
-    camera: RefCell<crate::camera::Camera>,
-    view: RefCell<crate::view::View>,
-    hud: RefCell<crate::hud::Hud>,
-    weapons: RefCell<crate::weapons::Weapons>,
-    renderer: RefCell<crate::studio::StudioRenderer>,
+use crate::{
+    camera::Camera, entity::Entities, events::Events, hud::Hud, input::Input,
+    studio::StudioRenderer, view::View, weapons::Weapons,
+};
+
+pub struct Dll {
+    events: RefCell<Events>,
+    entities: RefCell<Entities>,
+    input: RefCell<Input>,
+    camera: RefCell<Camera>,
+    view: RefCell<View>,
+    hud: RefCell<Hud>,
+    weapons: RefCell<Weapons>,
+    renderer: RefCell<StudioRenderer>,
 }
 
-impl_unsync_global!(Instance);
+impl_unsync_global!(Dll);
 
 macro_rules! impl_global_getter {
     ($ty:ty, $name:ident, $name_mut:ident) => {
         #[allow(dead_code)]
         pub fn $name<'a>() -> Ref<'a, $ty> {
-            unsafe { Instance::global_assume_init_ref() }.$name.borrow()
+            unsafe { Dll::global_assume_init_ref() }.$name.borrow()
         }
 
         #[allow(dead_code)]
         pub fn $name_mut<'a>() -> RefMut<'a, $ty> {
-            unsafe { Instance::global_assume_init_ref() }
-                .$name
-                .borrow_mut()
+            unsafe { Dll::global_assume_init_ref() }.$name.borrow_mut()
         }
     };
 }
 
-impl_global_getter!(crate::events::Events, events, events_mut);
-impl_global_getter!(crate::entity::Entities, entities, entities_mut);
-impl_global_getter!(crate::input::Input, input, input_mut);
-impl_global_getter!(crate::camera::Camera, camera, camera_mut);
-impl_global_getter!(crate::view::View, view, view_mut);
-impl_global_getter!(crate::hud::Hud, hud, hud_mut);
-impl_global_getter!(crate::weapons::Weapons, weapons, weapons_mut);
-impl_global_getter!(crate::studio::StudioRenderer, renderer, renderer_mut);
+impl_global_getter!(Events, events, events_mut);
+impl_global_getter!(Entities, entities, entities_mut);
+impl_global_getter!(Input, input, input_mut);
+impl_global_getter!(Camera, camera, camera_mut);
+impl_global_getter!(View, view, view_mut);
+impl_global_getter!(Hud, hud, hud_mut);
+impl_global_getter!(Weapons, weapons, weapons_mut);
+impl_global_getter!(StudioRenderer, renderer, renderer_mut);
 
-impl Drop for Instance {
+impl Drop for Dll {
     fn drop(&mut self) {
         input_mut().shutdown();
     }
 }
 
-impl ClientDll for Instance {
+impl ClientDll for Dll {
+    fn new(engine: ClientEngineRef) -> Self {
+        Self {
+            events: Events::new(engine).into(),
+            entities: Entities::new(engine).into(),
+            input: Input::new(engine).into(),
+            camera: Camera::new(engine).into(),
+            view: View::new(engine).into(),
+            hud: Hud::new(engine).into(),
+            weapons: Weapons::new(engine).into(),
+            renderer: StudioRenderer::new(engine).into(),
+        }
+    }
+
     fn vid_init(&self) -> bool {
         self.hud.borrow_mut().vid_init();
         true
@@ -226,7 +242,7 @@ impl ClientDll for Instance {
     }
 }
 
-export_dll!(Instance);
+export_dll!(Dll);
 
 #[allow(non_snake_case)]
 unsafe extern "C" fn StudioDrawModel(flags: c_int) -> c_int {

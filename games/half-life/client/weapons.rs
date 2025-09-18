@@ -12,17 +12,9 @@ pub struct Weapons {
     cl_lw: CVarPtr,
 }
 
-impl Default for Weapons {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl Weapons {
-    pub fn new() -> Self {
-        let engine = engine();
+    pub fn new(engine: ClientEngineRef) -> Self {
         let cl_lw = engine.get_cvar(c"cl_lw");
-
         Self { cl_lw }
     }
 

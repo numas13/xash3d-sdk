@@ -154,6 +154,7 @@ impl Msg {
 }
 
 pub struct HudMessage {
+    engine: ClientEngineRef,
     active: bool,
 
     messages: Vec<Option<Msg>>,
@@ -168,8 +169,8 @@ pub struct HudMessage {
 }
 
 impl HudMessage {
-    pub fn new() -> Self {
-        hook_message!(HudText, |msg| {
+    pub fn new(engine: ClientEngineRef) -> Self {
+        hook_message!(engine, HudText, |_, msg| {
             let s = msg.read_str()?;
             let hud = hud();
             hud.items
@@ -178,13 +179,14 @@ impl HudMessage {
             Ok(())
         });
 
-        hook_message!(GameTitle, {
+        hook_message!(engine, GameTitle, {
             let hud = hud();
             hud.items.get_mut::<HudMessage>().msg_game_title(&hud.state);
             true
         });
 
         Self {
+            engine,
             active: false,
 
             messages: vec![None; MAX_HUD_MESSAGES],
@@ -210,7 +212,7 @@ impl HudMessage {
     }
 
     fn msg_game_title(&mut self, state: &State) {
-        self.game_title = engine().text_message_get(c"GAMETITLE");
+        self.game_title = self.engine.text_message_get(c"GAMETITLE");
         if self.game_title.is_some() {
             self.game_title_time = state.time;
             self.active = true;
@@ -226,7 +228,7 @@ impl HudMessage {
             name = &name[1..];
         }
 
-        let new = match engine().text_message_get(name) {
+        let new = match self.engine.text_message_get(name) {
             Some(msg) => {
                 let message = unsafe { CStr::from_ptr(msg.pMessage).to_string_lossy().into() };
                 Msg {
@@ -306,7 +308,7 @@ impl HudMessage {
         let half_width = title_half.rect.width();
         let full_width = half_width + title_life.rect.width();
         let full_height = title_life.rect.height();
-        let engine = engine();
+        let engine = self.engine;
         let screen = engine.screen_info();
         let x = position(title.x, full_width, full_width, screen.width());
         let y = position(title.y, full_height, 0, screen.height());
@@ -328,12 +330,12 @@ impl HudMessage {
             }
         }
 
-        let engine = engine();
+        let engine = self.engine;
         let screen = engine.screen_info();
         for i in self.messages.iter_mut() {
             if let Some(msg) = i {
                 if state.time <= msg.end_time() {
-                    msg.draw(state, engine, &screen);
+                    msg.draw(state, &engine, &screen);
                     drawn = true;
                 } else {
                     *i = None;

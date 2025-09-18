@@ -7,12 +7,14 @@ use crate::hud::{Fade, Hide, HudItem, State};
 const FALLBACK_WIDTH: c_int = 24;
 
 pub struct Ammo {
+    engine: ClientEngineRef,
     fade: Fade,
 }
 
 impl Ammo {
-    pub fn new() -> Self {
+    pub fn new(engine: ClientEngineRef) -> Self {
         Self {
+            engine,
             fade: Fade::new(super::FADE_TIME_AMMO),
         }
     }
@@ -43,7 +45,7 @@ impl HudItem for Ammo {
         let a = self.fade.alpha(state.time_delta);
         let color = state.color.scale_color(a);
 
-        let engine = engine();
+        let engine = self.engine;
         let screen = engine.screen_info();
         let ammo_width = state.num_width;
 

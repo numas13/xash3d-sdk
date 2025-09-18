@@ -26,7 +26,7 @@ impl super::Events {
         let idx = args.entindex;
         let origin = args.origin();
 
-        let engine = engine();
+        let engine = self.engine;
         let ev = engine.event_api();
 
         ev.build_sound_at(origin)

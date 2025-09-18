@@ -21,7 +21,7 @@ impl super::Events {
             _ => c"",
         };
 
-        let engine = engine();
+        let engine = self.engine;
         let ev = engine.event_api();
 
         if stop {

@@ -3,8 +3,8 @@ pub use shared::prelude::*;
 pub use crate::{
     engine::event::EventArgsExt,
     engine::prelude::*,
-    engine::ClientEngine,
-    instance::{engine, studio},
+    engine::{ClientEngine, ClientEngineRef},
+    instance::studio,
 };
 
 pub use crate::{

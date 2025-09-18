@@ -30,6 +30,7 @@ impl From<&'_ Weapon> for Select {
 }
 
 pub struct WeaponMenu {
+    engine: ClientEngineRef,
     active: Select,
     last: Select,
     bucket0: Option<usize>,
@@ -40,17 +41,17 @@ pub struct WeaponMenu {
 }
 
 impl WeaponMenu {
-    pub fn new() -> Self {
-        hook_command!(c"cancelselect", {
+    pub fn new(engine: ClientEngineRef) -> Self {
+        hook_command!(engine, c"cancelselect", |_| {
             hud().items.get_mut::<WeaponMenu>().cmd_close();
         });
-        hook_command!(c"invnext", {
+        hook_command!(engine, c"invnext", |_| {
             let hud = &mut *hud_mut();
             hud.items
                 .get_mut::<WeaponMenu>()
                 .cmd_next_weapon(&mut hud.state);
         });
-        hook_command!(c"invprev", {
+        hook_command!(engine, c"invprev", |_| {
             let hud = &mut *hud_mut();
             hud.items
                 .get_mut::<WeaponMenu>()
@@ -58,6 +59,7 @@ impl WeaponMenu {
         });
 
         Self {
+            engine,
             active: Select::None,
             last: Select::None,
             bucket0: None,
@@ -85,7 +87,7 @@ impl WeaponMenu {
             return;
         }
 
-        let engine = engine();
+        let engine = self.engine;
         let fast_switch = cvar::hud_fastswitch.value() != 0.0;
 
         let slot = slot - 1;
@@ -138,7 +140,7 @@ impl WeaponMenu {
 
     fn cmd_close(&mut self) {
         if !self.close() {
-            engine().client_cmd(c"escape");
+            self.engine.client_cmd(c"escape");
         }
     }
 
@@ -220,7 +222,7 @@ impl WeaponMenu {
         let mut x = x;
         let mut width = self.ab_width;
         let height = self.ab_height;
-        let engine = engine();
+        let engine = self.engine;
         let f = f.clamp(0.0, 1.0);
         if f != 0.0 {
             let w = cmp::max(1, (f * width as f32) as c_int);
@@ -255,7 +257,7 @@ impl HudItem for WeaponMenu {
         self.bucket0 = state.find_sprite_index("bucket1");
         self.selection = state.find_sprite("selection");
 
-        let engine = engine();
+        let engine = self.engine;
         let screen = engine.screen_info();
         let scale = screen.scale();
 
@@ -267,12 +269,12 @@ impl HudItem for WeaponMenu {
         self.active = Select::None;
         self.last = Select::None;
 
-        engine().unset_crosshair();
+        self.engine.unset_crosshair();
     }
 
     fn think(&mut self, state: &mut State) {
         if self.active != Select::None && state.key_bits & consts::IN_ATTACK != 0 {
-            let engine = engine();
+            let engine = self.engine;
 
             if let Select::Weapon(id, _, _) = self.active {
                 if let Some(weapon) = state.inv.weapon(id) {
@@ -301,7 +303,7 @@ impl HudItem for WeaponMenu {
             Select::None => return,
         };
 
-        let engine = engine();
+        let engine = self.engine;
 
         let mut x = 10;
         let y = 10;

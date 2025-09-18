@@ -8,6 +8,7 @@ use crate::{
 };
 
 pub struct Battery {
+    engine: ClientEngineRef,
     fade: Fade,
     current: i16,
     suit_empty: Option<Sprite>,
@@ -15,14 +16,15 @@ pub struct Battery {
 }
 
 impl Battery {
-    pub fn new() -> Self {
-        hook_message!(Battery, |msg| {
+    pub fn new(engine: ClientEngineRef) -> Self {
+        hook_message!(engine, Battery, |_, msg| {
             let x = msg.read_i16()?;
             hud().items.get_mut::<Battery>().set(x);
             Ok(())
         });
 
         Self {
+            engine,
             current: 0,
             fade: Fade::default(),
             suit_empty: None,
@@ -47,8 +49,7 @@ impl super::HudItem for Battery {
     }
 
     fn draw(&mut self, state: &mut State) {
-        let engine = engine();
-
+        let engine = self.engine;
         if state.is_hidden(Hide::HEALTH) || engine.is_spectator_only() || !state.has_suit() {
             return;
         }

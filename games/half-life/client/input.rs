@@ -108,6 +108,8 @@ impl KeyList {
 }
 
 pub struct Input {
+    engine: ClientEngineRef,
+
     pub keys: KeyList,
     oldangles: vec3_t,
     #[allow(dead_code)]
@@ -159,74 +161,67 @@ pub struct Input {
     in_break: kbutton_t,
 }
 
-impl Default for Input {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl Input {
-    pub fn new() -> Self {
-        hook_command_key!("moveup", input_mut().in_up);
-        hook_command_key!("movedown", input_mut().in_down);
-        hook_command_key!("left", input_mut().in_left);
-        hook_command_key!("right", input_mut().in_right);
-        hook_command_key!("forward", input_mut().in_forward);
-        hook_command_key!("back", input_mut().in_back);
-        hook_command_key!("lookup", input_mut().in_lookup);
-        hook_command_key!("lookdown", input_mut().in_lookdown);
-        hook_command_key!("strafe", input_mut().in_strafe);
-        hook_command_key!("moveleft", input_mut().in_moveleft);
-        hook_command_key!("moveright", input_mut().in_moveright);
-        hook_command_key!("speed", input_mut().in_speed);
-        hook_command_key!("attack", input_mut().in_attack, up {
+    pub fn new(engine: ClientEngineRef) -> Self {
+        hook_command_key!(engine, "moveup", input_mut().in_up);
+        hook_command_key!(engine, "movedown", input_mut().in_down);
+        hook_command_key!(engine, "left", input_mut().in_left);
+        hook_command_key!(engine, "right", input_mut().in_right);
+        hook_command_key!(engine, "forward", input_mut().in_forward);
+        hook_command_key!(engine, "back", input_mut().in_back);
+        hook_command_key!(engine, "lookup", input_mut().in_lookup);
+        hook_command_key!(engine, "lookdown", input_mut().in_lookdown);
+        hook_command_key!(engine, "strafe", input_mut().in_strafe);
+        hook_command_key!(engine, "moveleft", input_mut().in_moveleft);
+        hook_command_key!(engine, "moveright", input_mut().in_moveright);
+        hook_command_key!(engine, "speed", input_mut().in_speed);
+        hook_command_key!(engine, "attack", input_mut().in_attack, up {
             input_mut().in_cancel = false;
         });
-        hook_command_key!("attack2", input_mut().in_attack2);
-        hook_command_key!("use", input_mut().in_use);
-        hook_command_key!("jump", input_mut().in_jump);
-        hook_command_key!("klook", input_mut().in_klook);
-        hook_command_key!("mlook", unsafe { &mut *addr_of_mut!(in_mlook) }, up {
+        hook_command_key!(engine, "attack2", input_mut().in_attack2);
+        hook_command_key!(engine, "use", input_mut().in_use);
+        hook_command_key!(engine, "jump", input_mut().in_jump);
+        hook_command_key!(engine, "klook", input_mut().in_klook);
+        hook_command_key!(engine, "mlook", unsafe { &mut *addr_of_mut!(in_mlook) }, up {
             let state = KeyState::from_bits_retain(unsafe { in_mlook.state });
             if !state.contains(KeyState::DOWN) && cvar::lookspring.value() != 0.0 {
                 view_mut().start_pitch_drift();
             }
         });
-        hook_command_key!("jlook", unsafe { &mut *addr_of_mut!(in_jlook) });
-        hook_command_key!("duck", input_mut().in_duck);
-        hook_command_key!("reload", input_mut().in_reload);
-        hook_command_key!("alt1", input_mut().in_alt1);
-        hook_command_key!("score", input_mut().in_score, down {
+        hook_command_key!(engine, "jlook", unsafe { &mut *addr_of_mut!(in_jlook) });
+        hook_command_key!(engine, "duck", input_mut().in_duck);
+        hook_command_key!(engine, "reload", input_mut().in_reload);
+        hook_command_key!(engine, "alt1", input_mut().in_alt1);
+        hook_command_key!(engine, "score", input_mut().in_score, down {
             hud_mut().show_score_board(true);
         }, up {
             hud_mut().show_score_board(false);
         });
-        hook_command_key!("showscores", input_mut().in_score, down {
+        hook_command_key!(engine, "showscores", input_mut().in_score, down {
             hud_mut().show_score_board(true);
         }, up {
             hud_mut().show_score_board(false);
         });
-        hook_command_key!("graph", unsafe { &mut *addr_of_mut!(in_graph) });
-        hook_command_key!("break", input_mut().in_break);
+        hook_command_key!(engine, "graph", unsafe { &mut *addr_of_mut!(in_graph) });
+        hook_command_key!(engine, "break", input_mut().in_break);
 
         // TODO: hook in_cancel???
 
-        hook_command!(c"impulse", {
-            let s = engine().cmd_argv(1);
+        hook_command!(engine, c"impulse", |engine| {
+            let s = engine.cmd_argv(1);
             let n = s.to_str().ok().and_then(|s| s.parse().ok()).unwrap_or(0);
             input_mut().in_impulse = n;
         });
 
-        hook_command!(c"force_centerview", {
+        hook_command!(engine, c"force_centerview", |engine| {
             if !input().mouse_in_use {
-                let engine = engine();
                 let mut viewangles = engine.get_view_angles();
                 viewangles[PITCH] = 0.0;
                 engine.set_view_angles(viewangles);
             }
         });
 
-        hook_command!("joyadvancedupdate", {
+        hook_command!(engine, "joyadvancedupdate", |_| {
             // TODO: joystick
         });
 
@@ -239,6 +234,8 @@ impl Input {
         }
 
         Self {
+            engine,
+
             keys,
             oldangles: vec3_t::ZERO,
             mouse: Mouse::new(),
@@ -246,7 +243,7 @@ impl Input {
             in_impulse: 0,
             in_cancel: false,
 
-            mouse_initialized: engine().check_parm(c"-nomouse") == 0,
+            mouse_initialized: engine.check_parm(c"-nomouse") == 0,
             mouse_active: false,
             mouse_visible: false,
             mouse_in_use: false,
@@ -415,7 +412,7 @@ impl Input {
 
     fn get_relative_mouse_pos(&mut self) -> (c_int, c_int) {
         if !self.use_raw_input() {
-            let engine = engine();
+            let engine = self.engine;
             let screen = engine.screen_info();
             let (cx, cy) = (screen.width() / 2, screen.height() / 2);
             let (mx, my) = if !self.mouse_raw_used {
@@ -502,7 +499,7 @@ impl Input {
     }
 
     fn mouse_move(&mut self, _frametime: f32, cmd: &mut usercmd_s) {
-        let engine = engine();
+        let engine = self.engine;
         let mut viewangles = engine.get_view_angles();
 
         let state = KeyState::from_bits_retain(unsafe { input::in_mlook.state });
@@ -602,7 +599,7 @@ impl Input {
             return;
         }
 
-        let engine = engine();
+        let engine = self.engine;
         for i in 0..self.mouse_buttons {
             if mstate & (1 << i) != 0 && self.mouse_oldbuttonstate & (1 << i) == 0 {
                 engine.key_event(keys::K_MOUSE1 + i, true);
@@ -625,7 +622,7 @@ impl Input {
     }
 
     pub fn create_move(&mut self, frametime: f32, active: bool) -> usercmd_s {
-        let engine = engine();
+        let engine = self.engine;
         let mut cmd: usercmd_s = unsafe { mem::zeroed() };
 
         if active {

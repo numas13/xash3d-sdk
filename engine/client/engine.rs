@@ -29,7 +29,7 @@ use crate::{
     sprite::{SpriteHandle, SpriteList},
 };
 
-pub use shared::engine::{net, AddCmdError, BufferError};
+pub use shared::engine::{net, AddCmdError, BufferError, EngineRef};
 
 pub(crate) mod prelude {
     pub use shared::engine::{
@@ -39,6 +39,8 @@ pub(crate) mod prelude {
 }
 
 pub use self::prelude::*;
+
+pub type ClientEngineRef = EngineRef<ClientEngine>;
 
 pub type UserMsgHookFn =
     Option<unsafe extern "C" fn(name: *const c_char, size: c_int, buf: *mut c_void) -> c_int>;

@@ -29,7 +29,7 @@ impl super::Events {
             src -= VEC_HULL_MIN - VEC_DUCK_HULL_MIN;
         }
 
-        let engine = engine();
+        let engine = self.engine;
         let ev = engine.event_api();
         let pm_states = ev.push_pm_states();
         ev.set_solid_players(idx - 1);

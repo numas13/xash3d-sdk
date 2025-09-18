@@ -1,17 +1,11 @@
 use core::ffi::c_int;
 
-use cl::ffi::common::entity_state_s;
+use cl::{ffi::common::entity_state_s, prelude::*};
 
 pub struct StudioRenderer {}
 
-impl Default for StudioRenderer {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl StudioRenderer {
-    pub fn new() -> Self {
+    pub fn new(_: ClientEngineRef) -> Self {
         Self {}
     }
 

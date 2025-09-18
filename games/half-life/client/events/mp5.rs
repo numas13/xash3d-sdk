@@ -32,7 +32,7 @@ impl super::Events {
         let angles = args.angles();
         let velocity = args.velocity();
         let av = angles.angle_vectors().all();
-        let engine = engine();
+        let engine = self.engine;
         let ev = engine.event_api();
         let shell = ev.find_model_index(models::SHELL);
 
@@ -73,7 +73,7 @@ impl super::Events {
     pub(super) fn fire_mp5_2(&mut self, args: &mut event_args_s) {
         let idx = args.entindex;
         let origin = args.origin();
-        let engine = engine();
+        let engine = self.engine;
         let ev = engine.event_api();
 
         if self.utils.is_local(idx) {

@@ -75,13 +75,14 @@ struct Notice {
 }
 
 pub struct DeathNotice {
+    engine: ClientEngineRef,
     list: VecDeque<Notice>,
     skull: Option<Sprite>,
 }
 
 impl DeathNotice {
-    pub fn new() -> Self {
-        hook_message!(DeathMsg, |msg| {
+    pub fn new(engine: ClientEngineRef) -> Self {
+        hook_message!(engine, DeathMsg, |_, msg| {
             let killer = msg.read_u8()?;
             let victim = msg.read_u8()?;
             // FIXME: read cstr
@@ -94,6 +95,7 @@ impl DeathNotice {
         });
 
         Self {
+            engine,
             list: Default::default(),
             skull: None,
         }
@@ -102,8 +104,7 @@ impl DeathNotice {
     fn death(&mut self, state: &State, killer_id: u8, victim_id: u8, killed_with: &str) {
         // TODO: spectator.death_message(victim);
 
-        let engine = engine();
-
+        let engine = self.engine;
         let suicide = killer_id == victim_id || killer_id == 0;
         let team_kill = killed_with == "d_teammate";
 
@@ -212,7 +213,7 @@ impl HudItem for DeathNotice {
             self.list.pop_front();
         }
 
-        let engine = engine();
+        let engine = self.engine;
         let screen = engine.screen_info();
         let gap = cmp::max(
             screen.char_height(),

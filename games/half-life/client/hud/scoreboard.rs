@@ -16,13 +16,15 @@ struct Score {
 }
 
 pub struct ScoreBoard {
+    engine: ClientEngineRef,
     flags: HudFlags,
     scores: Vec<Score>,
 }
 
 impl ScoreBoard {
-    pub fn new() -> Self {
+    pub fn new(engine: ClientEngineRef) -> Self {
         Self {
+            engine,
             flags: HudFlags::INTERMISSION,
             scores: Vec::with_capacity(MAX_PLAYERS / 2),
         }
@@ -63,8 +65,7 @@ impl HudItem for ScoreBoard {
     }
 
     fn draw(&mut self, state: &mut State) {
-        let engine = engine();
-
+        let engine = self.engine;
         let screen = engine.screen_info();
         let width = 70 * screen.char_width(b'w') as c_int;
         let width = cmp::min(screen.width().saturating_sub(40), width);

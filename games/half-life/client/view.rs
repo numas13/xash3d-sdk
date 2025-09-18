@@ -86,6 +86,7 @@ impl Default for Bob {
 }
 
 struct PitchDrift {
+    engine: ClientEngineRef,
     pitchvel: f32,
     drift: bool,
     driftmove: f32,
@@ -93,8 +94,9 @@ struct PitchDrift {
 }
 
 impl PitchDrift {
-    fn new() -> Self {
+    fn new(engine: ClientEngineRef) -> Self {
         Self {
+            engine,
             pitchvel: 0.0,
             drift: false,
             driftmove: 0.0,
@@ -103,7 +105,7 @@ impl PitchDrift {
     }
 
     fn start(&mut self) {
-        if self.laststop == engine().get_client_time() as f64 {
+        if self.laststop == self.engine.get_client_time() as f64 {
             return;
         }
 
@@ -115,13 +117,13 @@ impl PitchDrift {
     }
 
     fn stop(&mut self) {
-        self.laststop = engine().get_client_time() as f64;
+        self.laststop = self.engine.get_client_time() as f64;
         self.drift = false;
         self.pitchvel = 0.0;
     }
 
     fn drift_pitch(&mut self, params: &mut ref_params_s) {
-        let engine = engine();
+        let engine = self.engine;
         if engine.is_no_clipping()
             || params.onground == 0
             || params.demoplayback != 0
@@ -178,12 +180,6 @@ impl PitchDrift {
     }
 }
 
-impl Default for PitchDrift {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 const ORIGIN_BACKUP: usize = 64;
 const ORIGIN_MASK: usize = ORIGIN_BACKUP - 1;
 
@@ -194,8 +190,8 @@ struct ViewInterp {
     last_origin: vec3_t,
 }
 
-impl Default for ViewInterp {
-    fn default() -> Self {
+impl ViewInterp {
+    fn new() -> Self {
         Self {
             origins: [vec3_t::ZERO; ORIGIN_BACKUP],
             origin_time: [0.0; ORIGIN_BACKUP],
@@ -203,9 +199,7 @@ impl Default for ViewInterp {
             last_origin: vec3_t::ZERO,
         }
     }
-}
 
-impl ViewInterp {
     fn calc(&mut self, params: &mut ref_params_s, view: &mut cl_entity_s) {
         let delta = params.simorg - self.last_origin;
         if delta.length() != 0.0 {
@@ -257,6 +251,7 @@ impl ViewInterp {
 }
 
 pub struct View {
+    engine: ClientEngineRef,
     punchangle: vec3_t,
     bob: Bob,
     pitch_drift: PitchDrift,
@@ -266,14 +261,15 @@ pub struct View {
 }
 
 impl View {
-    pub fn new() -> Self {
-        hook_command!(c"centerview", view_mut().pitch_drift.start());
+    pub fn new(engine: ClientEngineRef) -> Self {
+        hook_command!(engine, c"centerview", |_| view_mut().pitch_drift.start());
 
         Self {
+            engine,
             punchangle: vec3_t::ZERO,
             bob: Bob::default(),
-            pitch_drift: PitchDrift::default(),
-            view_interp: ViewInterp::default(),
+            pitch_drift: PitchDrift::new(engine),
+            view_interp: ViewInterp::new(),
             old_z: 0.0,
             last_time: 0.0,
         }
@@ -292,13 +288,13 @@ impl View {
     }
 
     fn calc_gun_angle(&self, params: &ref_params_s) {
-        let ent = unsafe { &mut *engine().get_view_entity() };
+        let ent = unsafe { &mut *self.engine.get_view_entity() };
         ent.angles[YAW] = params.viewangles[YAW] + params.crosshairangle[YAW];
         ent.angles[PITCH] = -params.viewangles[PITCH] + params.crosshairangle[PITCH] * 0.25;
     }
 
     fn calc_intermission_refdef(&mut self, params: &mut ref_params_s) {
-        let engine = engine();
+        let engine = self.engine;
         let view = unsafe { &mut *engine.get_view_entity() };
 
         params.vieworg = params.simorg;
@@ -311,8 +307,28 @@ impl View {
         }
     }
 
+    fn calc_view_roll(&self, params: &mut ref_params_s) {
+        let viewentity = self.engine.get_entity_by_index(params.viewentity);
+        if viewentity.is_null() {
+            return;
+        }
+        let viewentity = unsafe { &*viewentity };
+
+        let side = cl::math::calc_roll(
+            viewentity.angles,
+            params.simvel,
+            params.movevars().rollangle,
+            params.movevars().rollspeed,
+        );
+        params.viewangles[ROLL] += side;
+
+        if params.health <= 0 && params.viewheight[2] != 0.0 {
+            params.viewangles[ROLL] = 80.0;
+        }
+    }
+
     fn calc_normal_refdef(&mut self, params: &mut ref_params_s) {
-        let engine = engine();
+        let engine = self.engine;
 
         self.pitch_drift.drift_pitch(params);
 
@@ -382,7 +398,7 @@ impl View {
 
         params.vieworg[2] += water_offset;
 
-        calc_view_roll(params);
+        self.calc_view_roll(params);
 
         let av = params.cl_viewangles.angle_vectors().all();
         params.forward = av.forward;
@@ -504,32 +520,6 @@ impl View {
         } else if params.paused == 0 {
             self.calc_normal_refdef(params);
         }
-    }
-}
-
-impl Default for View {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-fn calc_view_roll(params: &mut ref_params_s) {
-    let viewentity = engine().get_entity_by_index(params.viewentity);
-    if viewentity.is_null() {
-        return;
-    }
-    let viewentity = unsafe { &*viewentity };
-
-    let side = cl::math::calc_roll(
-        viewentity.angles,
-        params.simvel,
-        params.movevars().rollangle,
-        params.movevars().rollspeed,
-    );
-    params.viewangles[ROLL] += side;
-
-    if params.health <= 0 && params.viewheight[2] != 0.0 {
-        params.viewangles[ROLL] = 80.0;
     }
 }
 

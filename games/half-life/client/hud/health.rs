@@ -91,6 +91,7 @@ const ATTACK_REAR: usize = 2;
 const ATTACK_LEFT: usize = 3;
 
 pub struct Health {
+    engine: ClientEngineRef,
     current: u8,
     fade: Fade,
     cross: Option<Sprite>,
@@ -101,14 +102,14 @@ pub struct Health {
 }
 
 impl Health {
-    pub fn new() -> Self {
-        hook_message!(Health, |msg| {
+    pub fn new(engine: ClientEngineRef) -> Self {
+        hook_message!(engine, Health, |_, msg| {
             let x = msg.read_u8()?;
             hud().items.get_mut::<Health>().set(x);
             Ok(())
         });
 
-        hook_message!(Damage, |msg| {
+        hook_message!(engine, Damage, |_, msg| {
             let armor = msg.read_u8()?;
             let damage_taken = msg.read_u8()?;
             let damage_bits = msg.read_u32()?;
@@ -133,6 +134,7 @@ impl Health {
         });
 
         Self {
+            engine,
             current: 100,
             fade: Fade::default(),
             cross: None,
@@ -164,8 +166,9 @@ impl Health {
         }
     }
 
-    fn draw_health(&mut self, engine: &ClientEngine, state: &mut State) {
+    fn draw_health(&mut self, state: &mut State) {
         let Some(cross) = self.cross else { return };
+        let engine = self.engine;
 
         let a = if self.current > 15 {
             self.fade.alpha(state.time_delta)
@@ -222,10 +225,11 @@ impl Health {
         }
     }
 
-    fn draw_damage(&mut self, engine: &ClientEngine, state: &mut State) {
+    fn draw_damage(&mut self, state: &mut State) {
         if self.damages.is_empty() {
             return;
         }
+        let engine = self.engine;
 
         let Some(index) = self.dmg_spr_index else {
             return;
@@ -290,10 +294,11 @@ impl Health {
         }
     }
 
-    fn draw_pain(&mut self, engine: &ClientEngine, state: &mut State) {
+    fn draw_pain(&mut self, state: &mut State) {
         if self.attack == [0.0; 4] {
             return;
         }
+        let engine = self.engine;
 
         let Some(hspr) = self.pain_sprite else { return };
 
@@ -329,8 +334,10 @@ impl Health {
 
 impl super::HudItem for Health {
     fn vid_init(&mut self, state: &mut State) {
+        let engine = self.engine;
         self.cross = state.find_sprite("cross");
-        self.pain_sprite = try_spr_load(state.res, |res| spr_load!("sprites/{res}_pain.spr"));
+        self.pain_sprite =
+            try_spr_load(state.res, |res| spr_load!(engine, "sprites/{res}_pain.spr"));
         self.dmg_spr_index = state.find_sprite_index("dmg_bio").map(|i| i + 1);
     }
 
@@ -340,14 +347,14 @@ impl super::HudItem for Health {
     }
 
     fn draw(&mut self, state: &mut State) {
-        let engine = engine();
+        let engine = self.engine;
 
         if state.is_hidden(Hide::HEALTH) || engine.is_spectator_only() || !state.has_suit() {
             return;
         }
 
-        self.draw_health(engine, state);
-        self.draw_damage(engine, state);
-        self.draw_pain(engine, state);
+        self.draw_health(state);
+        self.draw_damage(state);
+        self.draw_pain(state);
     }
 }

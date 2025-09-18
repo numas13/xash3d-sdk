@@ -44,6 +44,8 @@ impl Ammo {
 
 #[derive(Copy, Clone)]
 pub struct Weapon {
+    engine: ClientEngineRef,
+
     pub name: CStrArray<MAX_WEAPON_NAME>,
     pub ammo: [Option<Ammo>; 2],
     pub slot: u32,
@@ -60,29 +62,11 @@ pub struct Weapon {
     pub zoomed_autoaim: Option<Sprite>,
 }
 
-impl Default for Weapon {
-    fn default() -> Self {
-        Self {
-            name: CStrArray::new(),
-            ammo: [None; 2],
-            slot: 0,
-            slot_pos: 0,
-            id: 0,
-            flags: 0,
-            clip: 0,
-
-            active: None,
-            inactive: None,
-            crosshair: None,
-            autoaim: None,
-            zoomed_crosshair: None,
-            zoomed_autoaim: None,
-        }
-    }
-}
-
 impl Weapon {
-    pub fn read_from_message(msg: &mut Message) -> Result<Self, MessageError> {
+    pub fn read_from_message(
+        engine: ClientEngineRef,
+        msg: &mut Message,
+    ) -> Result<Self, MessageError> {
         let name = msg.read_str()?;
         let ammo1 = msg.read_i8()?;
         let max1 = msg.read_u8()?;
@@ -122,6 +106,8 @@ impl Weapon {
         let ammo2 = Ammo::new(ammo2, max2);
 
         Ok(Self {
+            engine,
+
             name: CStrArray::try_from(name).unwrap(),
             ammo: [ammo1, ammo2],
             slot,
@@ -140,18 +126,18 @@ impl Weapon {
     }
 
     fn load_sptires(&mut self) {
-        let list = spr_get_list!("sprites/{}.txt", self.name);
+        let engine = self.engine;
+        let list = spr_get_list!(engine, "sprites/{}.txt", self.name);
         if list.is_empty() {
             return;
         }
 
-        let engine = engine();
         let screen = engine.screen_info();
         let res = screen.sprite_resolution() as c_int;
 
         let load = |name: &CStr| {
             list.find(name.into(), res)
-                .and_then(|i| spr_load!("sprites/{}.spr", i.sprite()).map(|s| (s, i.rc)))
+                .and_then(|i| spr_load!(engine, "sprites/{}.spr", i.sprite()).map(|s| (s, i.rc)))
                 .map(|(s, rc)| Sprite::new(s, rc))
         };
 
@@ -185,6 +171,8 @@ impl Weapon {
 }
 
 pub struct Inventory {
+    engine: ClientEngineRef,
+
     list: [Option<Weapon>; MAX_WEAPONS],
     slots: [[Option<u32>; MAX_WEAPON_POSITIONS]; MAX_WEAPON_SLOTS],
     ammo: [u32; MAX_AMMO_TYPES],
@@ -197,9 +185,9 @@ pub struct Inventory {
 }
 
 impl Inventory {
-    pub fn new() -> Self {
-        hook_message!(WeaponList, |msg| {
-            match Weapon::read_from_message(msg) {
+    pub fn new(engine: ClientEngineRef) -> Self {
+        hook_message!(engine, WeaponList, |engine, msg| {
+            match Weapon::read_from_message(engine, msg) {
                 Ok(weapon) => {
                     hud_mut().state.inv.weapon_add(weapon);
                     true
@@ -211,27 +199,26 @@ impl Inventory {
             }
         });
 
-        hook_message!(AmmoX, |msg| {
+        hook_message!(engine, AmmoX, |_, msg| {
             let ty = msg.read_u8()? as u32;
             let count = msg.read_u8()? as u32;
             hud_mut().state.inv.ammo_set(ty, count);
             Ok(())
         });
 
-        hook_message!(CurWeapon, |msg| {
+        hook_message!(engine, CurWeapon, |engine, msg| {
             let state = msg.read_u8()?;
             let id = msg.read_i8()?;
             let clip = msg.read_i8()?;
-            Ok(Inventory::msg_cur_weapon(state, id, clip))
+            Ok(Inventory::msg_cur_weapon(engine, state, id, clip))
         });
 
-        hook_message!(HideWeapon, |msg| {
+        hook_message!(engine, HideWeapon, |engine, msg| {
             use super::Hide;
 
             let mut hud = hud_mut();
             hud.state.hide = Hide::from_bits(msg.read_u8()? as u32).unwrap();
 
-            let engine = engine();
             if !engine.is_spectator_only() {
                 if hud.state.is_hidden(Hide::WEAPONS | Hide::ALL) {
                     hud.items.get_mut::<WeaponMenu>().close();
@@ -245,6 +232,8 @@ impl Inventory {
         });
 
         Self {
+            engine,
+
             list: Default::default(),
             slots: Default::default(),
             ammo: Default::default(),
@@ -416,14 +405,12 @@ impl Inventory {
     pub fn set_crosshair(&self) {
         if let Some(weapon) = self.current() {
             if let Some(s) = weapon.crosshair {
-                engine().set_crosshair(s.hspr, s.rect, RGB::WHITE);
+                self.engine.set_crosshair(s.hspr, s.rect, RGB::WHITE);
             }
         }
     }
 
-    fn msg_cur_weapon(state: u8, id: i8, clip: i8) -> bool {
-        let engine = engine();
-
+    fn msg_cur_weapon(engine: ClientEngineRef, state: u8, id: i8, clip: i8) -> bool {
         if id < 1 {
             engine.unset_crosshair();
             return false;

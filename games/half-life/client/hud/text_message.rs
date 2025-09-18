@@ -24,17 +24,16 @@ fn cstr_copy(dst: &mut [u8], src: &[u8]) -> usize {
 pub struct TextMessage {}
 
 impl TextMessage {
-    pub fn new() -> Self {
-        hook_message!(TextMsg, TextMessage::msg_text);
+    pub fn new(engine: ClientEngineRef) -> Self {
+        hook_message!(engine, TextMsg, TextMessage::msg_text);
 
         Self {}
     }
 
-    fn msg_text(msg: &mut Message) -> Result<(), MessageError> {
+    fn msg_text(engine: ClientEngineRef, msg: &mut Message) -> Result<(), MessageError> {
         const MSG_BUF_SIZE: usize = 128;
 
         let dest = msg.read_u8()? as c_int;
-        let engine = engine();
         let (dest, format) = lookup_string(engine, dest, msg.read_cstr()?);
 
         let mut strings = [[0; MSG_BUF_SIZE]; 4];
@@ -93,9 +92,7 @@ impl TextMessage {
     }
 }
 
-pub fn localise_string(dst: &mut String, src: &str) {
-    let engine = engine();
-
+pub fn localise_string(engine: ClientEngineRef, dst: &mut String, src: &str) {
     let mut cur = src;
     while !cur.is_empty() {
         while let Some(b'#') = cur.as_bytes().first() {
@@ -139,11 +136,7 @@ pub fn localise_string(dst: &mut String, src: &str) {
     }
 }
 
-pub fn lookup_string<'a>(
-    engine: &'a ClientEngine,
-    dest: c_int,
-    msg: &'a CStr,
-) -> (c_int, &'a CStr) {
+pub fn lookup_string(engine: ClientEngineRef, dest: c_int, msg: &CStr) -> (c_int, &CStr) {
     if !msg.to_bytes().starts_with(b"#") {
         return (dest, msg);
     }

@@ -16,7 +16,7 @@ use core::ffi::{c_int, CStr};
 
 use cl::{
     consts::{EFLAG_FLESH_SOUND, MAX_PLAYERS, PM_NORMAL, SOLID_BSP},
-    engine::event::event_args_s,
+    engine::{event::event_args_s, ClientEngineRef},
     entity::{Effects, MoveType},
     ffi::{
         common::{pmtrace_s, vec3_t},
@@ -53,29 +53,25 @@ enum Bullet {
 }
 
 pub struct Events {
+    engine: ClientEngineRef,
     swing: u32,
     tracer_count: [c_int; MAX_PLAYERS],
     utils: Utils,
 }
 
-impl Default for Events {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl Events {
-    pub fn new() -> Self {
+    pub fn new(engine: ClientEngineRef) -> Self {
         // FIXME: force cl_lw to 0.0 because it is not implemented
-        engine().set_cvar(c"cl_lw", false);
+        engine.set_cvar(c"cl_lw", false);
 
         macro_rules! hook {
-            ($($event:expr => $func:ident),* $(,)?) => (
-                $(hook_event!($event, |args| events_mut().$func(args));)*
+            ($engine:expr; $($event:expr => $func:ident),* $(,)?) => (
+                $(hook_event!($engine, $event, |args| events_mut().$func(args));)*
             );
         }
 
         hook! {
+            engine;
             valve::events::GLOCK1       => fire_glock1,
             valve::events::GLOCK2       => fire_glock2,
             valve::events::SHOTGUN1     => fire_shotgun_single,
@@ -98,9 +94,10 @@ impl Events {
         }
 
         Self {
+            engine,
             swing: 0,
             tracer_count: [0; MAX_PLAYERS],
-            utils: Utils {},
+            utils: Utils { engine },
         }
     }
 }
@@ -110,26 +107,28 @@ struct ShellInfo {
     velocity: vec3_t,
 }
 
-struct Utils {}
+struct Utils {
+    engine: ClientEngineRef,
+}
 
 impl Utils {
     fn is_player(&self, idx: c_int) -> bool {
-        idx >= 1 && idx <= engine().get_max_clients()
+        idx >= 1 && idx <= self.engine.get_max_clients()
     }
 
     fn is_local(&self, idx: c_int) -> bool {
-        engine().event_api().is_local(idx - 1)
+        self.engine.event_api().is_local(idx - 1)
     }
 
     fn muzzle_flash(&self) {
-        let ent = unsafe { &mut *engine().get_view_entity() };
+        let ent = unsafe { &mut *self.engine.get_view_entity() };
         ent.curstate.effects |= Effects::MUZZLEFLASH.bits();
     }
 
     fn get_player_view_height(&self, args: &event_args_s) -> vec3_t {
         if self.is_player(args.entindex) {
             if self.is_local(args.entindex) {
-                return engine().event_api().local_player_view_height();
+                return self.engine.event_api().local_player_view_height();
             } else if args.ducking == 1 {
                 return vec3_t::new(0.0, 0.0, VEC_DUCK_VIEW);
             }
@@ -151,7 +150,7 @@ impl Utils {
         let AngleVectorsAll { forward, right, up } = av;
         let view_ofs = self.get_player_view_height(args);
 
-        let engine = engine();
+        let engine = self.engine;
         let r = engine.random_float(50.0, 70.0);
         let u = engine.random_float(100.0, 150.0);
 
@@ -174,7 +173,7 @@ impl Utils {
         soundtype: c_int,
     ) {
         let endpos = vec3_t::new(0.0, 0.0, rotation);
-        engine()
+        self.engine
             .efx_api()
             .temp_model(origin, velocity, endpos, 2.5, model, soundtype);
     }
@@ -191,7 +190,7 @@ impl Utils {
         end: vec3_t,
         bullet: Bullet,
     ) -> f32 {
-        let engine = engine();
+        let engine = self.engine;
         let ev = engine.event_api();
 
         let mut ch_texture_type = 0;
@@ -313,7 +312,7 @@ impl Utils {
 
     fn damage_decal(&self, pe: &physent_s) -> &'static CStr {
         if pe.classnumber == 1 {
-            match engine().random_int(0, 2) {
+            match self.engine.random_int(0, 2) {
                 0 => c"{break1",
                 1 => c"{break2",
                 _ => c"{break3",
@@ -321,7 +320,7 @@ impl Utils {
         } else if pe.rendermode != RenderMode::Normal as c_int {
             c"{bproof1"
         } else {
-            match engine().random_int(0, 4) {
+            match self.engine.random_int(0, 4) {
                 0 => c"{shot1",
                 1 => c"{shot2",
                 2 => c"{shot3",
@@ -332,7 +331,7 @@ impl Utils {
     }
 
     fn gunshot_decal_trace(&self, tr: &pmtrace_s, decal_name: Option<&CStr>) {
-        let engine = engine();
+        let engine = self.engine;
         let ev = engine.event_api();
         let efx = engine.efx_api();
         efx.bullet_impact_particles(tr.endpos);
@@ -367,8 +366,7 @@ impl Utils {
     }
 
     fn decal_gunshot(&self, tr: &pmtrace_s, _bullet: Bullet) {
-        let engine = engine();
-        let ev = engine.event_api();
+        let ev = self.engine.event_api();
 
         let Some(pe) = ev.get_phys_ent(tr.ent) else {
             return;
@@ -404,7 +402,7 @@ impl Utils {
             tracer_src += offset + right * 2.0 + forward * 16.0;
         }
 
-        engine().efx_api().create_tracer(tracer_src, end);
+        self.engine.efx_api().create_tracer(tracer_src, end);
 
         freq != 1
     }
@@ -423,7 +421,7 @@ impl Utils {
         spread: (f32, f32),
     ) {
         let AngleVectorsAll { forward, right, up } = av;
-        let engine = engine();
+        let engine = self.engine;
         let ev = engine.event_api();
 
         for _ in 0..shots {

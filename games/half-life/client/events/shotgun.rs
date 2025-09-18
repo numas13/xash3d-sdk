@@ -34,7 +34,7 @@ impl super::Events {
         let angles = args.angles();
         let velocity = args.velocity();
         let av = angles.angle_vectors().all();
-        let engine = engine();
+        let engine = self.engine;
         let ev = engine.event_api();
         let shell = ev.find_model_index(models::SHOTGUNSHELL);
 
@@ -79,7 +79,7 @@ impl super::Events {
         let angles = args.angles();
         let velocity = args.velocity();
         let av = angles.angle_vectors().all();
-        let engine = engine();
+        let engine = self.engine;
         let ev = engine.event_api();
         let shell = ev.find_model_index(models::SHOTGUNSHELL);
 

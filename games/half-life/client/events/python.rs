@@ -27,7 +27,7 @@ impl super::Events {
         let origin = args.origin();
         let angles = args.angles();
         let av = angles.angle_vectors().all();
-        let engine = engine();
+        let engine = self.engine;
         let ev = engine.event_api();
 
         if self.utils.is_local(idx) {

@@ -28,7 +28,7 @@ const EGON_SOUND_STARTUP: &CStr = sound::weapons::EGON_WINDUP2;
 
 impl super::Events {
     pub(super) fn fire_egon(&mut self, args: &mut event_args_s) {
-        let engine = engine();
+        let engine = self.engine;
         let ev = engine.event_api();
 
         let idx = args.entindex;
@@ -82,7 +82,7 @@ impl super::Events {
     }
 
     pub(super) fn stop_egon(&mut self, args: &mut event_args_s) {
-        let engine = engine();
+        let engine = self.engine;
         let ev = engine.event_api();
 
         let idx = args.entindex;

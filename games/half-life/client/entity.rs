@@ -16,18 +16,14 @@ use csz::CStrThin;
 use crate::{helpers, hud::MAX_WEAPONS};
 
 pub struct Entities {
+    engine: ClientEngineRef,
     temp_ent_frame: Cell<c_int>,
 }
 
-impl Default for Entities {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl Entities {
-    pub fn new() -> Self {
+    pub fn new(engine: ClientEngineRef) -> Self {
         Self {
+            engine,
             temp_ent_frame: Cell::new(0),
         }
     }
@@ -85,7 +81,7 @@ impl Entities {
         // duck prevention
         pcd.iuser3 = ppcd.iuser3;
 
-        if engine().is_spectator_only() {
+        if self.engine.is_spectator_only() {
             pcd.iuser1 = unsafe { helpers::g_iUser1 }; // observer mode
             pcd.iuser2 = unsafe { helpers::g_iUser2 }; // first target
             pcd.iuser3 = unsafe { helpers::g_iUser3 }; // second target
@@ -144,7 +140,7 @@ impl Entities {
         dst.team = src.team;
         dst.colormap = src.colormap;
 
-        let player = unsafe { &*engine().get_local_player() };
+        let player = unsafe { &*self.engine.get_local_player() };
         if dst.number == player.index {
             unsafe {
                 helpers::g_iPlayerClass = dst.playerclass;
@@ -186,7 +182,7 @@ impl Entities {
             return;
         }
 
-        let engine = engine();
+        let engine = self.engine;
         let event = engine.event_api();
         let efx = engine.efx_api();
         event.setup_player_predication(false, true);

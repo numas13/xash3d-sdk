@@ -24,7 +24,7 @@ impl super::Events {
             return;
         }
 
-        let engine = engine();
+        let engine = self.engine;
         let ev = engine.event_api();
 
         let origin = args.origin();

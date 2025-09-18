@@ -13,7 +13,9 @@ pub trait KeyButtonExt {
 
 impl KeyButtonExt for kbutton_t {
     fn key_down(&mut self) {
-        let s = engine().cmd_argv(1);
+        // TODO: remove me
+        let engine = unsafe { ClientEngineRef::new() };
+        let s = engine.cmd_argv(1);
         let k = if !s.is_empty() {
             s.to_str().ok().and_then(|s| s.parse().ok()).unwrap_or(0)
         } else {
@@ -34,7 +36,9 @@ impl KeyButtonExt for kbutton_t {
     }
 
     fn key_up(&mut self) {
-        let s = engine().cmd_argv(1);
+        // TODO: remove me
+        let engine = unsafe { ClientEngineRef::new() };
+        let s = engine.cmd_argv(1);
         if !s.is_empty() {
             let k = s.to_str().ok().and_then(|s| s.parse().ok()).unwrap_or(0);
 

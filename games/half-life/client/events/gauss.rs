@@ -32,7 +32,7 @@ enum Gauss {
 
 impl super::Events {
     fn stop_previous_gauss(&self, idx: c_int) {
-        let engine = engine();
+        let engine = self.engine;
         let ev = engine.event_api();
         ev.kill_events(idx, valve::events::GAUSSSPIN);
         ev.stop_sound(idx, Channel::Weapon, sound::ambience::PULSEMACHINE);
@@ -50,7 +50,7 @@ impl super::Events {
         let angles = args.angles();
         let mut forward = angles.angle_vectors().forward();
 
-        let engine = engine();
+        let engine = self.engine;
         let ev = engine.event_api();
         let efx = engine.efx_api();
 
@@ -296,7 +296,7 @@ impl super::Events {
     }
 
     pub(super) fn spin_gauss(&mut self, args: &mut event_args_s) {
-        engine()
+        self.engine
             .event_api()
             .build_sound_at(args.origin())
             .entity(args.entindex)

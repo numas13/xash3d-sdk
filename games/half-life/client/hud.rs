@@ -216,6 +216,7 @@ pub struct PlayerInfoExtra {
 }
 
 pub struct State {
+    engine: ClientEngineRef,
     /// Default color for HUD items.
     color: RGB,
     /// Is the game in an intermission/pause?
@@ -256,8 +257,9 @@ pub struct State {
 }
 
 impl State {
-    fn new() -> Self {
+    fn new(engine: ClientEngineRef) -> Self {
         Self {
+            engine,
             color: DEFAULT_COLOR,
             intermission: false,
             time_old: 0.0,
@@ -267,7 +269,7 @@ impl State {
             hide: Hide::empty(),
             origin: vec3_t::ZERO,
             angles: vec3_t::ZERO,
-            inv: Inventory::new(),
+            inv: Inventory::new(engine),
             sprites_names: Vec::new(),
             sprites: Vec::new(),
             numbers: Vec::with_capacity(10),
@@ -284,7 +286,7 @@ impl State {
     }
 
     fn vid_init(&mut self) {
-        let engine = engine();
+        let engine = self.engine;
 
         let screen_info = engine.screen_info();
         self.res = screen_info.sprite_resolution();
@@ -294,7 +296,7 @@ impl State {
         self.sprites_names.clear();
         self.sprites.clear();
         for i in sprite_list.iter().filter(|i| i.iRes as u32 == self.res) {
-            let Some(hspr) = spr_load!("sprites/{}.spr", i.sprite()) else {
+            let Some(hspr) = spr_load!(engine, "sprites/{}.spr", i.sprite()) else {
                 continue;
             };
             self.sprites_names.push(i.name().to_str().unwrap().into());
@@ -349,6 +351,7 @@ impl State {
 
     fn draw_number(&self, number: c_int) -> DrawNumber<'_> {
         DrawNumber {
+            engine: self.engine,
             state: self,
             width: 0,
             color: self.color,
@@ -380,6 +383,7 @@ impl State {
 
 #[must_use]
 struct DrawNumber<'a> {
+    engine: ClientEngineRef,
     state: &'a State,
     width: usize,
     number: c_int,
@@ -423,8 +427,7 @@ impl DrawNumber<'_> {
         let mut buf = CStrArray::<64>::new();
         write!(buf.cursor(), "{:1$}", self.number, self.width).ok();
 
-        let engine = engine();
-
+        let engine = self.engine;
         if self.string {
             if self.reverse {
                 return engine.draw_string_reverse(x, y, buf.as_c_str(), self.color);
@@ -493,6 +496,8 @@ impl Items {
 }
 
 pub struct Hud {
+    engine: ClientEngineRef,
+
     pub state: State,
     pub items: Items,
 
@@ -504,37 +509,33 @@ pub struct Hud {
     old_hud_color: String,
 }
 
-impl Default for Hud {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl Hud {
-    pub fn new() -> Self {
-        hook_messages_and_commands();
+    pub fn new(engine: ClientEngineRef) -> Self {
+        hook_messages_and_commands(engine);
 
         let mut items = Items::default();
         items
-            .add(ammo::Ammo::new())
-            .add(history::History::new())
-            .add(weapon_menu::WeaponMenu::new())
-            .add(health::Health::new())
-            .add(battery::Battery::new())
-            .add(flashlight::Flashlight::new())
-            .add(geiger::Geiger::new())
-            .add(train::Train::new())
-            .add(death_notice::DeathNotice::new())
-            .add(say_text::SayText::new())
-            .add(menu::Menu::new())
-            .add(message::HudMessage::new())
-            .add(scoreboard::ScoreBoard::new());
+            .add(ammo::Ammo::new(engine))
+            .add(history::History::new(engine))
+            .add(weapon_menu::WeaponMenu::new(engine))
+            .add(health::Health::new(engine))
+            .add(battery::Battery::new(engine))
+            .add(flashlight::Flashlight::new(engine))
+            .add(geiger::Geiger::new(engine))
+            .add(train::Train::new(engine))
+            .add(death_notice::DeathNotice::new(engine))
+            .add(say_text::SayText::new(engine))
+            .add(menu::Menu::new(engine))
+            .add(message::HudMessage::new(engine))
+            .add(scoreboard::ScoreBoard::new(engine));
 
         Self {
-            state: State::new(),
+            engine,
+
+            state: State::new(engine),
             items,
 
-            text_message: TextMessage::new(),
+            text_message: TextMessage::new(engine),
 
             logo: false,
             logo_hspr: None,
@@ -592,7 +593,7 @@ impl Hud {
     }
 
     pub fn show_score_board(&mut self, show: bool) {
-        if engine().is_multiplayer() {
+        if self.engine.is_multiplayer() {
             self.items.get_mut::<ScoreBoard>().show(show);
         }
     }
@@ -727,14 +728,15 @@ impl Hud {
             return;
         }
 
+        let engine = self.engine;
         if self.logo_hspr.is_none() {
-            self.logo_hspr =
-                try_spr_load(self.state.res, |res| spr_load!("sprites/{res}_logo.spr"));
+            self.logo_hspr = try_spr_load(self.state.res, |res| {
+                spr_load!(engine, "sprites/{res}_logo.spr")
+            });
         }
 
         let Some(hspr) = self.logo_hspr else { return };
 
-        let engine = engine();
         let info = engine.screen_info();
         let (w, h) = engine.spr_size(hspr, 0);
         let x = info.width() - w;
@@ -809,20 +811,20 @@ fn parse_color(s: &str) -> Option<RGB> {
     Some(c.into())
 }
 
-fn hook_messages_and_commands() {
-    hook_message_flag!(Logo, hud_mut().logo);
+fn hook_messages_and_commands(engine: ClientEngineRef) {
+    hook_message_flag!(engine, Logo, hud_mut().logo);
 
-    hook_message!(InitHUD, {
+    hook_message!(engine, InitHUD, {
         hud_mut().init_hud();
         true
     });
 
-    hook_message!(GameMode, {
+    hook_message!(engine, GameMode, {
         trace!("message GameMode is not implemented");
         true
     });
 
-    hook_message!(SetFOV, |msg| {
+    hook_message!(engine, SetFOV, |_, msg| {
         let fov = msg.read_u8()?;
         let mut hud = hud_mut();
         hud.set_last_fov(fov);
@@ -830,7 +832,7 @@ fn hook_messages_and_commands() {
         Ok(())
     });
 
-    hook_message!(ScoreInfo, |msg| {
+    hook_message!(engine, ScoreInfo, |_, msg| {
         let cl = msg.read_u8()?;
         let frags = msg.read_i16()?;
         let deaths = msg.read_i16()?;
@@ -840,12 +842,12 @@ fn hook_messages_and_commands() {
         Ok(())
     });
 
-    hook_message!(ServerName, |msg| {
+    hook_message!(engine, ServerName, |_, msg| {
         hud_mut().state.server_name = msg.read_cstr()?.into();
         Ok(())
     });
 
-    hook_message!(ResetHUD, |msg| {
+    hook_message!(engine, ResetHUD, |_, msg| {
         if !matches!(msg.data(), &[0]) {
             warn!("ResetHUD: unexpected user message data");
         }
@@ -865,14 +867,14 @@ fn hook_messages_and_commands() {
         }
     }
 
-    hook_command!(c"slot1", cmd_slot(1));
-    hook_command!(c"slot2", cmd_slot(2));
-    hook_command!(c"slot3", cmd_slot(3));
-    hook_command!(c"slot4", cmd_slot(4));
-    hook_command!(c"slot5", cmd_slot(5));
-    hook_command!(c"slot6", cmd_slot(6));
-    hook_command!(c"slot7", cmd_slot(7));
-    hook_command!(c"slot8", cmd_slot(8));
-    hook_command!(c"slot9", cmd_slot(9));
-    hook_command!(c"slot10", cmd_slot(10));
+    hook_command!(engine, c"slot1", |_| cmd_slot(1));
+    hook_command!(engine, c"slot2", |_| cmd_slot(2));
+    hook_command!(engine, c"slot3", |_| cmd_slot(3));
+    hook_command!(engine, c"slot4", |_| cmd_slot(4));
+    hook_command!(engine, c"slot5", |_| cmd_slot(5));
+    hook_command!(engine, c"slot6", |_| cmd_slot(6));
+    hook_command!(engine, c"slot7", |_| cmd_slot(7));
+    hook_command!(engine, c"slot8", |_| cmd_slot(8));
+    hook_command!(engine, c"slot9", |_| cmd_slot(9));
+    hook_command!(engine, c"slot10", |_| cmd_slot(10));
 }

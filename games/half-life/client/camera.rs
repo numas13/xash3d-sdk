@@ -47,6 +47,8 @@ mod cvar {
 }
 
 pub struct Camera {
+    engine: ClientEngineRef,
+
     cam_thirdperson: bool,
     cam_mousemove: bool,
     cam_distancemove: bool,
@@ -60,30 +62,27 @@ pub struct Camera {
     cam_out: kbutton_t,
 }
 
-impl Default for Camera {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl Camera {
-    pub fn new() -> Self {
-        hook_command_key!("campitchup", camera_mut().cam_pitchup);
-        hook_command_key!("campitchdown", camera_mut().cam_pitchdown);
-        hook_command_key!("camyawleft", camera_mut().cam_yawleft);
-        hook_command_key!("camyawright", camera_mut().cam_yawright);
-        hook_command_key!("camin", camera_mut().cam_in);
-        hook_command_key!("camout", camera_mut().cam_out);
+    pub fn new(engine: ClientEngineRef) -> Self {
+        hook_command_key!(engine, "campitchup", camera_mut().cam_pitchup);
+        hook_command_key!(engine, "campitchdown", camera_mut().cam_pitchdown);
+        hook_command_key!(engine, "camyawleft", camera_mut().cam_yawleft);
+        hook_command_key!(engine, "camyawright", camera_mut().cam_yawright);
+        hook_command_key!(engine, "camin", camera_mut().cam_in);
+        hook_command_key!(engine, "camout", camera_mut().cam_out);
 
-        hook_command!(c"snapto", camera_mut().toggle_snapto());
-        hook_command!(c"thirdperson", camera_mut().set_third_person());
-        hook_command!(c"firstperson", camera_mut().set_first_person());
-        hook_command!(c"+cammousemove", camera_mut().start_mouse_move());
-        hook_command!(c"-cammousemove", camera_mut().end_mouse_move());
-        hook_command!(c"+camdistance", camera_mut().start_distance());
-        hook_command!(c"-camdistance", camera_mut().end_distance());
+        hook_command!(engine, c"snapto", |_| camera_mut().toggle_snapto());
+        hook_command!(engine, c"thirdperson", |_| camera_mut().set_third_person());
+        hook_command!(engine, c"firstperson", |_| camera_mut().set_first_person());
+        hook_command!(engine, c"+cammousemove", |_| camera_mut()
+            .start_mouse_move());
+        hook_command!(engine, c"-cammousemove", |_| camera_mut().end_mouse_move());
+        hook_command!(engine, c"+camdistance", |_| camera_mut().start_distance());
+        hook_command!(engine, c"-camdistance", |_| camera_mut().end_distance());
 
         Self {
+            engine,
+
             cam_thirdperson: false,
             cam_mousemove: false,
             cam_distancemove: false,
@@ -102,7 +101,7 @@ impl Camera {
         if self.cam_thirdperson || unsafe { helpers::g_iUser1 } != 0 {
             return true;
         }
-        let player = engine().get_local_player();
+        let player = self.engine.get_local_player();
         unsafe { helpers::g_iUser2 == (*player).index }
     }
 
@@ -128,7 +127,7 @@ impl Camera {
     }
 
     pub fn set_third_person(&mut self) {
-        let engine = engine();
+        let engine = self.engine;
         if engine.is_multiplayer() {
             return;
         }
@@ -198,7 +197,7 @@ impl Camera {
             return;
         }
 
-        let engine = engine();
+        let engine = self.engine;
         let (mouse_x, mouse_y) = engine.get_mouse_position();
         let (center_x, center_y) = engine.get_window_center();
 

@@ -8,19 +8,21 @@ use crate::{
 };
 
 pub struct Train {
+    engine: ClientEngineRef,
     pos: u8,
     sprite: Option<SpriteHandle>,
 }
 
 impl Train {
-    pub fn new() -> Self {
-        hook_message!(Train, |msg| {
+    pub fn new(engine: ClientEngineRef) -> Self {
+        hook_message!(engine, Train, |_, msg| {
             let x = msg.read_u8()?;
             hud().items.get_mut::<Train>().set_pos(x);
             Ok(())
         });
 
         Self {
+            engine,
             pos: 0,
             sprite: None,
         }
@@ -37,13 +39,15 @@ impl HudItem for Train {
             return;
         }
 
+        let engine = self.engine;
         if self.sprite.is_none() {
-            self.sprite = try_spr_load(state.res, |res| spr_load!("sprites/{res}_train.spr"));
+            self.sprite = try_spr_load(state.res, |res| {
+                spr_load!(engine, "sprites/{res}_train.spr")
+            });
         }
 
         let Some(sprite) = self.sprite else { return };
 
-        let engine = engine();
         engine.spr_set(sprite, state.color);
 
         let (w, h) = engine.spr_size(sprite, 0);

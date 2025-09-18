@@ -29,13 +29,14 @@ struct Item {
 }
 
 pub struct History {
+    engine: ClientEngineRef,
     items: [Option<Item>; MAX_HISTORY],
     slot: usize,
 }
 
 impl History {
-    pub fn new() -> Self {
-        hook_message!(AmmoPickup, |msg| {
+    pub fn new(engine: ClientEngineRef) -> Self {
+        hook_message!(engine, AmmoPickup, |_, msg| {
             let index = msg.read_u8()?;
             let count = msg.read_u8()?;
             if count != 0 {
@@ -47,7 +48,7 @@ impl History {
             Ok(())
         });
 
-        hook_message!(WeapPickup, |msg| {
+        hook_message!(engine, WeapPickup, |_, msg| {
             let index = msg.read_u8()?;
             let hud = hud();
             hud.items
@@ -56,7 +57,7 @@ impl History {
             Ok(())
         });
 
-        hook_message!(ItemPickup, |msg| {
+        hook_message!(engine, ItemPickup, |_, msg| {
             let name = msg.read_str()?;
             let hud = hud();
             let index = hud.state.find_sprite_index(name);
@@ -67,13 +68,14 @@ impl History {
         });
 
         Self {
+            engine,
             items: [None; MAX_HISTORY],
             slot: 0,
         }
     }
 
     fn add(&mut self, state: &State, kind: ItemKind) {
-        let engine = engine();
+        let engine = self.engine;
         let height = self.slot as c_int * state.inv.pickup_gap() + state.inv.pickup_height();
         let height_max = engine.screen_info().height() - 100;
         if height > height_max || self.slot >= self.items.len() {
@@ -100,7 +102,7 @@ impl HudItem for History {
         let gap = state.inv.pickup_gap();
         let height = state.inv.pickup_height();
 
-        let engine = engine();
+        let engine = self.engine;
         let screen = engine.screen_info();
 
         for i in 0..self.items.len() {

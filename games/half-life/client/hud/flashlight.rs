@@ -8,6 +8,7 @@ use crate::{
 };
 
 pub struct Flashlight {
+    engine: ClientEngineRef,
     battery_f: f32,
     battery: u8,
     enabled: bool,
@@ -17,14 +18,14 @@ pub struct Flashlight {
 }
 
 impl Flashlight {
-    pub fn new() -> Self {
-        hook_message!(FlashBat, |msg| {
+    pub fn new(engine: ClientEngineRef) -> Self {
+        hook_message!(engine, FlashBat, |_, msg| {
             let x = msg.read_u8()?;
             hud().items.get_mut::<Flashlight>().set(x);
             Ok(())
         });
 
-        hook_message!(Flashlight, |msg| {
+        hook_message!(engine, Flashlight, |_, msg| {
             let on = msg.read_u8()?;
             let x = msg.read_u8()?;
             let hud = hud();
@@ -35,6 +36,7 @@ impl Flashlight {
         });
 
         Self {
+            engine,
             battery_f: 0.0,
             battery: 0,
             enabled: false,
@@ -87,7 +89,7 @@ impl super::HudItem for Flashlight {
         };
         let color = color.scale_color(a);
 
-        let engine = engine();
+        let engine = self.engine;
         let screen = engine.screen_info();
 
         let width = empty.rect.width();

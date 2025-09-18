@@ -6,7 +6,6 @@ use core::{
 
 use csz::CStrThin;
 use shared::{
-    cvar::CVarPtr,
     engine::net::netadr_s,
     entity::EntityType,
     ffi::{
@@ -25,12 +24,14 @@ use shared::{
     utils::cstr_or_none,
 };
 
-use crate::{entity::TempEntityList, prelude::*};
+use crate::{engine::ClientEngineRef, entity::TempEntityList};
 
 pub use shared::export::{impl_unsync_global, UnsyncGlobal};
 
 #[allow(unused_variables)]
 pub trait ClientDll: UnsyncGlobal {
+    fn new(engine: ClientEngineRef) -> Self;
+
     fn vid_init(&self) -> bool {
         true
     }
@@ -182,7 +183,7 @@ pub trait ClientDll: UnsyncGlobal {
     }
 }
 
-pub fn dll_functions<T: ClientDll + Default>() -> cldll_func_s {
+pub fn dll_functions<T: ClientDll>() -> cldll_func_s {
     Export::<T>::dll_functions()
 }
 
@@ -371,7 +372,7 @@ struct Export<T> {
     dll: PhantomData<T>,
 }
 
-impl<T: ClientDll + Default> ClientDllExport for Export<T> {
+impl<T: ClientDll> ClientDllExport for Export<T> {
     unsafe extern "C" fn initialize(engine_funcs: *mut cl_enginefuncs_s, version: c_int) -> c_int {
         if version != ffi::client::CLDLL_INTERFACE_VERSION as c_int {
             return 0;
@@ -383,26 +384,16 @@ impl<T: ClientDll + Default> ClientDllExport for Export<T> {
             return 0;
         }
 
-        crate::cvar::init(|name, value, flags| {
-            let engine = engine();
-            let ptr = engine.get_cvar(name);
-            if ptr.is_null() {
-                engine
-                    .register_variable(name, value, flags)
-                    .unwrap_or(CVarPtr::null())
-            } else {
-                ptr
-            }
-        });
-
         // TODO: CL_LoadParticleMan();
 
         1
     }
 
     unsafe extern "C" fn init() {
+        let engine = unsafe { ClientEngineRef::new() };
+        let dll = T::new(engine);
         unsafe {
-            (&mut *T::global_as_mut_ptr()).write(T::default());
+            (&mut *T::global_as_mut_ptr()).write(dll);
         }
     }
 
