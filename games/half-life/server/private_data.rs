@@ -22,7 +22,7 @@ struct DynPtr {
     vtable: *const fn(*mut ()),
 }
 
-/// Private data for [edict_s](ffi::edict_s).
+/// Private data for [edict_s](sv::ffi::server::edict_s).
 #[derive(Debug)]
 #[repr(C)]
 struct PrivateData<T = ()> {
@@ -30,10 +30,10 @@ struct PrivateData<T = ()> {
     vtable: *const fn(*mut T),
     /// Data type id function.
     type_id: fn(&T) -> TypeId,
-    /// `true` if the drop function must be called on free.
-    needs_drop: bool,
+    /// The drop function must be called on free.
+    drop_fn: unsafe fn(*mut T),
     /// Offset to the `inner` for unknown data type.
-    offset: u8,
+    offset: u16,
     /// Inner data.
     inner: T,
 }
@@ -45,8 +45,8 @@ impl<T> PrivateData<T> {
     {
         data.vtable = unsafe { mem::transmute::<&dyn Entity, DynPtr>(&inner).vtable.cast() };
         data.type_id = <T as Any>::type_id;
-        data.needs_drop = mem::needs_drop::<T>();
-        data.offset = mem::offset_of!(PrivateData<T>, inner) as u8;
+        data.drop_fn = ptr::drop_in_place::<T>;
+        data.offset = mem::offset_of!(PrivateData<T>, inner) as u16;
         unsafe {
             ptr::write(&mut data.inner, inner);
         }
@@ -138,11 +138,8 @@ impl PrivateDataRef {
         }
         let mut private = unsafe { PrivateDataRef::from_raw(ent.pvPrivateData) };
         let data = private.as_mut();
-        if data.needs_drop {
-            // first function in vtable is drop
-            unsafe {
-                (*data.vtable)(data.as_mut_ptr());
-            }
+        unsafe {
+            (data.drop_fn)(data.as_mut_ptr());
         }
     }
 }
