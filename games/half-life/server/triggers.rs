@@ -3,23 +3,22 @@ use core::{ffi::c_int, ptr};
 use csz::{cstr, CStrArray, CStrThin};
 use sv::{
     consts::{FENTTABLE_GLOBAL, FENTTABLE_MOVEABLE, SOLID_TRIGGER},
-    entity::{Effects, MoveType},
+    entity::{
+        link_entity, BaseEntity, CreateEntity, Effects, Entity, GetPrivateData, MoveType,
+        ObjectCaps, SpawnResult,
+    },
     ffi::{
         common::vec3_t,
         server::{edict_s, entvars_s, KeyValueData, LEVELLIST, TYPEDESCRIPTION},
     },
     macros::define_field,
     prelude::*,
-    save::FieldType,
+    save::{self, FieldType, SaveReader},
     str::MapString,
 };
 
 use crate::{
-    entity::{impl_cast, Entity, EntityVars, ObjectCaps},
-    gamerules::game_rules,
-    macros::link_entity,
-    private_data::Private,
-    save::{self, SaveRestore},
+    entity::{impl_cast, Private},
     todo::link_entity_stub,
 };
 
@@ -36,8 +35,7 @@ link_entity_stub! {
 }
 
 pub struct ChangeLevel {
-    engine: ServerEngineRef,
-    vars: *mut entvars_s,
+    base: BaseEntity,
     map_name: CStrArray<MAP_NAME_MAX>,
     landmark_name: CStrArray<MAP_NAME_MAX>,
     target: Option<MapString>,
@@ -45,20 +43,9 @@ pub struct ChangeLevel {
 }
 
 impl ChangeLevel {
-    fn new(engine: ServerEngineRef, vars: *mut entvars_s) -> Self {
-        Self {
-            engine,
-            vars,
-            map_name: CStrArray::new(),
-            landmark_name: CStrArray::new(),
-            target: None,
-            change_target_delay: 0.0,
-        }
-    }
-
     fn init_trigger(&mut self) {
-        let engine = self.engine;
-        let ev = self.vars_mut();
+        let engine = self.base.engine;
+        let ev = self.vars_mut().as_raw_mut();
         if ev.angles != vec3_t::ZERO {
             set_move_dir(engine, ev);
         }
@@ -71,14 +58,15 @@ impl ChangeLevel {
     }
 
     fn change_level_now(&mut self, _other: &mut dyn Entity) {
+        let engine = self.base.engine;
         assert!(!self.map_name.is_empty());
 
-        if game_rules().is_some_and(|rules| rules.is_deathmatch()) {
+        if self.game_rules().is_some_and(|rules| rules.is_deathmatch()) {
             return;
         }
 
-        let globals = &self.engine.globals;
-        let ev = unsafe { &mut *self.vars };
+        let globals = &engine.globals;
+        let ev = self.vars_mut().as_raw_mut();
         let time = globals.map_time_f32();
         if time == ev.dmgtime {
             return;
@@ -86,8 +74,7 @@ impl ChangeLevel {
 
         ev.dmgtime = time;
 
-        let landmark = find_landmark(self.engine, self.landmark_name.as_thin());
-        let engine = self.engine;
+        let landmark = find_landmark(engine, self.landmark_name.as_thin());
         let mut next_spot = cstr!("");
         if !engine.is_null_ent(landmark) {
             next_spot = self.landmark_name.as_thin();
@@ -103,26 +90,44 @@ impl ChangeLevel {
 
 impl_cast!(ChangeLevel);
 
-impl EntityVars for ChangeLevel {
-    fn vars_ptr(&self) -> *mut entvars_s {
-        self.vars
+impl CreateEntity for ChangeLevel {
+    fn create(base: BaseEntity) -> Self {
+        Self {
+            base,
+            map_name: CStrArray::new(),
+            landmark_name: CStrArray::new(),
+            target: None,
+            change_target_delay: 0.0,
+        }
     }
 }
 
 impl Entity for ChangeLevel {
-    fn engine(&self) -> ServerEngineRef {
-        self.engine
-    }
-
     fn object_caps(&self) -> ObjectCaps {
         ObjectCaps::NONE
     }
 
-    fn restore(&mut self, _restore: &mut SaveRestore) -> save::Result<()> {
+    fn fields(&self) -> &'static [TYPEDESCRIPTION] {
+        const FIELDS: &[TYPEDESCRIPTION] = &[
+            define_field!(ChangeLevel, map_name, FieldType::CHARACTER, MAP_NAME_MAX),
+            define_field!(
+                ChangeLevel,
+                landmark_name,
+                FieldType::CHARACTER,
+                MAP_NAME_MAX
+            ),
+            define_field!(ChangeLevel, target, FieldType::STRING),
+            define_field!(ChangeLevel, change_target_delay, FieldType::FLOAT),
+        ];
+        FIELDS
+    }
+
+    fn restore_fields(&mut self, _restore: &mut SaveReader) -> save::Result<()> {
         Ok(())
     }
 
     fn key_value(&mut self, data: &mut KeyValueData) {
+        let engine = self.base.engine;
         let name = data.key_name();
         let value = data.value();
 
@@ -139,7 +144,7 @@ impl Entity for ChangeLevel {
             self.landmark_name.cursor().write_c_str(value).unwrap();
             data.set_handled(true);
         } else if name == c"changetarget" {
-            self.target = Some(self.engine.new_map_string(value));
+            self.target = Some(engine.new_map_string(value));
             data.set_handled(true);
         } else if name == c"changedelay" {
             let s = value.to_str().ok();
@@ -150,7 +155,7 @@ impl Entity for ChangeLevel {
         }
     }
 
-    fn spawn(&mut self) -> bool {
+    fn spawn(&mut self) -> SpawnResult {
         if self.map_name.is_empty() {
             info!("A trigger_changelevel does not have a map");
         }
@@ -169,36 +174,21 @@ impl Entity for ChangeLevel {
         self.init_trigger();
 
         const SF_CHANGELEVEL_USEONLY: c_int = 0x0002;
-        if self.vars().spawnflags & SF_CHANGELEVEL_USEONLY != 0 {
+        if self.vars().as_raw().spawnflags & SF_CHANGELEVEL_USEONLY != 0 {
             // TODO: set touch
         }
 
-        true
+        SpawnResult::Ok
     }
 
-    fn touch(&mut self, other: &mut dyn Entity) {
+    fn touched(&mut self, other: &mut dyn Entity) {
         if other.vars().classname().unwrap().as_thin() == c"player" {
             self.change_level_now(other);
         }
     }
-
-    fn fields(&self) -> &'static [TYPEDESCRIPTION] {
-        const FIELDS: &[TYPEDESCRIPTION] = &[
-            define_field!(ChangeLevel, map_name, FieldType::CHARACTER, MAP_NAME_MAX),
-            define_field!(
-                ChangeLevel,
-                landmark_name,
-                FieldType::CHARACTER,
-                MAP_NAME_MAX
-            ),
-            define_field!(ChangeLevel, target, FieldType::STRING),
-            define_field!(ChangeLevel, change_target_delay, FieldType::FLOAT),
-        ];
-        FIELDS
-    }
 }
 
-link_entity!(trigger_changelevel, ChangeLevel::new);
+link_entity!(trigger_changelevel, Private<ChangeLevel>);
 
 fn add_transition_to_list(
     level_list: &mut [LEVELLIST],
@@ -256,20 +246,21 @@ fn in_transition_volume(
     ent: *mut edict_s,
     volume_name: &CStrThin,
 ) -> bool {
-    let mut ent = unsafe { &*ent }.private().unwrap();
-
+    let mut ent = unsafe { &mut *ent }.get_private().unwrap().as_entity();
     if ent.object_caps().intersects(ObjectCaps::FORCE_TRANSITION) {
         return true;
     }
-
-    if ent.vars().movetype == MoveType::Follow.into() && !ent.vars().aiment.is_null() {
-        ent = unsafe { &*ent.vars().aiment }.private().unwrap();
+    if ent.vars().as_raw().movetype == MoveType::Follow.into()
+        && !ent.vars().as_raw().aiment.is_null()
+    {
+        let aiment = unsafe { &mut *ent.vars().as_raw().aiment };
+        ent = aiment.get_private().unwrap().as_entity();
     }
 
     let mut ent_volume = engine.find_ent_by_target_name(ptr::null_mut(), volume_name);
     while !engine.is_null_ent(ent_volume) {
-        if let Some(volume) = unsafe { &*ent_volume }.private() {
-            if volume.is_classname(c"trigger_transition".into()) && volume.intersects(&**ent) {
+        if let Some(volume) = unsafe { &mut *ent_volume }.get_entity_mut() {
+            if volume.is_classname(c"trigger_transition".into()) && volume.intersects(ent) {
                 return true;
             }
         }
@@ -288,7 +279,8 @@ pub fn build_change_list(engine: ServerEngineRef, level_list: &mut [LEVELLIST]) 
     }
     let mut count = 0;
     while !engine.is_null_ent(ent) {
-        if let Some(trigger) = unsafe { &mut *ent }.downcast_mut::<ChangeLevel>() {
+        let private = unsafe { &mut *ent }.get_private_mut().unwrap();
+        if let Some(trigger) = private.downcast_mut::<ChangeLevel>() {
             let map_name = trigger.map_name.as_thin();
             let landmark_name = trigger.landmark_name.as_thin();
             let landmark = find_landmark(engine, landmark_name);
@@ -307,7 +299,7 @@ pub fn build_change_list(engine: ServerEngineRef, level_list: &mut [LEVELLIST]) 
     if let Some(mut save_data) = engine.globals.save_data() {
         let save_data = unsafe { save_data.as_mut() };
         if !save_data.table().is_empty() {
-            let mut save_helper = SaveRestore::new(engine, save_data);
+            let mut save_helper = SaveReader::new(engine, save_data);
             for (i, level) in level_list.iter().enumerate().take(count) {
                 let mut ent_count = 0;
                 let mut ent_list = [ptr::null_mut(); MAX_ENTITY];
@@ -315,7 +307,7 @@ pub fn build_change_list(engine: ServerEngineRef, level_list: &mut [LEVELLIST]) 
 
                 let mut ent = engine.entities_in_pvs(unsafe { &mut *level.pentLandmark });
                 while !engine.is_null_ent(ent) {
-                    if let Some(entity) = unsafe { &mut *ent }.private_mut() {
+                    if let Some(entity) = unsafe { &mut *ent }.get_entity_mut() {
                         let caps = entity.object_caps();
                         if !caps.intersects(ObjectCaps::DONT_SAVE) {
                             let mut flags = 0;
@@ -327,7 +319,7 @@ pub fn build_change_list(engine: ServerEngineRef, level_list: &mut [LEVELLIST]) 
                                 flags |= FENTTABLE_GLOBAL;
                             }
                             if flags != 0 {
-                                ent_list[ent_count] = entity.ent_mut();
+                                ent_list[ent_count] = entity.as_edict_mut();
                                 ent_flags[ent_count] = flags;
                                 ent_count += 1;
                             }

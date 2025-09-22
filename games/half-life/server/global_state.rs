@@ -6,11 +6,9 @@ use sv::{
     ffi::server::{edict_s, SAVERESTOREDATA, TYPEDESCRIPTION},
     macros::define_field,
     prelude::*,
-    save::FieldType,
+    save::{self, FieldType, SaveReader, SaveWriter},
     str::MapString,
 };
-
-use crate::save::{self, SaveRestore};
 
 #[derive(Copy, Clone, PartialEq, Eq)]
 #[repr(C)]
@@ -163,17 +161,17 @@ impl GlobalState {
     }
 
     pub fn save(&self, save_data: &mut SAVERESTOREDATA) -> save::Result<()> {
-        let _helper = SaveRestore::new(self.engine, save_data);
+        let _writer = SaveWriter::new(self.engine, save_data);
         debug!("TODO: SaveGlobalState");
         Ok(())
     }
 
     pub fn restore(&self, save_data: &mut SAVERESTOREDATA) -> save::Result<()> {
-        let mut helper = SaveRestore::new(self.engine, save_data);
+        let mut reader = SaveReader::new(self.engine, save_data);
         self.reset();
 
         let mut global_state = GlobalStateSave { list_count: 0 };
-        helper.read_fields(
+        reader.read_fields(
             c"GLOBAL",
             &mut global_state as *mut _ as *mut _,
             &GLOBAL_FIELDS,
@@ -182,7 +180,7 @@ impl GlobalState {
         let mut entities = self.entities.borrow_mut();
         for _ in 0..global_state.list_count {
             let mut tmp = MaybeUninit::<GlobalEntity>::uninit();
-            helper.read_fields(c"GENT", tmp.as_mut_ptr().cast(), &GLOBAL_ENTITY_FIELDS)?;
+            reader.read_fields(c"GENT", tmp.as_mut_ptr().cast(), &GLOBAL_ENTITY_FIELDS)?;
             let tmp = unsafe { tmp.assume_init() };
             let name = tmp.name.as_thin();
             let map_name = tmp.map_name.as_thin();

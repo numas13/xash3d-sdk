@@ -184,6 +184,7 @@ bitflags! {
 }
 
 // TODO: add safe wrapper for entity_state_s and remove this trait
+#[doc(hidden)]
 pub trait EntityStateExt {
     fn renderfx(&self) -> RenderFx;
 

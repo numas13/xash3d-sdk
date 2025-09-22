@@ -5,19 +5,16 @@ use core::{
 
 use csz::CStrSlice;
 use sv::{
-    consts::{EFLAG_SLERP, ENTITY_BEAM, ENTITY_NORMAL, SOLID_SLIDEBOX},
-    entity::{EdictFlags, Effects, MoveType},
+    consts::{EFLAG_SLERP, ENTITY_BEAM, ENTITY_NORMAL},
+    entity::{BaseEntity, EdictFlags, Effects, Entity, SpawnResult},
     ffi::{
         common::{clientdata_s, entity_state_s, vec3_t},
-        server::{edict_s, entvars_s},
+        server::edict_s,
     },
     prelude::*,
 };
 
-use crate::{
-    entity::{impl_cast, Entity, EntityVars},
-    private_data::Private,
-};
+use crate::entity::{impl_cast, Private};
 
 pub fn update_client_data(
     engine: ServerEngineRef,
@@ -214,114 +211,34 @@ pub fn add_to_full_pack(
     true
 }
 
-pub fn create_baseline(
-    player: bool,
-    eindex: c_int,
-    baseline: &mut entity_state_s,
-    ent: &edict_s,
-    playermodelindex: c_int,
-    player_mins: vec3_t,
-    player_maxs: vec3_t,
-) {
-    baseline.origin = ent.v.origin;
-    baseline.angles = ent.v.angles;
-    baseline.frame = ent.v.frame;
-    baseline.skin = ent.v.skin as c_short;
-
-    baseline.rendermode = ent.v.rendermode as c_int;
-    baseline.renderamt = ent.v.renderamt as u8 as c_int;
-    baseline.rendercolor.r = ent.v.rendercolor[0] as u8;
-    baseline.rendercolor.g = ent.v.rendercolor[1] as u8;
-    baseline.rendercolor.b = ent.v.rendercolor[2] as u8;
-    baseline.renderfx = ent.v.renderfx as c_int;
-
-    if player {
-        baseline.mins = player_mins;
-        baseline.maxs = player_maxs;
-
-        baseline.colormap = eindex;
-        baseline.modelindex = playermodelindex;
-        baseline.friction = 1.0;
-        baseline.movetype = MoveType::Walk.into();
-
-        baseline.scale = ent.v.scale;
-        baseline.solid = SOLID_SLIDEBOX as c_short;
-        baseline.framerate = 1.0;
-        baseline.gravity = 1.0;
-    } else {
-        baseline.mins = ent.v.mins;
-        baseline.maxs = ent.v.maxs;
-
-        baseline.colormap = 0;
-        baseline.modelindex = ent.v.modelindex;
-        baseline.movetype = ent.v.movetype as c_int;
-
-        baseline.scale = ent.v.scale;
-        baseline.solid = ent.v.solid as c_short;
-        baseline.framerate = ent.v.framerate;
-        baseline.gravity = ent.v.gravity;
-    }
-}
-
-pub fn dispatch_touch(entity: &mut edict_s, other: &mut edict_s) {
-    // TODO: disable touch
-
-    let Some(entity) = entity.private_mut() else {
-        return;
-    };
-    let Some(other) = other.private_mut() else {
-        return;
-    };
-
-    if !entity
-        .vars()
-        .flags()
-        .union(*other.vars().flags())
-        .intersects(EdictFlags::KILLME)
-    {
-        entity.touch(&mut **other);
-    }
-}
-
-pub fn dispatch_object_collision_box(ent: &mut edict_s) {
-    match ent.private_mut() {
-        Some(entity) => entity.set_object_collision_box(),
-        None => crate::entity::set_object_collision_box(&mut ent.v),
-    }
-}
-
 #[derive(Debug)]
 pub struct Stub {
-    pub engine: ServerEngineRef,
-    pub vars: *mut entvars_s,
+    pub base: BaseEntity,
     pub name: &'static CStr,
 }
 
 impl_cast!(Stub);
 
-impl EntityVars for Stub {
-    fn vars_ptr(&self) -> *mut entvars_s {
-        self.vars
+impl Stub {
+    pub fn new(base: BaseEntity, name: &'static CStr) -> Self {
+        Self { base, name }
     }
 }
 
 impl Entity for Stub {
-    fn engine(&self) -> ServerEngineRef {
-        self.engine
-    }
-
-    fn spawn(&mut self) -> bool {
-        let classname = self.engine.new_map_string(self.name);
-        let ev = self.vars_mut();
+    fn spawn(&mut self) -> SpawnResult {
+        let classname = self.base.engine.new_map_string(self.name);
+        let ev = self.vars_mut().as_raw_mut();
         ev.classname = classname.index();
-        true
+        SpawnResult::Ok
     }
 }
 
 macro_rules! link_entity_stub {
     ($($name:ident),* $(,)?) => {
-        $($crate::macros::link_entity!($name, |engine, vars| {
-            $crate::todo::Stub { engine, vars, name: sv::macros::cstringify!($name) }
+        $(sv::entity::link_entity!($name, Private<$crate::todo::Stub>, |base| {
+            let name = sv::macros::cstringify!($name);
+            $crate::todo::Stub::new(base, name)
         });)*
     };
 }
@@ -333,6 +250,7 @@ link_entity_stub! {
     env_beam,
     env_beverage,
     env_explosion,
+    env_glow,
     env_laser,
     env_render,
     env_shake,
@@ -349,9 +267,12 @@ link_entity_stub! {
     func_illusionary,
     func_ladder,
     func_pendulum,
+    func_pushable,
+    func_rot_button,
     func_rotating,
     func_train,
     func_wall,
+    func_water,
     gibshooter,
     info_landmark,
     info_node,
@@ -361,8 +282,10 @@ link_entity_stub! {
     item_battery,
     light,
     light_spot,
+    monster_barnacle,
     monster_barney,
     monster_barney_dead,
+    monster_bullchicken,
     monster_generic,
     monster_headcrab,
     monster_scientist,
@@ -372,8 +295,24 @@ link_entity_stub! {
     multi_manager,
     multisource,
     path_corner,
-    scripted_sentence,
     scripted_sequence,
+    trigger_cdaudio,
+    trigger_push,
+    trigger_teleport,
+    trigger_transition,
+    weapon_357,
+    weapon_9mmAR,
+    weapon_9mmhandgun,
+    weapon_crossbow,
     weapon_crowbar,
+    weapon_egon,
+    weapon_gauss,
+    weapon_handgrenade,
+    weapon_hornetgun,
+    weapon_rpg,
+    weapon_satchel,
+    weapon_shotgun,
+    weapon_snark,
+    weapon_tripmine,
     world_items,
 }

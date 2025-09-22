@@ -1,5 +1,11 @@
 #![no_std]
 
+//#[macro_use]
+extern crate alloc;
+
+#[macro_use]
+extern crate log;
+
 #[macro_use]
 pub mod macros;
 
@@ -7,6 +13,7 @@ pub mod consts;
 pub mod engine;
 pub mod entity;
 pub mod export;
+pub mod game_rules;
 pub mod globals;
 pub mod instance;
 mod logger;

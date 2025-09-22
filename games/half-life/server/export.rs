@@ -1,26 +1,24 @@
 use core::{
-    ffi::{c_int, c_uchar, c_void, CStr},
-    ptr,
+    ffi::{c_int, c_uchar, CStr},
+    mem::MaybeUninit,
 };
 
-use csz::CStrThin;
-use pm::{VEC_DUCK_HULL_MIN, VEC_HULL_MIN};
 use sv::{
-    entity::EdictFlags,
-    export::{export_dll, impl_unsync_global, RestoreResult, ServerDll, SpawnResult, UnsyncGlobal},
+    entity::{EdictFlags, GetPrivateData, ObjectCaps, RestoreResult, SpawnResult},
+    export::{export_dll, impl_unsync_global, ServerDll, UnsyncGlobal},
     ffi::{
         common::{clientdata_s, entity_state_s, vec3_t},
-        server::{edict_s, KeyValueData, SAVERESTOREDATA, TYPEDESCRIPTION},
+        server::{edict_s, entvars_s, SAVERESTOREDATA},
     },
+    game_rules::GameRulesRef,
     prelude::*,
+    save::SaveReader,
+    str::MapString,
 };
 
 use crate::{
-    gamerules::game_rules,
     global_state::{EntityState, GlobalState},
-    player,
-    private_data::{Private, PrivateDataRef},
-    save, triggers,
+    player, triggers,
 };
 
 pub fn global_state() -> &'static GlobalState {
@@ -29,6 +27,7 @@ pub fn global_state() -> &'static GlobalState {
 
 struct Dll {
     engine: ServerEngineRef,
+    game_rules: GameRulesRef,
     global_state: GlobalState,
 }
 
@@ -39,6 +38,7 @@ impl ServerDll for Dll {
         crate::cvar::init(engine);
         Self {
             engine,
+            game_rules: unsafe { GameRulesRef::new() },
             global_state: GlobalState::new(engine),
         }
     }
@@ -48,19 +48,23 @@ impl ServerDll for Dll {
     }
 
     fn dispatch_spawn(&self, ent: &mut edict_s) -> SpawnResult {
-        let Some(ent) = ent.private_mut() else {
+        let Some(ent) = ent.get_entity_mut() else {
             return SpawnResult::Delete;
         };
 
-        let ev = ent.vars_mut();
+        let ev = ent.vars_mut().as_raw_mut();
         ev.absmin = ev.origin - vec3_t::splat(1.0);
         ev.absmax = ev.origin + vec3_t::splat(1.0);
 
-        if !ent.spawn() {
+        if ent.spawn() == SpawnResult::Delete {
             return SpawnResult::Delete;
         }
 
-        if let Some(false) = game_rules().map(|rules| rules.is_allowed_to_spawn(&**ent)) {
+        if let Some(false) = self
+            .game_rules
+            .get()
+            .map(|rules| rules.is_allowed_to_spawn(ent))
+        {
             return SpawnResult::Delete;
         }
 
@@ -69,8 +73,7 @@ impl ServerDll for Dll {
         }
 
         if let Some(globalname) = ent.vars().globalname() {
-            let global_state = global_state();
-            let mut entities = global_state.entities.borrow_mut();
+            let mut entities = self.global_state.entities.borrow_mut();
             let map_name = self.engine.globals.map_name().unwrap();
             if let Some(global) = entities.find(globalname) {
                 if global.is_dead() {
@@ -87,92 +90,108 @@ impl ServerDll for Dll {
         SpawnResult::Ok
     }
 
-    fn dispatch_think(&self, ent: &mut edict_s) {
-        if let Some(entity) = ent.private_mut() {
-            if entity.vars().flags().intersects(EdictFlags::DORMANT) {
-                let classname = entity.classname();
-                warn!("Dormant entity {classname:?} is thinkng");
-            }
-            entity.think();
-        }
-    }
-
-    fn dispatch_use(&self, _used: &mut edict_s, _other: &mut edict_s) {}
-
-    fn dispatch_touch(&self, touched: &mut edict_s, other: &mut edict_s) {
-        crate::todo::dispatch_touch(touched, other);
-        let touched = touched.private().unwrap();
-        let other = other.private().unwrap();
-        trace!(
-            "Touch entity {} by {}",
-            touched.classname(),
-            other.classname()
-        );
-    }
-
-    fn dispatch_blocked(&self, _blocked: &mut edict_s, _other: &mut edict_s) {}
-
-    fn dispatch_key_value(&self, ent: &mut edict_s, data: &mut KeyValueData) {
-        save::dispatch_key_value(self.engine, ent, data);
-    }
-
-    fn dispatch_save(&self, ent: &mut edict_s, save_data: &mut SAVERESTOREDATA) {
-        save::dispatch_save(self.engine, ent, save_data);
-    }
-
     fn dispatch_restore(
         &self,
-        ent: &mut edict_s,
+        mut ent: &mut edict_s,
         save_data: &mut SAVERESTOREDATA,
         global_entity: bool,
     ) -> RestoreResult {
-        save::dispatch_restore(self.engine, ent, save_data, global_entity)
-    }
+        let engine = self.engine();
+        let mut global_vars = MaybeUninit::<entvars_s>::uninit();
 
-    fn dispatch_object_collsion_box(&self, ent: &mut edict_s) {
-        crate::todo::dispatch_object_collision_box(ent);
-    }
+        if global_entity {
+            let mut restore = SaveReader::new(engine, save_data);
+            restore.precache_mode(false);
+            restore
+                .read_ent_vars(c"ENTVARS", global_vars.as_mut_ptr())
+                .unwrap();
+        }
 
-    fn save_write_fields(
-        &self,
-        save_data: &mut SAVERESTOREDATA,
-        name: &CStrThin,
-        base_data: *mut c_void,
-        fields: &mut [TYPEDESCRIPTION],
-    ) {
-        save::write_fields(self.engine, save_data, name.as_c_str(), base_data, fields);
-    }
+        let mut restore = SaveReader::new(engine, save_data);
+        let mut old_offset = vec3_t::ZERO;
 
-    fn save_read_fields(
-        &self,
-        save_data: &mut SAVERESTOREDATA,
-        name: &CStrThin,
-        base_data: *mut c_void,
-        fields: &mut [TYPEDESCRIPTION],
-    ) {
-        save::read_fields(
-            self.engine,
-            &mut *save_data,
-            name.as_c_str(),
-            base_data,
-            fields,
-        );
+        if global_entity {
+            let tmp_vars = unsafe { global_vars.assume_init_mut() };
+            // HACK: restore save pointers
+            restore.data.restore_save_pointers();
+
+            let mut entities = self.global_state.entities.borrow_mut();
+            let global = entities.find(tmp_vars.globalname().unwrap()).unwrap();
+            if restore.data.current_map_name() != global.map_name() {
+                return RestoreResult::Ok;
+            }
+
+            old_offset = restore.data.landmark_offset();
+            let classname = tmp_vars.classname().unwrap();
+            let globalname = tmp_vars.globalname().unwrap();
+            if let Some(new_ent) = find_global_entity(engine, classname, globalname) {
+                let new_ent = unsafe { &mut *new_ent };
+                restore.global_mode(true);
+                let mut landmark_offset = restore.data.landmark_offset();
+                landmark_offset -= new_ent.v.mins;
+                landmark_offset += tmp_vars.mins;
+                restore.data.set_landmark_offset(landmark_offset);
+                ent = new_ent;
+                entities.update(
+                    ent.v.globalname().unwrap(),
+                    engine.globals.map_name().unwrap(),
+                );
+            } else {
+                return RestoreResult::Ok;
+            }
+        }
+
+        let Some(entity) = ent.get_entity_mut() else {
+            return RestoreResult::Ok;
+        };
+        entity.restore_fields(&mut restore).unwrap();
+        if entity.object_caps().intersects(ObjectCaps::MUST_SPAWN) {
+            entity.spawn();
+        } else {
+            entity.precache();
+        }
+
+        if global_entity {
+            restore.data.set_landmark_offset(old_offset);
+            let origin = entity.vars().as_raw().origin;
+            engine.set_origin(entity.as_edict_mut(), origin);
+            entity.override_reset();
+            return RestoreResult::Ok;
+        } else if let Some(globalname) = entity.vars().globalname() {
+            let globals = &engine.globals;
+            let mut entities = self.global_state.entities.borrow_mut();
+            if let Some(global) = entities.find(globalname) {
+                if global.is_dead() {
+                    return RestoreResult::Delete;
+                }
+                if globals.map_name().unwrap().as_thin() != global.map_name() {
+                    entity.make_dormant();
+                }
+            } else {
+                let globalname = entity.globalname();
+                let classname = entity.classname();
+                error!("Global entity \"{globalname}\" (\"{classname}\") not in table!!!");
+                entities.add(globalname, globals.map_name().unwrap(), EntityState::On);
+            }
+        }
+
+        RestoreResult::Ok
     }
 
     fn save_global_state(&self, save_data: &mut SAVERESTOREDATA) {
-        if let Err(e) = global_state().save(save_data) {
+        if let Err(e) = self.global_state.save(save_data) {
             error!("Failed to save global state: {e:?}");
         }
     }
 
     fn restore_global_state(&self, save_data: &mut SAVERESTOREDATA) {
-        if let Err(e) = global_state().restore(save_data) {
+        if let Err(e) = self.global_state.restore(save_data) {
             error!("Failed to restore global state: {e:?}");
         }
     }
 
     fn reset_global_state(&self) {
-        global_state().reset();
+        self.global_state.reset();
     }
 
     fn client_put_in_server(&self, ent: &mut edict_s) {
@@ -180,7 +199,7 @@ impl ServerDll for Dll {
     }
 
     fn client_command(&self, ent: &mut edict_s) {
-        let classname = ent.private().map(|pd| pd.classname());
+        let classname = ent.get_entity_mut().map(|pd| pd.classname());
         let classname = classname
             .as_ref()
             .map_or(c"unknown".into(), |s| s.as_thin());
@@ -199,35 +218,9 @@ impl ServerDll for Dll {
     }
 
     fn get_game_description(&self) -> &'static CStr {
-        game_rules().map_or(c"Half-Life", |rules| rules.get_game_description())
-    }
-
-    fn setup_visibility(
-        &self,
-        view_entity: Option<&mut edict_s>,
-        client: &mut edict_s,
-        pvs: *mut *mut c_uchar,
-        pas: *mut *mut c_uchar,
-    ) {
-        if client.v.flags().intersects(EdictFlags::PROXY) {
-            unsafe {
-                *pvs = ptr::null_mut();
-                *pas = ptr::null_mut();
-            }
-            return;
-        }
-
-        let view = view_entity.unwrap_or(client);
-        let mut org = view.v.origin + view.v.view_ofs;
-        if view.v.flags().intersects(EdictFlags::DUCKING) {
-            org += VEC_HULL_MIN - VEC_DUCK_HULL_MIN;
-        }
-
-        let engine = self.engine;
-        unsafe {
-            *pvs = engine.set_pvs(org);
-            *pas = engine.set_pas(org);
-        }
+        self.game_rules
+            .get()
+            .map_or(c"Half-Life", |rules| rules.get_game_description())
     }
 
     fn update_client_data(&self, ent: &edict_s, send_weapons: bool, cd: &mut clientdata_s) {
@@ -246,31 +239,25 @@ impl ServerDll for Dll {
     ) -> bool {
         crate::todo::add_to_full_pack(self.engine, state, e, ent, host, hostflags, player, set)
     }
+}
 
-    fn create_baseline(
-        &self,
-        player: bool,
-        eindex: c_int,
-        baseline: &mut entity_state_s,
-        entity: &mut edict_s,
-        player_model_index: c_int,
-        player_mins: vec3_t,
-        player_maxs: vec3_t,
-    ) {
-        crate::todo::create_baseline(
-            player,
-            eindex,
-            baseline,
-            entity,
-            player_model_index,
-            player_mins,
-            player_maxs,
-        );
-    }
-
-    unsafe fn on_free_entity_private_data(&self, ent: *mut edict_s) {
-        unsafe { PrivateDataRef::free(ent) }
-    }
+fn find_global_entity(
+    engine: ServerEngineRef,
+    classname: MapString,
+    globalname: MapString,
+) -> Option<*mut edict_s> {
+    engine
+        .find_ent_by_globalname_iter(&globalname)
+        .find(|&ent| {
+            if let Some(entity) = unsafe { &mut *ent }.get_entity_mut() {
+                if entity.is_classname(&classname) {
+                    return true;
+                } else {
+                    debug!("Global entity found \"{globalname}\", wrong class \"{classname}\"");
+                }
+            }
+            false
+        })
 }
 
 export_dll!(Dll);

@@ -2,13 +2,15 @@ use core::{
     ffi::{c_char, c_int, c_uchar, c_uint, c_void, CStr},
     fmt::Write,
     marker::PhantomData,
-    ptr::NonNull,
+    ptr::{self, NonNull},
     slice,
 };
 
 use csz::{CStrArray, CStrThin};
+use pm::{VEC_DUCK_HULL_MIN, VEC_HULL_MIN};
 use shared::{
     engine::net::netadr_s,
+    entity::{EdictFlags, MoveType},
     ffi::{
         common::{
             clientdata_s, customization_s, entity_state_s, qboolean, usercmd_s, vec3_t,
@@ -23,41 +25,14 @@ use shared::{
     utils::cstr_or_none,
 };
 
-use crate::{prelude::*, utils::slice_from_raw_parts_or_empty_mut};
+use crate::{
+    entity::{EntityPlayer, GetPrivateData, ObjectCaps, PrivateData, RestoreResult, SpawnResult},
+    prelude::*,
+    save::{SaveReader, SaveWriter},
+    utils::slice_from_raw_parts_or_empty_mut,
+};
 
 pub use shared::export::{impl_unsync_global, UnsyncGlobal};
-
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum SpawnResult {
-    Delete,
-    Ok,
-}
-
-impl From<SpawnResult> for c_int {
-    fn from(val: SpawnResult) -> Self {
-        match val {
-            SpawnResult::Delete => -1,
-            SpawnResult::Ok => 0,
-        }
-    }
-}
-
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum RestoreResult {
-    Delete,
-    Ok,
-    Moved,
-}
-
-impl From<RestoreResult> for c_int {
-    fn from(val: RestoreResult) -> Self {
-        match val {
-            RestoreResult::Delete => -1,
-            RestoreResult::Ok => 0,
-            RestoreResult::Moved => 1,
-        }
-    }
-}
 
 #[allow(unused_variables)]
 #[allow(clippy::missing_safety_doc)]
@@ -66,19 +41,110 @@ pub trait ServerDll: UnsyncGlobal {
 
     fn engine(&self) -> ServerEngineRef;
 
+    fn is_touch_enabled(&self) -> bool {
+        true
+    }
+
     fn dispatch_spawn(&self, ent: &mut edict_s) -> SpawnResult;
 
-    fn dispatch_think(&self, ent: &mut edict_s);
+    fn dispatch_think(&self, ent: &mut edict_s) {
+        if let Some(entity) = ent.get_entity_mut() {
+            if entity.vars().flags().intersects(EdictFlags::DORMANT) {
+                let classname = entity.classname();
+                warn!("Dormant entity {classname:?} is thinkng");
+            }
+            entity.think();
+        }
+    }
 
-    fn dispatch_use(&self, used: &mut edict_s, other: &mut edict_s);
+    fn dispatch_use(&self, used: &mut edict_s, other: &mut edict_s) {
+        let Some(used) = used.get_entity_mut() else {
+            return;
+        };
+        let Some(other) = other.get_entity_mut() else {
+            error!("dispatch_use: other private data is null");
+            return;
+        };
+        if !used.vars().flags().intersects(EdictFlags::KILLME) {
+            used.used(other);
+        }
+    }
 
-    fn dispatch_touch(&self, touched: &mut edict_s, other: &mut edict_s);
+    fn dispatch_touch(&self, touched: &mut edict_s, other: &mut edict_s) {
+        if !self.is_touch_enabled() {
+            return;
+        }
+        let Some(touched) = touched.get_entity_mut() else {
+            return;
+        };
+        let Some(other) = other.get_entity_mut() else {
+            error!("dispatch_touch: other private data is null");
+            return;
+        };
+        if touched.vars().flags().intersects(EdictFlags::KILLME) {
+            return;
+        }
+        if other.vars().flags().intersects(EdictFlags::KILLME) {
+            return;
+        }
+        touched.touched(other);
+    }
 
-    fn dispatch_blocked(&self, blocked: &mut edict_s, other: &mut edict_s);
+    fn dispatch_blocked(&self, blocked: &mut edict_s, other: &mut edict_s) {
+        let Some(blocked) = blocked.get_entity_mut() else {
+            return;
+        };
+        let Some(other) = other.get_entity_mut() else {
+            error!("dispatch_blocked: other private data is null");
+            return;
+        };
+        blocked.blocked(other);
+    }
 
-    fn dispatch_key_value(&self, ent: &mut edict_s, data: &mut KeyValueData);
+    fn dispatch_key_value(&self, ent: &mut edict_s, data: &mut KeyValueData) {
+        crate::save::entvars_key_value(self.engine(), &mut ent.v, data);
 
-    fn dispatch_save(&self, ent: &mut edict_s, save_data: &mut SAVERESTOREDATA);
+        if data.handled() || data.class_name().is_none() {
+            return;
+        }
+
+        if let Some(ent) = ent.get_entity_mut() {
+            ent.key_value(data);
+        }
+    }
+
+    fn dispatch_save(&self, ent: &mut edict_s, save_data: &mut SAVERESTOREDATA) {
+        let engine = self.engine();
+        let size = save_data.size;
+        let current_index = save_data.currentIndex as usize;
+        let table = &mut save_data.table_mut()[current_index];
+        if table.pent != ent {
+            error!("Entity table or index is wrong");
+        }
+
+        let Some(entity) = ent.get_entity_mut() else {
+            return;
+        };
+        if entity.object_caps().intersects(ObjectCaps::DONT_SAVE) {
+            return;
+        }
+
+        let ev = entity.vars_mut().as_raw_mut();
+        if ev.movetype == MoveType::Push.into() {
+            let delta = ev.nextthink - ev.ltime;
+            ev.ltime = engine.globals.map_time_f32();
+            ev.nextthink = ev.ltime + delta;
+        }
+
+        table.location = size;
+        table.classname = entity.vars().as_raw().classname;
+
+        let mut writer = SaveWriter::new(engine, save_data);
+        entity.save_fields(&mut writer).unwrap();
+
+        let table = &mut save_data.table_mut()[current_index];
+        table.size = size - table.location;
+    }
 
     fn dispatch_restore(
         &self,
@@ -87,7 +153,12 @@ pub trait ServerDll: UnsyncGlobal {
         global_entity: bool,
     ) -> RestoreResult;
 
-    fn dispatch_object_collsion_box(&self, ent: &mut edict_s);
+    fn dispatch_object_collsion_box(&self, ent: &mut edict_s) {
+        match ent.get_entity_mut() {
+            Some(entity) => entity.set_object_collision_box(),
+            None => crate::entity::set_object_collision_box(&mut ent.v),
+        }
+    }
 
     fn save_write_fields(
         &self,
@@ -95,7 +166,12 @@ pub trait ServerDll: UnsyncGlobal {
         name: &CStrThin,
         base_data: *mut c_void,
         fields: &mut [TYPEDESCRIPTION],
-    );
+    ) {
+        let mut writer = SaveWriter::new(self.engine(), save_data);
+        if let Err(err) = writer.write_fields(name, base_data, fields) {
+            error!("save::write_fields({name}): {err}");
+        }
+    }
 
     fn save_read_fields(
         &self,
@@ -103,7 +179,14 @@ pub trait ServerDll: UnsyncGlobal {
         name: &CStrThin,
         base_data: *mut c_void,
         fields: &mut [TYPEDESCRIPTION],
-    );
+    ) {
+        let name = name.as_c_str();
+        if let Err(err) =
+            SaveReader::new(self.engine(), save_data).read_fields(name, base_data, fields)
+        {
+            error!("save::read_fields({name:?}): {err}");
+        }
+    }
 
     fn save_global_state(&self, save_data: &mut SAVERESTOREDATA);
 
@@ -135,9 +218,17 @@ pub trait ServerDll: UnsyncGlobal {
 
     fn server_deactivate(&self) {}
 
-    fn player_pre_think(&self, ent: &mut edict_s) {}
+    fn player_pre_think(&self, ent: &mut edict_s) {
+        if let Some(player) = ent.downcast_mut::<dyn EntityPlayer>() {
+            player.pre_think();
+        }
+    }
 
-    fn player_post_think(&self, ent: &mut edict_s) {}
+    fn player_post_think(&self, ent: &mut edict_s) {
+        if let Some(player) = ent.downcast_mut::<dyn EntityPlayer>() {
+            player.post_think();
+        }
+    }
 
     fn start_frame(&self) {}
 
@@ -178,9 +269,25 @@ pub trait ServerDll: UnsyncGlobal {
         &self,
         view_entity: Option<&mut edict_s>,
         client: &mut edict_s,
-        pvs: *mut *mut c_uchar,
-        pas: *mut *mut c_uchar,
-    );
+        pvs: &mut *mut c_uchar,
+        pas: &mut *mut c_uchar,
+    ) {
+        if client.v.flags().intersects(EdictFlags::PROXY) {
+            *pvs = ptr::null_mut();
+            *pas = ptr::null_mut();
+            return;
+        }
+
+        let view = view_entity.unwrap_or(client);
+        let mut org = view.v.origin + view.v.view_ofs;
+        if view.v.flags().intersects(EdictFlags::DUCKING) {
+            org += VEC_HULL_MIN - VEC_DUCK_HULL_MIN;
+        }
+
+        let engine = self.engine();
+        *pvs = engine.set_pvs(org);
+        *pas = engine.set_pas(org);
+    }
 
     fn update_client_data(&self, ent: &edict_s, send_weapons: bool, cd: &mut clientdata_s);
 
@@ -202,11 +309,21 @@ pub trait ServerDll: UnsyncGlobal {
         player: bool,
         eindex: c_int,
         baseline: &mut entity_state_s,
-        entity: &mut edict_s,
+        ent: &mut edict_s,
         player_model_index: c_int,
         player_mins: vec3_t,
         player_maxs: vec3_t,
-    );
+    ) {
+        crate::entity::create_baseline(
+            player,
+            eindex,
+            baseline,
+            ent,
+            player_model_index,
+            player_mins,
+            player_maxs,
+        );
+    }
 
     fn register_encoders(&self) {}
 
@@ -253,7 +370,9 @@ pub trait ServerDll: UnsyncGlobal {
         true
     }
 
-    unsafe fn on_free_entity_private_data(&self, ent: *mut edict_s);
+    unsafe fn on_free_entity_private_data(&self, ent: *mut edict_s) {
+        unsafe { PrivateData::drop_in_place(ent) }
+    }
 
     fn chould_collide(&self, touched: &mut edict_s, other: &mut edict_s) -> bool {
         false
@@ -790,6 +909,8 @@ impl<T: ServerDll> ServerDllExport for Export<T> {
     ) {
         let view_entity = unsafe { view_entity.as_mut() };
         let client = unsafe { client.as_mut() }.unwrap();
+        let pvs = unsafe { pvs.as_mut().unwrap() };
+        let pas = unsafe { pas.as_mut().unwrap() };
         unsafe { T::global_assume_init_ref() }.setup_visibility(view_entity, client, pvs, pas);
     }
 

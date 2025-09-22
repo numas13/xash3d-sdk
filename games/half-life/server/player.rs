@@ -2,82 +2,58 @@ use core::{ffi::c_int, ptr};
 
 use sv::{
     consts::{DAMAGE_AIM, DEAD_NO, SOLID_SLIDEBOX},
-    entity::{EdictFlags, Effects, MoveType},
-    ffi::server::{edict_s, entvars_s},
+    entity::{
+        link_entity, AsEdict, BaseEntity, CreateEntity, EdictFlags, Effects, Entity, EntityPlayer,
+        MoveType, ObjectCaps, PrivateData, SpawnResult,
+    },
+    ffi::server::edict_s,
     prelude::*,
 };
 
 use crate::{
-    entity::{impl_cast, Animating, Delay, Entity, EntityVars, Monster, ObjectCaps, Toggle},
+    entity::{impl_cast, EntityTest, Private},
     export::global_state,
-    gamerules::game_rules,
-    macros::link_entity,
-    private_data::Private,
-    save::{self, SaveRestore},
 };
 
 pub struct Player {
-    engine: ServerEngineRef,
-    vars: *mut entvars_s,
+    base: BaseEntity,
 }
 
 impl_cast!(Player);
 
 impl Player {
-    pub fn new(engine: ServerEngineRef, vars: *mut entvars_s) -> Self {
-        Self { engine, vars }
-    }
-
     pub fn set_custom_decal_frames(&mut self, frames: c_int) {
         debug!("Player::set_custom_decal_frames({frames})");
     }
-
-    pub fn ent_select_spawn_point(&self) -> *mut edict_s {
-        let game_rules = game_rules().unwrap();
-
-        if game_rules.is_coop() {
-            todo!();
-        } else if game_rules.is_deathmatch() {
-            todo!();
-        }
-
-        let start_spot = self.engine.globals.start_spot();
-        let mut start_spot = start_spot.as_ref().map_or(c"".into(), |s| s.as_thin());
-        if start_spot.is_empty() {
-            start_spot = c"info_player_start".into();
-        }
-        let spot = self
-            .engine
-            .find_ent_by_classname(ptr::null_mut(), start_spot);
-
-        if !spot.is_null() {
-            *global_state().last_spawn.borrow_mut() = spot;
-            spot
-        } else {
-            error!("No info_player_start on level");
-            self.engine.entity_of_ent_index(0)
-        }
-    }
 }
 
-impl EntityVars for Player {
-    fn vars_ptr(&self) -> *mut entvars_s {
-        self.vars
+impl CreateEntity for Player {
+    fn create(base: BaseEntity) -> Self {
+        Self { base }
     }
 }
 
 impl Entity for Player {
-    fn engine(&self) -> ServerEngineRef {
-        self.engine
-    }
-
     fn object_caps(&self) -> ObjectCaps {
         ObjectCaps::DONT_SAVE
     }
 
-    fn spawn(&mut self) -> bool {
-        let engine = self.engine;
-        let ev = self.vars_mut();
+    fn restore(&mut self) {
+        let engine = self.base.engine;
+
+        // TODO:
+
+        let ev = self.vars_mut().as_raw_mut();
+        ev.v_angle.set_z(0.0);
+        ev.angles = ev.v_angle;
+        ev.fixangle = 1;
+
+        engine.set_physics_key_value(self.as_edict_mut(), c"hl", c"1");
+    }
+
+    fn spawn(&mut self) -> SpawnResult {
+        let engine = self.base.engine;
+        let ev = self.vars_mut().as_raw_mut();
         ev.classname = engine.try_alloc_map_string(c"player").unwrap().index();
         ev.health = 100.0;
         ev.armorvalue = 0.0;
@@ -98,51 +74,50 @@ impl Entity for Player {
         ev.fov = 0.0;
         ev.view_ofs = pm::VEC_VIEW;
 
-        engine.set_physics_key_value(self.ent_mut(), c"slj", c"0");
-        engine.set_physics_key_value(self.ent_mut(), c"hl", c"1");
+        engine.set_physics_key_value(self.as_edict_mut(), c"slj", c"0");
+        engine.set_physics_key_value(self.as_edict_mut(), c"hl", c"1");
 
-        game_rules().unwrap().get_player_spawn_spot(self);
+        self.game_rules().unwrap().get_player_spawn_spot(self);
 
-        engine.set_model(self.ent_mut(), res::valve::models::PLAYER);
+        engine.set_model(self.as_edict_mut(), res::valve::models::PLAYER);
 
-        true
-    }
-
-    fn restore(&mut self, restore: &mut SaveRestore) -> save::Result<()> {
-        // TODO: call restore from base "classes"
-
-        restore.read_ent_vars(c"ENTVARS", self.vars_mut())?;
-
-        let fields = self.fields();
-        restore.read_fields(c"BASE", self as *mut _ as *mut _, fields)?;
-
-        let ev = self.vars_mut();
-        if let (true, Some(model)) = (ev.modelindex != 0, ev.model()) {
-            let mins = ev.mins;
-            let maxs = ev.maxs;
-            let engine = self.engine;
-            engine.precache_model(&model);
-            engine.set_model(self.ent_mut(), &model);
-            engine.set_size(self.ent_mut(), mins, maxs);
-        }
-
-        // TODO:
-
-        let ev = self.vars_mut();
-        ev.v_angle.set_z(0.0);
-        ev.fixangle = 1;
-
-        let engine = self.engine;
-        engine.set_physics_key_value(self.ent_mut(), c"hl", c"1");
-
-        Ok(())
+        SpawnResult::Ok
     }
 }
 
-impl Delay for Player {}
-impl Animating for Player {}
-impl Toggle for Player {}
-impl Monster for Player {}
+impl EntityPlayer for Player {
+    fn select_spawn_point(&self) -> *mut edict_s {
+        let engine = self.base.engine;
+        let game_rules = self.game_rules().expect("GameRules is not intialized.");
+
+        if game_rules.is_coop() {
+            todo!();
+        } else if game_rules.is_deathmatch() {
+            todo!();
+        }
+
+        let start_spot = engine.globals.start_spot();
+        let mut start_spot = start_spot.as_ref().map_or(c"".into(), |s| s.as_thin());
+        if start_spot.is_empty() {
+            start_spot = c"info_player_start".into();
+        }
+        let spot = engine.find_ent_by_classname(ptr::null_mut(), start_spot);
+
+        if !spot.is_null() {
+            *global_state().last_spawn.borrow_mut() = spot;
+            spot
+        } else {
+            error!("No info_player_start on level");
+            engine.entity_of_ent_index(0)
+        }
+    }
+}
+
+impl EntityTest for Player {
+    fn do_test_work(&self) {
+        // trace!("do some test work for player entity");
+    }
+}
 
 impl Drop for Player {
     fn drop(&mut self) {
@@ -151,13 +126,9 @@ impl Drop for Player {
 }
 
 pub fn client_put_in_server(engine: ServerEngineRef, ent: &mut edict_s) {
-    let player = ent.private_init(engine, Player::new);
+    let player = unsafe { PrivateData::create::<Private<Player>>(engine, &mut ent.v) };
 
     // TODO: testing, remove later
-    let player: &mut dyn Entity = player;
-    assert!(player.ent().downcast::<crate::world::World>().is_none());
-    let player = player.ent_mut().downcast_mut::<Player>().unwrap();
-
     player.set_custom_decal_frames(-1);
     player.spawn();
 
@@ -166,4 +137,4 @@ pub fn client_put_in_server(engine: ServerEngineRef, ent: &mut edict_s) {
     ent.v.iuser2 = 0;
 }
 
-link_entity!(player, Player::new);
+link_entity!(player, Private<Player>);

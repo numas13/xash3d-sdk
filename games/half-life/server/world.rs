@@ -1,52 +1,27 @@
 use sv::{
-    ffi::server::{entvars_s, KeyValueData},
+    entity::{link_entity, BaseEntity, CreateEntity, Entity, SpawnResult},
+    ffi::server::KeyValueData,
     prelude::*,
 };
 
 use crate::{
-    entity::{impl_cast, Entity, EntityVars},
-    gamerules::install_game_rules,
-    macros::link_entity,
+    entity::{impl_cast, Private},
+    game_rules::install_game_rules,
 };
 
 pub struct World {
-    engine: ServerEngineRef,
-    vars: *mut entvars_s,
-}
-
-impl World {
-    fn new(engine: ServerEngineRef, vars: *mut entvars_s) -> Self {
-        Self { engine, vars }
-    }
+    base: BaseEntity,
 }
 
 impl_cast!(World);
 
-impl EntityVars for World {
-    fn vars_ptr(&self) -> *mut entvars_s {
-        self.vars
+impl CreateEntity for World {
+    fn create(base: BaseEntity) -> Self {
+        Self { base }
     }
 }
 
 impl Entity for World {
-    fn engine(&self) -> ServerEngineRef {
-        self.engine
-    }
-
-    fn spawn(&mut self) -> bool {
-        // TODO: global_game_over = false;
-        self.precache();
-        true
-    }
-
-    fn precache(&mut self) {
-        let engine = self.engine;
-        engine.set_cvar(c"sv_gravity", c"800");
-        engine.set_cvar(c"sv_stepsize", c"18");
-        engine.set_cvar(c"room_type", c"0");
-        install_game_rules(engine);
-    }
-
     fn key_value(&mut self, data: &mut KeyValueData) {
         let class_name = data.class_name();
         let key_name = data.key_name();
@@ -55,6 +30,20 @@ impl Entity for World {
         debug!("World::key_value({class_name:?}, {key_name}, {value}, {handled})");
         data.set_handled(true);
     }
+
+    fn precache(&mut self) {
+        let engine = self.base.engine;
+        engine.set_cvar(c"sv_gravity", c"800");
+        engine.set_cvar(c"sv_stepsize", c"18");
+        engine.set_cvar(c"room_type", c"0");
+        install_game_rules(engine);
+    }
+
+    fn spawn(&mut self) -> SpawnResult {
+        // TODO: global_game_over = false;
+        self.precache();
+        SpawnResult::Ok
+    }
 }
 
-link_entity!(worldspawn, World::new);
+link_entity!(worldspawn, Private<World>);
