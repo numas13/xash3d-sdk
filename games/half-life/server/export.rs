@@ -142,7 +142,7 @@ impl ServerDll for Dll {
         let Some(entity) = ent.get_entity_mut() else {
             return RestoreResult::Ok;
         };
-        entity.restore_fields(&mut restore).unwrap();
+        entity.restore(&mut restore).unwrap();
         if entity.object_caps().intersects(ObjectCaps::MUST_SPAWN) {
             entity.spawn();
         } else {

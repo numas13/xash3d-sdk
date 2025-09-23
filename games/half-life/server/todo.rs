@@ -6,7 +6,7 @@ use core::{
 use csz::CStrSlice;
 use xash3d_server::{
     consts::{EFLAG_SLERP, ENTITY_BEAM, ENTITY_NORMAL},
-    entity::{BaseEntity, EdictFlags, Effects, Entity},
+    entity::{delegate_entity, BaseEntity, EdictFlags, Effects, Entity},
     ffi::{
         common::{clientdata_s, entity_state_s, vec3_t},
         server::edict_s,
@@ -226,6 +226,8 @@ impl Stub {
 }
 
 impl Entity for Stub {
+    delegate_entity!(base not { spawn });
+
     fn spawn(&mut self) {
         let classname = self.base.engine.new_map_string(self.name);
         let ev = self.vars_mut().as_raw_mut();

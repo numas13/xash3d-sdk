@@ -3,12 +3,13 @@ use core::{ffi::c_int, ptr};
 use xash3d_server::{
     consts::{DAMAGE_AIM, DEAD_NO, SOLID_SLIDEBOX},
     entity::{
-        AsEdict, BaseEntity, CreateEntity, EdictFlags, Effects, Entity, EntityPlayer, MoveType,
-        ObjectCaps, PrivateData,
+        delegate_entity, AsEdict, BaseEntity, CreateEntity, EdictFlags, Effects, Entity,
+        EntityPlayer, MoveType, ObjectCaps, PrivateData,
     },
     export::export_entity,
     ffi::server::edict_s,
     prelude::*,
+    save::{SaveReader, SaveResult},
 };
 
 use crate::{
@@ -35,11 +36,15 @@ impl CreateEntity for Player {
 }
 
 impl Entity for Player {
+    delegate_entity!(base not { object_caps, restore, spawn });
+
     fn object_caps(&self) -> ObjectCaps {
         ObjectCaps::DONT_SAVE
     }
 
-    fn restore(&mut self) {
+    fn restore(&mut self, save: &mut SaveReader) -> SaveResult<()> {
+        self.base.restore(save)?;
+
         let engine = self.base.engine;
 
         // TODO:
@@ -50,6 +55,8 @@ impl Entity for Player {
         ev.fixangle = 1;
 
         engine.set_physics_key_value(self.as_edict_mut(), c"hl", c"1");
+
+        Ok(())
     }
 
     fn spawn(&mut self) {
@@ -110,6 +117,10 @@ impl EntityPlayer for Player {
             engine.entity_of_ent_index(0)
         }
     }
+
+    fn pre_think(&mut self) {}
+
+    fn post_think(&mut self) {}
 }
 
 impl EntityTest for Player {

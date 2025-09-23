@@ -1,5 +1,5 @@
 use xash3d_server::{
-    entity::{BaseEntity, CreateEntity, Entity},
+    entity::{delegate_entity, BaseEntity, CreateEntity, Entity},
     export::export_entity,
     ffi::server::KeyValueData,
     prelude::*,
@@ -23,6 +23,8 @@ impl CreateEntity for World {
 }
 
 impl Entity for World {
+    delegate_entity!(base not { key_value, precache, spawn });
+
     fn key_value(&mut self, data: &mut KeyValueData) {
         let class_name = data.class_name();
         let key_name = data.key_name();

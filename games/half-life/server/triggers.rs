@@ -3,7 +3,10 @@ use core::{ffi::c_int, ptr};
 use csz::{cstr, CStrArray, CStrThin};
 use xash3d_server::{
     consts::{FENTTABLE_GLOBAL, FENTTABLE_MOVEABLE, SOLID_TRIGGER},
-    entity::{BaseEntity, CreateEntity, Effects, Entity, GetPrivateData, MoveType, ObjectCaps},
+    entity::{
+        delegate_entity, BaseEntity, CreateEntity, Effects, Entity, GetPrivateData, MoveType,
+        ObjectCaps,
+    },
     export::export_entity,
     ffi::{
         common::vec3_t,
@@ -41,6 +44,19 @@ pub struct ChangeLevel {
 }
 
 impl ChangeLevel {
+    #[allow(dead_code)]
+    const FIELDS: &[TYPEDESCRIPTION] = &[
+        define_field!(ChangeLevel, map_name, FieldType::CHARACTER, MAP_NAME_MAX),
+        define_field!(
+            ChangeLevel,
+            landmark_name,
+            FieldType::CHARACTER,
+            MAP_NAME_MAX
+        ),
+        define_field!(ChangeLevel, target, FieldType::STRING),
+        define_field!(ChangeLevel, change_target_delay, FieldType::FLOAT),
+    ];
+
     fn init_trigger(&mut self) {
         let engine = self.base.engine;
         let ev = self.vars_mut().as_raw_mut();
@@ -101,26 +117,13 @@ impl CreateEntity for ChangeLevel {
 }
 
 impl Entity for ChangeLevel {
+    delegate_entity!(base not { object_caps, restore, key_value, spawn, touched });
+
     fn object_caps(&self) -> ObjectCaps {
         ObjectCaps::NONE
     }
 
-    fn fields(&self) -> &'static [TYPEDESCRIPTION] {
-        const FIELDS: &[TYPEDESCRIPTION] = &[
-            define_field!(ChangeLevel, map_name, FieldType::CHARACTER, MAP_NAME_MAX),
-            define_field!(
-                ChangeLevel,
-                landmark_name,
-                FieldType::CHARACTER,
-                MAP_NAME_MAX
-            ),
-            define_field!(ChangeLevel, target, FieldType::STRING),
-            define_field!(ChangeLevel, change_target_delay, FieldType::FLOAT),
-        ];
-        FIELDS
-    }
-
-    fn restore_fields(&mut self, _restore: &mut SaveReader) -> SaveResult<()> {
+    fn restore(&mut self, _restore: &mut SaveReader) -> SaveResult<()> {
         Ok(())
     }
 

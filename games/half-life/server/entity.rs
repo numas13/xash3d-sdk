@@ -1,6 +1,6 @@
 use core::marker::PhantomData;
 
-use xash3d_server::entity::{Downcast, Entity, EntityCast, PrivateEntity};
+use xash3d_server::entity::{define_entity_trait, Downcast, Entity, EntityCast, PrivateEntity};
 
 pub struct Private<T>(PhantomData<T>);
 
@@ -46,7 +46,9 @@ macro_rules! impl_cast {
 #[doc(inline)]
 pub use impl_cast;
 
-#[allow(dead_code)]
-pub trait EntityTest: Entity + CustomCast {
-    fn do_test_work(&self) {}
+define_entity_trait! {
+    #[allow(dead_code)]
+    pub trait EntityTest(delegate_test): (Entity + CustomCast) {
+        fn do_test_work(&self);
+    }
 }

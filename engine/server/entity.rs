@@ -14,12 +14,13 @@ use xash3d_shared::{
     consts::{SOLID_BSP, SOLID_NOT, SOLID_SLIDEBOX},
     ffi::{
         common::{entity_state_s, vec3_t},
-        server::{edict_s, entvars_s, KeyValueData, TYPEDESCRIPTION},
+        server::{edict_s, entvars_s, KeyValueData},
     },
     macros::const_assert_size_of_field_eq,
 };
 
 use crate::{
+    self as xash3d_server,
     engine::ServerEngineRef,
     game_rules::{GameRules, GameRulesRef},
     save::{KeyValueDataExt, SaveReader, SaveResult, SaveWriter},
@@ -162,14 +163,6 @@ impl EntityVars {
     }
 }
 
-/// Common data for entities.
-#[derive(Debug)]
-pub struct BaseEntity {
-    pub engine: ServerEngineRef,
-    pub game_rules: GameRulesRef,
-    pub vars: EntityVars,
-}
-
 pub trait CreateEntity: Entity {
     fn create(base: BaseEntity) -> Self;
 }
@@ -195,12 +188,6 @@ bitflags! {
 }
 
 pub trait EntityCast: 'static {
-    /// Returns a shared reference to a base entity data.
-    fn as_base(&self) -> &BaseEntity;
-
-    /// Returns a mutable reference to a base entity data.
-    fn as_base_mut(&mut self) -> &mut BaseEntity;
-
     fn as_player(&self) -> Option<&dyn EntityPlayer>;
     fn as_player_mut(&mut self) -> Option<&mut dyn EntityPlayer>;
 
@@ -217,8 +204,85 @@ pub trait EntityCast: 'static {
     fn as_monster_mut(&mut self) -> Option<&mut dyn EntityMonster>;
 }
 
-/// The base trait for all entities.
-pub trait Entity: EntityCast + AsEdict {
+define_entity_trait! {
+    /// The base trait for all entities.
+    pub trait Entity(delegate_entity): (EntityCast + AsEdict) {
+        fn private(&self) -> &xash3d_server::entity::PrivateData;
+
+        fn private_mut(&mut self) -> &mut xash3d_server::entity::PrivateData;
+
+        /// Returns a reference to the server engine.
+        fn engine(&self) -> xash3d_server::engine::ServerEngineRef;
+
+        fn game_rules(&self) -> Option<alloc::rc::Rc<dyn xash3d_server::game_rules::GameRules>>;
+
+        /// Returns a shared reference to entity variables.
+        fn vars(&self) -> &xash3d_server::entity::EntityVars;
+
+        /// Returns a mutable reference to entity variables.
+        fn vars_mut(&mut self) -> &mut xash3d_server::entity::EntityVars;
+
+        fn globalname(&self) -> xash3d_server::str::MapString;
+
+        fn is_globalname(&self, name: &csz::CStrThin) -> bool;
+
+        fn classname(&self) -> xash3d_server::str::MapString;
+
+        fn is_classname(&self, name: &csz::CStrThin) -> bool;
+
+        fn object_caps(&self) -> xash3d_server::entity::ObjectCaps;
+
+        fn make_dormant(&mut self);
+
+        fn is_dormant(&self) -> bool;
+
+        fn save(&mut self, save: &mut xash3d_server::save::SaveWriter) -> xash3d_server::save::SaveResult<()>;
+
+        fn restore(&mut self, restore: &mut xash3d_server::save::SaveReader) -> xash3d_server::save::SaveResult<()>;
+
+        fn key_value(&mut self, data: &mut xash3d_server::ffi::server::KeyValueData);
+
+        fn precache(&mut self);
+
+        fn spawn(&mut self);
+
+        fn think(&mut self);
+
+        fn touched(&mut self, other: &mut dyn xash3d_server::entity::Entity);
+
+        fn used(&mut self, other: &mut dyn xash3d_server::entity::Entity);
+
+        fn blocked(&mut self, other: &mut dyn xash3d_server::entity::Entity);
+
+        fn override_reset(&mut self);
+
+        fn set_object_collision_box(&mut self);
+
+        fn intersects(&self, other: &dyn xash3d_server::entity::Entity) -> bool;
+    }
+}
+
+impl dyn Entity {
+    pub fn downcast_ref<U: Entity + ?Sized + 'static>(&self) -> Option<&U> {
+        self.private().downcast_ref::<U>()
+    }
+
+    pub fn downcast_mut<U: Entity + ?Sized + 'static>(&mut self) -> Option<&mut U> {
+        self.private_mut().downcast_mut::<U>()
+    }
+}
+
+/// Base type for all entities.
+#[derive(Debug)]
+pub struct BaseEntity {
+    pub engine: ServerEngineRef,
+    pub game_rules: GameRulesRef,
+    pub vars: EntityVars,
+}
+
+impl_entity_cast!(BaseEntity);
+
+impl Entity for BaseEntity {
     fn private(&self) -> &PrivateData {
         PrivateData::from_edict(self.as_edict()).unwrap()
     }
@@ -227,27 +291,24 @@ pub trait Entity: EntityCast + AsEdict {
         PrivateData::from_edict_mut(self.as_edict_mut()).unwrap()
     }
 
-    /// Returns a reference to the server engine.
     fn engine(&self) -> ServerEngineRef {
-        self.as_base().engine
+        self.engine
     }
 
     fn game_rules(&self) -> Option<Rc<dyn GameRules>> {
-        self.as_base().game_rules.get()
+        self.game_rules.get()
     }
 
-    /// Returns a shared reference to entity variables.
     fn vars(&self) -> &EntityVars {
-        &self.as_base().vars
+        &self.vars
     }
 
-    /// Returns a mutable reference to entity variables.
     fn vars_mut(&mut self) -> &mut EntityVars {
-        &mut self.as_base_mut().vars
+        &mut self.vars
     }
 
     fn globalname(&self) -> MapString {
-        self.vars().globalname().unwrap()
+        self.vars.globalname().unwrap()
     }
 
     fn is_globalname(&self, name: &CStrThin) -> bool {
@@ -255,7 +316,7 @@ pub trait Entity: EntityCast + AsEdict {
     }
 
     fn classname(&self) -> MapString {
-        self.vars().classname().unwrap()
+        self.vars.classname().unwrap()
     }
 
     fn is_classname(&self, name: &CStrThin) -> bool {
@@ -267,7 +328,7 @@ pub trait Entity: EntityCast + AsEdict {
     }
 
     fn make_dormant(&mut self) {
-        let ev = self.vars_mut().as_raw_mut();
+        let ev = self.vars.as_raw_mut();
         ev.flags_mut().insert(EdictFlags::DORMANT);
         ev.solid = SOLID_NOT;
         ev.movetype = MoveType::None.into();
@@ -276,31 +337,21 @@ pub trait Entity: EntityCast + AsEdict {
     }
 
     fn is_dormant(&self) -> bool {
-        self.vars().flags().intersects(EdictFlags::DORMANT)
+        self.vars.flags().intersects(EdictFlags::DORMANT)
     }
 
-    fn fields(&self) -> &'static [TYPEDESCRIPTION] {
-        &[]
-    }
-
-    fn save(&mut self) {}
-
-    fn restore(&mut self) {}
-
-    fn save_fields(&mut self, _save: &mut SaveWriter) -> SaveResult<()> {
-        self.save();
-        // TODO: Entity::save_fields
-        debug!("TODO: save {:?}", self.classname());
+    fn save(&mut self, _save: &mut SaveWriter) -> SaveResult<()> {
+        log::debug!("TODO: save {:?}", self.classname());
         Ok(())
     }
 
-    fn restore_fields(&mut self, restore: &mut SaveReader) -> SaveResult<()> {
-        restore.read_ent_vars(c"ENTVARS", self.vars_mut().as_raw_mut())?;
+    fn restore(&mut self, save: &mut SaveReader) -> SaveResult<()> {
+        save.read_ent_vars(c"ENTVARS", self.vars_mut().as_raw_mut())?;
 
-        let fields = self.fields();
-        restore.read_fields(c"BASE", self as *mut _ as *mut _, fields)?;
+        // let fields = self.fields();
+        // save.read_fields(c"BASE", self as *mut _ as *mut _, fields)?;
 
-        let ev = self.vars_mut().as_raw();
+        let ev = self.vars.as_raw();
         if let (true, Some(model)) = (ev.modelindex != 0, ev.model()) {
             let mins = ev.mins;
             let maxs = ev.maxs;
@@ -310,7 +361,6 @@ pub trait Entity: EntityCast + AsEdict {
             engine.set_size(self.as_edict_mut(), mins, maxs);
         }
 
-        self.restore();
         Ok(())
     }
 
@@ -318,7 +368,7 @@ pub trait Entity: EntityCast + AsEdict {
         let class_name = data.class_name();
         let key_name = data.key_name();
         let value = data.value();
-        debug!(
+        log::debug!(
             "{}::key_value({class_name:?}, {key_name}, {value})",
             self.classname()
         );
@@ -334,19 +384,19 @@ pub trait Entity: EntityCast + AsEdict {
     fn touched(&mut self, other: &mut dyn Entity) {
         let touched = self.classname();
         let other = other.classname();
-        trace!("touched {touched} by {other}");
+        log::trace!("touched {touched} by {other}");
     }
 
     fn used(&mut self, other: &mut dyn Entity) {
         let touched = self.classname();
         let other = other.classname();
-        trace!("used {touched} by {other}");
+        log::trace!("used {touched} by {other}");
     }
 
     fn blocked(&mut self, other: &mut dyn Entity) {
         let touched = self.classname();
         let other = other.classname();
-        trace!("blocked {touched} by {other}");
+        log::trace!("blocked {touched} by {other}");
     }
 
     fn override_reset(&mut self) {}
@@ -365,34 +415,42 @@ pub trait Entity: EntityCast + AsEdict {
             || b.absmax.y() < a.absmin.y()
             || b.absmax.z() < a.absmin.z())
     }
-
-    // TODO: BaseEntity::classify
-
-    // TODO: BaseEntity::death_notice
 }
 
-impl dyn Entity {
-    pub fn downcast_ref<U: Entity + ?Sized + 'static>(&self) -> Option<&U> {
-        self.private().downcast_ref::<U>()
-    }
-
-    pub fn downcast_mut<U: Entity + ?Sized + 'static>(&mut self) -> Option<&mut U> {
-        self.private_mut().downcast_mut::<U>()
+define_entity_trait! {
+    pub trait EntityDelay(delegate_delay): (Entity) {
+        // TODO: animating entity trait methods
     }
 }
 
-pub trait EntityPlayer: Entity {
-    fn select_spawn_point(&self) -> *mut edict_s;
-
-    fn pre_think(&mut self) {}
-
-    fn post_think(&mut self) {}
+define_entity_trait! {
+    pub trait EntityAnimating(delegate_animating): (EntityDelay) {
+        // TODO: animating entity trait methods
+    }
 }
 
-pub trait EntityDelay: Entity {}
-pub trait EntityAnimating: EntityDelay {}
-pub trait EntityToggle: EntityAnimating {}
-pub trait EntityMonster: EntityToggle {}
+define_entity_trait! {
+    pub trait EntityToggle(delegate_toggle): (EntityAnimating) {
+        // TODO: toggle entity trait methods
+    }
+}
+
+define_entity_trait! {
+    pub trait EntityMonster(delegate_monster): (EntityToggle) {
+        // TODO: monster entity trait methods
+    }
+}
+
+define_entity_trait! {
+    // TODO: base trait should be EntityMonster
+    pub trait EntityPlayer(delegate_player): (Entity) {
+        fn select_spawn_point(&self) -> *mut xash3d_server::ffi::server::edict_s;
+
+        fn pre_think(&mut self);
+
+        fn post_think(&mut self);
+    }
+}
 
 pub fn set_object_collision_box(ev: &mut entvars_s) {
     if ev.solid == SOLID_BSP && ev.angles != vec3_t::ZERO {

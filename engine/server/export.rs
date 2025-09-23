@@ -155,7 +155,7 @@ pub trait ServerDll: UnsyncGlobal {
         table.classname = entity.vars().as_raw().classname;
 
         let mut writer = SaveWriter::new(engine, save_data);
-        entity.save_fields(&mut writer).unwrap();
+        entity.save(&mut writer).unwrap();
 
         let table = &mut save_data.table_mut()[current_index];
         table.size = size - table.location;
@@ -1172,9 +1172,14 @@ pub use export_dll;
 /// # Examples
 ///
 /// ```
+/// extern crate alloc;
+///
 /// use core::marker::PhantomData;
 /// use xash3d_server::{
-///     entity::{Entity, BaseEntity, CreateEntity, PrivateEntity, impl_entity_cast},
+///     entity::{
+///         Entity, BaseEntity, CreateEntity, PrivateEntity, impl_entity_cast,
+///         delegate_entity,
+///     },
 ///     export::export_entity,
 /// };
 ///
@@ -1198,7 +1203,9 @@ pub use export_dll;
 ///     }
 /// }
 ///
-/// impl Entity for Player {}
+/// impl Entity for Player {
+///     delegate_entity!(base);
+/// }
 ///
 /// // export the player entity to the engine
 /// export_entity!(player, Private<Player>);
