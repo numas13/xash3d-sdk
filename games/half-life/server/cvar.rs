@@ -1,10 +1,10 @@
-use sv::cvar::define;
+use xash3d_server::cvar::define;
 
-use sv::prelude::*;
+use xash3d_server::prelude::*;
 
 #[allow(dead_code)]
 mod flags {
-    use sv::cvar::CVarFlags;
+    use xash3d_server::cvar::CVarFlags;
 
     pub const NONE: CVarFlags = CVarFlags::NONE;
     pub const ARCHIVE: CVarFlags = CVarFlags::ARCHIVE;
@@ -29,15 +29,15 @@ macro_rules! define_server {
             $(
                 #[allow(non_upper_case_globals)]
                 $(#[$meta])*
-                static mut $name: sv::ffi::common::cvar_s = {
+                static mut $name: xash3d_server::ffi::common::cvar_s = {
                     use $crate::cvar::flags::*;
 
                     #[allow(unused_variables)]
                     let flags = NONE;
                     $(let flags = $flags;)?
 
-                    sv::ffi::common::cvar_s {
-                        name: sv::macros::cstringify!($name).as_ptr().cast_mut(),
+                    xash3d_server::ffi::common::cvar_s {
+                        name: xash3d_server::macros::cstringify!($name).as_ptr().cast_mut(),
                         string: $value.as_ptr() as *mut core::ffi::c_char,
                         value: 0.0,
                         flags: flags.bits(),
@@ -46,14 +46,14 @@ macro_rules! define_server {
                 };
             )*
 
-            pub(super) fn init(engine: sv::engine::ServerEngineRef) {
+            pub(super) fn init(engine: xash3d_server::engine::ServerEngineRef) {
                 unsafe {
                     $(engine.cvar_register(&mut *core::ptr::addr_of_mut!($name));)*
                 }
             }
         }
 
-        sv::cvar::define! {
+        xash3d_server::cvar::define! {
             $($(#[$meta])* $vis static $name;)*
         }
 

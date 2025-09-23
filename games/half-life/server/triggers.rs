@@ -1,7 +1,7 @@
 use core::{ffi::c_int, ptr};
 
 use csz::{cstr, CStrArray, CStrThin};
-use sv::{
+use xash3d_server::{
     consts::{FENTTABLE_GLOBAL, FENTTABLE_MOVEABLE, SOLID_TRIGGER},
     entity::{BaseEntity, CreateEntity, Effects, Entity, GetPrivateData, MoveType, ObjectCaps},
     export::export_entity,

@@ -4,7 +4,7 @@ use core::{
 };
 
 use csz::CStrSlice;
-use sv::{
+use xash3d_server::{
     consts::{EFLAG_SLERP, ENTITY_BEAM, ENTITY_NORMAL},
     entity::{BaseEntity, EdictFlags, Effects, Entity},
     ffi::{
@@ -235,8 +235,8 @@ impl Entity for Stub {
 
 macro_rules! export_entity_stub {
     ($($name:ident),* $(,)?) => {
-        $(sv::export::export_entity!($name, Private<$crate::todo::Stub>, |base| {
-            let name = sv::macros::cstringify!($name);
+        $(xash3d_server::export::export_entity!($name, Private<$crate::todo::Stub>, |base| {
+            let name = xash3d_server::macros::cstringify!($name);
             $crate::todo::Stub::new(base, name)
         });)*
     };

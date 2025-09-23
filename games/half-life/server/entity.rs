@@ -1,6 +1,6 @@
 use core::marker::PhantomData;
 
-use sv::entity::{Downcast, Entity, EntityCast, PrivateEntity};
+use xash3d_server::entity::{Downcast, Entity, EntityCast, PrivateEntity};
 
 pub struct Private<T>(PhantomData<T>);
 
@@ -24,7 +24,7 @@ macro_rules! impl_custom_cast {
     ($(#[$attr:meta])* $ty:ty) => {
         $(#[$attr])*
         impl $crate::entity::CustomCast for $ty {
-            sv::entity::impl_cast! {
+            xash3d_server::entity::impl_cast! {
                 $ty {
                     as_test_entity, as_test_entity_mut -> $crate::entity::EntityTest;
                 }
@@ -39,7 +39,7 @@ pub use impl_custom_cast;
 #[macro_export]
 macro_rules! impl_cast {
     ($(#[$attr:meta])* $ty:ty) => {
-        sv::entity::impl_entity_cast!($(#[$attr])* $ty);
+        xash3d_server::entity::impl_entity_cast!($(#[$attr])* $ty);
         $crate::entity::impl_custom_cast!($(#[$attr])* $ty);
     };
 }

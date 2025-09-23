@@ -2,7 +2,7 @@ use core::{cell::RefCell, ffi::c_int, mem::MaybeUninit, ptr};
 
 use alloc::collections::linked_list::LinkedList;
 use csz::{CStrArray, CStrThin};
-use sv::{
+use xash3d_server::{
     ffi::server::{edict_s, SAVERESTOREDATA, TYPEDESCRIPTION},
     macros::define_field,
     prelude::*,

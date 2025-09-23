@@ -1,7 +1,7 @@
 use core::ffi::CStr;
 
 use alloc::rc::Rc;
-use sv::{
+use xash3d_server::{
     game_rules::{GameRules, GameRulesRef},
     prelude::*,
 };

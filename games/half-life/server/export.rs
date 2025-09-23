@@ -3,7 +3,7 @@ use core::{
     mem::MaybeUninit,
 };
 
-use sv::{
+use xash3d_server::{
     entity::{EdictFlags, GetPrivateData, ObjectCaps, RestoreResult},
     export::{export_dll, impl_unsync_global, ServerDll, SpawnResult, UnsyncGlobal},
     ffi::{

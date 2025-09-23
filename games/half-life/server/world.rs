@@ -1,4 +1,4 @@
-use sv::{
+use xash3d_server::{
     entity::{BaseEntity, CreateEntity, Entity},
     export::export_entity,
     ffi::server::KeyValueData,

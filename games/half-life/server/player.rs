@@ -1,6 +1,6 @@
 use core::{ffi::c_int, ptr};
 
-use sv::{
+use xash3d_server::{
     consts::{DAMAGE_AIM, DEAD_NO, SOLID_SLIDEBOX},
     entity::{
         AsEdict, BaseEntity, CreateEntity, EdictFlags, Effects, Entity, EntityPlayer, MoveType,
