@@ -233,17 +233,17 @@ impl Entity for Stub {
     }
 }
 
-macro_rules! link_entity_stub {
+macro_rules! export_entity_stub {
     ($($name:ident),* $(,)?) => {
-        $(sv::entity::link_entity!($name, Private<$crate::todo::Stub>, |base| {
+        $(sv::export::export_entity!($name, Private<$crate::todo::Stub>, |base| {
             let name = sv::macros::cstringify!($name);
             $crate::todo::Stub::new(base, name)
         });)*
     };
 }
-pub(super) use link_entity_stub;
+pub(super) use export_entity_stub;
 
-link_entity_stub! {
+export_entity_stub! {
     ambient_generic,
     ammo_glockclip,
     env_beam,

@@ -1,5 +1,6 @@
 use sv::{
-    entity::{link_entity, BaseEntity, CreateEntity, Entity},
+    entity::{BaseEntity, CreateEntity, Entity},
+    export::export_entity,
     ffi::server::KeyValueData,
     prelude::*,
 };
@@ -45,4 +46,4 @@ impl Entity for World {
     }
 }
 
-link_entity!(worldspawn, Private<World>);
+export_entity!(worldspawn, Private<World>);

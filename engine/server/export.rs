@@ -1166,3 +1166,66 @@ macro_rules! export_dll {
 }
 #[doc(inline)]
 pub use export_dll;
+
+/// Export an entity with the given name to the engine.
+///
+/// # Examples
+///
+/// ```
+/// use core::marker::PhantomData;
+/// use xash3d_server::{
+///     entity::{Entity, BaseEntity, CreateEntity, PrivateEntity, impl_entity_cast},
+///     export::export_entity,
+/// };
+///
+/// // define a private wrapper for our entities
+/// struct Private<T>(PhantomData<T>);
+///
+/// impl<T: Entity> PrivateEntity for Private<T> {
+///     type Entity = T;
+/// }
+///
+/// // define a player entity
+/// struct Player {
+///     base: BaseEntity,
+/// }
+///
+/// impl_entity_cast!(Player);
+///
+/// impl CreateEntity for Player {
+///     fn create(base: BaseEntity) -> Self {
+///         Self { base }
+///     }
+/// }
+///
+/// impl Entity for Player {}
+///
+/// // export the player entity to the engine
+/// export_entity!(player, Private<Player>);
+/// ```
+#[doc(hidden)]
+#[macro_export]
+macro_rules! export_entity {
+    ($name:ident, $private:ty $(,)?) => {
+        $crate::export::export_entity!(
+            $name,
+            $private,
+            <$private as $crate::entity::PrivateEntity>::Entity::create,
+        );
+    };
+    ($name:ident, $private:ty, $init:expr $(,)?) => {
+        #[no_mangle]
+        unsafe extern "C" fn $name(ev: *mut $crate::ffi::server::entvars_s) {
+            use $crate::{
+                engine::ServerEngineRef,
+                entity::{CreateEntity, PrivateData, PrivateEntity},
+            };
+            unsafe {
+                let engine = ServerEngineRef::new();
+                PrivateData::create_with::<$private, _>(engine, ev, $init);
+            }
+        }
+    };
+}
+#[doc(inline)]
+pub use export_entity;

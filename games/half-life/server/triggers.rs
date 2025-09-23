@@ -3,10 +3,8 @@ use core::{ffi::c_int, ptr};
 use csz::{cstr, CStrArray, CStrThin};
 use sv::{
     consts::{FENTTABLE_GLOBAL, FENTTABLE_MOVEABLE, SOLID_TRIGGER},
-    entity::{
-        link_entity, BaseEntity, CreateEntity, Effects, Entity, GetPrivateData, MoveType,
-        ObjectCaps,
-    },
+    entity::{BaseEntity, CreateEntity, Effects, Entity, GetPrivateData, MoveType, ObjectCaps},
+    export::export_entity,
     ffi::{
         common::vec3_t,
         server::{edict_s, entvars_s, KeyValueData, LEVELLIST, TYPEDESCRIPTION},
@@ -19,12 +17,12 @@ use sv::{
 
 use crate::{
     entity::{impl_cast, Private},
-    todo::link_entity_stub,
+    todo::export_entity_stub,
 };
 
 const MAP_NAME_MAX: usize = 32;
 
-link_entity_stub! {
+export_entity_stub! {
     trigger_auto,
     trigger_autosave,
     // trigger_changelevel,
@@ -186,7 +184,7 @@ impl Entity for ChangeLevel {
     }
 }
 
-link_entity!(trigger_changelevel, Private<ChangeLevel>);
+export_entity!(trigger_changelevel, Private<ChangeLevel>);
 
 fn add_transition_to_list(
     level_list: &mut [LEVELLIST],

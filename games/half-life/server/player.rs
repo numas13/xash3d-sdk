@@ -3,9 +3,10 @@ use core::{ffi::c_int, ptr};
 use sv::{
     consts::{DAMAGE_AIM, DEAD_NO, SOLID_SLIDEBOX},
     entity::{
-        link_entity, AsEdict, BaseEntity, CreateEntity, EdictFlags, Effects, Entity, EntityPlayer,
-        MoveType, ObjectCaps, PrivateData,
+        AsEdict, BaseEntity, CreateEntity, EdictFlags, Effects, Entity, EntityPlayer, MoveType,
+        ObjectCaps, PrivateData,
     },
+    export::export_entity,
     ffi::server::edict_s,
     prelude::*,
 };
@@ -135,4 +136,4 @@ pub fn client_put_in_server(engine: ServerEngineRef, ent: &mut edict_s) {
     ent.v.iuser2 = 0;
 }
 
-link_entity!(player, Private<Player>);
+export_entity!(player, Private<Player>);
