@@ -1,7 +1,7 @@
 use core::ffi::c_int;
 
-use cl::{engine::event::event_args_s, prelude::*};
 use res::valve::sound;
+use xash3d_client::{engine::event::event_args_s, prelude::*};
 
 #[allow(dead_code)]
 #[derive(Copy, Clone)]

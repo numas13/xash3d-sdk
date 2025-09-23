@@ -1,8 +1,8 @@
 use core::ffi::{c_int, CStr};
 
 use alloc::collections::vec_deque::VecDeque;
-use cl::{color::RGB, math::fminf, message::hook_message, prelude::*};
 use csz::CStrArray;
+use xash3d_client::{color::RGB, math::fminf, message::hook_message, prelude::*};
 
 use crate::export::hud;
 
@@ -14,7 +14,7 @@ const MAX_CHARS_PER_LINE: usize = 256;
 const SAY_MESSAGE: u8 = 2;
 
 mod cvar {
-    cl::cvar::define! {
+    xash3d_client::cvar::define! {
         pub static hud_saytext(c"1", NONE);
         pub static hud_saytext_time(c"5", NONE);
     }

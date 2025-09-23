@@ -4,7 +4,7 @@ use core::{
 };
 
 use alloc::{boxed::Box, vec, vec::Vec};
-use cl::{
+use xash3d_client::{
     color::RGB,
     ffi::{client::client_textmessage_s, common::byte},
     math::fabsf,

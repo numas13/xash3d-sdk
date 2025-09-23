@@ -1,6 +1,7 @@
 use core::ffi::c_int;
 
-use cl::{
+use res::valve::{self, sound, sprites};
+use xash3d_client::{
     consts::{PITCH, PM_NORMAL, SOLID_BSP, TE_SPRITETRAIL},
     engine::{efx::BeamEntity, event::event_args_s},
     entity::TempEntityFlags,
@@ -9,7 +10,6 @@ use cl::{
     render::{RenderFx, RenderMode},
     sound::{Channel, SoundFlags},
 };
-use res::valve::{self, sound, sprites};
 
 use crate::export::view_mut;
 

@@ -3,13 +3,13 @@ use core::{
     ffi::{c_int, CStr},
 };
 
-use cl::{
+use csz::CStrArray;
+use xash3d_client::{
     color::RGB,
     macros::{spr_get_list, spr_load},
     message::{hook_message, Message, MessageError},
     prelude::*,
 };
-use csz::CStrArray;
 
 use crate::hud::{hud_mut, weapon_menu::WeaponMenu, Sprite, Weapons, MAX_WEAPONS};
 

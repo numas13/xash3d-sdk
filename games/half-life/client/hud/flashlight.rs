@@ -1,6 +1,6 @@
 use core::ffi::c_int;
 
-use cl::{color::RGB, message::hook_message, prelude::*};
+use xash3d_client::{color::RGB, message::hook_message, prelude::*};
 
 use crate::{
     export::hud,

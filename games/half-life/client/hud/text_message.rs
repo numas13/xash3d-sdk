@@ -1,7 +1,7 @@
 use core::ffi::{c_int, CStr};
 
 use alloc::string::String;
-use cl::{
+use xash3d_client::{
     message::{hook_message, Message, MessageError},
     prelude::*,
 };

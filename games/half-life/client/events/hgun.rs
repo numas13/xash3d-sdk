@@ -1,7 +1,7 @@
 use core::ffi::c_int;
 
-use cl::{consts::PITCH, engine::event::event_args_s, prelude::*};
 use res::valve::sound;
+use xash3d_client::{consts::PITCH, engine::event::event_args_s, prelude::*};
 
 use crate::export::view_mut;
 

@@ -1,8 +1,8 @@
 use core::{cmp, ffi::c_int, fmt::Write};
 
 use alloc::vec::Vec;
-use cl::{color::RGB, consts::MAX_PLAYERS, prelude::*};
 use csz::CStrArray;
+use xash3d_client::{color::RGB, consts::MAX_PLAYERS, prelude::*};
 
 use super::{HudFlags, HudItem, PlayerInfoExtra, State};
 

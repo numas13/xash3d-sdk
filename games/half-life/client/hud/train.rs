@@ -1,6 +1,6 @@
 use core::ffi::c_int;
 
-use cl::{macros::spr_load, message::hook_message, prelude::*, sprite::SpriteHandle};
+use xash3d_client::{macros::spr_load, message::hook_message, prelude::*, sprite::SpriteHandle};
 
 use crate::{
     export::hud,

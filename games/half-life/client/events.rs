@@ -14,7 +14,9 @@ mod tripmine;
 
 use core::ffi::{c_int, CStr};
 
-use cl::{
+use csz::CStrArray;
+use res::valve::{self, sound};
+use xash3d_client::{
     consts::{EFLAG_FLESH_SOUND, MAX_PLAYERS, PM_NORMAL, SOLID_BSP},
     engine::{event::event_args_s, ClientEngineRef},
     entity::{Effects, MoveType},
@@ -28,8 +30,6 @@ use cl::{
     render::RenderMode,
     sound::Attenuation,
 };
-use csz::CStrArray;
-use res::valve::{self, sound};
 use xash3d_player_move as pm;
 
 use crate::export::events_mut;

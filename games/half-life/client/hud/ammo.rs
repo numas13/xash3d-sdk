@@ -1,6 +1,6 @@
 use core::ffi::c_int;
 
-use cl::prelude::*;
+use xash3d_client::prelude::*;
 
 use crate::hud::{Fade, Hide, HudItem, State};
 

@@ -4,7 +4,8 @@ use core::{
     ptr,
 };
 
-use cl::{
+use csz::CStrThin;
+use xash3d_client::{
     entity::{EntityType, TempEntityList},
     export::{export_dll, impl_unsync_global, ClientDll, UnsyncGlobal},
     ffi::{
@@ -21,7 +22,6 @@ use cl::{
     },
     prelude::*,
 };
-use csz::CStrThin;
 
 use crate::{
     camera::Camera, entity::Entities, events::Events, hud::Hud, input::Input,
@@ -235,7 +235,7 @@ impl ClientDll for Dll {
         }
 
         unsafe {
-            cl::instance::init_studio(&*studio);
+            xash3d_client::instance::init_studio(&*studio);
         }
 
         true
@@ -256,7 +256,7 @@ unsafe extern "C" fn StudioDrawPlayer(flags: c_int, player: *mut entity_state_s)
 }
 
 static mut STUDIO: r_studio_interface_s = r_studio_interface_s {
-    version: cl::ffi::api::studio::STUDIO_INTERFACE_VERSION,
+    version: xash3d_client::ffi::api::studio::STUDIO_INTERFACE_VERSION,
     StudioDrawModel: Some(StudioDrawModel),
     StudioDrawPlayer: Some(StudioDrawPlayer),
 };

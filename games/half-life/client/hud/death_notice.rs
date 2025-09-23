@@ -5,8 +5,8 @@ use core::{
 };
 
 use alloc::collections::vec_deque::VecDeque;
-use cl::{color::RGB, message::hook_message, prelude::*};
 use csz::{CStrArray, CStrThin};
+use xash3d_client::{color::RGB, message::hook_message, prelude::*};
 
 use crate::{
     export::hud,
@@ -17,7 +17,7 @@ const MAX_DEATH_NOTICES: usize = 4;
 const DEATHNOTICE_TOP: c_int = 32;
 
 mod cvar {
-    cl::cvar::define! {
+    xash3d_client::cvar::define! {
         pub static hud_deathnotice_time(c"6", ARCHIVE);
     }
 }

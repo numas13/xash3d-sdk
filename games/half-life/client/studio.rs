@@ -1,6 +1,6 @@
 use core::ffi::c_int;
 
-use cl::{ffi::common::entity_state_s, prelude::*};
+use xash3d_client::{ffi::common::entity_state_s, prelude::*};
 
 pub struct StudioRenderer {}
 

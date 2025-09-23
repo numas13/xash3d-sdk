@@ -1,6 +1,6 @@
 use core::{cmp, ffi::c_int, mem};
 
-use cl::{color::RGB, consts, macros::hook_command, prelude::*};
+use xash3d_client::{color::RGB, consts, macros::hook_command, prelude::*};
 
 use crate::{
     export::{hud, hud_mut},
@@ -11,7 +11,7 @@ use crate::{
 };
 
 mod cvar {
-    cl::cvar::define! {
+    xash3d_client::cvar::define! {
         pub static hud_fastswitch(c"0", ARCHIVE);
     }
 }

@@ -1,6 +1,6 @@
 use core::{cmp::Ordering, ffi::c_int};
 
-use cl::{
+use xash3d_client::{
     consts::{PITCH, ROLL, YAW},
     ffi::common::{kbutton_t, vec3_t},
     input::KeyButtonExt,
@@ -30,7 +30,7 @@ const CAM_ANGLE_MOVE: f32 = 0.5;
 // const YAW_MIN: f32 = -135.0;
 
 mod cvar {
-    cl::cvar::define! {
+    xash3d_client::cvar::define! {
         pub static cam_command(c"0", NONE);
         pub static cam_snapto(c"0", NONE);
         pub static cam_idealyaw(c"0", NONE);

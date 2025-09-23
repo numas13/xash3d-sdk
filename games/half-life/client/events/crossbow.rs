@@ -1,6 +1,7 @@
 use core::ffi::c_int;
 
-use cl::{
+use res::valve::{models, sound};
+use xash3d_client::{
     consts::{CONTENTS_WATER, PITCH, PM_NORMAL, SOLID_BSP, TE_BOUNCE_NULL},
     engine::event::event_args_s,
     entity::TempEntityFlags,
@@ -8,7 +9,6 @@ use cl::{
     prelude::*,
     render::RenderMode,
 };
-use res::valve::{models, sound};
 
 use crate::export::view_mut;
 

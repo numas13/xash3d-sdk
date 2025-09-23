@@ -1,6 +1,6 @@
 use core::ffi::c_int;
 
-use cl::{message::hook_message, prelude::*};
+use xash3d_client::{message::hook_message, prelude::*};
 
 use crate::{
     export::hud,
@@ -10,7 +10,7 @@ use crate::{
 const MAX_HISTORY: usize = 12;
 
 mod cvar {
-    cl::cvar::define! {
+    xash3d_client::cvar::define! {
         pub static hud_drawhistory_time(c"5", NONE);
     }
 }

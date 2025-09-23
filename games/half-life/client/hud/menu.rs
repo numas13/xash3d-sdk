@@ -1,12 +1,12 @@
 use core::{cmp, ffi::c_int, fmt::Write};
 
 use alloc::string::String;
-use cl::{
+use csz::CStrArray;
+use xash3d_client::{
     color::RGB,
     message::{hook_message, Message, MessageError},
     prelude::*,
 };
-use csz::CStrArray;
 
 use crate::export::hud;
 

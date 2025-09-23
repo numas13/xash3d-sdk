@@ -5,7 +5,8 @@ use core::{
 };
 
 use alloc::vec::Vec;
-use cl::{
+use csz::{CStrBox, CStrThin};
+use xash3d_client::{
     consts::{self, PITCH, ROLL, YAW},
     ffi::{
         common::{kbutton_t, usercmd_s, vec3_t},
@@ -16,7 +17,6 @@ use cl::{
     math::{angle_mod, pow, sqrt, sqrtf},
     prelude::*,
 };
-use csz::{CStrBox, CStrThin};
 
 use crate::{
     export::{hud, hud_mut, input, input_mut, view_mut},
@@ -28,7 +28,7 @@ use crate::{
 const MOUSE_BUTTON_COUNT: c_int = 5;
 
 mod cvar {
-    cl::cvar::define! {
+    xash3d_client::cvar::define! {
         pub static lookstrafe(c"0", ARCHIVE);
         pub static lookspring(c"0", ARCHIVE);
         pub static cl_pitchup(c"89", NONE);

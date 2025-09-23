@@ -1,11 +1,11 @@
 use core::ffi::c_int;
 
-use cl::{
+use res::valve::{models, sound};
+use xash3d_client::{
     consts::{PITCH, TE_BOUNCE_SHELL, YAW},
     engine::event::event_args_s,
     prelude::*,
 };
-use res::valve::{models, sound};
 
 use crate::export::view_mut;
 

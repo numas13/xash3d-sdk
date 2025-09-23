@@ -1,6 +1,6 @@
 use core::ffi::c_uint;
 
-use cl::{
+use xash3d_client::{
     cvar::CVarPtr,
     ffi::common::{local_state_s, usercmd_s},
     prelude::*,

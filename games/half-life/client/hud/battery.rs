@@ -1,6 +1,6 @@
 use core::{cmp, ffi::c_int};
 
-use cl::{message::hook_message, prelude::*};
+use xash3d_client::{message::hook_message, prelude::*};
 
 use crate::{
     export::hud,

@@ -1,6 +1,7 @@
 use core::{cell::Cell, ffi::c_int};
 
-use cl::{
+use csz::CStrThin;
+use xash3d_client::{
     consts::{DEAD_NO, PM_STUDIO_BOX, PM_WORLD_ONLY, YAW},
     entity::{EntityType, TempEntityFlags, TempEntityList},
     ffi::{
@@ -11,7 +12,6 @@ use cl::{
     prelude::*,
     render::RenderMode,
 };
-use csz::CStrThin;
 
 use crate::{helpers, hud::MAX_WEAPONS};
 

@@ -1,6 +1,6 @@
 use core::ffi::c_int;
 
-use cl::{consts::PM_NORMAL, engine::event::event_args_s, prelude::*};
+use xash3d_client::{consts::PM_NORMAL, engine::event::event_args_s, prelude::*};
 
 #[allow(dead_code)]
 #[derive(Copy, Clone)]

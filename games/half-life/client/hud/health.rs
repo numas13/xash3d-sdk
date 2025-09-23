@@ -2,7 +2,7 @@ use core::ffi::c_int;
 
 use alloc::collections::VecDeque;
 use bitflags::bitflags;
-use cl::{
+use xash3d_client::{
     color::RGB,
     ffi::common::vec3_t,
     macros::spr_load,

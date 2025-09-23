@@ -25,7 +25,8 @@ use core::{
 
 use alloc::{boxed::Box, rc::Rc, string::String, vec::Vec};
 use bitflags::bitflags;
-use cl::{
+use csz::{CStrArray, CStrBox};
+use xash3d_client::{
     color::RGB,
     consts::MAX_PLAYERS,
     ffi::{
@@ -37,7 +38,6 @@ use cl::{
     prelude::*,
     sprite::SpriteHandle,
 };
-use csz::{CStrArray, CStrBox};
 
 use crate::{
     export::{hud_mut, input, input_mut},
@@ -60,7 +60,7 @@ const DEFAULT_COLOR: RGB = RGB::new(255, 0, 255); // TODO: remove me
 const MAX_PLAYER_NAME_LENGTH: usize = 32;
 
 mod cvar {
-    cl::cvar::define! {
+    xash3d_client::cvar::define! {
         pub static zoom_sensitivity_ratio(c"1.2", ARCHIVE);
         pub static cl_autowepswitch(c"1", ARCHIVE.union(USERINFO));
         pub static default_fov(c"90", ARCHIVE);

@@ -1,6 +1,6 @@
 use core::{f32, ffi::c_int, ptr};
 
-use cl::{
+use xash3d_client::{
     consts::{CONTENTS_WATER, PITCH, ROLL, YAW},
     ffi::common::{cl_entity_s, ref_params_s, vec3_t},
     input::KeyState,
@@ -16,7 +16,7 @@ use crate::{
 };
 
 mod cvar {
-    cl::cvar::define! {
+    xash3d_client::cvar::define! {
         pub static cl_bobcycle(c"0.8", NONE);
         pub static cl_bob(c"0.01", ARCHIVE);
         pub static cl_bobup(c"0.5", NONE);
@@ -314,7 +314,7 @@ impl View {
         }
         let viewentity = unsafe { &*viewentity };
 
-        let side = cl::math::calc_roll(
+        let side = xash3d_client::math::calc_roll(
             viewentity.angles,
             params.simvel,
             params.movevars().rollangle,
