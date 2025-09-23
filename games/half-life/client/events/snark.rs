@@ -1,7 +1,7 @@
 use core::ffi::c_int;
 
 use cl::{consts::PM_NORMAL, engine::event::event_args_s, prelude::*};
-use pm::{VEC_DUCK_HULL_MIN, VEC_HULL_MIN};
+use xash3d_player_move::{VEC_DUCK_HULL_MIN, VEC_HULL_MIN};
 
 #[allow(dead_code)]
 #[derive(Copy, Clone)]

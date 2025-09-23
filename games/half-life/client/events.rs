@@ -30,6 +30,7 @@ use cl::{
 };
 use csz::CStrArray;
 use res::valve::{self, sound};
+use xash3d_player_move as pm;
 
 use crate::export::events_mut;
 

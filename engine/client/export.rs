@@ -49,19 +49,19 @@ pub trait ClientDll: UnsyncGlobal {
     }
 
     fn player_move_init(&self, pm: *mut playermove_s) {
-        pm::player_move_init(unsafe { &mut *pm.cast() });
+        xash3d_player_move::player_move_init(unsafe { &mut *pm.cast() });
     }
 
     fn player_move(&self, pm: *mut playermove_s, is_server: bool) {
-        pm::player_move(unsafe { &mut *pm.cast() }, is_server);
+        xash3d_player_move::player_move(unsafe { &mut *pm.cast() }, is_server);
     }
 
     fn player_move_texture(&self, name: &CStrThin) -> c_char {
-        pm::find_texture_type(name)
+        xash3d_player_move::find_texture_type(name)
     }
 
     fn get_hull_bounds(&self, hullnumber: c_int, mins: &mut vec3_t, maxs: &mut vec3_t) -> bool {
-        pm::get_hull_bounds_ffi(hullnumber, mins, maxs) != 0
+        xash3d_player_move::get_hull_bounds_ffi(hullnumber, mins, maxs) != 0
     }
 
     fn activate_mouse(&self) {}

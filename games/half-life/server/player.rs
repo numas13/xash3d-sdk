@@ -73,7 +73,7 @@ impl Entity for Player {
         ev.friction = 1.0;
         ev.gravity = 1.0;
         ev.fov = 0.0;
-        ev.view_ofs = pm::VEC_VIEW;
+        ev.view_ofs = xash3d_player_move::VEC_VIEW;
 
         engine.set_physics_key_value(self.as_edict_mut(), c"slj", c"0");
         engine.set_physics_key_value(self.as_edict_mut(), c"hl", c"1");

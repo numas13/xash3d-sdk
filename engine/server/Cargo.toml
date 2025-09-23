@@ -14,7 +14,7 @@ log.workspace = true
 bitflags.workspace = true
 csz.workspace = true
 xash3d-shared.workspace = true
-pm.workspace = true
+xash3d-player-move.workspace = true
 
 [lints]
 workspace = true

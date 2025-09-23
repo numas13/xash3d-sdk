@@ -7,7 +7,7 @@ use core::{
 };
 
 use csz::{CStrArray, CStrThin};
-use pm::{VEC_DUCK_HULL_MIN, VEC_HULL_MIN};
+use xash3d_player_move::{VEC_DUCK_HULL_MIN, VEC_HULL_MIN};
 use xash3d_shared::{
     engine::net::netadr_s,
     entity::{EdictFlags, MoveType},
@@ -268,16 +268,16 @@ pub trait ServerDll: UnsyncGlobal {
 
     fn player_move_init(&self, pm: NonNull<playermove_s>) {
         let pm = unsafe { pm.cast().as_mut() };
-        pm::player_move_init(pm);
+        xash3d_player_move::player_move_init(pm);
     }
 
     fn player_move(&self, pm: NonNull<playermove_s>, is_server: bool) {
         let pm = unsafe { pm.cast().as_mut() };
-        pm::player_move(pm, is_server);
+        xash3d_player_move::player_move(pm, is_server);
     }
 
     fn player_move_find_texture_type(&self, name: &CStrThin) -> c_char {
-        pm::find_texture_type(name)
+        xash3d_player_move::find_texture_type(name)
     }
 
     fn setup_visibility(
@@ -361,7 +361,7 @@ pub trait ServerDll: UnsyncGlobal {
     }
 
     fn get_hull_bounds(&self, hullnumber: c_int, mins: &mut vec3_t, maxs: &mut vec3_t) -> c_int {
-        pm::get_hull_bounds_ffi(hullnumber, mins, maxs)
+        xash3d_player_move::get_hull_bounds_ffi(hullnumber, mins, maxs)
     }
 
     fn create_instanced_baselines(&self) {}
