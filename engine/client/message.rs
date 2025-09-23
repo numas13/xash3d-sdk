@@ -1,4 +1,4 @@
-pub use shared::message::*;
+pub use xash3d_shared::message::*;
 
 #[doc(hidden)]
 #[macro_export]

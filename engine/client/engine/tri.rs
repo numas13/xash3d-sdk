@@ -1,6 +1,6 @@
 use core::ffi::c_int;
 
-use shared::ffi::api::tri::triangleapi_s;
+use xash3d_shared::ffi::api::tri::triangleapi_s;
 
 pub struct TriangleApi {
     raw: *mut triangleapi_s,

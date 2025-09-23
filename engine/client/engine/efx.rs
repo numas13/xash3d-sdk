@@ -1,6 +1,6 @@
 use core::ffi::c_int;
 
-use shared::{
+use xash3d_shared::{
     ffi::{
         api::efx::{efx_api_s, TEMPENTITY},
         common::{dlight_s, vec3_t, BEAM},

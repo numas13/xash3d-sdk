@@ -1,6 +1,6 @@
 use core::ffi::c_int;
 
-use shared::ffi::client::demo_api_s;
+use xash3d_shared::ffi::client::demo_api_s;
 
 pub struct DemoApi {
     raw: *mut demo_api_s,

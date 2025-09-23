@@ -4,7 +4,7 @@ use core::{
 };
 
 use bitflags::bitflags;
-use shared::ffi::{self, client::SCREENINFO};
+use xash3d_shared::ffi::{self, client::SCREENINFO};
 
 bitflags! {
     #[derive(Copy, Clone, Debug, PartialEq, Eq)]

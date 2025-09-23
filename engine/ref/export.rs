@@ -6,7 +6,7 @@ use core::{
 };
 
 use csz::{CStrSlice, CStrThin};
-use shared::{
+use xash3d_shared::{
     color::RGBA,
     ffi::{
         api::{
@@ -32,7 +32,7 @@ use crate::{
     texture::{TextureId, SKYBOX_MAX_SIDES, UNUSED_TEXTURE_NAME},
 };
 
-pub use shared::export::{impl_unsync_global, UnsyncGlobal};
+pub use xash3d_shared::export::{impl_unsync_global, UnsyncGlobal};
 
 #[allow(unused_variables)]
 pub trait RefDll: UnsyncGlobal {

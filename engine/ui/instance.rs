@@ -1,4 +1,4 @@
-use shared::ffi;
+use xash3d_shared::ffi;
 
 use crate::{engine::UiEngine, export::UnsyncGlobal};
 

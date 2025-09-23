@@ -1,7 +1,7 @@
-pub use shared::consts::*;
+pub use xash3d_shared::consts::*;
 
 pub mod keys {
-    use shared::ffi::keys;
+    use xash3d_shared::ffi::keys;
 
     macro_rules! keys {
         ($($name:ident = $value:expr),* $(,)?) => {

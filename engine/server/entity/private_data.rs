@@ -5,7 +5,7 @@ use core::{
     ptr,
 };
 
-use shared::ffi::server::{edict_s, entvars_s};
+use xash3d_shared::ffi::server::{edict_s, entvars_s};
 
 use crate::{
     engine::ServerEngineRef,

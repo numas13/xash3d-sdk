@@ -1,6 +1,6 @@
 use core::ffi::{c_char, c_int};
 
-use shared::{
+use xash3d_shared::{
     ffi::{
         api::render::{decallist_s, render_interface_s},
         common::{cl_entity_s, model_s, vec2_t},

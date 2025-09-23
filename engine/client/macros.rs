@@ -1,4 +1,4 @@
-pub use shared::macros::*;
+pub use xash3d_shared::macros::*;
 
 #[doc(hidden)]
 #[macro_export]

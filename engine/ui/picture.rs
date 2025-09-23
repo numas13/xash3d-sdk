@@ -1,5 +1,5 @@
 use bitflags::bitflags;
-use shared::{
+use xash3d_shared::{
     ffi,
     misc::{Rect, Size},
 };

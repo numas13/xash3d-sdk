@@ -1,7 +1,7 @@
 use core::{ffi::c_int, mem::MaybeUninit};
 
 use csz::CStrThin;
-use shared::{
+use xash3d_shared::{
     ffi::{
         api::event::event_api_s,
         common::{pmtrace_s, vec3_t},
@@ -11,7 +11,7 @@ use shared::{
     str::{AsCStrPtr, ToEngineStr},
 };
 
-pub use shared::ffi::common::event_args_s;
+pub use xash3d_shared::ffi::common::event_args_s;
 
 pub trait EventArgsExt {
     fn origin(&self) -> vec3_t;

@@ -1,8 +1,9 @@
 use core::{ffi::CStr, ptr};
 
 use csz::CStrThin;
-pub use shared::cvar::*;
-use shared::ffi::render::convar_s;
+use xash3d_shared::ffi::render::convar_s;
+
+pub use xash3d_shared::cvar::*;
 
 pub const CVAR_SENTINEL: usize = 0xdeadbeefdeadbeef_u64 as usize;
 

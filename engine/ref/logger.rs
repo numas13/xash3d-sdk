@@ -1,5 +1,5 @@
 use csz::CStrThin;
-use shared::logger::EngineConsoleLogger;
+use xash3d_shared::logger::EngineConsoleLogger;
 
 use crate::prelude::*;
 
@@ -20,5 +20,5 @@ impl EngineConsoleLogger for Console {
 }
 
 pub fn init_console_logger() {
-    shared::logger::init_console_logger::<Console>();
+    xash3d_shared::logger::init_console_logger::<Console>();
 }

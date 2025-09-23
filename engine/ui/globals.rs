@@ -1,7 +1,7 @@
 use core::{ffi::c_int, time::Duration};
 
 use csz::CStrThin;
-use shared::{
+use xash3d_shared::{
     export::impl_unsync_global,
     ffi::menu::ui_globalvars_s,
     misc::{Rect, Size},

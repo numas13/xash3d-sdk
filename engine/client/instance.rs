@@ -1,6 +1,6 @@
 use core::ffi::c_int;
 
-use shared::{cvar::CVarPtr, export::UnsyncGlobal, ffi};
+use xash3d_shared::{cvar::CVarPtr, export::UnsyncGlobal, ffi};
 
 use crate::{prelude::*, studio::Studio};
 

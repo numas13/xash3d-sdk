@@ -1,10 +1,13 @@
-use shared::ffi::{api::studio::engine_studio_api_s, common::cl_entity_s};
+use xash3d_shared::{
+    export::impl_unsync_global,
+    ffi::{api::studio::engine_studio_api_s, common::cl_entity_s},
+};
 
 pub struct Studio {
     raw: engine_studio_api_s,
 }
 
-shared::export::impl_unsync_global!(Studio);
+impl_unsync_global!(Studio);
 
 macro_rules! unwrap {
     ($self:expr, $name:ident) => {

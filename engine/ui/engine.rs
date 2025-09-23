@@ -7,7 +7,7 @@ use core::{
 };
 
 use csz::{CStrArray, CStrSlice, CStrThin};
-use shared::{
+use xash3d_shared::{
     borrow::{BorrowRef, Ref},
     engine::net::{netadr_s, NetApi},
     entity::EntityType,
@@ -38,10 +38,10 @@ use crate::{
 #[allow(deprecated)]
 use crate::game_info::GameInfo;
 
-pub use shared::engine::{net, AddCmdError, BufferError, EngineRef};
+pub use xash3d_shared::engine::{net, AddCmdError, BufferError, EngineRef};
 
 pub(crate) mod prelude {
-    pub use shared::engine::{
+    pub use xash3d_shared::engine::{
         net::EngineNet, EngineCmd, EngineCmdArgsRaw, EngineConsole, EngineCvar,
         EngineDrawConsoleString, EngineRng, EngineSystemTime,
     };

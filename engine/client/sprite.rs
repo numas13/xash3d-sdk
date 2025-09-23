@@ -1,7 +1,7 @@
 use core::{ffi::c_int, num::NonZeroI32, ops::Deref, slice};
 
 use csz::CStrThin;
-use shared::ffi::client::{client_sprite_s, HSPRITE};
+use xash3d_shared::ffi::client::{client_sprite_s, HSPRITE};
 
 pub trait ClientSpriteExt {
     fn sprite(&self) -> &CStrThin;

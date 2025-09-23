@@ -10,7 +10,7 @@ use core::{
 };
 
 use csz::{CStrSlice, CStrThin};
-use shared::{
+use xash3d_shared::{
     engine::net::NetApi,
     export::impl_unsync_global,
     ffi::{
@@ -29,10 +29,10 @@ use crate::{
     sprite::{SpriteHandle, SpriteList},
 };
 
-pub use shared::engine::{net, AddCmdError, BufferError, EngineRef};
+pub use xash3d_shared::engine::{net, AddCmdError, BufferError, EngineRef};
 
 pub(crate) mod prelude {
-    pub use shared::engine::{
+    pub use xash3d_shared::engine::{
         net::EngineNet, EngineCmd, EngineConsole, EngineCvar, EngineDrawConsoleString, EngineRng,
         EngineSystemTime,
     };

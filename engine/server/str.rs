@@ -7,7 +7,7 @@ use core::{
 
 use csz::CStrThin;
 
-pub use shared::str::ToEngineStr;
+pub use xash3d_shared::str::ToEngineStr;
 
 use crate::prelude::*;
 

@@ -12,7 +12,7 @@ use core::{
 };
 
 use csz::{CStrSlice, CStrThin};
-use shared::{
+use xash3d_shared::{
     entity::{EdictFlags, MoveType},
     ffi::{
         common::{hull_s, model_s, movevars_s, pmtrace_s, trace_t, vec3_t},

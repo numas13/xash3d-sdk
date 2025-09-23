@@ -22,4 +22,4 @@ pub mod save;
 pub mod str;
 pub mod utils;
 
-pub use shared::{cell, color, cvar, ffi, math, str::ToEngineStr};
+pub use xash3d_shared::{cell, color, cvar, ffi, math, str::ToEngineStr};

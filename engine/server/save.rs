@@ -6,7 +6,7 @@ use core::{
 
 use bitflags::bitflags;
 use csz::CStrThin;
-use shared::{
+use xash3d_shared::{
     ffi::{
         common::vec3_t,
         server::{edict_s, entvars_s, KeyValueData, ENTITYTABLE, SAVERESTOREDATA, TYPEDESCRIPTION},

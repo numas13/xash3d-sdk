@@ -10,7 +10,7 @@ use core::{
 use alloc::rc::Rc;
 use bitflags::bitflags;
 use csz::CStrThin;
-use shared::{
+use xash3d_shared::{
     consts::{SOLID_BSP, SOLID_NOT, SOLID_SLIDEBOX},
     ffi::{
         common::{entity_state_s, vec3_t},
@@ -28,7 +28,7 @@ use crate::{
 
 pub use self::macros::*;
 pub use self::private_data::*;
-pub use shared::entity::*;
+pub use xash3d_shared::entity::*;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum RestoreResult {

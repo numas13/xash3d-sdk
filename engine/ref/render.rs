@@ -1,4 +1,4 @@
-pub use shared::{ffi, render::*};
+pub use xash3d_shared::{ffi, render::*};
 
 macro_rules! define_ref_parm {
     ($($(#[$attr:meta])* const $name:ident = $v:ident;)*) => {

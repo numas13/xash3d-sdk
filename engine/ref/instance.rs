@@ -1,4 +1,4 @@
-use shared::{export::UnsyncGlobal, ffi};
+use xash3d_shared::{export::UnsyncGlobal, ffi};
 
 use crate::engine::RefEngine;
 

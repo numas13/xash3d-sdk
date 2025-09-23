@@ -1,1 +1,1 @@
-pub use shared::consts::*;
+pub use xash3d_shared::consts::*;

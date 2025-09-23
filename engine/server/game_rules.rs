@@ -1,7 +1,7 @@
 use core::{any::Any, ffi::CStr, ptr};
 
 use alloc::rc::Rc;
-use shared::{
+use xash3d_shared::{
     cell::Sync,
     ffi::{common::vec3_t, server::edict_s},
 };

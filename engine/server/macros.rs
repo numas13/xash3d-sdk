@@ -1,4 +1,4 @@
-pub use shared::macros::cstringify;
+pub use xash3d_shared::macros::cstringify;
 
 #[doc(hidden)]
 #[macro_export]

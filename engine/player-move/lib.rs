@@ -18,7 +18,7 @@ use core::{
 
 use alloc::vec::Vec;
 use csz::{CStrArray, CStrThin};
-use shared::{
+use xash3d_shared::{
     cell::SyncOnceCell,
     consts::{
         CONTENTS_CURRENT_0, CONTENTS_CURRENT_DOWN, CONTENTS_EMPTY, CONTENTS_LADDER, CONTENTS_LAVA,

@@ -6,7 +6,7 @@ use core::{
 };
 
 use bitflags::bitflags;
-use shared::{
+use xash3d_shared::{
     color::RGBA,
     ffi::{
         self,

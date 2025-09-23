@@ -1,6 +1,6 @@
-use shared::ffi::common::{movevars_s, ref_params_s, usercmd_s};
+use xash3d_shared::ffi::common::{movevars_s, ref_params_s, usercmd_s};
 
-pub use shared::render::*;
+pub use xash3d_shared::render::*;
 
 pub trait RefParamsExt {
     fn movevars(&self) -> &movevars_s;

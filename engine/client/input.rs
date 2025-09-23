@@ -1,8 +1,8 @@
-use shared::ffi::common::kbutton_t;
+use xash3d_shared::ffi::common::kbutton_t;
 
 use crate::prelude::*;
 
-pub use shared::input::*;
+pub use xash3d_shared::input::*;
 
 // TODO: add safe wrapper for kbutton_t and remove this trait
 pub trait KeyButtonExt {

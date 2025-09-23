@@ -2,7 +2,7 @@ use core::fmt::{self, Write};
 
 use crate::prelude::*;
 
-pub use shared::utils::*;
+pub use xash3d_shared::utils::*;
 
 pub struct EscapeCommand<'a> {
     src: &'a str,

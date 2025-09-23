@@ -1,4 +1,4 @@
-pub use shared::prelude::*;
+pub use xash3d_shared::prelude::*;
 
 pub use crate::{
     engine::event::EventArgsExt,

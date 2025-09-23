@@ -5,7 +5,7 @@ use core::{
     fmt, ptr,
 };
 
-use shared::{
+use xash3d_shared::{
     bsp::MAX_MAP_LEAFS_BYTES,
     export::impl_unsync_global,
     ffi::{
@@ -25,10 +25,10 @@ use crate::{
     texture::{ImageFlags, OutputImageFlags, RgbData},
 };
 
-pub use shared::engine::{AddCmdError, EngineRef};
+pub use xash3d_shared::engine::{AddCmdError, EngineRef};
 
 pub(crate) mod prelude {
-    pub use shared::engine::{
+    pub use xash3d_shared::engine::{
         EngineCmd, EngineCmdArgsRaw, EngineConsole, EngineCvar, EngineRng, EngineSystemTime,
     };
 }

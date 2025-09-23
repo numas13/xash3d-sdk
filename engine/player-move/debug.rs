@@ -1,4 +1,4 @@
-use shared::{consts::PM_STUDIO_BOX, ffi::common::vec3_t, math::ToAngleVectors};
+use xash3d_shared::{consts::PM_STUDIO_BOX, ffi::common::vec3_t, math::ToAngleVectors};
 
 const BOX_GAP: f32 = 0.0;
 const BOX_POINTS: [[usize; 4]; 6] = [

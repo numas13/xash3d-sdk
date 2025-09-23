@@ -5,7 +5,7 @@ use core::{
 };
 
 use csz::CStrThin;
-use shared::{
+use xash3d_shared::{
     engine::net::netadr_s,
     entity::EntityType,
     ffi::{
@@ -26,7 +26,7 @@ use shared::{
 
 use crate::{engine::ClientEngineRef, entity::TempEntityList};
 
-pub use shared::export::{impl_unsync_global, UnsyncGlobal};
+pub use xash3d_shared::export::{impl_unsync_global, UnsyncGlobal};
 
 #[allow(unused_variables)]
 pub trait ClientDll: UnsyncGlobal {

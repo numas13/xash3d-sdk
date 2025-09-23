@@ -4,7 +4,7 @@ use core::{
 };
 
 use csz::{CStrSlice, CStrThin};
-use shared::{
+use xash3d_shared::{
     export::impl_unsync_global,
     ffi::{
         common::{cvar_s, vec3_t},
@@ -15,10 +15,10 @@ use shared::{
 
 use crate::{cvar::CVarPtr, globals::ServerGlobals, str::MapString};
 
-pub use shared::engine::{AddCmdError, EngineRef};
+pub use xash3d_shared::engine::{AddCmdError, EngineRef};
 
 pub(crate) mod prelude {
-    pub use shared::engine::{
+    pub use xash3d_shared::engine::{
         EngineCmd, EngineCmdArgsRaw, EngineConsole, EngineCvar, EngineRng, EngineSystemTime,
     };
 }

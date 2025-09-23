@@ -1,9 +1,9 @@
 use core::{ffi::c_int, iter, mem, ptr};
 
 use bitflags::bitflags;
-use shared::ffi::api::efx::TEMPENTITY;
+use xash3d_shared::ffi::api::efx::TEMPENTITY;
 
-pub use shared::entity::*;
+pub use xash3d_shared::entity::*;
 
 bitflags! {
     #[derive(Copy, Clone, Debug)]

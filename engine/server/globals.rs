@@ -1,6 +1,6 @@
 use core::{ffi::c_int, ptr::NonNull, time::Duration};
 
-use shared::ffi::{
+use xash3d_shared::ffi::{
     common::vec3_t,
     server::{globalvars_t, SAVERESTOREDATA},
 };

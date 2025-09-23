@@ -18,4 +18,6 @@ pub mod picture;
 pub mod prelude;
 pub mod utils;
 
-pub use shared::{cell, color, cvar, entity, ffi, math, misc, parser, render, str::ToEngineStr};
+pub use xash3d_shared::{
+    cell, color, cvar, entity, ffi, math, misc, parser, render, str::ToEngineStr,
+};

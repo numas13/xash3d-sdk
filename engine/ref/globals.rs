@@ -1,6 +1,6 @@
 use core::ffi::c_int;
 
-use shared::ffi::render::ref_globals_s;
+use xash3d_shared::ffi::render::ref_globals_s;
 
 pub struct RefGlobals {
     raw: *mut ref_globals_s,

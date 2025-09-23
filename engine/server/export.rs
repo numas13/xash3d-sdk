@@ -8,7 +8,7 @@ use core::{
 
 use csz::{CStrArray, CStrThin};
 use pm::{VEC_DUCK_HULL_MIN, VEC_HULL_MIN};
-use shared::{
+use xash3d_shared::{
     engine::net::netadr_s,
     entity::{EdictFlags, MoveType},
     ffi::{
@@ -32,7 +32,7 @@ use crate::{
     utils::slice_from_raw_parts_or_empty_mut,
 };
 
-pub use shared::export::{impl_unsync_global, UnsyncGlobal};
+pub use xash3d_shared::export::{impl_unsync_global, UnsyncGlobal};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum SpawnResult {

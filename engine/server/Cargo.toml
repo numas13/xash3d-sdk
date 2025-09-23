@@ -13,7 +13,7 @@ path = "lib.rs"
 log.workspace = true
 bitflags.workspace = true
 csz.workspace = true
-shared.workspace = true
+xash3d-shared.workspace = true
 pm.workspace = true
 
 [lints]

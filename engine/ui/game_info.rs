@@ -5,7 +5,7 @@ use core::{
 
 use bitflags::bitflags;
 use csz::CStrThin;
-use shared::{
+use xash3d_shared::{
     ffi::{
         self,
         menu::{gameinfo2_s, gametype_e, GAMEINFO},
