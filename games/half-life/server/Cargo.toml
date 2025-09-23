@@ -26,5 +26,5 @@ csz.workspace = true
 libc.workspace = true
 pm.workspace = true
 sv.workspace = true
-allocator.workspace = true
+xash3d-allocator.workspace = true
 res = { package = "xash3d-hl-resources", path = "../resources" }

@@ -19,7 +19,7 @@ mod world;
 #[cfg(not(feature = "std"))]
 #[cfg(not(test))]
 #[global_allocator]
-static ALLOCATOR: allocator::System = allocator::System::new();
+static ALLOCATOR: xash3d_allocator::System = xash3d_allocator::System::new();
 
 #[cfg(not(feature = "std"))]
 #[cfg(panic = "abort")]
