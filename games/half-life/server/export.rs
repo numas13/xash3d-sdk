@@ -4,8 +4,8 @@ use core::{
 };
 
 use sv::{
-    entity::{EdictFlags, GetPrivateData, ObjectCaps, RestoreResult, SpawnResult},
-    export::{export_dll, impl_unsync_global, ServerDll, UnsyncGlobal},
+    entity::{EdictFlags, GetPrivateData, ObjectCaps, RestoreResult},
+    export::{export_dll, impl_unsync_global, ServerDll, SpawnResult, UnsyncGlobal},
     ffi::{
         common::{clientdata_s, entity_state_s, vec3_t},
         server::{edict_s, entvars_s, SAVERESTOREDATA},
@@ -56,9 +56,7 @@ impl ServerDll for Dll {
         ev.absmin = ev.origin - vec3_t::splat(1.0);
         ev.absmax = ev.origin + vec3_t::splat(1.0);
 
-        if ent.spawn() == SpawnResult::Delete {
-            return SpawnResult::Delete;
-        }
+        ent.spawn();
 
         if let Some(false) = self
             .game_rules

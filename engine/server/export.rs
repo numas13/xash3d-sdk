@@ -26,13 +26,28 @@ use shared::{
 };
 
 use crate::{
-    entity::{EntityPlayer, GetPrivateData, ObjectCaps, PrivateData, RestoreResult, SpawnResult},
+    entity::{EntityPlayer, GetPrivateData, ObjectCaps, PrivateData, RestoreResult},
     prelude::*,
     save::{SaveReader, SaveWriter},
     utils::slice_from_raw_parts_or_empty_mut,
 };
 
 pub use shared::export::{impl_unsync_global, UnsyncGlobal};
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum SpawnResult {
+    Delete,
+    Ok,
+}
+
+impl From<SpawnResult> for c_int {
+    fn from(val: SpawnResult) -> Self {
+        match val {
+            SpawnResult::Delete => -1,
+            SpawnResult::Ok => 0,
+        }
+    }
+}
 
 #[allow(unused_variables)]
 #[allow(clippy::missing_safety_doc)]

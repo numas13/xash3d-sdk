@@ -28,21 +28,6 @@ pub use self::private_data::*;
 pub use shared::entity::*;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum SpawnResult {
-    Delete,
-    Ok,
-}
-
-impl From<SpawnResult> for c_int {
-    fn from(val: SpawnResult) -> Self {
-        match val {
-            SpawnResult::Delete => -1,
-            SpawnResult::Ok => 0,
-        }
-    }
-}
-
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum RestoreResult {
     Delete,
     Ok,
@@ -339,10 +324,7 @@ pub trait Entity: EntityCast + AsEdict {
 
     fn precache(&mut self) {}
 
-    /// Returns `false` if entity should be deleted.
-    fn spawn(&mut self) -> SpawnResult {
-        SpawnResult::Ok
-    }
+    fn spawn(&mut self) {}
 
     fn think(&mut self) {}
 

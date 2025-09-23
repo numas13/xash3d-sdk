@@ -4,7 +4,7 @@ use sv::{
     consts::{DAMAGE_AIM, DEAD_NO, SOLID_SLIDEBOX},
     entity::{
         link_entity, AsEdict, BaseEntity, CreateEntity, EdictFlags, Effects, Entity, EntityPlayer,
-        MoveType, ObjectCaps, PrivateData, SpawnResult,
+        MoveType, ObjectCaps, PrivateData,
     },
     ffi::server::edict_s,
     prelude::*,
@@ -51,7 +51,7 @@ impl Entity for Player {
         engine.set_physics_key_value(self.as_edict_mut(), c"hl", c"1");
     }
 
-    fn spawn(&mut self) -> SpawnResult {
+    fn spawn(&mut self) {
         let engine = self.base.engine;
         let ev = self.vars_mut().as_raw_mut();
         ev.classname = engine.try_alloc_map_string(c"player").unwrap().index();
@@ -80,8 +80,6 @@ impl Entity for Player {
         self.game_rules().unwrap().get_player_spawn_spot(self);
 
         engine.set_model(self.as_edict_mut(), res::valve::models::PLAYER);
-
-        SpawnResult::Ok
     }
 }
 

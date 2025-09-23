@@ -6,7 +6,7 @@ use core::{
 use csz::CStrSlice;
 use sv::{
     consts::{EFLAG_SLERP, ENTITY_BEAM, ENTITY_NORMAL},
-    entity::{BaseEntity, EdictFlags, Effects, Entity, SpawnResult},
+    entity::{BaseEntity, EdictFlags, Effects, Entity},
     ffi::{
         common::{clientdata_s, entity_state_s, vec3_t},
         server::edict_s,
@@ -226,11 +226,10 @@ impl Stub {
 }
 
 impl Entity for Stub {
-    fn spawn(&mut self) -> SpawnResult {
+    fn spawn(&mut self) {
         let classname = self.base.engine.new_map_string(self.name);
         let ev = self.vars_mut().as_raw_mut();
         ev.classname = classname.index();
-        SpawnResult::Ok
     }
 }
 

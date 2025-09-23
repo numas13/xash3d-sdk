@@ -5,7 +5,7 @@ use sv::{
     consts::{FENTTABLE_GLOBAL, FENTTABLE_MOVEABLE, SOLID_TRIGGER},
     entity::{
         link_entity, BaseEntity, CreateEntity, Effects, Entity, GetPrivateData, MoveType,
-        ObjectCaps, SpawnResult,
+        ObjectCaps,
     },
     ffi::{
         common::vec3_t,
@@ -155,7 +155,7 @@ impl Entity for ChangeLevel {
         }
     }
 
-    fn spawn(&mut self) -> SpawnResult {
+    fn spawn(&mut self) {
         if self.map_name.is_empty() {
             info!("A trigger_changelevel does not have a map");
         }
@@ -177,8 +177,6 @@ impl Entity for ChangeLevel {
         if self.vars().as_raw().spawnflags & SF_CHANGELEVEL_USEONLY != 0 {
             // TODO: set touch
         }
-
-        SpawnResult::Ok
     }
 
     fn touched(&mut self, other: &mut dyn Entity) {

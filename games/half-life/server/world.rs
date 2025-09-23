@@ -1,5 +1,5 @@
 use sv::{
-    entity::{link_entity, BaseEntity, CreateEntity, Entity, SpawnResult},
+    entity::{link_entity, BaseEntity, CreateEntity, Entity},
     ffi::server::KeyValueData,
     prelude::*,
 };
@@ -39,10 +39,9 @@ impl Entity for World {
         install_game_rules(engine);
     }
 
-    fn spawn(&mut self) -> SpawnResult {
+    fn spawn(&mut self) {
         // TODO: global_game_over = false;
         self.precache();
-        SpawnResult::Ok
     }
 }
 
