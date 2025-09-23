@@ -20,7 +20,7 @@ use shared::{
 use crate::{
     engine::ServerEngineRef,
     game_rules::{GameRules, GameRulesRef},
-    save::{self, KeyValueDataExt, SaveReader, SaveWriter},
+    save::{KeyValueDataExt, SaveReader, SaveResult, SaveWriter},
     str::MapString,
 };
 
@@ -284,14 +284,14 @@ pub trait Entity: EntityCast + AsEdict {
 
     fn restore(&mut self) {}
 
-    fn save_fields(&mut self, _save: &mut SaveWriter) -> save::Result<()> {
+    fn save_fields(&mut self, _save: &mut SaveWriter) -> SaveResult<()> {
         self.save();
         // TODO: Entity::save_fields
         debug!("TODO: save {:?}", self.classname());
         Ok(())
     }
 
-    fn restore_fields(&mut self, restore: &mut SaveReader) -> save::Result<()> {
+    fn restore_fields(&mut self, restore: &mut SaveReader) -> SaveResult<()> {
         restore.read_ent_vars(c"ENTVARS", self.vars_mut().as_raw_mut())?;
 
         let fields = self.fields();

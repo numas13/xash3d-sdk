@@ -6,7 +6,7 @@ use sv::{
     ffi::server::{edict_s, SAVERESTOREDATA, TYPEDESCRIPTION},
     macros::define_field,
     prelude::*,
-    save::{self, FieldType, SaveReader, SaveWriter},
+    save::{FieldType, SaveReader, SaveResult, SaveWriter},
     str::MapString,
 };
 
@@ -160,13 +160,13 @@ impl GlobalState {
         }
     }
 
-    pub fn save(&self, save_data: &mut SAVERESTOREDATA) -> save::Result<()> {
+    pub fn save(&self, save_data: &mut SAVERESTOREDATA) -> SaveResult<()> {
         let _writer = SaveWriter::new(self.engine, save_data);
         debug!("TODO: SaveGlobalState");
         Ok(())
     }
 
-    pub fn restore(&self, save_data: &mut SAVERESTOREDATA) -> save::Result<()> {
+    pub fn restore(&self, save_data: &mut SAVERESTOREDATA) -> SaveResult<()> {
         let mut reader = SaveReader::new(self.engine, save_data);
         self.reset();
 

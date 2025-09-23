@@ -184,12 +184,12 @@ impl TypeDescriptionExt for TYPEDESCRIPTION {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum Error {
+pub enum SaveError {
     Empty,
     Overflow,
 }
 
-impl fmt::Display for Error {
+impl fmt::Display for SaveError {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Self::Empty => fmt.write_str("empty"),
@@ -198,7 +198,7 @@ impl fmt::Display for Error {
     }
 }
 
-pub type Result<T, E = Error> = core::result::Result<T, E>;
+pub type SaveResult<T, E = SaveError> = core::result::Result<T, E>;
 
 const ENTVARS_DESCRIPTION: &[TYPEDESCRIPTION] = &[
     define_entity_field!(classname, FieldType::STRING),
@@ -394,11 +394,11 @@ impl<'a> SaveRestoreData<'a> {
         self.buffer_rewind(2 * mem::size_of::<u16>() + field.data.len());
     }
 
-    pub fn check(&self, size: usize) -> Result<()> {
+    pub fn check(&self, size: usize) -> SaveResult<()> {
         if self.is_empty() {
-            Err(Error::Empty)
+            Err(SaveError::Empty)
         } else if size > self.available() {
-            Err(Error::Overflow)
+            Err(SaveError::Overflow)
         } else {
             Ok(())
         }
@@ -446,7 +446,7 @@ impl<'a> SaveRestoreData<'a> {
         self.data.size += len as c_int;
     }
 
-    pub fn read_slice(&mut self, len: usize) -> Result<&'a [u8]> {
+    pub fn read_slice(&mut self, len: usize) -> SaveResult<&'a [u8]> {
         self.check(len).map(|_| {
             let data = self.data.pCurrentData.cast();
             let output = unsafe { slice::from_raw_parts(data, len) };
@@ -457,7 +457,7 @@ impl<'a> SaveRestoreData<'a> {
         })
     }
 
-    pub fn read_bytes(&mut self, output: &mut [u8]) -> Result<()> {
+    pub fn read_bytes(&mut self, output: &mut [u8]) -> SaveResult<()> {
         match self.read_slice(output.len()) {
             Ok(slice) => {
                 output.copy_from_slice(slice);
@@ -465,7 +465,7 @@ impl<'a> SaveRestoreData<'a> {
             }
             Err(e) => {
                 output.fill(0);
-                if e == Error::Empty {
+                if e == SaveError::Empty {
                     Ok(())
                 } else {
                     Err(e)
@@ -474,7 +474,7 @@ impl<'a> SaveRestoreData<'a> {
         }
     }
 
-    pub fn write_bytes(&mut self, bytes: &[u8]) -> Result<()> {
+    pub fn write_bytes(&mut self, bytes: &[u8]) -> SaveResult<()> {
         self.check(bytes.len()).map(|_| {
             let data = self.data.pCurrentData.cast();
             unsafe {
@@ -484,51 +484,51 @@ impl<'a> SaveRestoreData<'a> {
         })
     }
 
-    pub fn read_array<const N: usize>(&mut self) -> Result<[u8; N]> {
+    pub fn read_array<const N: usize>(&mut self) -> SaveResult<[u8; N]> {
         let mut output = [0; N];
         self.read_bytes(&mut output).map(|_| output)
     }
 
-    pub fn read_i16(&mut self) -> Result<i16> {
+    pub fn read_i16(&mut self) -> SaveResult<i16> {
         self.read_array().map(i16::from_le_bytes)
     }
 
-    pub fn read_u16(&mut self) -> Result<u16> {
+    pub fn read_u16(&mut self) -> SaveResult<u16> {
         self.read_array().map(u16::from_le_bytes)
     }
 
-    pub fn read_i32(&mut self) -> Result<i32> {
+    pub fn read_i32(&mut self) -> SaveResult<i32> {
         self.read_array().map(i32::from_le_bytes)
     }
 
-    pub fn read_u32(&mut self) -> Result<u32> {
+    pub fn read_u32(&mut self) -> SaveResult<u32> {
         self.read_array().map(u32::from_le_bytes)
     }
 
-    pub fn write_i16(&mut self, value: i16) -> Result<()> {
+    pub fn write_i16(&mut self, value: i16) -> SaveResult<()> {
         self.write_bytes(&value.to_le_bytes())
     }
 
-    pub fn write_u16(&mut self, value: u16) -> Result<()> {
+    pub fn write_u16(&mut self, value: u16) -> SaveResult<()> {
         self.write_bytes(&value.to_le_bytes())
     }
 
-    pub fn write_i32(&mut self, value: i32) -> Result<()> {
+    pub fn write_i32(&mut self, value: i32) -> SaveResult<()> {
         self.write_bytes(&value.to_le_bytes())
     }
 
-    pub fn write_u32(&mut self, value: u32) -> Result<()> {
+    pub fn write_u32(&mut self, value: u32) -> SaveResult<()> {
         self.write_bytes(&value.to_le_bytes())
     }
 
-    pub fn read_field(&mut self) -> Result<Field<'a>> {
+    pub fn read_field(&mut self) -> SaveResult<Field<'a>> {
         let size = self.read_u16()?;
         let token = self.read_u16()?;
         let data = self.read_slice(size as usize)?;
         Ok(Field { token, data })
     }
 
-    pub fn write_field(&mut self, name: &CStr, bytes: &[u8]) -> Result<()> {
+    pub fn write_field(&mut self, name: &CStr, bytes: &[u8]) -> SaveResult<()> {
         let size = bytes.len().try_into().unwrap();
         let token = self.token_hash(name);
         self.write_u16(size)?;
@@ -570,7 +570,7 @@ impl<'a> SaveReader<'a> {
         start_field: usize,
         name: &CStrThin,
         data: &[u8],
-    ) -> Result<usize> {
+    ) -> SaveResult<usize> {
         use FieldType as F;
 
         let engine = self.engine;
@@ -673,7 +673,7 @@ impl<'a> SaveReader<'a> {
         name: &CStr,
         base_data: *mut c_void,
         fields: &[TYPEDESCRIPTION],
-    ) -> Result<()> {
+    ) -> SaveResult<()> {
         let header = self.data.read_field()?;
         assert_eq!(header.data.len(), mem::size_of::<u32>());
         if header.token != self.data.token_hash(name) {
@@ -705,7 +705,7 @@ impl<'a> SaveReader<'a> {
         Ok(())
     }
 
-    pub fn read_ent_vars(&mut self, name: &CStr, ev: *mut entvars_s) -> Result<()> {
+    pub fn read_ent_vars(&mut self, name: &CStr, ev: *mut entvars_s) -> SaveResult<()> {
         self.read_fields(name, ev as *mut _, ENTVARS_DESCRIPTION)
     }
 
@@ -751,7 +751,7 @@ impl<'a> SaveWriter<'a> {
         name: &CStrThin,
         _base_data: *mut c_void,
         _fields: &[TYPEDESCRIPTION],
-    ) -> Result<()> {
+    ) -> SaveResult<()> {
         error!("TODO: SaveWriteFields({name})");
         self.data
             .write_field(name.as_c_str(), &0_u32.to_le_bytes())?;

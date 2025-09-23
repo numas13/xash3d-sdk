@@ -13,7 +13,7 @@ use sv::{
     },
     macros::define_field,
     prelude::*,
-    save::{self, FieldType, SaveReader},
+    save::{FieldType, SaveReader, SaveResult},
     str::MapString,
 };
 
@@ -122,7 +122,7 @@ impl Entity for ChangeLevel {
         FIELDS
     }
 
-    fn restore_fields(&mut self, _restore: &mut SaveReader) -> save::Result<()> {
+    fn restore_fields(&mut self, _restore: &mut SaveReader) -> SaveResult<()> {
         Ok(())
     }
 
