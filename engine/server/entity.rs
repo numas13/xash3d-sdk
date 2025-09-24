@@ -9,12 +9,11 @@ use core::{
 
 use alloc::rc::Rc;
 use bitflags::bitflags;
-use csz::CStrThin;
 use xash3d_shared::{
     consts::{SOLID_BSP, SOLID_NOT, SOLID_SLIDEBOX},
     ffi::{
         common::{entity_state_s, vec3_t},
-        server::{edict_s, entvars_s, KeyValueData},
+        server::{edict_s, entvars_s},
     },
     macros::const_assert_size_of_field_eq,
     math::fabsf,
@@ -223,43 +222,84 @@ define_entity_trait! {
         /// Returns a mutable reference to entity variables.
         fn vars_mut(&mut self) -> &mut xash3d_server::entity::EntityVars;
 
-        fn globalname(&self) -> xash3d_server::str::MapString;
+        fn globalname(&self) -> xash3d_server::str::MapString {
+            self.vars().globalname().unwrap()
+        }
 
-        fn is_globalname(&self, name: &csz::CStrThin) -> bool;
+        fn is_globalname(&self, name: &csz::CStrThin) -> bool {
+            name == self.globalname().as_thin()
+        }
 
-        fn classname(&self) -> xash3d_server::str::MapString;
+        fn classname(&self) -> xash3d_server::str::MapString {
+            self.vars().classname().unwrap()
+        }
 
-        fn is_classname(&self, name: &csz::CStrThin) -> bool;
+        fn is_classname(&self, name: &csz::CStrThin) -> bool {
+            name == self.classname().as_thin()
+        }
 
-        fn object_caps(&self) -> xash3d_server::entity::ObjectCaps;
+        fn object_caps(&self) -> xash3d_server::entity::ObjectCaps {
+            ObjectCaps::ACROSS_TRANSITION
+        }
 
-        fn make_dormant(&mut self);
+        fn make_dormant(&mut self) {
+            let ev = self.vars_mut().as_raw_mut();
+            ev.flags_mut().insert(EdictFlags::DORMANT);
+            ev.solid = SOLID_NOT;
+            ev.movetype = MoveType::None.into();
+            ev.effects_mut().insert(Effects::NODRAW);
+            ev.nextthink = 0.0;
+        }
 
-        fn is_dormant(&self) -> bool;
+        fn is_dormant(&self) -> bool {
+            self.vars().flags().intersects(EdictFlags::DORMANT)
+        }
 
-        fn save(&mut self, save: &mut xash3d_server::save::SaveWriter) -> xash3d_server::save::SaveResult<()>;
+        fn save(
+            &mut self,
+            save: &mut xash3d_server::save::SaveWriter,
+        ) -> xash3d_server::save::SaveResult<()>;
 
-        fn restore(&mut self, restore: &mut xash3d_server::save::SaveReader) -> xash3d_server::save::SaveResult<()>;
+        fn restore(
+            &mut self,
+            save: &mut xash3d_server::save::SaveReader,
+        ) -> xash3d_server::save::SaveResult<()>;
 
-        fn key_value(&mut self, data: &mut xash3d_server::ffi::server::KeyValueData);
+        fn key_value(&mut self, data: &mut xash3d_server::ffi::server::KeyValueData) {
+            data.set_handled(false);
+        }
 
-        fn precache(&mut self);
+        fn precache(&mut self) {}
 
-        fn spawn(&mut self);
+        fn spawn(&mut self) {}
 
-        fn think(&mut self);
+        fn think(&mut self) {}
 
-        fn touched(&mut self, other: &mut dyn xash3d_server::entity::Entity);
+        #[allow(unused_variables)]
+        fn touched(&mut self, other: &mut dyn xash3d_server::entity::Entity) {}
 
-        fn used(&mut self, other: &mut dyn xash3d_server::entity::Entity);
+        #[allow(unused_variables)]
+        fn used(&mut self, other: &mut dyn xash3d_server::entity::Entity) {}
 
-        fn blocked(&mut self, other: &mut dyn xash3d_server::entity::Entity);
+        #[allow(unused_variables)]
+        fn blocked(&mut self, other: &mut dyn xash3d_server::entity::Entity) {}
 
-        fn override_reset(&mut self);
+        fn override_reset(&mut self) {}
 
-        fn set_object_collision_box(&mut self);
+        fn set_object_collision_box(&mut self) {
+            set_object_collision_box(self.vars_mut().as_raw_mut());
+        }
 
-        fn intersects(&self, other: &dyn xash3d_server::entity::Entity) -> bool;
+        fn intersects(&self, other: &dyn xash3d_server::entity::Entity) -> bool {
+            let a = self.vars().as_raw();
+            let b = other.vars().as_raw();
+            !(b.absmin.x() > a.absmax.x()
+                || b.absmin.y() > a.absmax.y()
+                || b.absmin.z() > a.absmax.z()
+                || b.absmax.x() < a.absmin.x()
+                || b.absmax.y() < a.absmin.y()
+                || b.absmax.z() < a.absmin.z())
+        }
     }
 }
 
@@ -308,39 +348,6 @@ impl Entity for BaseEntity {
         &mut self.vars
     }
 
-    fn globalname(&self) -> MapString {
-        self.vars.globalname().unwrap()
-    }
-
-    fn is_globalname(&self, name: &CStrThin) -> bool {
-        name == self.globalname().as_thin()
-    }
-
-    fn classname(&self) -> MapString {
-        self.vars.classname().unwrap()
-    }
-
-    fn is_classname(&self, name: &CStrThin) -> bool {
-        name == self.classname().as_thin()
-    }
-
-    fn object_caps(&self) -> ObjectCaps {
-        ObjectCaps::ACROSS_TRANSITION
-    }
-
-    fn make_dormant(&mut self) {
-        let ev = self.vars.as_raw_mut();
-        ev.flags_mut().insert(EdictFlags::DORMANT);
-        ev.solid = SOLID_NOT;
-        ev.movetype = MoveType::None.into();
-        ev.effects_mut().insert(Effects::NODRAW);
-        ev.nextthink = 0.0;
-    }
-
-    fn is_dormant(&self) -> bool {
-        self.vars.flags().intersects(EdictFlags::DORMANT)
-    }
-
     fn save(&mut self, _save: &mut SaveWriter) -> SaveResult<()> {
         log::debug!("TODO: save {:?}", self.classname());
         Ok(())
@@ -363,58 +370,6 @@ impl Entity for BaseEntity {
         }
 
         Ok(())
-    }
-
-    fn key_value(&mut self, data: &mut KeyValueData) {
-        let class_name = data.class_name();
-        let key_name = data.key_name();
-        let value = data.value();
-        log::debug!(
-            "{}::key_value({class_name:?}, {key_name}, {value})",
-            self.classname()
-        );
-        data.set_handled(true);
-    }
-
-    fn precache(&mut self) {}
-
-    fn spawn(&mut self) {}
-
-    fn think(&mut self) {}
-
-    fn touched(&mut self, other: &mut dyn Entity) {
-        let touched = self.classname();
-        let other = other.classname();
-        log::trace!("touched {touched} by {other}");
-    }
-
-    fn used(&mut self, other: &mut dyn Entity) {
-        let touched = self.classname();
-        let other = other.classname();
-        log::trace!("used {touched} by {other}");
-    }
-
-    fn blocked(&mut self, other: &mut dyn Entity) {
-        let touched = self.classname();
-        let other = other.classname();
-        log::trace!("blocked {touched} by {other}");
-    }
-
-    fn override_reset(&mut self) {}
-
-    fn set_object_collision_box(&mut self) {
-        set_object_collision_box(self.vars_mut().as_raw_mut());
-    }
-
-    fn intersects(&self, other: &dyn Entity) -> bool {
-        let a = self.vars().as_raw();
-        let b = other.vars().as_raw();
-        !(b.absmin.x() > a.absmax.x()
-            || b.absmin.y() > a.absmax.y()
-            || b.absmin.z() > a.absmax.z()
-            || b.absmax.x() < a.absmin.x()
-            || b.absmax.y() < a.absmin.y()
-            || b.absmax.z() < a.absmin.z())
     }
 }
 
