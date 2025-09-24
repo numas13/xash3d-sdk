@@ -45,7 +45,7 @@ pub struct ChangeLevel {
 
 impl ChangeLevel {
     #[allow(dead_code)]
-    const FIELDS: &[TYPEDESCRIPTION] = &[
+    const FIELDS: &'static [TYPEDESCRIPTION] = &[
         define_field!(ChangeLevel, map_name, FieldType::CHARACTER, MAP_NAME_MAX),
         define_field!(
             ChangeLevel,

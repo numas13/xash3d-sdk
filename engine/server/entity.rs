@@ -17,6 +17,7 @@ use xash3d_shared::{
         server::{edict_s, entvars_s, KeyValueData},
     },
     macros::const_assert_size_of_field_eq,
+    math::fabsf,
 };
 
 use crate::{
@@ -456,11 +457,11 @@ pub fn set_object_collision_box(ev: &mut entvars_s) {
     if ev.solid == SOLID_BSP && ev.angles != vec3_t::ZERO {
         let mut max = 0.0;
         for i in 0..3 {
-            let v = ev.mins[i].abs();
+            let v = fabsf(ev.mins[i]);
             if v > max {
                 max = v;
             }
-            let v = ev.maxs[i].abs();
+            let v = fabsf(ev.maxs[i]);
             if v > max {
                 max = v;
             }
