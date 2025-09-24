@@ -165,6 +165,24 @@ macro_rules! delegate_method {
 }
 pub use delegate_method;
 
+#[doc(hidden)]
+#[macro_export]
+macro_rules! define_method_impl {
+    ($( #[$attr:meta] )*
+     $vis:vis fn $meth:ident($( $arg:tt )* ) $(-> $ret:ty)? $body:block $(;)?
+    ) => {
+        $( #[$attr] )*
+        $vis fn $meth($( $arg )*) $(-> $ret)? $body
+    };
+    ($( #[$attr:meta] )*
+     $vis:vis fn $meth:ident($( $arg:tt )* ) $(-> $ret:ty)? ;
+    ) => {
+        $( #[$attr] )*
+        $vis fn $meth($( $arg )*) $(-> $ret)?;
+    };
+}
+pub use define_method_impl;
+
 // Hack for $ in nested macro.
 // https://github.com/rust-lang/rust/issues/35853#issuecomment-415993963
 #[doc(hidden)]
@@ -312,12 +330,17 @@ pub use define_entity_trait_impl;
 macro_rules! define_entity_trait {
     ($( #[$trait_attr:meta] )*
      $vis:vis trait $name:ident($delegate:ident) $(: ( $($sup:tt)* ))? {
-        $( $( #[$attr:meta] )* fn $meth:ident($( $arg:tt )*) $(-> $ret:ty)?; )*
+        $( $( #[$attr:meta] )*
+        fn $meth:ident($( $arg:tt )*) $(-> $ret:ty)? $( $body:block )? $(;)? )*
     }) => {
         $( #[$trait_attr] )*
         #[doc = concat!("\n\nDelegate macro is [", stringify!($delegate), "].")]
         $vis trait $name $(: $($sup)*)? {
-            $( $( #[$attr] )* fn $meth($( $arg )*) $(-> $ret)?; )*
+            $(
+                $crate::entity::define_method_impl! {
+                    $( #[$attr] )* fn $meth($( $arg )*) $(-> $ret)? $( $body )? ;
+                }
+            )*
         }
 
         $crate::entity::define_entity_trait_impl! {
