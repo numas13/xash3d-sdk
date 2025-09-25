@@ -39,7 +39,9 @@ impl Entity for Player {
     delegate_entity!(base not { object_caps, restore, spawn });
 
     fn object_caps(&self) -> ObjectCaps {
-        ObjectCaps::DONT_SAVE
+        self.base
+            .object_caps()
+            .difference(ObjectCaps::ACROSS_TRANSITION)
     }
 
     fn restore(&mut self, save: &mut SaveReader) -> SaveResult<()> {

@@ -553,6 +553,16 @@ impl<'a> SaveRestoreData<'a> {
         }
     }
 
+    pub fn entity_from_index(&self, index: i32) -> *mut edict_s {
+        if index < 0 {
+            return ptr::null_mut();
+        }
+        self.table()
+            .iter()
+            .find(|i| i.id == index)
+            .map_or(ptr::null_mut(), |i| i.pent)
+    }
+
     pub fn entity_flags_set(&mut self, index: usize, flags: c_int) -> c_int {
         if let Some(i) = self.table_mut().get_mut(index) {
             i.flags |= flags;
@@ -661,7 +671,7 @@ impl<'a> SaveReader<'a> {
                 FieldType::EDICT => {
                     for _ in 0..count {
                         let index = src.read_i32_le()?;
-                        let ent = engine.entity_of_ent_index(index);
+                        let ent = self.data.entity_from_index(index);
                         dst.write_usize_ne(ent as usize)?;
                     }
                 }

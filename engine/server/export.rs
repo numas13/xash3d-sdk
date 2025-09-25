@@ -131,13 +131,10 @@ pub trait ServerDll: UnsyncGlobal {
 
     fn dispatch_save(&self, ent: &mut edict_s, save_data: &mut SAVERESTOREDATA) {
         let engine = self.engine();
-        let size = save_data.size;
         let current_index = save_data.currentIndex as usize;
-        let table = &mut save_data.table_mut()[current_index];
-        if table.pent != ent {
+        if save_data.table()[current_index].pent != ent {
             error!("Entity table or index is wrong");
         }
-
         let Some(entity) = ent.get_entity_mut() else {
             return;
         };
@@ -152,14 +149,15 @@ pub trait ServerDll: UnsyncGlobal {
             ev.nextthink = ev.ltime + delta;
         }
 
-        table.location = size;
-        table.classname = entity.vars().as_raw().classname;
-
+        let start_offset = save_data.size;
         let mut writer = SaveWriter::new(engine, save_data);
         entity.save(&mut writer).unwrap();
+        let end_offset = save_data.size;
 
         let table = &mut save_data.table_mut()[current_index];
-        table.size = size - table.location;
+        table.classname = entity.vars().as_raw().classname;
+        table.location = start_offset;
+        table.size = end_offset - start_offset;
     }
 
     fn dispatch_restore(
