@@ -14,7 +14,7 @@ use xash3d_server::{
     prelude::*,
 };
 
-use crate::entity::{impl_cast, Private};
+use crate::entity::impl_cast;
 
 pub fn update_client_data(
     engine: ServerEngineRef,
@@ -211,6 +211,7 @@ pub fn add_to_full_pack(
     true
 }
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub struct Stub {
     pub base: BaseEntity,
@@ -219,6 +220,7 @@ pub struct Stub {
 
 impl_cast!(Stub);
 
+#[allow(dead_code)]
 impl Stub {
     pub fn new(base: BaseEntity, name: &'static CStr) -> Self {
         Self { base, name }
@@ -237,10 +239,17 @@ impl Entity for Stub {
 
 macro_rules! export_entity_stub {
     ($($name:ident),* $(,)?) => {
-        $(xash3d_server::export::export_entity!($name, Private<$crate::todo::Stub>, |base| {
-            let name = xash3d_server::macros::cstringify!($name);
-            $crate::todo::Stub::new(base, name)
-        });)*
+        $(
+            #[cfg(feature = "stubs")]
+            xash3d_server::export::export_entity!(
+                $name,
+                $crate::entity::Private<$crate::todo::Stub>,
+                |base| {
+                    let name = xash3d_server::macros::cstringify!($name);
+                    $crate::todo::Stub::new(base, name)
+                }
+            );
+        )*
     };
 }
 pub(super) use export_entity_stub;
@@ -294,10 +303,6 @@ export_entity_stub! {
     multisource,
     path_corner,
     scripted_sequence,
-    trigger_cdaudio,
-    trigger_push,
-    trigger_teleport,
-    trigger_transition,
     weapon_357,
     weapon_9mmAR,
     weapon_9mmhandgun,

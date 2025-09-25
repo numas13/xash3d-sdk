@@ -30,11 +30,15 @@ const MAP_NAME_MAX: usize = 32;
 export_entity_stub! {
     trigger_auto,
     trigger_autosave,
+    trigger_cdaudio,
     // trigger_changelevel,
     trigger_hurt,
     trigger_multiple,
     trigger_once,
+    trigger_push,
     trigger_relay,
+    trigger_teleport,
+    trigger_transition,
 }
 
 pub struct ChangeLevel {

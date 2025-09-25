@@ -13,6 +13,7 @@ workspace = true
 default = ["client-weapons"]
 std = []
 client-weapons = []
+stubs = []
 
 [lib]
 name = "hl"
