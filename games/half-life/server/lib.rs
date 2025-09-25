@@ -7,6 +7,7 @@ extern crate alloc;
 extern crate log;
 
 mod cvar;
+mod entities;
 mod entity;
 mod export;
 mod game_rules;
