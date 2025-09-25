@@ -19,6 +19,7 @@ pub mod instance;
 mod logger;
 pub mod prelude;
 pub mod save;
+pub mod sound;
 pub mod str;
 pub mod utils;
 

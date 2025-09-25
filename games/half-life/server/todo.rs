@@ -266,7 +266,6 @@ export_entity_stub! {
     env_shake,
     env_shooter,
     env_sound,
-    env_spark,
     env_sprite,
     func_breakable,
     func_button,

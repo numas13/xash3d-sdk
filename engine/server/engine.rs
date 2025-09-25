@@ -7,9 +7,12 @@ use csz::{CStrSlice, CStrThin};
 use xash3d_shared::{
     export::impl_unsync_global,
     ffi::{
+        self,
         common::{cvar_s, vec3_t},
         server::{edict_s, enginefuncs_s, globalvars_t, ALERT_TYPE, LEVELLIST},
     },
+    macros::define_enum_for_primitive,
+    sound::{Attenuation, Channel, Pitch, SoundFlags},
     str::{AsCStrPtr, ToEngineStr},
 };
 
@@ -30,6 +33,34 @@ pub type ServerEngineRef = EngineRef<ServerEngine>;
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(transparent)]
 pub struct EntOffset(pub c_int);
+
+define_enum_for_primitive! {
+    #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
+    pub enum MsgDest: c_int {
+        #[default]
+        /// Unreliable to all.
+        Broadcast(ffi::common::MSG_BROADCAST),
+        /// Reliable to one (msg_entity).
+        One(ffi::common::MSG_ONE),
+        /// Reliable to all.
+        All(ffi::common::MSG_ALL),
+        /// Write to the init string.
+        Init(ffi::common::MSG_INIT),
+        /// Ents in PVS of org.
+        Pvs(ffi::common::MSG_PVS),
+        /// Ents in PAS of org.
+        Pas(ffi::common::MSG_PAS),
+        /// Reliable to PVS.
+        PvsR(ffi::common::MSG_PVS_R),
+        /// Reliable to PAS.
+        PasR(ffi::common::MSG_PAS_R),
+        /// Send to one client, but do not put in reliable stream, put in unreliable datagram
+        /// (could be dropped).
+        OneUnreliable(ffi::common::MSG_ONE_UNRELIABLE),
+        // Sends to all spectator proxies.
+        Spec(ffi::common::MSG_SPEC),
+    }
+}
 
 pub trait LevelListExt {
     fn map_name(&self) -> &CStrThin;
@@ -56,6 +87,94 @@ impl LevelListExt for LEVELLIST {
 
     fn landmark_name_new(&mut self) -> &mut CStrSlice {
         CStrSlice::new_in_slice(&mut self.landmarkName)
+    }
+}
+
+pub struct SoundBuilder<'a> {
+    engine: &'a ServerEngine,
+    entity: &'a mut edict_s,
+    channel: Channel,
+    volume: f32,
+    attenuation: Attenuation,
+    flags: SoundFlags,
+    pitch: Pitch,
+}
+
+impl<'a> SoundBuilder<'a> {
+    pub fn channel(mut self, channel: Channel) -> Self {
+        self.channel = channel;
+        self
+    }
+
+    pub fn channel_weapon(mut self) -> Self {
+        self.channel = Channel::Weapon;
+        self
+    }
+
+    pub fn channel_voice(mut self) -> Self {
+        self.channel = Channel::Voice;
+        self
+    }
+
+    pub fn channel_item(mut self) -> Self {
+        self.channel = Channel::Item;
+        self
+    }
+
+    pub fn channel_body(mut self) -> Self {
+        self.channel = Channel::Body;
+        self
+    }
+
+    pub fn channel_static(mut self) -> Self {
+        self.channel = Channel::Static;
+        self
+    }
+
+    pub fn volume(mut self, volume: f32) -> Self {
+        self.volume = volume;
+        self
+    }
+
+    pub fn attenuation(mut self, attn: impl Into<Attenuation>) -> Self {
+        self.attenuation = attn.into();
+        self
+    }
+
+    pub fn flags(mut self, flags: SoundFlags) -> Self {
+        self.flags = flags;
+        self
+    }
+
+    pub fn change_pitch(self) -> Self {
+        self.flags(SoundFlags::CHANGE_PITCH)
+    }
+
+    pub fn pitch(mut self, pitch: impl Into<Pitch>) -> Self {
+        self.pitch = pitch.into();
+        self
+    }
+
+    pub fn emit(self, sample: impl ToEngineStr) {
+        self.engine.emit_sound(
+            self.entity,
+            self.channel,
+            sample,
+            self.volume,
+            self.attenuation,
+            self.flags,
+            self.pitch,
+        );
+    }
+
+    pub fn emit_dyn(self, sample: impl ToEngineStr) {
+        let sample = sample.to_engine_str();
+        let sample = sample.as_ref();
+        if let Some(b'!') = sample.to_bytes().first() {
+            // TODO: find sound sample in sentences.txt
+        } else {
+            self.emit(sample);
+        }
     }
 }
 
@@ -263,6 +382,44 @@ impl ServerEngine {
     //         pitch: c_int,
     //     ),
     // >,
+
+    pub fn build_sound_for<'a>(&'a self, entity: &'a mut edict_s) -> SoundBuilder<'a> {
+        SoundBuilder {
+            engine: self,
+            entity,
+            channel: Channel::Auto,
+            volume: 1.0,
+            attenuation: Attenuation::NORM,
+            flags: SoundFlags::NONE,
+            pitch: Pitch::NORM,
+        }
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn emit_sound(
+        &self,
+        entity: &mut edict_s,
+        channel: Channel,
+        sample: impl ToEngineStr,
+        volume: f32,
+        attenuation: Attenuation,
+        flags: SoundFlags,
+        pitch: Pitch,
+    ) {
+        let sample = sample.to_engine_str();
+        unsafe {
+            unwrap!(self, pfnEmitSound)(
+                entity,
+                channel.into(),
+                sample.as_ptr(),
+                volume,
+                attenuation.into(),
+                flags.bits(),
+                pitch.into(),
+            )
+        }
+    }
+
     // pub pfnEmitAmbientSound: Option<
     //     unsafe extern "C" fn(
     //         entity: *mut edict_t,
@@ -356,23 +513,68 @@ impl ServerEngine {
 
     // pub pfnDecalIndex: Option<unsafe extern "C" fn(name: *const c_char) -> c_int>,
     // pub pfnPointContents: Option<unsafe extern "C" fn(rgflVector: *const f32) -> c_int>,
-    // pub pfnMessageBegin: Option<
-    //     unsafe extern "C" fn(
-    //         msg_dest: c_int,
-    //         msg_type: c_int,
-    //         pOrigin: *const f32,
-    //         ed: *mut edict_t,
-    //     ),
-    // >,
-    // pub pfnMessageEnd: Option<unsafe extern "C" fn()>,
-    // pub pfnWriteByte: Option<unsafe extern "C" fn(iValue: c_int)>,
-    // pub pfnWriteChar: Option<unsafe extern "C" fn(iValue: c_int)>,
-    // pub pfnWriteShort: Option<unsafe extern "C" fn(iValue: c_int)>,
-    // pub pfnWriteLong: Option<unsafe extern "C" fn(iValue: c_int)>,
-    // pub pfnWriteAngle: Option<unsafe extern "C" fn(flValue: f32)>,
-    // pub pfnWriteCoord: Option<unsafe extern "C" fn(flValue: f32)>,
-    // pub pfnWriteString: Option<unsafe extern "C" fn(sz: *const c_char)>,
-    // pub pfnWriteEntity: Option<unsafe extern "C" fn(iValue: c_int)>,
+
+    pub fn msg_begin(
+        &self,
+        dest: MsgDest,
+        msg_type: c_int,
+        origin: Option<vec3_t>,
+        ent: Option<&mut edict_s>,
+    ) {
+        unsafe {
+            unwrap!(self, pfnMessageBegin)(
+                dest.into(),
+                msg_type,
+                origin.as_ref().map_or(ptr::null(), |v| v.as_ptr()),
+                ent.map_or(ptr::null_mut(), |e| e as *mut edict_s),
+            )
+        }
+    }
+
+    pub fn msg_end(&self) {
+        unsafe { unwrap!(self, pfnMessageEnd)() }
+    }
+
+    pub fn msg_write_u8(&self, value: u8) {
+        unsafe { unwrap!(self, pfnWriteByte)(value as c_int) }
+    }
+
+    pub fn msg_write_i8(&self, value: i8) {
+        unsafe { unwrap!(self, pfnWriteChar)(value as c_int) }
+    }
+
+    pub fn msg_write_u16(&self, value: u16) {
+        unsafe { unwrap!(self, pfnWriteShort)(value as c_int) }
+    }
+
+    pub fn msg_write_i16(&self, value: i16) {
+        unsafe { unwrap!(self, pfnWriteShort)(value as c_int) }
+    }
+
+    pub fn msg_write_u32(&self, value: u32) {
+        unsafe { unwrap!(self, pfnWriteLong)(value as c_int) }
+    }
+
+    pub fn msg_write_i32(&self, value: i32) {
+        unsafe { unwrap!(self, pfnWriteLong)(value) }
+    }
+
+    pub fn msg_write_angle(&self, value: f32) {
+        unsafe { unwrap!(self, pfnWriteAngle)(value) }
+    }
+
+    pub fn msg_write_coord(&self, value: f32) {
+        unsafe { unwrap!(self, pfnWriteCoord)(value) }
+    }
+
+    pub fn msg_write_string(&self, value: impl ToEngineStr) {
+        let value = value.to_engine_str();
+        unsafe { unwrap!(self, pfnWriteString)(value.as_ptr()) }
+    }
+
+    pub fn msg_write_entity(&self, index: c_int) {
+        unsafe { unwrap!(self, pfnWriteEntity)(index) }
+    }
 
     pub fn cvar_register(&self, cvar: &'static mut cvar_s) {
         unsafe { unwrap!(self, pfnCVarRegister)(cvar) }
