@@ -1,23 +1,92 @@
+mod cursor;
+mod macros;
+
 use core::{
-    cmp,
-    ffi::{c_char, c_float, c_int, c_short, c_uint, c_ushort, c_void, CStr},
+    ffi::{c_char, c_float, c_int, c_short, c_uint, c_ushort, CStr},
     fmt, mem, ptr, slice,
 };
 
 use bitflags::bitflags;
-use csz::CStrThin;
+use csz::{CStrArray, CStrThin};
 use xash3d_shared::{
     ffi::{
         common::vec3_t,
         server::{edict_s, entvars_s, KeyValueData, ENTITYTABLE, SAVERESTOREDATA, TYPEDESCRIPTION},
     },
-    utils::{
-        array_from_slice, cstr_or_none, slice_from_raw_parts_or_empty,
-        slice_from_raw_parts_or_empty_mut,
-    },
+    utils::{cstr_or_none, slice_from_raw_parts_or_empty, slice_from_raw_parts_or_empty_mut},
 };
 
-use crate::engine::ServerEngineRef;
+use crate::{engine::ServerEngineRef, str::MapString};
+
+pub use self::cursor::*;
+pub use self::macros::*;
+
+pub trait TypeDescription: Sized {
+    const TYPE: FieldType;
+}
+
+macro_rules! impl_type_description {
+    ($( $field_type:expr => $type:ty ),* $(,)?) => {
+        $(
+            impl TypeDescription for $type {
+                const TYPE: FieldType = $field_type;
+            }
+        )*
+    };
+}
+
+impl_type_description! {
+    FieldType::CHARACTER => i8,
+    FieldType::CHARACTER => u8,
+
+    FieldType::SHORT => i16,
+    FieldType::SHORT => u16,
+
+    FieldType::INTEGER => i32,
+    FieldType::INTEGER => u32,
+
+    FieldType::FLOAT => f32,
+    FieldType::TIME => Time,
+
+    FieldType::VECTOR => vec3_t,
+    FieldType::POSITION_VECTOR => PositionVector,
+
+    FieldType::STRING => Option<MapString>,
+
+    FieldType::EDICT => *const edict_s,
+    FieldType::EDICT => *mut edict_s,
+}
+
+impl<T: TypeDescription, const N: usize> TypeDescription for [T; N] {
+    const TYPE: FieldType = T::TYPE;
+}
+
+impl<const N: usize> TypeDescription for CStrArray<N> {
+    const TYPE: FieldType = FieldType::CHARACTER;
+}
+
+#[derive(Copy, Clone, Debug, Default, PartialEq, PartialOrd)]
+pub struct Time(pub f32);
+
+#[derive(Copy, Clone, Debug, Default, PartialEq)]
+pub struct PositionVector(pub vec3_t);
+
+#[derive(Copy, Clone, Default, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct Token(u16);
+
+impl Token {
+    pub const fn new(raw: u16) -> Self {
+        Self(raw)
+    }
+
+    pub const fn to_u16(&self) -> u16 {
+        self.0
+    }
+
+    pub const fn to_usize(&self) -> usize {
+        self.0 as usize
+    }
+}
 
 pub trait KeyValueDataExt {
     /// Returns the class name of an entity related to the data.
@@ -146,6 +215,34 @@ impl FieldType {
             _ => None,
         }
     }
+
+    pub const fn size(&self) -> usize {
+        match self {
+            Self::FLOAT => mem::size_of::<c_float>(),
+            Self::STRING => mem::size_of::<c_int>(),
+            Self::ENTITY => mem::size_of::<c_int>(),
+            Self::CLASSPTR => mem::size_of::<c_int>(),
+            Self::EHANDLE => mem::size_of::<c_int>(),
+            Self::EVARS => mem::size_of::<c_int>(),
+            Self::EDICT => mem::size_of::<c_int>(),
+            Self::VECTOR => mem::size_of::<c_float>() * 3,
+            Self::POSITION_VECTOR => mem::size_of::<c_float>() * 3,
+            Self::POINTER => mem::size_of::<*const c_int>(),
+            Self::INTEGER => mem::size_of::<c_int>(),
+            // #ifdef GNUC
+            Self::FUNCTION => mem::size_of::<*const c_int>() * 2,
+            // #else
+            // Self::FUNCTION         => mem::size_of::<*const c_int>(),
+            // #endif
+            Self::BOOLEAN => mem::size_of::<c_int>(),
+            Self::SHORT => mem::size_of::<c_short>(),
+            Self::CHARACTER => mem::size_of::<c_char>(),
+            Self::TIME => mem::size_of::<c_float>(),
+            Self::MODELNAME => mem::size_of::<c_int>(),
+            Self::SOUNDNAME => mem::size_of::<c_int>(),
+            Self::TYPECOUNT => unreachable!(),
+        }
+    }
 }
 
 bitflags! {
@@ -187,6 +284,7 @@ impl TypeDescriptionExt for TYPEDESCRIPTION {
 pub enum SaveError {
     Empty,
     Overflow,
+    SizeOverflow,
 }
 
 impl fmt::Display for SaveError {
@@ -194,115 +292,122 @@ impl fmt::Display for SaveError {
         match self {
             Self::Empty => fmt.write_str("empty"),
             Self::Overflow => fmt.write_str("overflow"),
+            Self::SizeOverflow => fmt.write_str("overflow of field data size"),
         }
     }
 }
 
 pub type SaveResult<T, E = SaveError> = core::result::Result<T, E>;
 
-const ENTVARS_DESCRIPTION: &[TYPEDESCRIPTION] = &[
-    define_entity_field!(classname, FieldType::STRING),
-    define_entity_field!(globalname, FieldType::STRING, global),
-    define_entity_field!(origin, FieldType::POSITION_VECTOR),
-    define_entity_field!(oldorigin, FieldType::POSITION_VECTOR),
-    define_entity_field!(velocity, FieldType::VECTOR),
-    define_entity_field!(basevelocity, FieldType::VECTOR),
-    define_entity_field!(movedir, FieldType::VECTOR),
-    define_entity_field!(angles, FieldType::VECTOR),
-    define_entity_field!(avelocity, FieldType::VECTOR),
-    define_entity_field!(punchangle, FieldType::VECTOR),
-    define_entity_field!(v_angle, FieldType::VECTOR),
-    define_entity_field!(fixangle, FieldType::FLOAT),
-    define_entity_field!(idealpitch, FieldType::FLOAT),
-    define_entity_field!(pitch_speed, FieldType::FLOAT),
-    define_entity_field!(ideal_yaw, FieldType::FLOAT),
-    define_entity_field!(yaw_speed, FieldType::FLOAT),
-    define_entity_field!(modelindex, FieldType::INTEGER),
-    define_entity_field!(model, FieldType::MODELNAME, global),
-    define_entity_field!(viewmodel, FieldType::MODELNAME),
-    define_entity_field!(weaponmodel, FieldType::MODELNAME),
-    define_entity_field!(absmin, FieldType::POSITION_VECTOR),
-    define_entity_field!(absmax, FieldType::POSITION_VECTOR),
-    define_entity_field!(mins, FieldType::VECTOR, global),
-    define_entity_field!(maxs, FieldType::VECTOR, global),
-    define_entity_field!(size, FieldType::VECTOR, global),
-    define_entity_field!(ltime, FieldType::TIME),
-    define_entity_field!(nextthink, FieldType::TIME),
-    define_entity_field!(solid, FieldType::INTEGER),
-    define_entity_field!(movetype, FieldType::INTEGER),
-    define_entity_field!(skin, FieldType::INTEGER),
-    define_entity_field!(body, FieldType::INTEGER),
-    define_entity_field!(effects, FieldType::INTEGER),
-    define_entity_field!(gravity, FieldType::FLOAT),
-    define_entity_field!(friction, FieldType::FLOAT),
-    define_entity_field!(light_level, FieldType::FLOAT),
-    define_entity_field!(frame, FieldType::FLOAT),
-    define_entity_field!(scale, FieldType::FLOAT),
-    define_entity_field!(sequence, FieldType::INTEGER),
-    define_entity_field!(animtime, FieldType::TIME),
-    define_entity_field!(framerate, FieldType::FLOAT),
-    define_entity_field!(controller, FieldType::INTEGER),
-    define_entity_field!(blending, FieldType::INTEGER),
-    define_entity_field!(rendermode, FieldType::INTEGER),
-    define_entity_field!(renderamt, FieldType::FLOAT),
-    define_entity_field!(rendercolor, FieldType::VECTOR),
-    define_entity_field!(renderfx, FieldType::INTEGER),
-    define_entity_field!(health, FieldType::FLOAT),
-    define_entity_field!(frags, FieldType::FLOAT),
-    define_entity_field!(weapons, FieldType::INTEGER),
-    define_entity_field!(takedamage, FieldType::FLOAT),
-    define_entity_field!(deadflag, FieldType::FLOAT),
-    define_entity_field!(view_ofs, FieldType::VECTOR),
-    define_entity_field!(button, FieldType::INTEGER),
-    define_entity_field!(impulse, FieldType::INTEGER),
-    define_entity_field!(chain, FieldType::EDICT),
-    define_entity_field!(dmg_inflictor, FieldType::EDICT),
-    define_entity_field!(enemy, FieldType::EDICT),
-    define_entity_field!(aiment, FieldType::EDICT),
-    define_entity_field!(owner, FieldType::EDICT),
-    define_entity_field!(groundentity, FieldType::EDICT),
-    define_entity_field!(spawnflags, FieldType::INTEGER),
-    define_entity_field!(flags, FieldType::FLOAT),
-    define_entity_field!(colormap, FieldType::INTEGER),
-    define_entity_field!(team, FieldType::INTEGER),
-    define_entity_field!(max_health, FieldType::FLOAT),
-    define_entity_field!(teleport_time, FieldType::TIME),
-    define_entity_field!(armortype, FieldType::FLOAT),
-    define_entity_field!(armorvalue, FieldType::FLOAT),
-    define_entity_field!(waterlevel, FieldType::INTEGER),
-    define_entity_field!(watertype, FieldType::INTEGER),
-    define_entity_field!(target, FieldType::STRING, global),
-    define_entity_field!(targetname, FieldType::STRING, global),
-    define_entity_field!(netname, FieldType::STRING),
-    define_entity_field!(message, FieldType::STRING),
-    define_entity_field!(dmg_take, FieldType::FLOAT),
-    define_entity_field!(dmg_save, FieldType::FLOAT),
-    define_entity_field!(dmg, FieldType::FLOAT),
-    define_entity_field!(dmgtime, FieldType::TIME),
-    define_entity_field!(noise, FieldType::SOUNDNAME),
-    define_entity_field!(noise1, FieldType::SOUNDNAME),
-    define_entity_field!(noise2, FieldType::SOUNDNAME),
-    define_entity_field!(noise3, FieldType::SOUNDNAME),
-    define_entity_field!(speed, FieldType::FLOAT),
-    define_entity_field!(air_finished, FieldType::TIME),
-    define_entity_field!(pain_finished, FieldType::TIME),
-    define_entity_field!(radsuit_finished, FieldType::TIME),
-];
+/// Used to describe struct fields to save and restore from the save file.
+///
+/// # Safety
+///
+/// Behavior is undefined if any of the following conditions are violated:
+///
+/// * `fieldType` is not match the field type.
+/// * `fieldOffset` is not match the offset to the field in struct.
+/// * `fieldSize` is not match the length of the array field.
+pub unsafe trait SaveFields {
+    const SAVE_NAME: &'static CStr;
 
-#[derive(Copy, Clone)]
-pub struct Field<'a> {
-    token: u16,
-    data: &'a [u8],
+    /// Field descriptions.
+    ///
+    /// Use [define_fields] macro to generate the array.
+    const SAVE_FIELDS: &'static [TYPEDESCRIPTION];
 }
 
-impl<'a> Field<'a> {
-    pub fn token(&self) -> u16 {
-        self.token
-    }
+unsafe impl SaveFields for entvars_s {
+    const SAVE_NAME: &'static CStr = c"ENTVARS";
 
-    pub fn data(&self) -> &'a [u8] {
-        self.data
-    }
+    const SAVE_FIELDS: &'static [TYPEDESCRIPTION] = &define_fields![
+        classname => unsafe FieldType::STRING,
+        :global globalname => unsafe FieldType::STRING,
+        origin => unsafe FieldType::POSITION_VECTOR,
+        oldorigin => unsafe FieldType::POSITION_VECTOR,
+        velocity,
+        basevelocity,
+        movedir,
+        angles,
+        avelocity,
+        punchangle,
+        v_angle,
+        fixangle,
+        idealpitch,
+        pitch_speed,
+        ideal_yaw,
+        yaw_speed,
+        modelindex,
+        :global model => unsafe FieldType::MODELNAME,
+        viewmodel => unsafe FieldType::MODELNAME,
+        weaponmodel => unsafe FieldType::MODELNAME,
+        absmin => unsafe FieldType::POSITION_VECTOR,
+        absmax => unsafe FieldType::POSITION_VECTOR,
+        :global mins,
+        :global maxs,
+        :global size,
+        ltime => unsafe FieldType::TIME,
+        nextthink => unsafe FieldType::TIME,
+        solid,
+        movetype,
+        skin,
+        body,
+        effects,
+        gravity,
+        friction,
+        light_level,
+        frame,
+        scale,
+        sequence,
+        animtime => unsafe FieldType::TIME,
+        framerate,
+        controller,
+        blending,
+        rendermode,
+        renderamt,
+        rendercolor,
+        renderfx,
+        health,
+        frags,
+        weapons,
+        takedamage,
+        deadflag,
+        view_ofs,
+        button,
+        impulse,
+        chain,
+        dmg_inflictor,
+        enemy,
+        aiment,
+        owner,
+        groundentity,
+        spawnflags,
+        flags,
+        colormap,
+        team,
+        max_health,
+        teleport_time => unsafe FieldType::TIME,
+        armortype,
+        armorvalue,
+        waterlevel,
+        watertype,
+        :global target => unsafe FieldType::STRING,
+        :global targetname => unsafe FieldType::STRING,
+        netname => unsafe FieldType::STRING,
+        message => unsafe FieldType::STRING,
+        dmg_take,
+        dmg_save,
+        dmg,
+        dmgtime => unsafe FieldType::TIME,
+        noise => unsafe FieldType::SOUNDNAME,
+        noise1 => unsafe FieldType::SOUNDNAME,
+        noise2 => unsafe FieldType::SOUNDNAME,
+        noise3 => unsafe FieldType::SOUNDNAME,
+        speed,
+        air_finished => unsafe FieldType::TIME,
+        pain_finished => unsafe FieldType::TIME,
+        radsuit_finished => unsafe FieldType::TIME,
+    ];
 }
 
 pub struct SaveRestoreData<'a> {
@@ -384,39 +489,27 @@ impl<'a> SaveRestoreData<'a> {
         diff >= self.buffer_size() as isize
     }
 
-    fn buffer_rewind(&mut self, size: usize) {
-        let size = cmp::min(size, self.size());
-        self.data.pCurrentData = unsafe { self.data.pCurrentData.byte_sub(size) };
-        self.data.size -= size as c_int;
-    }
-
-    pub fn field_rewind(&mut self, field: &Field) {
-        self.buffer_rewind(2 * mem::size_of::<u16>() + field.data.len());
-    }
-
-    pub fn check(&self, size: usize) -> SaveResult<()> {
-        if self.is_empty() {
-            Err(SaveError::Empty)
-        } else if size > self.available() {
-            Err(SaveError::Overflow)
-        } else {
-            Ok(())
-        }
-    }
-
     pub fn as_slice(&self) -> &'a [u8] {
         if !self.data.pCurrentData.is_null() {
-            unsafe {
-                let data = self.data.pCurrentData.cast();
-                let len = self.available();
-                slice::from_raw_parts(data, len)
-            }
+            let data = self.data.pCurrentData.cast();
+            let len = self.available();
+            unsafe { slice::from_raw_parts(data, len) }
         } else {
             &[]
         }
     }
 
-    pub fn token_hash(&mut self, token: &CStr) -> c_ushort {
+    pub fn as_slice_mut(&mut self) -> &mut [u8] {
+        if !self.data.pCurrentData.is_null() {
+            let data = self.data.pCurrentData.cast();
+            let len = self.available();
+            unsafe { slice::from_raw_parts_mut(data, len) }
+        } else {
+            &mut []
+        }
+    }
+
+    pub fn token_hash(&mut self, token: &CStr) -> Token {
         fn hash_string(token: &CStr) -> c_uint {
             token
                 .to_bytes()
@@ -433,107 +526,40 @@ impl<'a> SaveRestoreData<'a> {
             }
             if tokens[index].is_null() || token == unsafe { CStr::from_ptr(tokens[index]) } {
                 tokens[index] = token.as_ptr() as *mut c_char;
-                return index as c_ushort;
+                return Token::new(index as u16);
             }
         }
 
         error!("Save::token_hash is COMPLETELY FULL!");
-        0
+        Token::new(0)
     }
 
-    unsafe fn advance(&mut self, len: usize) {
-        self.data.pCurrentData = unsafe { self.data.pCurrentData.byte_add(len) };
-        self.data.size += len as c_int;
-    }
-
-    pub fn read_slice(&mut self, len: usize) -> SaveResult<&'a [u8]> {
-        self.check(len).map(|_| {
-            let data = self.data.pCurrentData.cast();
-            let output = unsafe { slice::from_raw_parts(data, len) };
-            unsafe {
-                self.advance(output.len());
-            }
-            output
-        })
-    }
-
-    pub fn read_bytes(&mut self, output: &mut [u8]) -> SaveResult<()> {
-        match self.read_slice(output.len()) {
-            Ok(slice) => {
-                output.copy_from_slice(slice);
-                Ok(())
-            }
-            Err(e) => {
-                output.fill(0);
-                if e == SaveError::Empty {
-                    Ok(())
-                } else {
-                    Err(e)
-                }
-            }
+    pub fn advance(&mut self, len: usize) -> SaveResult<()> {
+        let new_size = self.data.size + len as c_int;
+        if new_size < self.data.bufferSize {
+            self.data.pCurrentData = self.data.pCurrentData.wrapping_add(len);
+            self.data.size += len as c_int;
+            Ok(())
+        } else {
+            Err(SaveError::Overflow)
         }
     }
 
-    pub fn write_bytes(&mut self, bytes: &[u8]) -> SaveResult<()> {
-        self.check(bytes.len()).map(|_| {
-            let data = self.data.pCurrentData.cast();
-            unsafe {
-                ptr::copy_nonoverlapping(bytes.as_ptr(), data, bytes.len());
-                self.advance(bytes.len());
-            }
-        })
+    pub fn entity_index(&self, ent: *mut edict_s) -> Option<usize> {
+        if !ent.is_null() {
+            self.table().iter().position(|i| i.pent == ent)
+        } else {
+            None
+        }
     }
 
-    pub fn read_array<const N: usize>(&mut self) -> SaveResult<[u8; N]> {
-        let mut output = [0; N];
-        self.read_bytes(&mut output).map(|_| output)
-    }
-
-    pub fn read_i16(&mut self) -> SaveResult<i16> {
-        self.read_array().map(i16::from_le_bytes)
-    }
-
-    pub fn read_u16(&mut self) -> SaveResult<u16> {
-        self.read_array().map(u16::from_le_bytes)
-    }
-
-    pub fn read_i32(&mut self) -> SaveResult<i32> {
-        self.read_array().map(i32::from_le_bytes)
-    }
-
-    pub fn read_u32(&mut self) -> SaveResult<u32> {
-        self.read_array().map(u32::from_le_bytes)
-    }
-
-    pub fn write_i16(&mut self, value: i16) -> SaveResult<()> {
-        self.write_bytes(&value.to_le_bytes())
-    }
-
-    pub fn write_u16(&mut self, value: u16) -> SaveResult<()> {
-        self.write_bytes(&value.to_le_bytes())
-    }
-
-    pub fn write_i32(&mut self, value: i32) -> SaveResult<()> {
-        self.write_bytes(&value.to_le_bytes())
-    }
-
-    pub fn write_u32(&mut self, value: u32) -> SaveResult<()> {
-        self.write_bytes(&value.to_le_bytes())
-    }
-
-    pub fn read_field(&mut self) -> SaveResult<Field<'a>> {
-        let size = self.read_u16()?;
-        let token = self.read_u16()?;
-        let data = self.read_slice(size as usize)?;
-        Ok(Field { token, data })
-    }
-
-    pub fn write_field(&mut self, name: &CStr, bytes: &[u8]) -> SaveResult<()> {
-        let size = bytes.len().try_into().unwrap();
-        let token = self.token_hash(name);
-        self.write_u16(size)?;
-        self.write_u16(token)?;
-        self.write_bytes(bytes)
+    pub fn entity_flags_set(&mut self, index: usize, flags: c_int) -> c_int {
+        if let Some(i) = self.table_mut().get_mut(index) {
+            i.flags |= flags;
+            i.flags
+        } else {
+            0
+        }
     }
 }
 
@@ -563,24 +589,20 @@ impl<'a> SaveReader<'a> {
         self.global = mode;
     }
 
-    fn read_field(
+    unsafe fn read_field(
         &mut self,
-        base_data: *mut c_void,
+        base_data: *mut u8,
         fields: &[TYPEDESCRIPTION],
         start_field: usize,
         name: &CStrThin,
-        data: &[u8],
+        src: &mut Cursor,
     ) -> SaveResult<usize> {
-        use FieldType as F;
-
         let engine = self.engine;
-        let time = self.data.time();
-        let position = self.data.use_landmark_offset().unwrap_or_default();
-
         for i in 0..fields.len() {
             let field_index = (i + start_field) % fields.len();
             let field = &fields[field_index];
-            if !field.name().is_some_and(|s| s.eq_ignore_case(name)) {
+            let field_name = unsafe { CStrThin::from_ptr(field.fieldName) };
+            if !field_name.eq_ignore_case(name) {
                 continue;
             }
 
@@ -589,77 +611,86 @@ impl<'a> SaveReader<'a> {
                 return Ok(field_index);
             }
 
-            let ptr = unsafe { base_data.byte_add(field.fieldOffset as usize) };
-            let size = field_size(field.field_type());
+            let field_type = field.field_type();
             let count = field.fieldSize as usize;
-            let output = unsafe { slice::from_raw_parts_mut(ptr.cast::<u8>(), size * count) };
+            let dst_ptr = base_data.wrapping_add(field.fieldOffset as usize);
+            let dst_len = field_type.size() * count;
+            let dst_slice = unsafe { slice::from_raw_parts_mut(dst_ptr.cast::<u8>(), dst_len) };
+            let mut dst = CursorMut::new(dst_slice);
 
-            match field.field_type() {
-                F::TIME => {
-                    for (dst, src) in output.chunks_mut(size).zip(data.chunks(size)) {
-                        let value = c_float::from_le_bytes(array_from_slice(src)) + time;
-                        dst.copy_from_slice(&value.to_ne_bytes());
+            match field_type {
+                FieldType::CHARACTER => {
+                    dst.write(src.as_slice())?;
+                }
+                FieldType::SHORT => {
+                    for _ in 0..count {
+                        dst.write_u16_ne(src.read_u16_le()?)?;
                     }
                 }
-                F::CHARACTER => {
-                    output.copy_from_slice(data);
+                FieldType::INTEGER => {
+                    for _ in 0..count {
+                        dst.write_u32_ne(src.read_u32_le()?)?;
+                    }
                 }
-                F::SHORT | F::INTEGER | F::FLOAT => {
-                    // TODO: byte-ordering
-                    output.copy_from_slice(data);
+                FieldType::FLOAT => {
+                    for _ in 0..count {
+                        dst.write_f32_ne(src.read_f32_le()?)?;
+                    }
                 }
-                F::VECTOR => {
-                    // TODO: byte-ordering
-                    output.copy_from_slice(data);
+                FieldType::TIME => {
+                    let time = self.data.time();
+                    for _ in 0..count {
+                        dst.write_f32_ne(src.read_f32_le()? + time)?;
+                    }
                 }
-                F::MODELNAME | F::SOUNDNAME | F::STRING => {
-                    let mut iter = data.split_inclusive(|&i| i == b'\0');
-                    for dst in output.chunks_mut(size) {
-                        let chunk = iter.next().unwrap();
-                        let str = CStr::from_bytes_with_nul(chunk).unwrap();
-                        if !str.is_empty() {
-                            let id = engine.new_map_string(str);
-                            dst.copy_from_slice(&id.index().to_ne_bytes());
+                FieldType::VECTOR => {
+                    for _ in 0..count {
+                        dst.write_f32_ne(src.read_f32_le()?)?;
+                        dst.write_f32_ne(src.read_f32_le()?)?;
+                        dst.write_f32_ne(src.read_f32_le()?)?;
+                    }
+                }
+                FieldType::POSITION_VECTOR => {
+                    let offset = self.data.use_landmark_offset().unwrap_or_default();
+                    for _ in 0..count {
+                        dst.write_f32_ne(src.read_f32_le()? + offset[0])?;
+                        dst.write_f32_ne(src.read_f32_le()? + offset[1])?;
+                        dst.write_f32_ne(src.read_f32_le()? + offset[2])?;
+                    }
+                }
+                FieldType::EDICT => {
+                    for _ in 0..count {
+                        let index = src.read_i32_le()?;
+                        let ent = engine.entity_of_ent_index(index);
+                        dst.write_usize_ne(ent as usize)?;
+                    }
+                }
+                FieldType::MODELNAME | FieldType::SOUNDNAME | FieldType::STRING => {
+                    for name in src.as_slice().split_inclusive(|&i| i == b'\0') {
+                        let name = unsafe { CStrThin::from_ptr(name.as_ptr().cast()) };
+                        let mut index = 0;
+                        if !name.is_empty() {
+                            index = engine.new_map_string(name).index();
                             if self.precache {
-                                match field.field_type() {
-                                    F::MODELNAME => {
-                                        engine.precache_model(str);
+                                match field_type {
+                                    FieldType::MODELNAME => {
+                                        engine.precache_model(name);
                                     }
-                                    F::SOUNDNAME => {
-                                        engine.precache_sound(str);
+                                    FieldType::SOUNDNAME => {
+                                        engine.precache_sound(name);
                                     }
                                     _ => {}
                                 }
                             }
-                        } else {
-                            dst.copy_from_slice(&[0; 4]);
                         }
+                        dst.write_i32_ne(index)?;
                     }
                 }
-                F::POSITION_VECTOR => {
-                    for (dst, src) in output.chunks_mut(size).zip(data.chunks(size)) {
-                        for i in 0..3 {
-                            let start = i * 4;
-                            let end = start + 4;
-                            let src = array_from_slice(&src[start..end]);
-                            let value = c_float::from_le_bytes(src) + position[i];
-                            dst[start..end].copy_from_slice(&value.to_ne_bytes());
-                        }
-                    }
-                }
-                F::EDICT => {
-                    let dst = output.chunks_mut(mem::size_of::<*mut edict_s>());
-                    let src = data.chunks(size);
-                    for (dst, src) in dst.zip(src) {
-                        let index = c_int::from_le_bytes(array_from_slice(src));
-                        let ent = engine.entity_of_ent_index(index);
-                        dst.copy_from_slice(&(ent as usize).to_ne_bytes());
-                    }
-                }
-                _ => {
-                    let field_type = field.fieldType;
-                    warn!("unimplemented field({field_type}) read for \"{name}\"");
-                }
+                _ => warn!("unimplemented field({field_type:?}) read for {name:?}"),
+            }
+
+            if dst.capacity() != 0 {
+                warn!("field {name:?}({field_type:?}) was partially restored");
             }
 
             return Ok(field_index);
@@ -668,26 +699,33 @@ impl<'a> SaveReader<'a> {
         Ok(start_field)
     }
 
-    pub fn read_fields(
+    /// Read struct fields from a save file.
+    ///
+    /// # Safety
+    ///
+    /// * `base_data` must be non-null.
+    /// * Field descriptions must be valid for the given `base_data` type.
+    pub unsafe fn read_fields_raw(
         &mut self,
         name: &CStr,
-        base_data: *mut c_void,
+        base_data: *mut u8,
         fields: &[TYPEDESCRIPTION],
     ) -> SaveResult<()> {
-        let header = self.data.read_field()?;
-        assert_eq!(header.data.len(), mem::size_of::<u32>());
-        if header.token != self.data.token_hash(name) {
-            self.data.field_rewind(&header);
+        let mut src = Cursor::new(self.data.as_slice());
+
+        let header = src.read_header()?;
+        assert_eq!(header.size(), mem::size_of::<u32>() as u16);
+        if header.token() != self.data.token_hash(name) {
             return Ok(());
         }
-        let field_count = u32::from_le_bytes(array_from_slice(header.data));
+        let field_count = src.read_u32_le()?;
 
         for i in fields.iter() {
             if self.global && i.flags().intersects(FtypeDesc::GLOBAL) {
                 continue;
             }
             let data = base_data.wrapping_add(i.fieldOffset as usize);
-            let len = i.fieldSize as usize * field_size(i.field_type());
+            let len = i.fieldSize as usize * i.field_type().size();
             unsafe {
                 ptr::write_bytes(data, 0, len);
             }
@@ -695,35 +733,20 @@ impl<'a> SaveReader<'a> {
 
         let mut last_field = 0;
         for _ in 0..field_count {
-            let field = self.data.read_field()?;
-            let token = self.data.data.tokens_mut()[field.token as usize];
+            let field = src.read_field()?;
+            let token = self.data.data.tokens_mut()[field.token().to_usize()];
             let token = unsafe { CStrThin::from_ptr(token) };
-            last_field = self.read_field(base_data, fields, last_field, token, field.data)?;
+            let data = &mut Cursor::new(field.data());
+            last_field = unsafe { self.read_field(base_data, fields, last_field, token, data)? };
             last_field += 1;
         }
 
-        Ok(())
+        self.data.advance(src.offset())
     }
 
-    pub fn read_ent_vars(&mut self, name: &CStr, ev: *mut entvars_s) -> SaveResult<()> {
-        self.read_fields(name, ev as *mut _, ENTVARS_DESCRIPTION)
-    }
-
-    pub fn entity_index(&self, ent: *mut edict_s) -> Option<usize> {
-        if !ent.is_null() {
-            self.data.table().iter().position(|i| i.pent == ent)
-        } else {
-            None
-        }
-    }
-
-    pub fn entity_flags_set(&mut self, index: usize, flags: c_int) -> c_int {
-        if let Some(i) = self.data.table_mut().get_mut(index) {
-            i.flags |= flags;
-            i.flags
-        } else {
-            0
-        }
+    pub fn read_fields<T: SaveFields>(&mut self, value: &mut T) -> SaveResult<()> {
+        let base_data = value as *mut T as *mut u8;
+        unsafe { self.read_fields_raw(T::SAVE_NAME, base_data, T::SAVE_FIELDS) }
     }
 }
 
@@ -746,51 +769,135 @@ impl<'a> SaveWriter<'a> {
         }
     }
 
-    pub fn write_fields(
+    /// Write struct fields to a save file.
+    ///
+    /// # Safety
+    ///
+    /// * `base_data` must be non-null.
+    /// * Field descriptions must be valid for the given `base_data` type.
+    pub unsafe fn write_fields_raw(
         &mut self,
-        name: &CStrThin,
-        _base_data: *mut c_void,
-        _fields: &[TYPEDESCRIPTION],
+        name: &CStr,
+        base_data: *const u8,
+        fields: &[TYPEDESCRIPTION],
     ) -> SaveResult<()> {
-        error!("TODO: SaveWriteFields({name})");
-        self.data
-            .write_field(name.as_c_str(), &0_u32.to_le_bytes())?;
-        Ok(())
-    }
-}
+        if self.data.data.pCurrentData.is_null() {
+            return Ok(());
+        }
 
-fn field_size(ty: FieldType) -> usize {
-    use FieldType as F;
-    match ty {
-        F::FLOAT => mem::size_of::<c_float>(),
-        F::STRING => mem::size_of::<c_int>(),
-        F::ENTITY => mem::size_of::<c_int>(),
-        F::CLASSPTR => mem::size_of::<c_int>(),
-        F::EHANDLE => mem::size_of::<c_int>(),
-        F::EVARS => mem::size_of::<c_int>(),
-        F::EDICT => mem::size_of::<c_int>(),
-        F::VECTOR => mem::size_of::<c_float>() * 3,
-        F::POSITION_VECTOR => mem::size_of::<c_float>() * 3,
-        F::POINTER => mem::size_of::<*const c_int>(),
-        F::INTEGER => mem::size_of::<c_int>(),
-        // #ifdef GNUC
-        F::FUNCTION => mem::size_of::<*const c_int>() * 2,
-        // #else
-        //      F::FUNCTION         => mem::size_of::<*const c_int>(),
-        // #endif
-        F::BOOLEAN => mem::size_of::<c_int>(),
-        F::SHORT => mem::size_of::<c_short>(),
-        F::CHARACTER => mem::size_of::<c_char>(),
-        F::TIME => mem::size_of::<c_float>(),
-        F::MODELNAME => mem::size_of::<c_int>(),
-        F::SOUNDNAME => mem::size_of::<c_int>(),
-        F::TYPECOUNT => unreachable!(),
+        let engine = self.engine;
+        let dst_slice = {
+            let data = self.data.data.pCurrentData.cast();
+            let len = self.data.available();
+            unsafe { slice::from_raw_parts_mut(data, len) }
+        };
+        let mut dst = CursorMut::new(dst_slice);
+        let header_offset = dst.skip(2 * mem::size_of::<u16>() + mem::size_of::<u32>())?;
+        let mut field_count = 0;
+        for field in fields {
+            let field_type = field.field_type();
+            let count = field.fieldSize as usize;
+            let src_ptr = base_data.wrapping_add(field.fieldOffset as usize);
+            let src_len = field_type.size() * count;
+            let src_slice = unsafe { slice::from_raw_parts(src_ptr, src_len) };
+            let mut src = Cursor::new(src_slice);
+
+            if src.as_slice().iter().all(|&i| i == 0) {
+                continue;
+            }
+
+            let size_offset = dst.skip(mem::size_of::<u16>())?;
+            let field_name = unsafe { CStr::from_ptr(field.fieldName) };
+            dst.write_token(self.data.token_hash(field_name))?;
+
+            let data_offset = dst.offset();
+            match field_type {
+                FieldType::CHARACTER => {
+                    dst.write(src.as_slice())?;
+                }
+                FieldType::SHORT => {
+                    for _ in 0..count {
+                        dst.write_u16_le(src.read_u16_ne()?)?;
+                    }
+                }
+                FieldType::INTEGER => {
+                    for _ in 0..count {
+                        dst.write_u32_le(src.read_u32_ne()?)?;
+                    }
+                }
+                FieldType::FLOAT => {
+                    for _ in 0..count {
+                        dst.write_f32_le(src.read_f32_ne()?)?;
+                    }
+                }
+                FieldType::TIME => {
+                    let time = self.data.time();
+                    for _ in 0..count {
+                        dst.write_f32_le(src.read_f32_ne()? - time)?;
+                    }
+                }
+                FieldType::VECTOR => {
+                    for _ in 0..count {
+                        dst.write_f32_le(src.read_f32_ne()?)?;
+                        dst.write_f32_le(src.read_f32_ne()?)?;
+                        dst.write_f32_le(src.read_f32_ne()?)?;
+                    }
+                }
+                FieldType::POSITION_VECTOR => {
+                    let offset = self.data.use_landmark_offset().unwrap_or_default();
+                    for _ in 0..count {
+                        dst.write_f32_le(src.read_f32_ne()? - offset[0])?;
+                        dst.write_f32_le(src.read_f32_ne()? - offset[1])?;
+                        dst.write_f32_le(src.read_f32_ne()? - offset[2])?;
+                    }
+                }
+                FieldType::EDICT => {
+                    for _ in 0..count {
+                        let ent = src.read_usize_ne()? as *mut edict_s;
+                        let index = self.data.entity_index(ent).map_or(-1, |i| i as i32);
+                        dst.write_i32_le(index)?;
+                    }
+                }
+                FieldType::MODELNAME | FieldType::SOUNDNAME | FieldType::STRING => {
+                    for _ in 0..count {
+                        let index = src.read_i32_ne()?;
+                        if let Some(name) = MapString::from_index(engine, index) {
+                            dst.write(name.to_bytes_with_nul())?;
+                        } else {
+                            dst.write_u8(0)?;
+                        }
+                    }
+                }
+                _ => warn!("unimplemented field({field_type:?}) write for {name:?}.{field_name:?}"),
+            }
+            let data_size =
+                u16::try_from(dst.offset() - data_offset).map_err(|_| SaveError::SizeOverflow)?;
+
+            // write the actual field data size
+            dst.write_at(size_offset, |dst| dst.write_u16_le(data_size))?;
+
+            field_count += 1;
+        }
+
+        // write the header
+        dst.write_at(header_offset, |dst| {
+            dst.write_u16_le(mem::size_of::<u32>() as u16)?;
+            dst.write_token(self.data.token_hash(name))?;
+            dst.write_u32_le(field_count)
+        })?;
+
+        self.data.advance(dst.offset() - header_offset)
+    }
+
+    pub fn write_fields<T: SaveFields>(&mut self, value: &T) -> SaveResult<()> {
+        let base_data = value as *const T as *const u8;
+        unsafe { self.write_fields_raw(T::SAVE_NAME, base_data, T::SAVE_FIELDS) }
     }
 }
 
 pub fn entvars_key_value(engine: ServerEngineRef, ev: &mut entvars_s, data: &mut KeyValueData) {
     let key_name = data.key_name();
-    let field = ENTVARS_DESCRIPTION
+    let field = entvars_s::SAVE_FIELDS
         .iter()
         .find(|i| i.name().unwrap().eq_ignore_case(key_name));
 

@@ -3,7 +3,7 @@ mod macros;
 mod private_data;
 
 use core::{
-    ffi::{c_int, c_short},
+    ffi::{c_int, c_short, CStr},
     mem,
 };
 
@@ -13,7 +13,7 @@ use xash3d_shared::{
     consts::{SOLID_BSP, SOLID_NOT, SOLID_SLIDEBOX},
     ffi::{
         common::{entity_state_s, vec3_t},
-        server::{edict_s, entvars_s},
+        server::{edict_s, entvars_s, TYPEDESCRIPTION},
     },
     macros::const_assert_size_of_field_eq,
     math::fabsf,
@@ -23,7 +23,7 @@ use crate::{
     self as xash3d_server,
     engine::ServerEngineRef,
     game_rules::{GameRules, GameRulesRef},
-    save::{KeyValueDataExt, SaveReader, SaveResult, SaveWriter},
+    save::{KeyValueDataExt, SaveFields, SaveReader, SaveResult, SaveWriter},
     str::MapString,
 };
 
@@ -190,18 +190,6 @@ bitflags! {
 pub trait EntityCast: 'static {
     fn as_player(&self) -> Option<&dyn EntityPlayer>;
     fn as_player_mut(&mut self) -> Option<&mut dyn EntityPlayer>;
-
-    fn as_delay(&self) -> Option<&dyn EntityDelay>;
-    fn as_delay_mut(&mut self) -> Option<&mut dyn EntityDelay>;
-
-    fn as_animating(&self) -> Option<&dyn EntityAnimating>;
-    fn as_animating_mut(&mut self) -> Option<&mut dyn EntityAnimating>;
-
-    fn as_toggle(&self) -> Option<&dyn EntityToggle>;
-    fn as_toggle_mut(&mut self) -> Option<&mut dyn EntityToggle>;
-
-    fn as_monster(&self) -> Option<&dyn EntityMonster>;
-    fn as_monster_mut(&mut self) -> Option<&mut dyn EntityMonster>;
 }
 
 define_entity_trait! {
@@ -321,6 +309,12 @@ pub struct BaseEntity {
     pub vars: EntityVars,
 }
 
+unsafe impl SaveFields for BaseEntity {
+    const SAVE_NAME: &'static CStr = c"BASE";
+
+    const SAVE_FIELDS: &'static [TYPEDESCRIPTION] = &[];
+}
+
 impl_entity_cast!(BaseEntity);
 
 impl Entity for BaseEntity {
@@ -348,16 +342,15 @@ impl Entity for BaseEntity {
         &mut self.vars
     }
 
-    fn save(&mut self, _save: &mut SaveWriter) -> SaveResult<()> {
-        log::debug!("TODO: save {:?}", self.classname());
-        Ok(())
+    fn save(&mut self, save: &mut SaveWriter) -> SaveResult<()> {
+        save.write_fields(self.vars_mut().as_raw_mut())?;
+        save.write_fields(self)
     }
 
     fn restore(&mut self, save: &mut SaveReader) -> SaveResult<()> {
-        save.read_ent_vars(c"ENTVARS", self.vars_mut().as_raw_mut())?;
-
-        // let fields = self.fields();
-        // save.read_fields(c"BASE", self as *mut _ as *mut _, fields)?;
+        let status = save
+            .read_fields(self.vars_mut().as_raw_mut())
+            .and_then(|_| save.read_fields(self));
 
         let ev = self.vars.as_raw();
         if let (true, Some(model)) = (ev.modelindex != 0, ev.model()) {
@@ -369,36 +362,11 @@ impl Entity for BaseEntity {
             engine.set_size(self.as_edict_mut(), mins, maxs);
         }
 
-        Ok(())
+        status
     }
 }
 
 define_entity_trait! {
-    pub trait EntityDelay(delegate_delay): (Entity) {
-        // TODO: animating entity trait methods
-    }
-}
-
-define_entity_trait! {
-    pub trait EntityAnimating(delegate_animating): (EntityDelay) {
-        // TODO: animating entity trait methods
-    }
-}
-
-define_entity_trait! {
-    pub trait EntityToggle(delegate_toggle): (EntityAnimating) {
-        // TODO: toggle entity trait methods
-    }
-}
-
-define_entity_trait! {
-    pub trait EntityMonster(delegate_monster): (EntityToggle) {
-        // TODO: monster entity trait methods
-    }
-}
-
-define_entity_trait! {
-    // TODO: base trait should be EntityMonster
     pub trait EntityPlayer(delegate_player): (Entity) {
         fn select_spawn_point(&self) -> *mut xash3d_server::ffi::server::edict_s;
 

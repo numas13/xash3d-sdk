@@ -1,12 +1,16 @@
-use core::{cell::RefCell, ffi::c_int, mem::MaybeUninit, ptr};
+use core::{
+    cell::RefCell,
+    ffi::{c_int, CStr},
+    mem::MaybeUninit,
+    ptr,
+};
 
 use alloc::collections::linked_list::LinkedList;
 use csz::{CStrArray, CStrThin};
 use xash3d_server::{
     ffi::server::{edict_s, SAVERESTOREDATA, TYPEDESCRIPTION},
-    macros::define_field,
     prelude::*,
-    save::{FieldType, SaveReader, SaveResult, SaveWriter},
+    save::{define_fields, FieldType, SaveFields, SaveReader, SaveResult, SaveWriter},
     str::MapString,
 };
 
@@ -70,6 +74,16 @@ impl GlobalEntity {
     }
 }
 
+unsafe impl SaveFields for GlobalEntity {
+    const SAVE_NAME: &'static CStr = c"GENT";
+
+    const SAVE_FIELDS: &'static [TYPEDESCRIPTION] = &define_fields![
+        name,
+        map_name,
+        state => unsafe FieldType::INTEGER,
+    ];
+}
+
 pub struct Entities {
     list: LinkedList<GlobalEntity>,
 }
@@ -131,19 +145,11 @@ struct GlobalStateSave {
     list_count: c_int,
 }
 
-// Global Savedata for Delay
-const GLOBAL_FIELDS: [TYPEDESCRIPTION; 1] = [define_field!(
-    GlobalStateSave,
-    list_count,
-    FieldType::INTEGER
-)];
+unsafe impl SaveFields for GlobalStateSave {
+    const SAVE_NAME: &'static CStr = c"GLOBAL";
 
-// Global Savedata for Delay
-const GLOBAL_ENTITY_FIELDS: [TYPEDESCRIPTION; 3] = [
-    define_field!(GlobalEntity, name, FieldType::CHARACTER, 64),
-    define_field!(GlobalEntity, map_name, FieldType::CHARACTER, 32),
-    define_field!(GlobalEntity, state, FieldType::INTEGER),
-];
+    const SAVE_FIELDS: &'static [TYPEDESCRIPTION] = &define_fields![list_count];
+}
 
 pub struct GlobalState {
     engine: ServerEngineRef,
@@ -161,26 +167,29 @@ impl GlobalState {
     }
 
     pub fn save(&self, save_data: &mut SAVERESTOREDATA) -> SaveResult<()> {
-        let _writer = SaveWriter::new(self.engine, save_data);
-        debug!("TODO: SaveGlobalState");
+        let mut save = SaveWriter::new(self.engine, save_data);
+        let entities = self.entities.borrow();
+        let global_state = GlobalStateSave {
+            list_count: entities.list.len() as i32,
+        };
+        save.write_fields(&global_state)?;
+        for ent in &entities.list {
+            save.write_fields(ent)?;
+        }
         Ok(())
     }
 
     pub fn restore(&self, save_data: &mut SAVERESTOREDATA) -> SaveResult<()> {
-        let mut reader = SaveReader::new(self.engine, save_data);
+        let mut save = SaveReader::new(self.engine, save_data);
         self.reset();
 
         let mut global_state = GlobalStateSave { list_count: 0 };
-        reader.read_fields(
-            c"GLOBAL",
-            &mut global_state as *mut _ as *mut _,
-            &GLOBAL_FIELDS,
-        )?;
+        save.read_fields(&mut global_state)?;
 
         let mut entities = self.entities.borrow_mut();
         for _ in 0..global_state.list_count {
             let mut tmp = MaybeUninit::<GlobalEntity>::uninit();
-            reader.read_fields(c"GENT", tmp.as_mut_ptr().cast(), &GLOBAL_ENTITY_FIELDS)?;
+            save.read_fields(unsafe { tmp.assume_init_mut() })?;
             let tmp = unsafe { tmp.assume_init() };
             let name = tmp.name.as_thin();
             let map_name = tmp.map_name.as_thin();

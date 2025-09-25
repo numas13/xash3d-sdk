@@ -132,10 +132,6 @@ macro_rules! impl_entity_cast {
         $crate::entity::impl_cast! {
             $ty {
                 as_player, as_player_mut -> $crate::entity::EntityPlayer;
-                as_delay, as_delay_mut -> $crate::entity::EntityDelay;
-                as_animating, as_animating_mut -> $crate::entity::EntityAnimating;
-                as_toggle, as_toggle_mut -> $crate::entity::EntityToggle;
-                as_monster, as_monster_mut -> $crate::entity::EntityMonster;
             }
         }
     };

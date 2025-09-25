@@ -101,7 +101,7 @@ impl ServerDll for Dll {
             let mut restore = SaveReader::new(engine, save_data);
             restore.precache_mode(false);
             restore
-                .read_ent_vars(c"ENTVARS", global_vars.as_mut_ptr())
+                .read_fields(unsafe { global_vars.assume_init_mut() })
                 .unwrap();
         }
 
@@ -142,7 +142,9 @@ impl ServerDll for Dll {
         let Some(entity) = ent.get_entity_mut() else {
             return RestoreResult::Ok;
         };
-        entity.restore(&mut restore).unwrap();
+        if let Err(err) = entity.restore(&mut restore) {
+            error!("dispatch_restore: entity restore error, {err}");
+        }
         if entity.object_caps().intersects(ObjectCaps::MUST_SPAWN) {
             entity.spawn();
         } else {

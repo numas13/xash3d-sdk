@@ -175,30 +175,30 @@ pub trait ServerDll: UnsyncGlobal {
         }
     }
 
-    fn save_write_fields(
+    unsafe fn save_write_fields(
         &self,
         save_data: &mut SAVERESTOREDATA,
         name: &CStrThin,
         base_data: *mut c_void,
         fields: &mut [TYPEDESCRIPTION],
     ) {
-        let mut writer = SaveWriter::new(self.engine(), save_data);
-        if let Err(err) = writer.write_fields(name, base_data, fields) {
-            error!("save::write_fields({name}): {err}");
+        let mut save = SaveWriter::new(self.engine(), save_data);
+        let result = unsafe { save.write_fields_raw(name.into(), base_data.cast(), fields) };
+        if let Err(err) = result {
+            error!("save::write_fields({name:?}): {err}");
         }
     }
 
-    fn save_read_fields(
+    unsafe fn save_read_fields(
         &self,
         save_data: &mut SAVERESTOREDATA,
         name: &CStrThin,
         base_data: *mut c_void,
         fields: &mut [TYPEDESCRIPTION],
     ) {
-        let name = name.as_c_str();
-        if let Err(err) =
-            SaveReader::new(self.engine(), save_data).read_fields(name, base_data, fields)
-        {
+        let mut save = SaveReader::new(self.engine(), save_data);
+        let result = unsafe { save.read_fields_raw(name.into(), base_data.cast(), fields) };
+        if let Err(err) = result {
             error!("save::read_fields({name:?}): {err}");
         }
     }
@@ -758,11 +758,13 @@ impl<T: ServerDll> ServerDllExport for Export<T> {
         fields: *mut TYPEDESCRIPTION,
         fields_count: c_int,
     ) {
-        let save_data = unsafe { save_data.as_mut() }.unwrap();
-        let name = unsafe { cstr_or_none(name) }.unwrap();
-        let fields = unsafe { slice_from_raw_parts_or_empty_mut(fields, fields_count as usize) };
-        unsafe { T::global_assume_init_ref() }
-            .save_write_fields(save_data, name, base_data, fields);
+        unsafe {
+            let save_data = save_data.as_mut().unwrap();
+            let name = cstr_or_none(name).unwrap();
+            let fields = slice_from_raw_parts_or_empty_mut(fields, fields_count as usize);
+            let dll = T::global_assume_init_ref();
+            dll.save_write_fields(save_data, name, base_data, fields);
+        }
     }
 
     unsafe extern "C" fn save_read_fields(
@@ -772,10 +774,13 @@ impl<T: ServerDll> ServerDllExport for Export<T> {
         fields: *mut TYPEDESCRIPTION,
         fields_count: c_int,
     ) {
-        let save_data = unsafe { save_data.as_mut() }.unwrap();
-        let name = unsafe { cstr_or_none(name) }.unwrap();
-        let fields = unsafe { slice_from_raw_parts_or_empty_mut(fields, fields_count as usize) };
-        unsafe { T::global_assume_init_ref() }.save_read_fields(save_data, name, base_data, fields);
+        unsafe {
+            let save_data = save_data.as_mut().unwrap();
+            let name = cstr_or_none(name).unwrap();
+            let fields = slice_from_raw_parts_or_empty_mut(fields, fields_count as usize);
+            let dll = T::global_assume_init_ref();
+            dll.save_read_fields(save_data, name, base_data, fields);
+        }
     }
 
     unsafe extern "C" fn save_global_state(save_data: *mut SAVERESTOREDATA) {

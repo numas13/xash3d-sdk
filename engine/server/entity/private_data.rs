@@ -9,10 +9,7 @@ use xash3d_shared::ffi::server::{edict_s, entvars_s};
 
 use crate::{
     engine::ServerEngineRef,
-    entity::{
-        AsEdict, BaseEntity, CreateEntity, Entity, EntityAnimating, EntityCast, EntityDelay,
-        EntityMonster, EntityPlayer, EntityToggle, EntityVars,
-    },
+    entity::{AsEdict, BaseEntity, CreateEntity, Entity, EntityCast, EntityVars},
     game_rules::GameRulesRef,
 };
 
@@ -40,11 +37,7 @@ impl<T: Entity> PrivateDataVtable<T> {
             let t = unsafe { Downcast::new(value, type_id, ret) };
             t.downcast::<P::Entity>(|i| Some(i))
                 || t.downcast::<dyn Entity>(|i| Some(i))
-                || t.downcast::<dyn EntityPlayer>(|i| i.as_player())
-                || t.downcast::<dyn EntityDelay>(|i| i.as_delay())
-                || t.downcast::<dyn EntityAnimating>(|i| i.as_animating())
-                || t.downcast::<dyn EntityToggle>(|i| i.as_toggle())
-                || t.downcast::<dyn EntityMonster>(|i| i.as_monster())
+                || t.downcast::<dyn super::EntityPlayer>(|i| i.as_player())
                 || P::downcast(&t)
         }
 

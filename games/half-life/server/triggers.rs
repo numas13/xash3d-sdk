@@ -1,4 +1,7 @@
-use core::{ffi::c_int, ptr};
+use core::{
+    ffi::{c_int, CStr},
+    ptr,
+};
 
 use csz::{cstr, CStrArray, CStrThin};
 use xash3d_server::{
@@ -12,9 +15,8 @@ use xash3d_server::{
         common::vec3_t,
         server::{edict_s, entvars_s, KeyValueData, LEVELLIST, TYPEDESCRIPTION},
     },
-    macros::define_field,
     prelude::*,
-    save::{FieldType, SaveReader, SaveResult},
+    save::{define_fields, SaveFields, SaveReader, SaveResult, SaveWriter},
     str::MapString,
 };
 
@@ -43,20 +45,14 @@ pub struct ChangeLevel {
     change_target_delay: f32,
 }
 
-impl ChangeLevel {
-    #[allow(dead_code)]
-    const FIELDS: &'static [TYPEDESCRIPTION] = &[
-        define_field!(ChangeLevel, map_name, FieldType::CHARACTER, MAP_NAME_MAX),
-        define_field!(
-            ChangeLevel,
-            landmark_name,
-            FieldType::CHARACTER,
-            MAP_NAME_MAX
-        ),
-        define_field!(ChangeLevel, target, FieldType::STRING),
-        define_field!(ChangeLevel, change_target_delay, FieldType::FLOAT),
-    ];
+unsafe impl SaveFields for ChangeLevel {
+    const SAVE_NAME: &'static CStr = c"CChangeLevel";
 
+    const SAVE_FIELDS: &'static [TYPEDESCRIPTION] =
+        &define_fields![map_name, landmark_name, target, change_target_delay,];
+}
+
+impl ChangeLevel {
     fn init_trigger(&mut self) {
         let engine = self.base.engine;
         let ev = self.vars_mut().as_raw_mut();
@@ -117,14 +113,22 @@ impl CreateEntity for ChangeLevel {
 }
 
 impl Entity for ChangeLevel {
-    delegate_entity!(base not { object_caps, restore, key_value, spawn, touched });
+    delegate_entity!(base not { object_caps, save, restore, key_value, spawn, touched });
 
     fn object_caps(&self) -> ObjectCaps {
-        ObjectCaps::NONE
+        self.base
+            .object_caps()
+            .difference(ObjectCaps::ACROSS_TRANSITION)
     }
 
-    fn restore(&mut self, _restore: &mut SaveReader) -> SaveResult<()> {
-        Ok(())
+    fn save(&mut self, save: &mut SaveWriter) -> SaveResult<()> {
+        self.base.save(save)?;
+        save.write_fields(self)
+    }
+
+    fn restore(&mut self, save: &mut SaveReader) -> SaveResult<()> {
+        self.base.restore(save)?;
+        save.read_fields(self)
     }
 
     fn key_value(&mut self, data: &mut KeyValueData) {
@@ -152,7 +156,7 @@ impl Entity for ChangeLevel {
             self.change_target_delay = s.and_then(|s| s.parse().ok()).unwrap_or(0.0);
             data.set_handled(true);
         } else {
-            debug!("TODO: ChangeLevel::key_value({name:?}, {value:?})");
+            self.base.key_value(data);
         }
     }
 
@@ -298,7 +302,7 @@ pub fn build_change_list(engine: ServerEngineRef, level_list: &mut [LEVELLIST]) 
     if let Some(mut save_data) = engine.globals.save_data() {
         let save_data = unsafe { save_data.as_mut() };
         if !save_data.table().is_empty() {
-            let mut save_helper = SaveReader::new(engine, save_data);
+            let mut save = SaveReader::new(engine, save_data);
             for (i, level) in level_list.iter().enumerate().take(count) {
                 let mut ent_count = 0;
                 let mut ent_list = [ptr::null_mut(); MAX_ENTITY];
@@ -331,8 +335,8 @@ pub fn build_change_list(engine: ServerEngineRef, level_list: &mut [LEVELLIST]) 
                     let landmark_name = level.landmark_name();
                     if ent_flags[j] != 0 && in_transition_volume(engine, ent_list[j], landmark_name)
                     {
-                        if let Some(index) = save_helper.entity_index(ent_list[j]) {
-                            save_helper.entity_flags_set(index, ent_flags[j] | (1 << i));
+                        if let Some(index) = save.data.entity_index(ent_list[j]) {
+                            save.data.entity_flags_set(index, ent_flags[j] | (1 << i));
                         }
                     }
                 }
