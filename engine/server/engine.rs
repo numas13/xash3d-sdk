@@ -237,7 +237,10 @@ impl ServerEngine {
         unsafe { unwrap!(self, pfnCreateEntity)() }
     }
 
-    // pub pfnRemoveEntity: Option<unsafe extern "C" fn(e: *mut edict_t)>,
+    pub fn remove_entity(&self, ent: &mut edict_s) {
+        unsafe { unwrap!(self, pfnRemoveEntity)(ent) }
+    }
+
     // pub pfnCreateNamedEntity: Option<unsafe extern "C" fn(className: c_int) -> *mut edict_t>,
     // pub pfnMakeStatic: Option<unsafe extern "C" fn(ent: *mut edict_t)>,
     // pub pfnEntIsOnFloor: Option<unsafe extern "C" fn(e: *mut edict_t) -> c_int>,
@@ -345,7 +348,12 @@ impl ServerEngine {
     //     Option<unsafe extern "C" fn(pEdict: *mut edict_t, szFmt: *mut c_char, ...)>,
     // pub pfnParticleEffect:
     //     Option<unsafe extern "C" fn(org: *const f32, dir: *const f32, color: f32, count: f32)>,
-    // pub pfnLightStyle: Option<unsafe extern "C" fn(style: c_int, val: *const c_char)>,
+
+    pub fn light_style(&self, style: c_int, value: impl ToEngineStr) {
+        let value = value.to_engine_str();
+        unsafe { unwrap!(self, pfnLightStyle)(style, value.as_ptr()) }
+    }
+
     // pub pfnDecalIndex: Option<unsafe extern "C" fn(name: *const c_char) -> c_int>,
     // pub pfnPointContents: Option<unsafe extern "C" fn(rgflVector: *const f32) -> c_int>,
     // pub pfnMessageBegin: Option<
