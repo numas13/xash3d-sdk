@@ -26,7 +26,7 @@ use xash3d_shared::{
 };
 
 use crate::{
-    entity::{EntityPlayer, GetPrivateData, ObjectCaps, PrivateData, RestoreResult},
+    entity::{EntityPlayer, EntityVars, GetPrivateData, ObjectCaps, PrivateData, RestoreResult},
     prelude::*,
     save::{SaveReader, SaveWriter},
     utils::slice_from_raw_parts_or_empty_mut,
@@ -117,7 +117,8 @@ pub trait ServerDll: UnsyncGlobal {
     }
 
     fn dispatch_key_value(&self, ent: &mut edict_s, data: &mut KeyValueData) {
-        crate::save::entvars_key_value(self.engine(), &mut ent.v, data);
+        let mut ev = unsafe { EntityVars::from_raw(self.engine(), &mut ent.v) };
+        ev.key_value(data);
 
         if data.handled() || data.class_name().is_none() {
             return;

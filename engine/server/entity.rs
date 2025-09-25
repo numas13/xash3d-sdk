@@ -4,16 +4,17 @@ mod private_data;
 
 use core::{
     ffi::{c_int, c_short, CStr},
-    mem,
+    mem, ptr,
 };
 
 use alloc::rc::Rc;
 use bitflags::bitflags;
+use csz::CStrThin;
 use xash3d_shared::{
     consts::{SOLID_BSP, SOLID_NOT, SOLID_SLIDEBOX},
     ffi::{
         common::{entity_state_s, vec3_t},
-        server::{edict_s, entvars_s, TYPEDESCRIPTION},
+        server::{edict_s, entvars_s, KeyValueData, TYPEDESCRIPTION},
     },
     macros::const_assert_size_of_field_eq,
     math::fabsf,
@@ -23,7 +24,7 @@ use crate::{
     self as xash3d_server,
     engine::ServerEngineRef,
     game_rules::{GameRules, GameRulesRef},
-    save::{KeyValueDataExt, SaveFields, SaveReader, SaveResult, SaveWriter},
+    save::{FieldType, KeyValueDataExt, SaveFields, SaveReader, SaveResult, SaveWriter},
     str::MapString,
 };
 
@@ -160,6 +161,62 @@ impl EntityVars {
     pub fn effects_mut(&mut self) -> &mut Effects {
         const_assert_size_of_field_eq!(Effects, entvars_s, effects);
         unsafe { mem::transmute(&mut self.as_raw_mut().effects) }
+    }
+
+    pub fn key_value(&mut self, data: &mut KeyValueData) {
+        let key_name = data.key_name();
+        let field = entvars_s::SAVE_FIELDS.iter().find(|i| {
+            let name = unsafe { CStrThin::from_ptr(i.fieldName) };
+            name.eq_ignore_case(key_name)
+        });
+
+        if let Some(field) = field {
+            let field_type = FieldType::from_raw(field.fieldType).unwrap();
+            let pev = self.raw as *mut u8;
+            let p = unsafe { pev.offset(field.fieldOffset as isize) };
+            let value = data.value();
+
+            match field_type {
+                FieldType::MODELNAME | FieldType::SOUNDNAME | FieldType::STRING => {
+                    let s = self.engine.new_map_string(value);
+                    unsafe {
+                        ptr::write(p.cast::<c_int>(), s.index());
+                    }
+                }
+                FieldType::TIME | FieldType::FLOAT => {
+                    let s = value.to_str().ok();
+                    let v = s.and_then(|s| s.parse().ok()).unwrap_or(0.0);
+                    unsafe {
+                        ptr::write(p.cast::<f32>(), v);
+                    }
+                }
+                FieldType::INTEGER => {
+                    let s = value.to_str().ok();
+                    let v = s.and_then(|s| s.parse().ok()).unwrap_or(0);
+                    unsafe {
+                        ptr::write(p.cast::<c_int>(), v);
+                    }
+                }
+                FieldType::POSITION_VECTOR | FieldType::VECTOR => {
+                    let s = value.to_str().unwrap();
+                    let mut v = vec3_t::ZERO;
+                    for (i, s) in s.split(' ').enumerate() {
+                        v[i] = s.parse().unwrap_or(0.0);
+                    }
+                    unsafe {
+                        ptr::write(p.cast::<vec3_t>(), v);
+                    }
+                }
+                _ => {
+                    let name = unsafe { CStr::from_ptr(field.fieldName) };
+                    error!(
+                        "EntityVars::key_value: unimplemented field type {} for {name:?}",
+                        field.fieldType
+                    );
+                }
+            }
+            data.set_handled(true);
+        }
     }
 }
 
