@@ -281,7 +281,7 @@ export_entity_stub! {
     func_rot_button,
     func_rotating,
     func_train,
-    func_wall,
+    // func_wall,
     func_water,
     gibshooter,
     info_node,

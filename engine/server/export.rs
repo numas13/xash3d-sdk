@@ -26,7 +26,9 @@ use xash3d_shared::{
 };
 
 use crate::{
-    entity::{EntityPlayer, EntityVars, GetPrivateData, ObjectCaps, PrivateData, RestoreResult},
+    entity::{
+        EntityPlayer, EntityVars, GetPrivateData, ObjectCaps, PrivateData, RestoreResult, UseType,
+    },
     prelude::*,
     save::{SaveReader, SaveWriter},
     utils::slice_from_raw_parts_or_empty_mut,
@@ -81,7 +83,7 @@ pub trait ServerDll: UnsyncGlobal {
             return;
         };
         if !used.vars().flags().intersects(EdictFlags::KILLME) {
-            used.used(other);
+            used.used(other, UseType::Toggle, 0.0);
         }
     }
 

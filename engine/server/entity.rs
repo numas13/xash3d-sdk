@@ -244,6 +244,23 @@ bitflags! {
     }
 }
 
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum UseType {
+    Off,
+    On,
+    Set,
+    Toggle,
+}
+
+impl UseType {
+    pub fn should_toggle(&self, current_state: bool) -> bool {
+        !matches!(
+            (self, current_state),
+            (UseType::On, true) | (UseType::Off, false)
+        )
+    }
+}
+
 pub trait EntityCast: 'static {
     fn as_player(&self) -> Option<&dyn EntityPlayer>;
     fn as_player_mut(&mut self) -> Option<&mut dyn EntityPlayer>;
@@ -324,7 +341,12 @@ define_entity_trait! {
         fn touched(&mut self, other: &mut dyn xash3d_server::entity::Entity) {}
 
         #[allow(unused_variables)]
-        fn used(&mut self, other: &mut dyn xash3d_server::entity::Entity) {}
+        fn used(
+            &mut self,
+            other: &mut dyn xash3d_server::entity::Entity,
+            use_type: xash3d_server::entity::UseType,
+            value: f32,
+        ) {}
 
         #[allow(unused_variables)]
         fn blocked(&mut self, other: &mut dyn xash3d_server::entity::Entity) {}
