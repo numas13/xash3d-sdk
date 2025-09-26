@@ -1,6 +1,6 @@
 use core::ffi::c_int;
 
-use xash3d_client::{consts::PM_NORMAL, engine::event::event_args_s, prelude::*};
+use xash3d_client::{consts::PM_NORMAL, engine::event::EventArgs, prelude::*};
 use xash3d_player_move::{VEC_DUCK_HULL_MIN, VEC_HULL_MIN};
 
 #[allow(dead_code)]
@@ -16,8 +16,8 @@ enum Squeak {
 }
 
 impl super::Events {
-    pub(super) fn fire_snark(&mut self, args: &mut event_args_s) {
-        let idx = args.entindex;
+    pub(super) fn fire_snark(&mut self, args: &mut EventArgs) {
+        let idx = args.entindex();
         if !self.utils.is_local(idx) {
             return;
         }
@@ -25,14 +25,14 @@ impl super::Events {
         let origin = args.origin();
         let angles = args.angles();
         let mut src = origin;
-        if args.ducking != 0 {
+        if args.ducking() {
             src -= VEC_HULL_MIN - VEC_DUCK_HULL_MIN;
         }
 
         let engine = self.engine;
         let ev = engine.event_api();
         let pm_states = ev.push_pm_states();
-        ev.set_solid_players(idx - 1);
+        ev.set_solid_players(idx.to_i32() - 1);
         ev.set_trace_hull(2);
         let forward = angles.angle_vectors().forward();
         let end = src + forward * 64.0;

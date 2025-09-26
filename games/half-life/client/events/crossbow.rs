@@ -3,8 +3,8 @@ use core::ffi::c_int;
 use res::valve::{models, sound};
 use xash3d_client::{
     consts::{CONTENTS_WATER, PITCH, PM_NORMAL, SOLID_BSP, TE_BOUNCE_NULL},
-    engine::event::event_args_s,
-    entity::TempEntityFlags,
+    engine::event::EventArgs,
+    entity::{EntityIndex, TempEntityFlags},
     ffi::{api::efx::TEMPENTITY, common::vec3_t},
     prelude::*,
     render::RenderMode,
@@ -31,8 +31,8 @@ enum Crossbow {
 }
 
 impl super::Events {
-    pub(super) fn fire_crossbow(&mut self, args: &mut event_args_s) {
-        let idx = args.entindex;
+    pub(super) fn fire_crossbow(&mut self, args: &mut EventArgs) {
+        let idx = args.entindex();
         let origin = args.origin();
 
         let engine = self.engine;
@@ -52,9 +52,9 @@ impl super::Events {
             .play(sound::weapons::XBOW_RELOAD1);
 
         if self.utils.is_local(idx) {
-            if args.iparam1 != 0 {
+            if args.iparam1() != 0 {
                 ev.weapon_animation(Crossbow::Fire1 as c_int, 1);
-            } else if args.iparam2 != 0 {
+            } else if args.iparam2() != 0 {
                 ev.weapon_animation(Crossbow::Fire3 as c_int, 1);
             }
 
@@ -62,8 +62,8 @@ impl super::Events {
         }
     }
 
-    pub(super) fn fire_crossbow2(&mut self, args: &mut event_args_s) {
-        let idx = args.entindex;
+    pub(super) fn fire_crossbow2(&mut self, args: &mut EventArgs) {
+        let idx = args.entindex();
         let origin = args.origin();
         let forward = args.angles().angle_vectors().forward();
         let engine = self.engine;
@@ -87,15 +87,15 @@ impl super::Events {
             .play(sound::weapons::XBOW_RELOAD1);
 
         if self.utils.is_local(idx) {
-            if args.iparam1 != 0 {
+            if args.iparam1() != 0 {
                 ev.weapon_animation(Crossbow::Fire1 as c_int, 1);
-            } else if args.iparam2 != 0 {
+            } else if args.iparam2() != 0 {
                 ev.weapon_animation(Crossbow::Fire3 as c_int, 1);
             }
         }
 
         let pm_states = ev.push_pm_states();
-        ev.set_solid_players(idx - 1);
+        ev.set_solid_players(idx.to_i32() - 1);
         ev.set_trace_hull(2);
         let tr = ev.player_trace(src, end, PM_NORMAL, -1);
 
@@ -113,7 +113,7 @@ impl super::Events {
                     .play(sample);
             } else if pe.rendermode == RenderMode::Normal as c_int {
                 ev.build_sound_at(tr.endpos)
-                    .entity(0)
+                    .entity(EntityIndex::FIRST)
                     .channel_body()
                     .volume(engine.random_float(0.95, 1.0))
                     .play(sound::weapons::XBOW_HIT1);

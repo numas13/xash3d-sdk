@@ -1,7 +1,7 @@
 use core::ffi::c_int;
 
 use res::valve::sound;
-use xash3d_client::{consts::PITCH, engine::event::event_args_s, prelude::*};
+use xash3d_client::{consts::PITCH, engine::event::EventArgs, prelude::*};
 
 use crate::export::view_mut;
 
@@ -22,8 +22,8 @@ enum Python {
 }
 
 impl super::Events {
-    pub(super) fn fire_python(&mut self, args: &mut event_args_s) {
-        let idx = args.entindex;
+    pub(super) fn fire_python(&mut self, args: &mut EventArgs) {
+        let idx = args.entindex();
         let origin = args.origin();
         let angles = args.angles();
         let av = angles.angle_vectors().all();
@@ -50,7 +50,7 @@ impl super::Events {
         let src = self.utils.get_gun_position(args, origin);
         let aiming = av.forward;
         let bullet = Bullet::Player357;
-        let spread = (args.fparam1, args.fparam2);
+        let spread = (args.fparam1(), args.fparam2());
 
         self.utils
             .fire_bullets(idx, av, 1, src, aiming, 8192.0, bullet, None, spread);

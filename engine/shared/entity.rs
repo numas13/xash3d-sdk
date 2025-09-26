@@ -21,6 +21,107 @@ define_enum_for_primitive! {
     }
 }
 
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[repr(transparent)]
+pub struct EntityIndex(u16);
+
+impl EntityIndex {
+    pub const FIRST: Self = Self(0);
+
+    pub const fn new(index: u16) -> Option<Self> {
+        if index < 0x1000 {
+            Some(Self(index))
+        } else {
+            None
+        }
+    }
+
+    /// Creates `EntityIndex` from a raw index value.
+    ///
+    /// # Safety
+    ///
+    /// The index value must be less than `0x1000`.
+    pub const unsafe fn new_unchecked(index: u16) -> Self {
+        Self(index)
+    }
+
+    pub const fn to_u16(self) -> u16 {
+        self.0
+    }
+
+    pub const fn to_i32(self) -> i32 {
+        self.0 as i32
+    }
+
+    pub const fn is_first(&self) -> bool {
+        self.0 == 0
+    }
+}
+
+impl From<BeamEntity> for EntityIndex {
+    fn from(value: BeamEntity) -> Self {
+        value.index()
+    }
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[repr(transparent)]
+pub struct BeamEntity(u16);
+
+impl BeamEntity {
+    pub const fn new(index: EntityIndex) -> BeamEntity {
+        BeamEntity(index.to_u16())
+    }
+
+    /// Creates `BeamEntity` from the given values.
+    ///
+    /// Returns `None` if the attachment is not less than `0x10`.
+    pub const fn with_attachment(index: EntityIndex, attachment: u16) -> Option<BeamEntity> {
+        if attachment < 0x10 {
+            Some(unsafe { Self::new_unchecked(index.to_u16(), attachment) })
+        } else {
+            None
+        }
+    }
+
+    /// Creates `BeamEntity` without checking whether arguments are valid. This results
+    /// in undefined behavior if arguments is not valid.
+    ///
+    /// # Safety
+    ///
+    /// * `index` must be less than `0x1000`.
+    /// * `attachment` must be less than `0x10`.
+    pub const unsafe fn new_unchecked(index: u16, attachment: u16) -> BeamEntity {
+        Self((attachment << 12) | index)
+    }
+
+    /// Creates `BeamEntity` from a raw value.
+    pub const fn from_bits(bits: u16) -> BeamEntity {
+        BeamEntity(bits)
+    }
+
+    /// Returns the underlying bits value.
+    pub const fn bits(&self) -> u16 {
+        self.0
+    }
+
+    /// Returns the entity index.
+    pub const fn index(&self) -> EntityIndex {
+        unsafe { EntityIndex::new_unchecked(self.0 & 0xfff) }
+    }
+
+    /// Returns the attachment.
+    pub const fn attachment(&self) -> u16 {
+        self.0 >> 12
+    }
+}
+
+impl From<EntityIndex> for BeamEntity {
+    fn from(value: EntityIndex) -> Self {
+        Self::new(value)
+    }
+}
+
 define_enum_for_primitive! {
     #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
     pub enum MoveType: c_int {

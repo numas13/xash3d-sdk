@@ -1,6 +1,6 @@
 use core::ffi::c_int;
 
-use xash3d_client::{consts::PM_NORMAL, engine::event::event_args_s, prelude::*};
+use xash3d_client::{consts::PM_NORMAL, engine::event::EventArgs, prelude::*};
 
 #[allow(dead_code)]
 #[derive(Copy, Clone)]
@@ -18,8 +18,8 @@ enum Tripmine {
 }
 
 impl super::Events {
-    pub(super) fn fire_tripmine(&mut self, args: &mut event_args_s) {
-        let idx = args.entindex;
+    pub(super) fn fire_tripmine(&mut self, args: &mut EventArgs) {
+        let idx = args.entindex();
         if !self.utils.is_local(idx) {
             return;
         }
@@ -36,7 +36,7 @@ impl super::Events {
         let end = src + forward * 128.0;
 
         let pm_states = ev.push_pm_states();
-        ev.set_solid_players(idx - 1);
+        ev.set_solid_players(idx.to_i32() - 1);
         ev.set_trace_hull(2);
         let tr = ev.player_trace(src, end, PM_NORMAL, -1);
 

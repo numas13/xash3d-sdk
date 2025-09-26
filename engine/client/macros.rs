@@ -40,26 +40,6 @@ pub use hook_command_key;
 
 #[doc(hidden)]
 #[macro_export]
-macro_rules! hook_event {
-    ($engine:expr, $name:expr, $block:block) => {{
-        $crate::macros::hook_event!($engine, $name, |_| $block);
-    }};
-    ($engine:expr, $name:expr, $handle:expr) => {{
-        use $crate::engine::event::event_args_s;
-
-        unsafe extern "C" fn event_hook(args: *mut event_args_s) {
-            let handle: fn(&mut event_args_s) -> _ = $handle;
-            handle(unsafe { &mut *args });
-        }
-
-        $engine.hook_event($name, Some(event_hook));
-    }};
-}
-#[doc(inline)]
-pub use hook_event;
-
-#[doc(hidden)]
-#[macro_export]
 macro_rules! spr_load {
     ($engine:expr, $($args:tt)+) => ({
         use core::fmt::Write;

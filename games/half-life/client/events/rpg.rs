@@ -1,7 +1,7 @@
 use core::ffi::c_int;
 
 use res::valve::sound;
-use xash3d_client::{consts::PITCH, engine::event::event_args_s, prelude::*};
+use xash3d_client::{consts::PITCH, engine::event::EventArgs};
 
 use crate::export::view_mut;
 
@@ -22,8 +22,8 @@ enum Rpg {
 }
 
 impl super::Events {
-    pub(super) fn fire_rpg(&mut self, args: &mut event_args_s) {
-        let idx = args.entindex;
+    pub(super) fn fire_rpg(&mut self, args: &mut EventArgs) {
+        let idx = args.entindex();
         let origin = args.origin();
 
         let engine = self.engine;

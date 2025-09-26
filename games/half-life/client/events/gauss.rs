@@ -3,8 +3,8 @@ use core::ffi::c_int;
 use res::valve::{self, sound, sprites};
 use xash3d_client::{
     consts::{PITCH, PM_NORMAL, SOLID_BSP, TE_SPRITETRAIL},
-    engine::{efx::BeamEntity, event::event_args_s},
-    entity::TempEntityFlags,
+    engine::event::EventArgs,
+    entity::{BeamEntity, EntityIndex, TempEntityFlags},
     ffi::common::vec3_t,
     prelude::*,
     render::{RenderFx, RenderMode},
@@ -31,21 +31,21 @@ enum Gauss {
 }
 
 impl super::Events {
-    fn stop_previous_gauss(&self, idx: c_int) {
+    fn stop_previous_gauss(&self, ent: EntityIndex) {
         let engine = self.engine;
         let ev = engine.event_api();
-        ev.kill_events(idx, valve::events::GAUSSSPIN);
-        ev.stop_sound(idx, Channel::Weapon, sound::ambience::PULSEMACHINE);
+        ev.kill_events(ent, valve::events::GAUSSSPIN);
+        ev.stop_sound(ent, Channel::Weapon, sound::ambience::PULSEMACHINE);
     }
 
-    pub(super) fn fire_gauss(&mut self, args: &mut event_args_s) {
-        let idx = args.entindex;
-        if args.bparam2 != 0 {
+    pub(super) fn fire_gauss(&mut self, args: &mut EventArgs) {
+        let idx = args.entindex();
+        if args.bparam2() {
             self.stop_previous_gauss(idx);
             return;
         }
 
-        let primary_fire = args.bparam1 != 0;
+        let primary_fire = args.bparam1();
         let origin = args.origin();
         let angles = args.angles();
         let mut forward = angles.angle_vectors().forward();
@@ -68,7 +68,7 @@ impl super::Events {
             }
         }
 
-        let mut damage = args.fparam1;
+        let mut damage = args.fparam1();
         ev.build_sound_at(origin)
             .entity(idx)
             .channel_weapon()
@@ -100,7 +100,7 @@ impl super::Events {
 
             ev.setup_player_predication(false, true);
             let pm_states = ev.push_pm_states();
-            ev.set_solid_players(idx - 1);
+            ev.set_solid_players(idx.to_i32() - 1);
             ev.set_trace_hull(2);
             let tr = ev.player_trace(src, dest, PM_NORMAL, -1);
             pm_states.pop();
@@ -116,7 +116,7 @@ impl super::Events {
                 }
 
                 efx.beam_ent_point(
-                    BeamEntity::new(idx as u16, 1).unwrap(),
+                    BeamEntity::with_attachment(idx, 1).unwrap(),
                     tr.endpos,
                     beam,
                     0.1,
@@ -209,7 +209,7 @@ impl super::Events {
                         let start = tr.endpos + forward * 8.0;
 
                         let pm_states = ev.push_pm_states();
-                        ev.set_solid_players(idx - 1);
+                        ev.set_solid_players(idx.to_i32() - 1);
                         ev.set_trace_hull(2);
                         let mut beam_tr = ev.player_trace(start, dest, PM_NORMAL, -1);
 
@@ -295,18 +295,18 @@ impl super::Events {
         }
     }
 
-    pub(super) fn spin_gauss(&mut self, args: &mut event_args_s) {
+    pub(super) fn spin_gauss(&mut self, args: &mut EventArgs) {
         self.engine
             .event_api()
             .build_sound_at(args.origin())
-            .entity(args.entindex)
+            .entity(args.entindex())
             .channel_weapon()
-            .flags(if args.bparam1 != 0 {
+            .flags(if args.bparam1() {
                 SoundFlags::CHANGE_PITCH
             } else {
                 SoundFlags::NONE
             })
-            .pitch(args.iparam1)
+            .pitch(args.iparam1())
             .play(sound::ambience::PULSEMACHINE);
     }
 }

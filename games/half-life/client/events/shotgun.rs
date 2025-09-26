@@ -3,7 +3,7 @@ use core::ffi::c_int;
 use res::valve::{models, sound};
 use xash3d_client::{
     consts::{PITCH, TE_BOUNCE_SHOTSHELL, YAW},
-    engine::event::event_args_s,
+    engine::event::EventArgs,
     prelude::*,
 };
 
@@ -28,8 +28,8 @@ enum Shotgun {
 }
 
 impl super::Events {
-    pub(super) fn fire_shotgun_single(&mut self, args: &mut event_args_s) {
-        let idx = args.entindex;
+    pub(super) fn fire_shotgun_single(&mut self, args: &mut EventArgs) {
+        let idx = args.entindex();
         let origin = args.origin();
         let angles = args.angles();
         let velocity = args.velocity();
@@ -73,8 +73,8 @@ impl super::Events {
         }
     }
 
-    pub(super) fn fire_shotgun_double(&mut self, args: &mut event_args_s) {
-        let idx = args.entindex;
+    pub(super) fn fire_shotgun_double(&mut self, args: &mut EventArgs) {
+        let idx = args.entindex();
         let origin = args.origin();
         let angles = args.angles();
         let velocity = args.velocity();

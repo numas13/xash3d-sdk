@@ -16,7 +16,7 @@ use xash3d_shared::{
     str::{AsCStrPtr, ToEngineStr},
 };
 
-use crate::{cvar::CVarPtr, globals::ServerGlobals, str::MapString};
+use crate::{cvar::CVarPtr, entity::EntityOffset, globals::ServerGlobals, str::MapString};
 
 pub use xash3d_shared::engine::{AddCmdError, EngineRef};
 
@@ -29,10 +29,6 @@ pub(crate) mod prelude {
 pub use self::prelude::*;
 
 pub type ServerEngineRef = EngineRef<ServerEngine>;
-
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
-#[repr(transparent)]
-pub struct EntOffset(pub c_int);
 
 define_enum_for_primitive! {
     #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
@@ -280,7 +276,7 @@ impl ServerEngine {
     }
 
     pub fn is_null_ent(&self, ent: *const edict_s) -> bool {
-        ent.is_null() || self.ent_offset_of_entity(ent) == 0
+        ent.is_null() || self.ent_offset_of_entity(unsafe { &*ent }).is_first()
     }
 
     pub fn find_ent_by_string_iter<'a>(
@@ -629,12 +625,14 @@ impl ServerEngine {
 
     // pub pfnGetVarsOfEnt: Option<unsafe extern "C" fn(pEdict: *mut edict_t) -> *mut entvars_s>,
 
-    pub fn entity_of_ent_offset(&self, ent_offset: EntOffset) -> *mut edict_s {
-        unsafe { unwrap!(self, pfnPEntityOfEntOffset)(ent_offset.0) }
+    pub fn entity_of_ent_offset(&self, offset: EntityOffset) -> *mut edict_s {
+        let offset = offset.to_u32() as c_int;
+        unsafe { unwrap!(self, pfnPEntityOfEntOffset)(offset) }
     }
 
-    pub fn ent_offset_of_entity(&self, edict: *const edict_s) -> c_int {
-        unsafe { unwrap!(self, pfnEntOffsetOfPEntity)(edict) }
+    pub fn ent_offset_of_entity(&self, edict: &edict_s) -> EntityOffset {
+        let offset = unsafe { unwrap!(self, pfnEntOffsetOfPEntity)(edict) };
+        unsafe { EntityOffset::new_unchecked(offset.try_into().unwrap()) }
     }
 
     pub fn ent_index(&self, edict: &edict_s) -> c_int {

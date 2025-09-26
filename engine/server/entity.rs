@@ -49,6 +49,30 @@ impl From<RestoreResult> for c_int {
     }
 }
 
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[repr(transparent)]
+pub struct EntityOffset(u32);
+
+impl EntityOffset {
+    /// Create a new `EntityOffset` from a value.
+    ///
+    /// # Safety
+    ///
+    /// The offset value must be received from the engine.
+    pub const unsafe fn new_unchecked(offset: u32) -> Self {
+        EntityOffset(offset)
+    }
+
+    /// Converts this offset to a raw value.
+    pub const fn to_u32(self) -> u32 {
+        self.0
+    }
+
+    pub const fn is_first(&self) -> bool {
+        self.0 == 0
+    }
+}
+
 /// Used to get a reference to [edict_s].
 pub trait AsEdict {
     /// Converts this type into a shared reference to [edict_s].

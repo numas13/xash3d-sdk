@@ -1,7 +1,7 @@
 use core::ffi::c_int;
 
 use res::valve::sound;
-use xash3d_client::{engine::event::event_args_s, prelude::*};
+use xash3d_client::engine::event::EventArgs;
 
 #[allow(dead_code)]
 #[derive(Copy, Clone)]
@@ -19,8 +19,8 @@ enum Crowbar {
 }
 
 impl super::Events {
-    pub(super) fn crowbar(&mut self, args: &mut event_args_s) {
-        let idx = args.entindex;
+    pub(super) fn crowbar(&mut self, args: &mut EventArgs) {
+        let idx = args.entindex();
         let engine = self.engine;
         let ev = engine.event_api();
         ev.build_sound_at(args.origin())

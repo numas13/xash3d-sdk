@@ -3,7 +3,7 @@ use core::ffi::c_int;
 use res::valve::{models, sound};
 use xash3d_client::{
     consts::{PITCH, TE_BOUNCE_SHELL, YAW},
-    engine::event::event_args_s,
+    engine::event::EventArgs,
     prelude::*,
 };
 
@@ -28,8 +28,8 @@ enum Glock {
 }
 
 impl super::Events {
-    pub(super) fn fire_glock1(&mut self, args: &mut event_args_s) {
-        let idx = args.entindex;
+    pub(super) fn fire_glock1(&mut self, args: &mut EventArgs) {
+        let idx = args.entindex();
         let origin = args.origin();
         let angles = args.angles();
         let velocity = args.velocity();
@@ -40,7 +40,7 @@ impl super::Events {
 
         if self.utils.is_local(idx) {
             self.utils.muzzle_flash();
-            let seq = if args.bparam1 != 0 {
+            let seq = if args.bparam1() {
                 Glock::ShootEmpty
             } else {
                 Glock::Shoot
@@ -66,13 +66,13 @@ impl super::Events {
         let src = self.utils.get_gun_position(args, origin);
         let aiming = av.forward;
         let bullet = Bullet::Player9mm;
-        let spread = (args.fparam1, args.fparam2);
+        let spread = (args.fparam1(), args.fparam2());
         self.utils
             .fire_bullets(idx, av, 1, src, aiming, 8192.0, bullet, None, spread);
     }
 
-    pub(super) fn fire_glock2(&mut self, args: &mut event_args_s) {
-        let idx = args.entindex;
+    pub(super) fn fire_glock2(&mut self, args: &mut EventArgs) {
+        let idx = args.entindex();
         let origin = args.origin();
         let angles = args.angles();
         let velocity = args.velocity();
@@ -104,7 +104,7 @@ impl super::Events {
         let src = self.utils.get_gun_position(args, origin);
         let aiming = av.forward;
         let bullet = Bullet::Player9mm;
-        let spread = (args.fparam1, args.fparam2);
+        let spread = (args.fparam1(), args.fparam2());
         self.utils
             .fire_bullets(idx, av, 1, src, aiming, 8192.0, bullet, None, spread);
     }

@@ -1,7 +1,7 @@
 use core::ffi::c_int;
 
 use res::valve::sound;
-use xash3d_client::{consts::PITCH, engine::event::event_args_s, prelude::*};
+use xash3d_client::{consts::PITCH, engine::event::EventArgs, prelude::*};
 
 use crate::export::view_mut;
 
@@ -18,13 +18,13 @@ enum Hgun {
 }
 
 impl super::Events {
-    pub(super) fn fire_hornet_gun(&mut self, args: &mut event_args_s) {
+    pub(super) fn fire_hornet_gun(&mut self, args: &mut EventArgs) {
         let engine = self.engine;
         let ev = engine.event_api();
 
-        let idx = args.entindex;
+        let idx = args.entindex();
         let origin = args.origin();
-        let _fire_mode = args.iparam1;
+        let _fire_mode = args.iparam1();
 
         if self.utils.is_local(idx) {
             ev.weapon_animation(Hgun::Shoot as c_int, 1);

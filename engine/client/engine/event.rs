@@ -2,42 +2,73 @@ use core::{ffi::c_int, mem::MaybeUninit};
 
 use csz::CStrThin;
 use xash3d_shared::{
+    entity::EntityIndex,
     ffi::{
         api::event::event_api_s,
-        common::{pmtrace_s, vec3_t},
+        common::{event_args_s, pmtrace_s, vec3_t},
         player_move::physent_s,
     },
     sound::{Attenuation, Channel, Pitch, SoundFlags},
     str::{AsCStrPtr, ToEngineStr},
 };
 
-pub use xash3d_shared::ffi::common::event_args_s;
-
-pub trait EventArgsExt {
-    fn origin(&self) -> vec3_t;
-
-    fn angles(&self) -> vec3_t;
-
-    fn velocity(&self) -> vec3_t;
+#[repr(transparent)]
+pub struct EventArgs {
+    args: event_args_s,
 }
 
-impl EventArgsExt for event_args_s {
-    fn origin(&self) -> vec3_t {
-        self.origin.into()
+impl EventArgs {
+    // pub flags: ::core::ffi::c_int,
+
+    pub fn entindex(&self) -> EntityIndex {
+        EntityIndex::new(self.args.entindex as u16)
+            .expect("invalid entity index in event arguments")
     }
 
-    fn angles(&self) -> vec3_t {
-        self.angles.into()
+    pub fn origin(&self) -> vec3_t {
+        self.args.origin.into()
     }
 
-    fn velocity(&self) -> vec3_t {
-        self.velocity.into()
+    pub fn angles(&self) -> vec3_t {
+        self.args.angles.into()
+    }
+
+    pub fn velocity(&self) -> vec3_t {
+        self.args.velocity.into()
+    }
+
+    pub fn ducking(&self) -> bool {
+        self.args.ducking != 0
+    }
+
+    pub fn fparam1(&self) -> f32 {
+        self.args.fparam1
+    }
+
+    pub fn fparam2(&self) -> f32 {
+        self.args.fparam2
+    }
+
+    pub fn iparam1(&self) -> c_int {
+        self.args.iparam1
+    }
+
+    pub fn iparam2(&self) -> c_int {
+        self.args.iparam2
+    }
+
+    pub fn bparam1(&self) -> bool {
+        self.args.bparam1 != 0
+    }
+
+    pub fn bparam2(&self) -> bool {
+        self.args.bparam2 != 0
     }
 }
 
 pub struct SoundBuilder<'a> {
     ev: &'a EventApi,
-    ent: c_int,
+    ent: Option<EntityIndex>,
     origin: vec3_t,
     channel: Channel,
     volume: f32,
@@ -47,8 +78,8 @@ pub struct SoundBuilder<'a> {
 }
 
 impl<'a> SoundBuilder<'a> {
-    pub fn entity(mut self, ent: c_int) -> Self {
-        self.ent = ent;
+    pub fn entity(mut self, ent: EntityIndex) -> Self {
+        self.ent = Some(ent);
         self
     }
 
@@ -167,7 +198,7 @@ impl EventApi {
     pub fn build_sound_at(&self, origin: vec3_t) -> SoundBuilder<'_> {
         SoundBuilder {
             ev: self,
-            ent: -1,
+            ent: None,
             origin,
             channel: Channel::Auto,
             volume: 1.0,
@@ -180,7 +211,7 @@ impl EventApi {
     #[allow(clippy::too_many_arguments)]
     pub fn play_sound(
         &self,
-        ent: c_int,
+        ent: Option<EntityIndex>,
         mut origin: vec3_t,
         channel: Channel,
         sample: impl ToEngineStr,
@@ -193,7 +224,7 @@ impl EventApi {
         unsafe {
             // FIXME: ffi: why origin is mutable?
             unwrap!(self, EV_PlaySound)(
-                ent,
+                ent.map_or(-1, |i| i.to_i32()),
                 origin.as_mut_ptr(),
                 channel.into(),
                 sample.as_ptr(),
@@ -205,7 +236,8 @@ impl EventApi {
         }
     }
 
-    pub fn stop_sound(&self, ent: c_int, channel: Channel, sample: impl ToEngineStr) {
+    pub fn stop_sound(&self, ent: EntityIndex, channel: Channel, sample: impl ToEngineStr) {
+        let ent = ent.to_i32();
         let sample = sample.to_engine_str();
         unsafe { unwrap!(self, EV_StopSound)(ent, channel.into(), sample.as_ptr()) }
     }
@@ -335,9 +367,9 @@ impl EventApi {
 
     // pub EV_StopAllSounds: Option<unsafe extern "C" fn(entnum: c_int, entchannel: c_int)>,
 
-    pub fn kill_events(&self, ent: c_int, event_name: impl ToEngineStr) {
+    pub fn kill_events(&self, ent: EntityIndex, event_name: impl ToEngineStr) {
         let event_name = event_name.to_engine_str();
-        unsafe { unwrap!(self, EV_KillEvents)(ent, event_name.as_ptr()) }
+        unsafe { unwrap!(self, EV_KillEvents)(ent.to_i32(), event_name.as_ptr()) }
     }
 
     // pub EV_PlayerTraceExt: Option<
@@ -364,3 +396,23 @@ impl EventApi {
     //     Option<unsafe extern "C" fn(hullnum: c_int, mins: *const f32, maxs: *const f32)>,
     // pub EV_PopTraceBounds: Option<unsafe extern "C" fn()>,
 }
+
+#[doc(hidden)]
+#[macro_export]
+macro_rules! hook_event {
+    ($engine:expr, $name:expr, $block:block) => {{
+        $crate::macros::hook_event!($engine, $name, |_| $block);
+    }};
+    ($engine:expr, $name:expr, $handle:expr) => {{
+        use $crate::{engine::event::EventArgs, ffi::common::event_args_s};
+
+        unsafe extern "C" fn event_hook(args: *mut event_args_s) {
+            let handle: fn(&mut EventArgs) -> _ = $handle;
+            handle(unsafe { &mut *args.cast::<EventArgs>() });
+        }
+
+        $engine.hook_event($name, Some(event_hook));
+    }};
+}
+#[doc(inline)]
+pub use hook_event;

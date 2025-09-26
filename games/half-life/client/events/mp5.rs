@@ -3,7 +3,7 @@ use core::ffi::c_int;
 use res::valve::{models, sound};
 use xash3d_client::{
     consts::{PITCH, TE_BOUNCE_SHELL, YAW},
-    engine::event::event_args_s,
+    engine::event::EventArgs,
     prelude::*,
 };
 
@@ -26,8 +26,8 @@ enum Mp5 {
 }
 
 impl super::Events {
-    pub(super) fn fire_mp5(&mut self, args: &mut event_args_s) {
-        let idx = args.entindex;
+    pub(super) fn fire_mp5(&mut self, args: &mut EventArgs) {
+        let idx = args.entindex();
         let origin = args.origin();
         let angles = args.angles();
         let velocity = args.velocity();
@@ -64,14 +64,14 @@ impl super::Events {
         let src = self.utils.get_gun_position(args, origin);
         let aiming = av.forward;
         let bullet = Bullet::PlayerMp5;
-        let tracer = Some((2, &mut self.tracer_count[idx as usize - 1]));
-        let spread = (args.fparam1, args.fparam2);
+        let tracer = Some((2, &mut self.tracer_count[idx.to_u16() as usize - 1]));
+        let spread = (args.fparam1(), args.fparam2());
         self.utils
             .fire_bullets(idx, av, 1, src, aiming, 8192.0, bullet, tracer, spread);
     }
 
-    pub(super) fn fire_mp5_2(&mut self, args: &mut event_args_s) {
-        let idx = args.entindex;
+    pub(super) fn fire_mp5_2(&mut self, args: &mut EventArgs) {
+        let idx = args.entindex();
         let origin = args.origin();
         let engine = self.engine;
         let ev = engine.event_api();

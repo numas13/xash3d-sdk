@@ -18,13 +18,15 @@ use csz::CStrArray;
 use res::valve::{self, sound};
 use xash3d_client::{
     consts::{EFLAG_FLESH_SOUND, MAX_PLAYERS, PM_NORMAL, SOLID_BSP},
-    engine::{event::event_args_s, ClientEngineRef},
-    entity::{Effects, MoveType},
+    engine::{
+        event::{hook_event, EventArgs},
+        ClientEngineRef,
+    },
+    entity::{Effects, EntityIndex, MoveType},
     ffi::{
         common::{pmtrace_s, vec3_t},
         player_move::physent_s,
     },
-    macros::hook_event,
     math::AngleVectorsAll,
     prelude::*,
     render::RenderMode,
@@ -67,7 +69,9 @@ impl Events {
 
         macro_rules! hook {
             ($engine:expr; $($event:expr => $func:ident),* $(,)?) => (
-                $(hook_event!($engine, $event, |args| events_mut().$func(args));)*
+                $(hook_event!($engine, $event, |args| {
+                    events_mut().$func(args)
+                });)*
             );
         }
 
@@ -113,12 +117,14 @@ struct Utils {
 }
 
 impl Utils {
-    fn is_player(&self, idx: c_int) -> bool {
+    fn is_player(&self, idx: EntityIndex) -> bool {
+        let idx = idx.to_i32();
         idx >= 1 && idx <= self.engine.get_max_clients()
     }
 
-    fn is_local(&self, idx: c_int) -> bool {
-        self.engine.event_api().is_local(idx - 1)
+    fn is_local(&self, idx: EntityIndex) -> bool {
+        let player_num = idx.to_i32() - 1;
+        self.engine.event_api().is_local(player_num)
     }
 
     fn muzzle_flash(&self) {
@@ -126,11 +132,12 @@ impl Utils {
         ent.curstate.effects |= Effects::MUZZLEFLASH.bits();
     }
 
-    fn get_player_view_height(&self, args: &event_args_s) -> vec3_t {
-        if self.is_player(args.entindex) {
-            if self.is_local(args.entindex) {
+    fn get_player_view_height(&self, args: &EventArgs) -> vec3_t {
+        let idx = args.entindex();
+        if self.is_player(idx) {
+            if self.is_local(idx) {
                 return self.engine.event_api().local_player_view_height();
-            } else if args.ducking == 1 {
+            } else if args.ducking() {
                 return vec3_t::new(0.0, 0.0, VEC_DUCK_VIEW);
             }
         }
@@ -140,7 +147,7 @@ impl Utils {
     #[allow(clippy::too_many_arguments)]
     fn get_default_shell_info(
         &self,
-        args: &mut event_args_s,
+        args: &mut EventArgs,
         origin: vec3_t,
         velocity: vec3_t,
         av: AngleVectorsAll,
@@ -179,13 +186,13 @@ impl Utils {
             .temp_model(origin, velocity, endpos, 2.5, model, soundtype);
     }
 
-    fn get_gun_position(&self, args: &event_args_s, origin: vec3_t) -> vec3_t {
+    fn get_gun_position(&self, args: &EventArgs, origin: vec3_t) -> vec3_t {
         origin + self.get_player_view_height(args)
     }
 
     fn play_texture_sound(
         &self,
-        _idx: c_int,
+        _ent: EntityIndex,
         tr: &pmtrace_s,
         src: vec3_t,
         end: vec3_t,
@@ -301,7 +308,7 @@ impl Utils {
 
         let sample = samples[engine.random_int(0, samples.len() as c_int - 1) as usize];
         ev.build_sound_at(tr.endpos)
-            .entity(0)
+            .entity(EntityIndex::FIRST)
             .channel_static()
             .volume(fvol)
             .attenuation(fattn)
@@ -347,7 +354,6 @@ impl Utils {
                 sound::weapons::RIC5,
             ];
             ev.build_sound_at(tr.endpos)
-                .entity(-1)
                 .play(samples[(rand % 5) as usize]);
         }
 
@@ -380,7 +386,7 @@ impl Utils {
     #[allow(clippy::too_many_arguments)]
     fn check_tracer(
         &self,
-        idx: c_int,
+        idx: EntityIndex,
         src: vec3_t,
         end: vec3_t,
         forward: vec3_t,
@@ -411,7 +417,7 @@ impl Utils {
     #[allow(clippy::too_many_arguments)]
     fn fire_bullets(
         &self,
-        idx: c_int,
+        idx: EntityIndex,
         av: AngleVectorsAll,
         shots: c_int,
         src: vec3_t,
@@ -442,7 +448,7 @@ impl Utils {
             ev.setup_player_predication(false, true);
             let pm_states = ev.push_pm_states();
 
-            ev.set_solid_players(idx - 1);
+            ev.set_solid_players(idx.to_i32() - 1);
             ev.set_trace_hull(2);
             let tr = ev.player_trace(src, end, PM_NORMAL, -1);
             let tracer = match &mut tracer {

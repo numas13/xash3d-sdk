@@ -1,14 +1,14 @@
 use core::ffi::c_int;
 
 use res::valve::sound;
-use xash3d_client::{engine::event::event_args_s, prelude::*, sound::Channel};
+use xash3d_client::{engine::event::EventArgs, sound::Channel};
 
 impl super::Events {
-    pub(super) fn train_pitch_adjust(&mut self, args: &mut event_args_s) {
-        let idx = args.entindex;
+    pub(super) fn train_pitch_adjust(&mut self, args: &mut EventArgs) {
+        let idx = args.entindex();
         let origin = args.origin();
-        let us_params = args.iparam1 as u16;
-        let stop = args.bparam1 != 0;
+        let us_params = args.iparam1() as u16;
+        let stop = args.bparam1();
         let noise = ((us_params >> 12) & 0x7) as c_int;
 
         let sample = match noise {
