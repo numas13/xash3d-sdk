@@ -1,9 +1,11 @@
 use core::{ffi::c_int, mem::MaybeUninit};
 
+use bitflags::bitflags;
 use csz::CStrThin;
 use xash3d_shared::{
     entity::EntityIndex,
     ffi::{
+        self,
         api::event::event_api_s,
         common::{event_args_s, pmtrace_s, vec3_t},
         player_move::physent_s,
@@ -12,13 +14,27 @@ use xash3d_shared::{
     str::{AsCStrPtr, ToEngineStr},
 };
 
+bitflags! {
+    /// Event flags.
+    #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
+    #[repr(transparent)]
+    pub struct EventFlags: c_int {
+        /// Event was invoked with stated origin.
+        const ORIGIN = ffi::common::FEVENT_ORIGIN;
+        /// Event was invoked with stated angles.
+        const ANGLES = ffi::common::FEVENT_ANGLES;
+    }
+}
+
 #[repr(transparent)]
 pub struct EventArgs {
     args: event_args_s,
 }
 
 impl EventArgs {
-    // pub flags: ::core::ffi::c_int,
+    pub fn flags(&self) -> EventFlags {
+        EventFlags::from_bits_retain(self.args.flags)
+    }
 
     pub fn entindex(&self) -> EntityIndex {
         EntityIndex::new(self.args.entindex as u16)
