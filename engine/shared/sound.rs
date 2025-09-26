@@ -112,37 +112,36 @@ impl From<Pitch> for c_int {
     }
 }
 
-// TODO: use consts from ffi
 bitflags! {
     #[derive(Copy, Clone, PartialEq, Eq)]
     #[repr(transparent)]
     pub struct SoundFlags: c_int {
         const NONE              = 0;
         /// A scaled byte.
-        const VOLUME            = 1 << 0;
+        const VOLUME            = ffi::common::SND_VOLUME;
         /// A byte.
-        const ATTENUATION       = 1 << 1;
+        const ATTENUATION       = ffi::common::SND_ATTENUATION;
         /// Get sentence from a script.
-        const SEQUENCE          = 1 << 2;
+        const SEQUENCE          = ffi::common::SND_SEQUENCE;
         /// A byte.
-        const PITCH             = 1 << 3;
+        const PITCH             = ffi::common::SND_PITCH;
         /// Set if sound num is actually a sentence num.
-        const SENTENCE          = 1 << 4;
+        const SENTENCE          = ffi::common::SND_SENTENCE;
         /// Stop the sound.
-        const STOP              = 1 << 5;
+        const STOP              = ffi::common::SND_STOP;
         /// Change sound vol.
-        const CHANGE_VOL        = 1 << 6;
+        const CHANGE_VOL        = ffi::common::SND_CHANGE_VOL;
         /// Change sound pitch.
-        const CHANGE_PITCH      = 1 << 7;
+        const CHANGE_PITCH      = ffi::common::SND_CHANGE_PITCH;
         /// We're spawning, used in some cases for ambients (not sent across network).
-        const SPAWNING          = 1 << 8;
+        const SPAWNING          = ffi::common::SND_SPAWNING;
         /// Not paused, not looped, for internal use.
-        const LOCALSOUND        = 1 << 9;
+        const LOCALSOUND        = ffi::common::SND_LOCALSOUND;
         /// Stop all looping sounds on the entity.
-        const STOP_LOOPING      = 1 << 10;
+        const STOP_LOOPING      = ffi::common::SND_STOP_LOOPING;
         /// Don't send sound from local player if prediction was enabled.
-        const FILTER_CLIENT     = 1 << 11;
+        const FILTER_CLIENT     = ffi::common::SND_FILTER_CLIENT;
         /// Passed playing position and the forced end.
-        const RESTORE_POSITION  = 1 << 12;
+        const RESTORE_POSITION  = ffi::common::SND_RESTORE_POSITION;
     }
 }
