@@ -113,7 +113,7 @@ impl super::Events {
                     .play(sample);
             } else if pe.rendermode == RenderMode::Normal as c_int {
                 ev.build_sound_at(tr.endpos)
-                    .entity(EntityIndex::FIRST)
+                    .entity(EntityIndex::ZERO)
                     .channel_body()
                     .volume(engine.random_float(0.95, 1.0))
                     .play(sound::weapons::XBOW_HIT1);

@@ -21,6 +21,7 @@ pub mod prelude;
 pub mod save;
 pub mod sound;
 pub mod str;
+pub mod svc;
 pub mod utils;
 
-pub use xash3d_shared::{cell, color, cvar, ffi, math, str::ToEngineStr};
+pub use xash3d_shared::{cell, color, cvar, ffi, math, render};

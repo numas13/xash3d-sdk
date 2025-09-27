@@ -165,14 +165,14 @@ pub fn add_to_full_pack(
     state.rendercolor.b = ent.v.rendercolor[2] as u8;
 
     state.aiment = if !ent.v.aiment.is_null() {
-        engine.ent_index(unsafe { &*ent.v.aiment })
+        engine.ent_index(unsafe { &*ent.v.aiment }).to_i32()
     } else {
         0
     };
 
     state.owner = 0;
     if !ent.v.owner.is_null() {
-        let owner = engine.ent_index(unsafe { &*ent.v.owner });
+        let owner = engine.ent_index(unsafe { &*ent.v.owner }).to_i32();
         if owner >= 1 && owner <= engine.globals.max_clients() {
             state.owner = owner;
         }

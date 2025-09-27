@@ -5,18 +5,23 @@ use core::{
 
 use csz::{CStrSlice, CStrThin};
 use xash3d_shared::{
+    entity::EntityIndex,
     export::impl_unsync_global,
     ffi::{
-        self,
         common::{cvar_s, vec3_t},
         server::{edict_s, enginefuncs_s, globalvars_t, ALERT_TYPE, LEVELLIST},
     },
-    macros::define_enum_for_primitive,
     sound::{Attenuation, Channel, Pitch, SoundFlags},
     str::{AsCStrPtr, ToEngineStr},
 };
 
-use crate::{cvar::CVarPtr, entity::EntityOffset, globals::ServerGlobals, str::MapString};
+use crate::{
+    cvar::CVarPtr,
+    entity::EntityOffset,
+    globals::ServerGlobals,
+    str::MapString,
+    svc::{Message, MessageDest},
+};
 
 pub use xash3d_shared::engine::{AddCmdError, EngineRef};
 
@@ -29,34 +34,6 @@ pub(crate) mod prelude {
 pub use self::prelude::*;
 
 pub type ServerEngineRef = EngineRef<ServerEngine>;
-
-define_enum_for_primitive! {
-    #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
-    pub enum MsgDest: c_int {
-        #[default]
-        /// Unreliable to all.
-        Broadcast(ffi::common::MSG_BROADCAST),
-        /// Reliable to one (msg_entity).
-        One(ffi::common::MSG_ONE),
-        /// Reliable to all.
-        All(ffi::common::MSG_ALL),
-        /// Write to the init string.
-        Init(ffi::common::MSG_INIT),
-        /// Ents in PVS of org.
-        Pvs(ffi::common::MSG_PVS),
-        /// Ents in PAS of org.
-        Pas(ffi::common::MSG_PAS),
-        /// Reliable to PVS.
-        PvsR(ffi::common::MSG_PVS_R),
-        /// Reliable to PAS.
-        PasR(ffi::common::MSG_PAS_R),
-        /// Send to one client, but do not put in reliable stream, put in unreliable datagram
-        /// (could be dropped).
-        OneUnreliable(ffi::common::MSG_ONE_UNRELIABLE),
-        // Sends to all spectator proxies.
-        Spec(ffi::common::MSG_SPEC),
-    }
-}
 
 pub trait LevelListExt {
     fn map_name(&self) -> &CStrThin;
@@ -507,12 +484,74 @@ impl ServerEngine {
         unsafe { unwrap!(self, pfnLightStyle)(style, value.as_ptr()) }
     }
 
-    // pub pfnDecalIndex: Option<unsafe extern "C" fn(name: *const c_char) -> c_int>,
+    pub fn decal_index(&self, name: impl ToEngineStr) -> Option<u16> {
+        let name = name.to_engine_str();
+        let index = unsafe { unwrap!(self, pfnDecalIndex)(name.as_ptr()) };
+        if index >= 0 {
+            // TODO: use NonZeroU16 for decal index?
+            index.try_into().ok()
+        } else {
+            None
+        }
+    }
+
     // pub pfnPointContents: Option<unsafe extern "C" fn(rgflVector: *const f32) -> c_int>,
+
+    fn msg_send<T: Message>(
+        &self,
+        dest: MessageDest,
+        position: Option<vec3_t>,
+        ent: Option<&mut edict_s>,
+        msg: &T,
+    ) {
+        self.msg_begin(dest, T::MSG_TYPE, position, ent);
+        msg.write_body(self);
+        self.msg_end();
+    }
+
+    pub fn msg_broadcast<T: Message>(&self, msg: &T) {
+        self.msg_send(MessageDest::Broadcast, None, None, msg);
+    }
+
+    pub fn msg_all<T: Message>(&self, msg: &T) {
+        self.msg_send(MessageDest::All, None, None, msg);
+    }
+
+    pub fn msg_one<T: Message>(&self, ent: &mut edict_s, msg: &T) {
+        self.msg_send(MessageDest::One, None, Some(ent), msg);
+    }
+
+    pub fn msg_one_reliable<T: Message>(&self, ent: &mut edict_s, msg: &T) {
+        self.msg_send(MessageDest::OneReliable, None, Some(ent), msg);
+    }
+
+    pub fn msg_init<T: Message>(&self, msg: &T) {
+        self.msg_send(MessageDest::Init, None, None, msg);
+    }
+
+    pub fn msg_pvs<T: Message>(&self, position: vec3_t, msg: &T) {
+        self.msg_send(MessageDest::Pvs, Some(position), None, msg);
+    }
+
+    pub fn msg_pvs_reliable<T: Message>(&self, position: vec3_t, msg: &T) {
+        self.msg_send(MessageDest::PvsReliable, Some(position), None, msg);
+    }
+
+    pub fn msg_pas<T: Message>(&self, position: vec3_t, msg: &T) {
+        self.msg_send(MessageDest::Pas, Some(position), None, msg);
+    }
+
+    pub fn msg_reliable<T: Message>(&self, position: vec3_t, msg: &T) {
+        self.msg_send(MessageDest::PasReliable, Some(position), None, msg);
+    }
+
+    pub fn msg_spec<T: Message>(&self, msg: &T) {
+        self.msg_send(MessageDest::Spec, None, None, msg);
+    }
 
     pub fn msg_begin(
         &self,
-        dest: MsgDest,
+        dest: MessageDest,
         msg_type: c_int,
         origin: Option<vec3_t>,
         ent: Option<&mut edict_s>,
@@ -563,13 +602,19 @@ impl ServerEngine {
         unsafe { unwrap!(self, pfnWriteCoord)(value) }
     }
 
+    pub fn msg_write_coord_vec3(&self, v: vec3_t) {
+        self.msg_write_coord(v.x());
+        self.msg_write_coord(v.y());
+        self.msg_write_coord(v.z());
+    }
+
     pub fn msg_write_string(&self, value: impl ToEngineStr) {
         let value = value.to_engine_str();
         unsafe { unwrap!(self, pfnWriteString)(value.as_ptr()) }
     }
 
-    pub fn msg_write_entity(&self, index: c_int) {
-        unsafe { unwrap!(self, pfnWriteEntity)(index) }
+    pub fn msg_write_entity(&self, index: EntityIndex) {
+        unsafe { unwrap!(self, pfnWriteEntity)(index.to_i32()) }
     }
 
     pub fn cvar_register(&self, cvar: &'static mut cvar_s) {
@@ -635,12 +680,13 @@ impl ServerEngine {
         unsafe { EntityOffset::new_unchecked(offset.try_into().unwrap()) }
     }
 
-    pub fn ent_index(&self, edict: &edict_s) -> c_int {
-        unsafe { unwrap!(self, pfnIndexOfEdict)(edict) }
+    pub fn ent_index(&self, edict: &edict_s) -> EntityIndex {
+        let index = unsafe { unwrap!(self, pfnIndexOfEdict)(edict) };
+        unsafe { EntityIndex::new_unchecked(index.try_into().unwrap()) }
     }
 
-    pub fn entity_of_ent_index(&self, ent_index: c_int) -> *mut edict_s {
-        unsafe { unwrap!(self, pfnPEntityOfEntIndex)(ent_index) }
+    pub fn entity_of_ent_index(&self, ent: EntityIndex) -> *mut edict_s {
+        unsafe { unwrap!(self, pfnPEntityOfEntIndex)(ent.to_i32()) }
     }
 
     // pub pfnFindEntityByVars: Option<unsafe extern "C" fn(pvars: *mut entvars_s) -> *mut edict_t>,

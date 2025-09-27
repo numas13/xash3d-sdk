@@ -1,17 +1,17 @@
 use core::ffi::CStr;
 
 use xash3d_server::{
-    engine::MsgDest,
     entity::{delegate_entity, AsEdict, BaseEntity, CreateEntity, Entity, EntityVars, UseType},
     export::export_entity,
     ffi::{
-        common::{vec3_t, TE_SPARKS},
+        common::vec3_t,
         server::{KeyValueData, TYPEDESCRIPTION},
     },
     prelude::*,
     save::{
         define_fields, FieldType, KeyValueDataExt, SaveFields, SaveReader, SaveResult, SaveWriter,
     },
+    svc,
 };
 
 use crate::{entity::Private, impl_cast};
@@ -159,21 +159,10 @@ const SPARK_SOUNDS: &[&CStr] = &[
     res::valve::sound::buttons::SPARK6,
 ];
 
-// TODO: use xash3d_server::ffi::common::svc_temp_entity;
-const SVC_TEMPENTITY: i32 = 23;
-
-fn msg_sparks(engine: ServerEngineRef, position: vec3_t) {
-    engine.msg_begin(MsgDest::Pvs, SVC_TEMPENTITY, Some(position), None);
-    engine.msg_write_u8(TE_SPARKS as u8);
-    engine.msg_write_coord(position.x());
-    engine.msg_write_coord(position.y());
-    engine.msg_write_coord(position.z());
-    engine.msg_end();
-}
-
 fn do_spark(engine: ServerEngineRef, vars: &mut EntityVars, location: vec3_t) {
     let ev = vars.as_raw();
-    msg_sparks(engine, location + ev.size * 0.5);
+    let pos = location + ev.size * 0.5;
+    engine.msg_pvs(pos, &svc::Sparks::new(pos));
     let volume = engine.random_float(0.25, 0.75) * 0.4;
     let index = (engine.random_float(0.0, 1.0) * SPARK_SOUNDS.len() as f32) as usize;
     engine

@@ -4,7 +4,7 @@ use xash3d_server::{
     consts::{DAMAGE_AIM, DEAD_NO, SOLID_SLIDEBOX},
     entity::{
         delegate_entity, AsEdict, BaseEntity, CreateEntity, EdictFlags, Effects, Entity,
-        EntityPlayer, MoveType, ObjectCaps, PrivateData,
+        EntityIndex, EntityPlayer, MoveType, ObjectCaps, PrivateData,
     },
     export::export_entity,
     ffi::server::edict_s,
@@ -116,7 +116,7 @@ impl EntityPlayer for Player {
             spot
         } else {
             error!("No info_player_start on level");
-            engine.entity_of_ent_index(0)
+            engine.entity_of_ent_index(EntityIndex::ZERO)
         }
     }
 

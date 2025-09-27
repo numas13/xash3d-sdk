@@ -25,8 +25,14 @@ define_enum_for_primitive! {
 #[repr(transparent)]
 pub struct EntityIndex(u16);
 
+impl Default for EntityIndex {
+    fn default() -> Self {
+        Self::ZERO
+    }
+}
+
 impl EntityIndex {
-    pub const FIRST: Self = Self(0);
+    pub const ZERO: Self = Self(0);
 
     pub const fn new(index: u16) -> Option<Self> {
         if index < 0x1000 {
@@ -53,7 +59,7 @@ impl EntityIndex {
         self.0 as i32
     }
 
-    pub const fn is_first(&self) -> bool {
+    pub const fn is_zero(&self) -> bool {
         self.0 == 0
     }
 }
@@ -67,6 +73,12 @@ impl From<BeamEntity> for EntityIndex {
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 #[repr(transparent)]
 pub struct BeamEntity(u16);
+
+impl Default for BeamEntity {
+    fn default() -> Self {
+        Self::new(EntityIndex::default())
+    }
+}
 
 impl BeamEntity {
     pub const fn new(index: EntityIndex) -> BeamEntity {
