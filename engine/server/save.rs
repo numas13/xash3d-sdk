@@ -31,6 +31,10 @@ macro_rules! impl_type_description {
             impl TypeDescription for $type {
                 const TYPE: FieldType = $field_type;
             }
+            xash3d_shared::macros::const_assert_eq!(
+                $field_type.size(),
+                core::mem::size_of::<$type>(),
+            );
         )*
     };
 }
@@ -55,6 +59,11 @@ impl_type_description! {
 
     FieldType::EDICT => *const edict_s,
     FieldType::EDICT => *mut edict_s,
+}
+
+// define types for wrappers
+impl_type_description! {
+    FieldType::FLOAT => crate::sound::Attenuation,
 }
 
 impl<T: TypeDescription, const N: usize> TypeDescription for [T; N] {
