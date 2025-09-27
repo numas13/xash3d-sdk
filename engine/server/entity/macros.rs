@@ -349,17 +349,17 @@ macro_rules! define_entity_trait {
                 #[doc(hidden)]
                 #[macro_export]
                 macro_rules! $delegate {
-                    ($base:ident $v:vis not { $d($d meth:ident),* }) => {
+                    ($base:ident $v:vis not { $d($d meth:ident),* $d(,)? }) => {
                         $( $delegate!($base, $v $meth, $d( $d meth ),*); )*
                     };
-                    ($base:ident { $d($d v:vis $d meth:ident),* }) => {
+                    ($base:ident { $d($d v:vis $d meth:ident),* $d(,)? }) => {
                         $d( $delegate!($base, $d v $d meth); )*
                     };
                     ($base:ident $v:vis) => {
-                        $delegate!($base { $( $v $meth ),* });
+                        $delegate!($base { $( $v $meth ),* $d(,)? });
                     };
                     ($base:ident) => {
-                        $delegate!($base { $( $meth ),* });
+                        $delegate!($base { $( $meth ),* $d(,)? });
                     };
                     $(
                         ($base:ident, $v:vis $meth, $meth $d(, $d rest:ident)* $d(,)?) => {
