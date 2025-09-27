@@ -38,6 +38,16 @@ impl MapString {
     pub fn as_c_str(&self) -> &CStr {
         self.as_thin().as_c_str()
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.as_thin().is_empty()
+    }
+
+    pub fn is_null_or_empty(engine: ServerEngineRef, index: c_int) -> bool {
+        MapString::from_index(engine, index)
+            .map(|s| s.is_empty())
+            .unwrap_or(true)
+    }
 }
 
 impl Deref for MapString {
