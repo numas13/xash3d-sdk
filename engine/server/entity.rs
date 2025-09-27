@@ -187,6 +187,10 @@ impl EntityVars {
         unsafe { mem::transmute(&mut self.as_raw_mut().effects) }
     }
 
+    pub fn set_next_think_time(&mut self, time: f32) {
+        self.as_raw_mut().nextthink = time;
+    }
+
     pub fn key_value(&mut self, data: &mut KeyValueData) {
         let key_name = data.key_name();
         let field = entvars_s::SAVE_FIELDS.iter().find(|i| {
