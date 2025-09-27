@@ -166,8 +166,8 @@ fn do_spark(engine: ServerEngineRef, vars: &mut EntityVars, location: vec3_t) {
     let volume = engine.random_float(0.25, 0.75) * 0.4;
     let index = (engine.random_float(0.0, 1.0) * SPARK_SOUNDS.len() as f32) as usize;
     engine
-        .build_sound_for(vars.as_edict_mut())
+        .build_sound()
         .channel_voice()
         .volume(volume)
-        .emit(SPARK_SOUNDS[index]);
+        .emit(SPARK_SOUNDS[index], vars.as_edict_mut());
 }

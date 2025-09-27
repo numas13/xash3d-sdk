@@ -65,7 +65,6 @@ impl LevelListExt for LEVELLIST {
 
 pub struct SoundBuilder<'a> {
     engine: &'a ServerEngine,
-    entity: &'a mut edict_s,
     channel: Channel,
     volume: f32,
     attenuation: Attenuation,
@@ -128,9 +127,9 @@ impl<'a> SoundBuilder<'a> {
         self
     }
 
-    pub fn emit(self, sample: impl ToEngineStr) {
+    pub fn emit(self, sample: impl ToEngineStr, ent: &mut edict_s) {
         self.engine.emit_sound(
-            self.entity,
+            ent,
             self.channel,
             sample,
             self.volume,
@@ -140,13 +139,35 @@ impl<'a> SoundBuilder<'a> {
         );
     }
 
-    pub fn emit_dyn(self, sample: impl ToEngineStr) {
+    pub fn emit_dyn(self, sample: impl ToEngineStr, ent: &mut edict_s) {
         let sample = sample.to_engine_str();
         let sample = sample.as_ref();
         if let Some(b'!') = sample.to_bytes().first() {
             // TODO: find sound sample in sentences.txt
         } else {
-            self.emit(sample);
+            self.emit(sample, ent);
+        }
+    }
+
+    pub fn ambient_emit(self, sample: impl ToEngineStr, pos: vec3_t, ent: &mut edict_s) {
+        self.engine.emit_ambient_sound(
+            ent,
+            pos,
+            sample,
+            self.volume,
+            self.attenuation,
+            self.flags,
+            self.pitch,
+        );
+    }
+
+    pub fn ambient_emit_dyn(self, sample: impl ToEngineStr, pos: vec3_t, ent: &mut edict_s) {
+        let sample = sample.to_engine_str();
+        let sample = sample.as_ref();
+        if let Some(b'!') = sample.to_bytes().first() {
+            // TODO: find sound sample in sentences.txt
+        } else {
+            self.ambient_emit(sample, pos, ent);
         }
     }
 }
@@ -344,22 +365,9 @@ impl ServerEngine {
         unsafe { unwrap!(self, pfnSetOrigin)(ent, origin.as_ptr()) }
     }
 
-    // pub pfnEmitSound: Option<
-    //     unsafe extern "C" fn(
-    //         entity: *mut edict_t,
-    //         channel: c_int,
-    //         sample: *const c_char,
-    //         volume: f32,
-    //         attenuation: f32,
-    //         fFlags: c_int,
-    //         pitch: c_int,
-    //     ),
-    // >,
-
-    pub fn build_sound_for<'a>(&'a self, entity: &'a mut edict_s) -> SoundBuilder<'a> {
+    pub fn build_sound<'a>(&'a self) -> SoundBuilder<'a> {
         SoundBuilder {
             engine: self,
-            entity,
             channel: Channel::Auto,
             volume: 1.0,
             attenuation: Attenuation::NORM,
@@ -393,17 +401,32 @@ impl ServerEngine {
         }
     }
 
-    // pub pfnEmitAmbientSound: Option<
-    //     unsafe extern "C" fn(
-    //         entity: *mut edict_t,
-    //         pos: *mut f32,
-    //         samp: *const c_char,
-    //         vol: f32,
-    //         attenuation: f32,
-    //         fFlags: c_int,
-    //         pitch: c_int,
-    //     ),
-    // >,
+    #[allow(clippy::too_many_arguments)]
+    pub fn emit_ambient_sound(
+        &self,
+        entity: &mut edict_s,
+        mut pos: vec3_t,
+        sample: impl ToEngineStr,
+        volume: f32,
+        attenuation: Attenuation,
+        flags: SoundFlags,
+        pitch: Pitch,
+    ) {
+        let sample = sample.to_engine_str();
+        // FIXME: ffi: why pos is mutable?
+        unsafe {
+            unwrap!(self, pfnEmitAmbientSound)(
+                entity,
+                pos.as_mut_ptr(),
+                sample.as_ptr(),
+                volume,
+                attenuation.into(),
+                flags.bits(),
+                pitch.into(),
+            )
+        }
+    }
+
     // pub pfnTraceLine: Option<
     //     unsafe extern "C" fn(
     //         v1: *const f32,
