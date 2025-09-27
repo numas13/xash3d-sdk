@@ -222,7 +222,9 @@ impl ServerEngine {
         unsafe { unwrap!(self, pfnModelIndex)(m.as_ptr()) }
     }
 
-    // pub pfnModelFrames: Option<unsafe extern "C" fn(modelIndex: c_int) -> c_int>,
+    pub fn model_frames(&self, model_index: c_int) -> c_int {
+        unsafe { unwrap!(self, pfnModelFrames)(model_index) }
+    }
 
     pub fn set_size(&self, ent: &mut edict_s, min: vec3_t, max: vec3_t) {
         unsafe { unwrap!(self, pfnSetSize)(ent, min.as_ptr(), max.as_ptr()) }

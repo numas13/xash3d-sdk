@@ -187,8 +187,12 @@ impl EntityVars {
         unsafe { mem::transmute(&mut self.as_raw_mut().effects) }
     }
 
-    pub fn set_next_think_time(&mut self, time: f32) {
-        self.as_raw_mut().nextthink = time;
+    pub fn set_next_think_time(&mut self, relative_time: f32) {
+        self.as_raw_mut().nextthink = self.engine.globals.map_time_f32() + relative_time;
+    }
+
+    pub fn stop_thinking(&mut self) {
+        self.as_raw_mut().nextthink = 0.0;
     }
 
     pub fn key_value(&mut self, data: &mut KeyValueData) {
