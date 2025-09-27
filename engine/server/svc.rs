@@ -1019,8 +1019,7 @@ define_temp_entity_msg! {
         pub sprite_index: u16,
         pub count: u8,
         pub speed: u8,
-        /// Client will divide by 100.
-        pub noise: u8,
+        pub noise: FixedU8<100>,
     }
 }
 
