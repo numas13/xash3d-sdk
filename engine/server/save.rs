@@ -12,9 +12,9 @@ use csz::{CStrArray, CStrThin};
 use xash3d_shared::{
     ffi::{
         common::vec3_t,
-        server::{edict_s, entvars_s, KeyValueData, ENTITYTABLE, SAVERESTOREDATA, TYPEDESCRIPTION},
+        server::{edict_s, entvars_s, KeyValueData, TYPEDESCRIPTION},
     },
-    utils::{cstr_or_none, slice_from_raw_parts_or_empty, slice_from_raw_parts_or_empty_mut},
+    utils::cstr_or_none,
 };
 
 use crate::{engine::ServerEngineRef, str::MapString};
@@ -134,44 +134,6 @@ impl KeyValueDataExt for KeyValueData {
 
     fn set_handled(&mut self, handled: bool) {
         self.fHandled = handled.into();
-    }
-}
-
-pub trait SaveRestoreExt {
-    fn current_map_name(&self) -> &CStrThin;
-
-    fn table(&self) -> &[ENTITYTABLE];
-
-    fn table_mut(&mut self) -> &mut [ENTITYTABLE];
-
-    fn tokens(&mut self) -> &[*mut c_char];
-
-    fn tokens_mut(&mut self) -> &mut [*mut c_char];
-}
-
-impl SaveRestoreExt for SAVERESTOREDATA {
-    fn current_map_name(&self) -> &CStrThin {
-        unsafe { CStrThin::from_ptr(self.szCurrentMapName.as_ptr()) }
-    }
-
-    fn table(&self) -> &[ENTITYTABLE] {
-        let len = self.tableCount as usize;
-        unsafe { slice_from_raw_parts_or_empty(self.pTable, len) }
-    }
-
-    fn table_mut(&mut self) -> &mut [ENTITYTABLE] {
-        let len = self.tableCount as usize;
-        unsafe { slice_from_raw_parts_or_empty_mut(self.pTable, len) }
-    }
-
-    fn tokens(&mut self) -> &[*mut c_char] {
-        let len = self.tokenCount as usize;
-        unsafe { slice_from_raw_parts_or_empty(self.pTokens, len) }
-    }
-
-    fn tokens_mut(&mut self) -> &mut [*mut c_char] {
-        let len = self.tokenCount as usize;
-        unsafe { slice_from_raw_parts_or_empty_mut(self.pTokens, len) }
     }
 }
 

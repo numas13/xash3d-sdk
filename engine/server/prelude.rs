@@ -8,5 +8,5 @@ pub use crate::{
 pub use crate::{
     engine::LevelListExt,
     entity::EntityVarsExt,
-    save::{KeyValueDataExt, SaveRestoreExt, TypeDescriptionExt},
+    save::{KeyValueDataExt, TypeDescriptionExt},
 };
