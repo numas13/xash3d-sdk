@@ -356,10 +356,10 @@ macro_rules! define_entity_trait {
                         $d( $delegate!($base, $d v $d meth); )*
                     };
                     ($base:ident $v:vis) => {
-                        $delegate!($base { $( $v $meth ),* $d(,)? });
+                        $delegate!($base { $( $v $meth ),* });
                     };
                     ($base:ident) => {
-                        $delegate!($base { $( $meth ),* $d(,)? });
+                        $delegate!($base { $( $meth ),* });
                     };
                     $(
                         ($base:ident, $v:vis $meth, $meth $d(, $d rest:ident)* $d(,)?) => {
