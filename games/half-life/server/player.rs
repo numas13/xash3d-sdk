@@ -9,7 +9,7 @@ use xash3d_server::{
     export::export_entity,
     ffi::server::edict_s,
     prelude::*,
-    save::{SaveReader, SaveResult},
+    save::{SaveReader, SaveRestoreData, SaveResult},
 };
 
 use crate::{
@@ -44,8 +44,12 @@ impl Entity for Player {
             .difference(ObjectCaps::ACROSS_TRANSITION)
     }
 
-    fn restore(&mut self, save: &mut SaveReader) -> SaveResult<()> {
-        self.base.restore(save)?;
+    fn restore(
+        &mut self,
+        reader: &mut SaveReader,
+        save_data: &mut SaveRestoreData,
+    ) -> SaveResult<()> {
+        self.base.restore(reader, save_data)?;
 
         let engine = self.base.engine;
 

@@ -5,7 +5,7 @@ use xash3d_server::{
     entity::{delegate_entity, AsEdict, BaseEntity, CreateEntity, Entity, MoveType},
     export::export_entity,
     ffi::server::TYPEDESCRIPTION,
-    save::{define_fields, SaveFields, SaveReader, SaveResult, SaveWriter, Time},
+    save::{define_fields, SaveFields, SaveReader, SaveRestoreData, SaveResult, SaveWriter, Time},
     str::MapString,
 };
 
@@ -46,14 +46,18 @@ impl CreateEntity for Glow {
 impl Entity for Glow {
     delegate_entity!(base not { save, restore, spawn, think });
 
-    fn save(&mut self, save: &mut SaveWriter) -> SaveResult<()> {
-        self.base.save(save)?;
-        save.write_fields(self)
+    fn save(&mut self, writer: &mut SaveWriter, save_data: &mut SaveRestoreData) -> SaveResult<()> {
+        self.base.save(writer, save_data)?;
+        writer.write_fields(save_data, self)
     }
 
-    fn restore(&mut self, save: &mut SaveReader) -> SaveResult<()> {
-        self.base.restore(save)?;
-        save.read_fields(self)
+    fn restore(
+        &mut self,
+        reader: &mut SaveReader,
+        save_data: &mut SaveRestoreData,
+    ) -> SaveResult<()> {
+        self.base.restore(reader, save_data)?;
+        reader.read_fields(save_data, self)
     }
 
     fn spawn(&mut self) {

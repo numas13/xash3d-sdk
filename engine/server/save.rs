@@ -1,8 +1,9 @@
 mod cursor;
 mod macros;
+mod save_restore_data;
 
 use core::{
-    ffi::{c_char, c_float, c_int, c_short, c_uint, c_ushort, CStr},
+    ffi::{c_char, c_float, c_int, c_short, c_uint, CStr},
     fmt, mem, ptr, slice,
 };
 
@@ -20,6 +21,7 @@ use crate::{engine::ServerEngineRef, str::MapString};
 
 pub use self::cursor::*;
 pub use self::macros::*;
+pub use self::save_restore_data::*;
 
 pub trait TypeDescription: Sized {
     const TYPE: FieldType;
@@ -419,182 +421,16 @@ unsafe impl SaveFields for entvars_s {
     ];
 }
 
-pub struct SaveRestoreData<'a> {
-    data: &'a mut SAVERESTOREDATA,
-}
-
-impl<'a> SaveRestoreData<'a> {
-    pub fn new(data: &'a mut SAVERESTOREDATA) -> Self {
-        Self { data }
-    }
-
-    pub fn restore_save_pointers(&mut self) {
-        self.data.size = self.data.table()[self.current_index()].location;
-        self.data.pCurrentData = self.data.pBaseData.wrapping_add(self.data.size as usize);
-    }
-
-    pub fn time(&self) -> f32 {
-        self.data.time
-    }
-
-    pub fn use_landmark_offset(&self) -> Option<vec3_t> {
-        if self.data.fUseLandmark != 0 {
-            Some(self.data.vecLandmarkOffset)
-        } else {
-            None
-        }
-    }
-
-    pub fn landmark_offset(&self) -> vec3_t {
-        self.data.vecLandmarkOffset
-    }
-
-    pub fn set_landmark_offset(&mut self, landmark_offset: vec3_t) {
-        self.data.vecLandmarkOffset = landmark_offset;
-    }
-
-    pub fn current_map_name(&self) -> &CStrThin {
-        unsafe { CStrThin::from_ptr(self.data.szCurrentMapName.as_ptr()) }
-    }
-
-    pub fn current_index(&self) -> usize {
-        self.data.currentIndex as usize
-    }
-
-    pub fn table(&self) -> &[ENTITYTABLE] {
-        let len = self.data.tableCount as usize;
-        unsafe { slice_from_raw_parts_or_empty(self.data.pTable, len) }
-    }
-
-    pub fn table_mut(&mut self) -> &mut [ENTITYTABLE] {
-        let len = self.data.tableCount as usize;
-        unsafe { slice_from_raw_parts_or_empty_mut(self.data.pTable, len) }
-    }
-
-    pub fn tokens(&mut self) -> &[*mut c_char] {
-        let len = self.data.tokenCount as usize;
-        unsafe { slice_from_raw_parts_or_empty(self.data.pTokens, len) }
-    }
-
-    pub fn tokens_mut(&mut self) -> &mut [*mut c_char] {
-        let len = self.data.tokenCount as usize;
-        unsafe { slice_from_raw_parts_or_empty_mut(self.data.pTokens, len) }
-    }
-
-    pub fn size(&self) -> usize {
-        self.data.size as usize
-    }
-
-    pub fn buffer_size(&self) -> usize {
-        self.data.bufferSize as usize
-    }
-
-    pub fn available(&self) -> usize {
-        self.buffer_size() - self.size()
-    }
-
-    pub fn is_empty(&self) -> bool {
-        let diff = unsafe { self.data.pCurrentData.offset_from(self.data.pBaseData) };
-        diff >= self.buffer_size() as isize
-    }
-
-    pub fn as_slice(&self) -> &'a [u8] {
-        if !self.data.pCurrentData.is_null() {
-            let data = self.data.pCurrentData.cast();
-            let len = self.available();
-            unsafe { slice::from_raw_parts(data, len) }
-        } else {
-            &[]
-        }
-    }
-
-    pub fn as_slice_mut(&mut self) -> &mut [u8] {
-        if !self.data.pCurrentData.is_null() {
-            let data = self.data.pCurrentData.cast();
-            let len = self.available();
-            unsafe { slice::from_raw_parts_mut(data, len) }
-        } else {
-            &mut []
-        }
-    }
-
-    pub fn token_hash(&mut self, token: &CStr) -> Token {
-        fn hash_string(token: &CStr) -> c_uint {
-            token
-                .to_bytes()
-                .iter()
-                .fold(0, |hash, &byte| hash.rotate_right(4) ^ (byte as c_uint))
-        }
-
-        let tokens = self.data.tokens_mut();
-        let hash = (hash_string(token) % (tokens.len() as c_uint)) as c_ushort;
-        for i in 0..tokens.len() {
-            let mut index = i + hash as usize;
-            if index >= tokens.len() {
-                index -= tokens.len();
-            }
-            if tokens[index].is_null() || token == unsafe { CStr::from_ptr(tokens[index]) } {
-                tokens[index] = token.as_ptr() as *mut c_char;
-                return Token::new(index as u16);
-            }
-        }
-
-        error!("Save::token_hash is COMPLETELY FULL!");
-        Token::new(0)
-    }
-
-    pub fn advance(&mut self, len: usize) -> SaveResult<()> {
-        let new_size = self.data.size + len as c_int;
-        if new_size < self.data.bufferSize {
-            self.data.pCurrentData = self.data.pCurrentData.wrapping_add(len);
-            self.data.size += len as c_int;
-            Ok(())
-        } else {
-            Err(SaveError::Overflow)
-        }
-    }
-
-    pub fn entity_index(&self, ent: *mut edict_s) -> Option<usize> {
-        if !ent.is_null() {
-            self.table().iter().position(|i| i.pent == ent)
-        } else {
-            None
-        }
-    }
-
-    pub fn entity_from_index(&self, index: i32) -> *mut edict_s {
-        if index < 0 {
-            return ptr::null_mut();
-        }
-        self.table()
-            .iter()
-            .find(|i| i.id == index)
-            .map_or(ptr::null_mut(), |i| i.pent)
-    }
-
-    pub fn entity_flags_set(&mut self, index: usize, flags: c_int) -> c_int {
-        if let Some(i) = self.table_mut().get_mut(index) {
-            i.flags |= flags;
-            i.flags
-        } else {
-            0
-        }
-    }
-}
-
-pub struct SaveReader<'a> {
+pub struct SaveReader {
     engine: ServerEngineRef,
-    pub data: SaveRestoreData<'a>,
     global: bool,
     precache: bool,
 }
 
-#[allow(dead_code)]
-impl<'a> SaveReader<'a> {
-    pub fn new(engine: ServerEngineRef, data: &'a mut SAVERESTOREDATA) -> Self {
+impl SaveReader {
+    pub fn new(engine: ServerEngineRef) -> Self {
         Self {
             engine,
-            data: SaveRestoreData::new(data),
             global: false,
             precache: true,
         }
@@ -610,6 +446,7 @@ impl<'a> SaveReader<'a> {
 
     unsafe fn read_field(
         &mut self,
+        state: &SaveRestoreState,
         base_data: *mut u8,
         fields: &[TYPEDESCRIPTION],
         start_field: usize,
@@ -657,7 +494,7 @@ impl<'a> SaveReader<'a> {
                     }
                 }
                 FieldType::TIME => {
-                    let time = self.data.time();
+                    let time = state.time();
                     for _ in 0..count {
                         dst.write_f32_ne(src.read_f32_le()? + time)?;
                     }
@@ -670,7 +507,7 @@ impl<'a> SaveReader<'a> {
                     }
                 }
                 FieldType::POSITION_VECTOR => {
-                    let offset = self.data.use_landmark_offset().unwrap_or_default();
+                    let offset = state.use_landmark_offset().unwrap_or_default();
                     for _ in 0..count {
                         dst.write_f32_ne(src.read_f32_le()? + offset[0])?;
                         dst.write_f32_ne(src.read_f32_le()? + offset[1])?;
@@ -680,7 +517,7 @@ impl<'a> SaveReader<'a> {
                 FieldType::EDICT => {
                     for _ in 0..count {
                         let index = src.read_i32_le()?;
-                        let ent = self.data.entity_from_index(index);
+                        let ent = state.entity_from_index(index);
                         dst.write_usize_ne(ent as usize)?;
                     }
                 }
@@ -726,15 +563,17 @@ impl<'a> SaveReader<'a> {
     /// * Field descriptions must be valid for the given `base_data` type.
     pub unsafe fn read_fields_raw(
         &mut self,
+        save_data: &mut SaveRestoreData,
         name: &CStr,
         base_data: *mut u8,
         fields: &[TYPEDESCRIPTION],
     ) -> SaveResult<()> {
-        let mut src = Cursor::new(self.data.as_slice());
+        let (buffer, state) = save_data.split_mut();
+        let mut src = Cursor::new(buffer.as_slice());
 
         let header = src.read_header()?;
         assert_eq!(header.size(), mem::size_of::<u32>() as u16);
-        if header.token() != self.data.token_hash(name) {
+        if header.token() != state.token_hash(name) {
             return Ok(());
         }
         let field_count = src.read_u32_le()?;
@@ -753,39 +592,34 @@ impl<'a> SaveReader<'a> {
         let mut last_field = 0;
         for _ in 0..field_count {
             let field = src.read_field()?;
-            let token = self.data.data.tokens_mut()[field.token().to_usize()];
+            let token = state.tokens_mut()[field.token().to_usize()];
             let token = unsafe { CStrThin::from_ptr(token) };
             let data = &mut Cursor::new(field.data());
-            last_field = unsafe { self.read_field(base_data, fields, last_field, token, data)? };
+            last_field =
+                unsafe { self.read_field(state, base_data, fields, last_field, token, data)? };
             last_field += 1;
         }
 
-        self.data.advance(src.offset())
+        buffer.advance(src.offset())
     }
 
-    pub fn read_fields<T: SaveFields>(&mut self, value: &mut T) -> SaveResult<()> {
+    pub fn read_fields<T: SaveFields>(
+        &mut self,
+        save_data: &mut SaveRestoreData,
+        value: &mut T,
+    ) -> SaveResult<()> {
         let base_data = value as *mut T as *mut u8;
-        unsafe { self.read_fields_raw(T::SAVE_NAME, base_data, T::SAVE_FIELDS) }
+        unsafe { self.read_fields_raw(save_data, T::SAVE_NAME, base_data, T::SAVE_FIELDS) }
     }
 }
 
-#[allow(dead_code)]
-pub struct SaveWriter<'a> {
+pub struct SaveWriter {
     engine: ServerEngineRef,
-    pub data: SaveRestoreData<'a>,
-    global: bool,
-    precache: bool,
 }
 
-#[allow(dead_code)]
-impl<'a> SaveWriter<'a> {
-    pub fn new(engine: ServerEngineRef, data: &'a mut SAVERESTOREDATA) -> Self {
-        Self {
-            engine,
-            data: SaveRestoreData::new(data),
-            global: false,
-            precache: true,
-        }
+impl SaveWriter {
+    pub fn new(engine: ServerEngineRef) -> Self {
+        Self { engine }
     }
 
     /// Write struct fields to a save file.
@@ -796,21 +630,18 @@ impl<'a> SaveWriter<'a> {
     /// * Field descriptions must be valid for the given `base_data` type.
     pub unsafe fn write_fields_raw(
         &mut self,
+        save_data: &mut SaveRestoreData,
         name: &CStr,
         base_data: *const u8,
         fields: &[TYPEDESCRIPTION],
     ) -> SaveResult<()> {
-        if self.data.data.pCurrentData.is_null() {
+        let engine = self.engine;
+        let (buffer, state) = save_data.split_mut();
+        let dst = buffer.as_slice_mut();
+        if dst.is_empty() {
             return Ok(());
         }
-
-        let engine = self.engine;
-        let dst_slice = {
-            let data = self.data.data.pCurrentData.cast();
-            let len = self.data.available();
-            unsafe { slice::from_raw_parts_mut(data, len) }
-        };
-        let mut dst = CursorMut::new(dst_slice);
+        let mut dst = CursorMut::new(dst);
         let header_offset = dst.skip(2 * mem::size_of::<u16>() + mem::size_of::<u32>())?;
         let mut field_count = 0;
         for field in fields {
@@ -827,7 +658,7 @@ impl<'a> SaveWriter<'a> {
 
             let size_offset = dst.skip(mem::size_of::<u16>())?;
             let field_name = unsafe { CStr::from_ptr(field.fieldName) };
-            dst.write_token(self.data.token_hash(field_name))?;
+            dst.write_token(state.token_hash(field_name))?;
 
             let data_offset = dst.offset();
             match field_type {
@@ -850,7 +681,7 @@ impl<'a> SaveWriter<'a> {
                     }
                 }
                 FieldType::TIME => {
-                    let time = self.data.time();
+                    let time = state.time();
                     for _ in 0..count {
                         dst.write_f32_le(src.read_f32_ne()? - time)?;
                     }
@@ -863,7 +694,7 @@ impl<'a> SaveWriter<'a> {
                     }
                 }
                 FieldType::POSITION_VECTOR => {
-                    let offset = self.data.use_landmark_offset().unwrap_or_default();
+                    let offset = state.use_landmark_offset().unwrap_or_default();
                     for _ in 0..count {
                         dst.write_f32_le(src.read_f32_ne()? - offset[0])?;
                         dst.write_f32_le(src.read_f32_ne()? - offset[1])?;
@@ -873,7 +704,7 @@ impl<'a> SaveWriter<'a> {
                 FieldType::EDICT => {
                     for _ in 0..count {
                         let ent = src.read_usize_ne()? as *mut edict_s;
-                        let index = self.data.entity_index(ent).map_or(-1, |i| i as i32);
+                        let index = state.entity_index(ent).map_or(-1, |i| i as i32);
                         dst.write_i32_le(index)?;
                     }
                 }
@@ -901,15 +732,20 @@ impl<'a> SaveWriter<'a> {
         // write the header
         dst.write_at(header_offset, |dst| {
             dst.write_u16_le(mem::size_of::<u32>() as u16)?;
-            dst.write_token(self.data.token_hash(name))?;
+            dst.write_token(state.token_hash(name))?;
             dst.write_u32_le(field_count)
         })?;
 
-        self.data.advance(dst.offset() - header_offset)
+        let size = dst.offset() - header_offset;
+        buffer.advance(size)
     }
 
-    pub fn write_fields<T: SaveFields>(&mut self, value: &T) -> SaveResult<()> {
+    pub fn write_fields<T: SaveFields>(
+        &mut self,
+        save_data: &mut SaveRestoreData,
+        value: &T,
+    ) -> SaveResult<()> {
         let base_data = value as *const T as *const u8;
-        unsafe { self.write_fields_raw(T::SAVE_NAME, base_data, T::SAVE_FIELDS) }
+        unsafe { self.write_fields_raw(save_data, T::SAVE_NAME, base_data, T::SAVE_FIELDS) }
     }
 }

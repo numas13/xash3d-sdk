@@ -4,7 +4,10 @@ use xash3d_server::{
     entity::{delegate_entity, AsEdict, BaseEntity, CreateEntity, Entity, UseType},
     export::export_entity,
     ffi::server::{KeyValueData, TYPEDESCRIPTION},
-    save::{define_fields, KeyValueDataExt, SaveFields, SaveReader, SaveResult, SaveWriter},
+    save::{
+        define_fields, KeyValueDataExt, SaveFields, SaveReader, SaveRestoreData, SaveResult,
+        SaveWriter,
+    },
     str::MapString,
 };
 
@@ -61,14 +64,18 @@ impl Entity for Light {
         }
     }
 
-    fn save(&mut self, save: &mut SaveWriter) -> SaveResult<()> {
-        self.base.save(save)?;
-        save.write_fields(self)
+    fn save(&mut self, writer: &mut SaveWriter, save_data: &mut SaveRestoreData) -> SaveResult<()> {
+        self.base.save(writer, save_data)?;
+        writer.write_fields(save_data, self)
     }
 
-    fn restore(&mut self, save: &mut SaveReader) -> SaveResult<()> {
-        self.base.restore(save)?;
-        save.read_fields(self)
+    fn restore(
+        &mut self,
+        reader: &mut SaveReader,
+        save_data: &mut SaveRestoreData,
+    ) -> SaveResult<()> {
+        self.base.restore(reader, save_data)?;
+        reader.read_fields(save_data, self)
     }
 
     fn spawn(&mut self) {

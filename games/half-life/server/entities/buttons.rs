@@ -9,7 +9,8 @@ use xash3d_server::{
     },
     prelude::*,
     save::{
-        define_fields, FieldType, KeyValueDataExt, SaveFields, SaveReader, SaveResult, SaveWriter,
+        define_fields, FieldType, KeyValueDataExt, SaveFields, SaveReader, SaveRestoreData,
+        SaveResult, SaveWriter,
     },
     svc,
 };
@@ -85,14 +86,18 @@ impl Entity for EnvSpark {
         }
     }
 
-    fn save(&mut self, save: &mut SaveWriter) -> SaveResult<()> {
-        self.base.save(save)?;
-        save.write_fields(self)
+    fn save(&mut self, writer: &mut SaveWriter, save_data: &mut SaveRestoreData) -> SaveResult<()> {
+        self.base.save(writer, save_data)?;
+        writer.write_fields(save_data, self)
     }
 
-    fn restore(&mut self, save: &mut SaveReader) -> SaveResult<()> {
-        self.base.restore(save)?;
-        save.read_fields(self)
+    fn restore(
+        &mut self,
+        reader: &mut SaveReader,
+        save_data: &mut SaveRestoreData,
+    ) -> SaveResult<()> {
+        self.base.restore(reader, save_data)?;
+        reader.read_fields(save_data, self)
     }
 
     fn precache(&mut self) {

@@ -24,7 +24,9 @@ use crate::{
     self as xash3d_server,
     engine::ServerEngineRef,
     game_rules::{GameRules, GameRulesRef},
-    save::{FieldType, KeyValueDataExt, SaveFields, SaveReader, SaveResult, SaveWriter},
+    save::{
+        FieldType, KeyValueDataExt, SaveFields, SaveReader, SaveRestoreData, SaveResult, SaveWriter,
+    },
     str::MapString,
 };
 
@@ -351,12 +353,14 @@ define_entity_trait! {
 
         fn save(
             &mut self,
-            save: &mut xash3d_server::save::SaveWriter,
+            writer: &mut xash3d_server::save::SaveWriter,
+            save_data: &mut xash3d_server::save::SaveRestoreData,
         ) -> xash3d_server::save::SaveResult<()>;
 
         fn restore(
             &mut self,
-            save: &mut xash3d_server::save::SaveReader,
+            reader: &mut xash3d_server::save::SaveReader,
+            save_data: &mut xash3d_server::save::SaveRestoreData,
         ) -> xash3d_server::save::SaveResult<()>;
 
         fn key_value(&mut self, data: &mut xash3d_server::ffi::server::KeyValueData) {
@@ -453,15 +457,19 @@ impl Entity for BaseEntity {
         &mut self.vars
     }
 
-    fn save(&mut self, save: &mut SaveWriter) -> SaveResult<()> {
-        save.write_fields(self.vars_mut().as_raw_mut())?;
-        save.write_fields(self)
+    fn save(&mut self, writer: &mut SaveWriter, save_data: &mut SaveRestoreData) -> SaveResult<()> {
+        writer.write_fields(save_data, self.vars_mut().as_raw_mut())?;
+        writer.write_fields(save_data, self)
     }
 
-    fn restore(&mut self, save: &mut SaveReader) -> SaveResult<()> {
-        let status = save
-            .read_fields(self.vars_mut().as_raw_mut())
-            .and_then(|_| save.read_fields(self));
+    fn restore(
+        &mut self,
+        reader: &mut SaveReader,
+        save_data: &mut SaveRestoreData,
+    ) -> SaveResult<()> {
+        let status = reader
+            .read_fields(save_data, self.vars_mut().as_raw_mut())
+            .and_then(|_| reader.read_fields(save_data, self));
 
         let ev = self.vars.as_raw();
         if let (true, Some(model)) = (ev.modelindex != 0, ev.model()) {

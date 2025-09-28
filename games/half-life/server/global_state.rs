@@ -8,9 +8,11 @@ use core::{
 use alloc::collections::linked_list::LinkedList;
 use csz::{CStrArray, CStrThin};
 use xash3d_server::{
-    ffi::server::{edict_s, SAVERESTOREDATA, TYPEDESCRIPTION},
+    ffi::server::{edict_s, TYPEDESCRIPTION},
     prelude::*,
-    save::{define_fields, FieldType, SaveFields, SaveReader, SaveResult, SaveWriter},
+    save::{
+        define_fields, FieldType, SaveFields, SaveReader, SaveRestoreData, SaveResult, SaveWriter,
+    },
     str::MapString,
 };
 
@@ -166,30 +168,30 @@ impl GlobalState {
         }
     }
 
-    pub fn save(&self, save_data: &mut SAVERESTOREDATA) -> SaveResult<()> {
-        let mut save = SaveWriter::new(self.engine, save_data);
+    pub fn save(&self, save_data: &mut SaveRestoreData) -> SaveResult<()> {
+        let mut writer = SaveWriter::new(self.engine);
         let entities = self.entities.borrow();
         let global_state = GlobalStateSave {
             list_count: entities.list.len() as i32,
         };
-        save.write_fields(&global_state)?;
+        writer.write_fields(save_data, &global_state)?;
         for ent in &entities.list {
-            save.write_fields(ent)?;
+            writer.write_fields(save_data, ent)?;
         }
         Ok(())
     }
 
-    pub fn restore(&self, save_data: &mut SAVERESTOREDATA) -> SaveResult<()> {
-        let mut save = SaveReader::new(self.engine, save_data);
+    pub fn restore(&self, save_data: &mut SaveRestoreData) -> SaveResult<()> {
+        let mut reader = SaveReader::new(self.engine);
         self.reset();
 
         let mut global_state = GlobalStateSave { list_count: 0 };
-        save.read_fields(&mut global_state)?;
+        reader.read_fields(save_data, &mut global_state)?;
 
         let mut entities = self.entities.borrow_mut();
         for _ in 0..global_state.list_count {
             let mut tmp = MaybeUninit::<GlobalEntity>::uninit();
-            save.read_fields(unsafe { tmp.assume_init_mut() })?;
+            reader.read_fields(save_data, unsafe { tmp.assume_init_mut() })?;
             let tmp = unsafe { tmp.assume_init() };
             let name = tmp.name.as_thin();
             let map_name = tmp.map_name.as_thin();

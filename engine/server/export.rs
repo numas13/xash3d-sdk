@@ -30,7 +30,7 @@ use crate::{
         EntityPlayer, EntityVars, GetPrivateData, ObjectCaps, PrivateData, RestoreResult, UseType,
     },
     prelude::*,
-    save::{SaveReader, SaveWriter},
+    save::{SaveReader, SaveRestoreData, SaveWriter},
     utils::slice_from_raw_parts_or_empty_mut,
 };
 
@@ -131,9 +131,9 @@ pub trait ServerDll: UnsyncGlobal {
         }
     }
 
-    fn dispatch_save(&self, ent: &mut edict_s, save_data: &mut SAVERESTOREDATA) {
+    fn dispatch_save(&self, ent: &mut edict_s, save_data: &mut SaveRestoreData) {
         let engine = self.engine();
-        let current_index = save_data.currentIndex as usize;
+        let current_index = save_data.current_index();
         if save_data.table()[current_index].pent != ent {
             error!("Entity table or index is wrong");
         }
@@ -151,21 +151,25 @@ pub trait ServerDll: UnsyncGlobal {
             ev.nextthink = ev.ltime + delta;
         }
 
-        let start_offset = save_data.size;
-        let mut writer = SaveWriter::new(engine, save_data);
-        entity.save(&mut writer).unwrap();
-        let end_offset = save_data.size;
+        let start_offset = save_data.offset();
+        {
+            let writer = &mut SaveWriter::new(engine);
+            if let Err(err) = entity.save(writer, save_data) {
+                error!("failed to save {}, {err}", entity.classname());
+            }
+        }
+        let end_offset = save_data.offset();
 
         let table = &mut save_data.table_mut()[current_index];
         table.classname = entity.vars().as_raw().classname;
-        table.location = start_offset;
-        table.size = end_offset - start_offset;
+        table.location = start_offset as i32;
+        table.size = (end_offset - start_offset) as i32;
     }
 
     fn dispatch_restore(
         &self,
         ent: &mut edict_s,
-        save_data: &mut SAVERESTOREDATA,
+        save_data: &mut SaveRestoreData,
         global_entity: bool,
     ) -> RestoreResult;
 
@@ -178,13 +182,14 @@ pub trait ServerDll: UnsyncGlobal {
 
     unsafe fn save_write_fields(
         &self,
-        save_data: &mut SAVERESTOREDATA,
+        save_data: &mut SaveRestoreData,
         name: &CStrThin,
         base_data: *mut c_void,
         fields: &mut [TYPEDESCRIPTION],
     ) {
-        let mut save = SaveWriter::new(self.engine(), save_data);
-        let result = unsafe { save.write_fields_raw(name.into(), base_data.cast(), fields) };
+        let writer = &mut SaveWriter::new(self.engine());
+        let result =
+            unsafe { writer.write_fields_raw(save_data, name.into(), base_data.cast(), fields) };
         if let Err(err) = result {
             error!("save::write_fields({name:?}): {err}");
         }
@@ -192,21 +197,22 @@ pub trait ServerDll: UnsyncGlobal {
 
     unsafe fn save_read_fields(
         &self,
-        save_data: &mut SAVERESTOREDATA,
+        save_data: &mut SaveRestoreData,
         name: &CStrThin,
         base_data: *mut c_void,
         fields: &mut [TYPEDESCRIPTION],
     ) {
-        let mut save = SaveReader::new(self.engine(), save_data);
-        let result = unsafe { save.read_fields_raw(name.into(), base_data.cast(), fields) };
+        let reader = &mut SaveReader::new(self.engine());
+        let result =
+            unsafe { reader.read_fields_raw(save_data, name.into(), base_data.cast(), fields) };
         if let Err(err) = result {
             error!("save::read_fields({name:?}): {err}");
         }
     }
 
-    fn save_global_state(&self, save_data: &mut SAVERESTOREDATA);
+    fn save_global_state(&self, save_data: &mut SaveRestoreData);
 
-    fn restore_global_state(&self, save_data: &mut SAVERESTOREDATA);
+    fn restore_global_state(&self, save_data: &mut SaveRestoreData);
 
     fn reset_global_state(&self);
 
@@ -726,6 +732,7 @@ impl<T: ServerDll> ServerDllExport for Export<T> {
         let ent = unsafe { ent.as_mut() };
         let save_data = unsafe { save_data.as_mut() };
         if let (Some(ent), Some(save_data)) = (ent, save_data) {
+            let save_data = &mut SaveRestoreData::new(save_data);
             unsafe { T::global_assume_init_ref() }.dispatch_save(ent, save_data);
         }
     }
@@ -738,6 +745,7 @@ impl<T: ServerDll> ServerDllExport for Export<T> {
         let ent = unsafe { ent.as_mut() };
         let save_data = unsafe { save_data.as_mut() };
         if let (Some(ent), Some(save_data)) = (ent, save_data) {
+            let save_data = &mut SaveRestoreData::new(save_data);
             let global_entity = global_entity != 0;
             return unsafe { T::global_assume_init_ref() }
                 .dispatch_restore(ent, save_data, global_entity)
@@ -761,6 +769,7 @@ impl<T: ServerDll> ServerDllExport for Export<T> {
     ) {
         unsafe {
             let save_data = save_data.as_mut().unwrap();
+            let save_data = &mut SaveRestoreData::new(save_data);
             let name = cstr_or_none(name).unwrap();
             let fields = slice_from_raw_parts_or_empty_mut(fields, fields_count as usize);
             let dll = T::global_assume_init_ref();
@@ -777,6 +786,7 @@ impl<T: ServerDll> ServerDllExport for Export<T> {
     ) {
         unsafe {
             let save_data = save_data.as_mut().unwrap();
+            let save_data = &mut SaveRestoreData::new(save_data);
             let name = cstr_or_none(name).unwrap();
             let fields = slice_from_raw_parts_or_empty_mut(fields, fields_count as usize);
             let dll = T::global_assume_init_ref();
@@ -786,11 +796,13 @@ impl<T: ServerDll> ServerDllExport for Export<T> {
 
     unsafe extern "C" fn save_global_state(save_data: *mut SAVERESTOREDATA) {
         let save_data = unsafe { save_data.as_mut() }.unwrap();
+        let save_data = &mut SaveRestoreData::new(save_data);
         unsafe { T::global_assume_init_ref() }.save_global_state(save_data);
     }
 
     unsafe extern "C" fn restore_global_state(save_data: *mut SAVERESTOREDATA) {
         let save_data = unsafe { save_data.as_mut() }.unwrap();
+        let save_data = &mut SaveRestoreData::new(save_data);
         unsafe { T::global_assume_init_ref() }.restore_global_state(save_data);
     }
 

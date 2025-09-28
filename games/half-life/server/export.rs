@@ -8,11 +8,11 @@ use xash3d_server::{
     export::{export_dll, impl_unsync_global, ServerDll, SpawnResult, UnsyncGlobal},
     ffi::{
         common::{clientdata_s, entity_state_s, vec3_t},
-        server::{edict_s, entvars_s, SAVERESTOREDATA},
+        server::{edict_s, entvars_s},
     },
     game_rules::GameRulesRef,
     prelude::*,
-    save::SaveReader,
+    save::{SaveReader, SaveRestoreData},
     str::MapString,
 };
 
@@ -91,44 +91,43 @@ impl ServerDll for Dll {
     fn dispatch_restore(
         &self,
         mut ent: &mut edict_s,
-        save_data: &mut SAVERESTOREDATA,
+        save_data: &mut SaveRestoreData,
         global_entity: bool,
     ) -> RestoreResult {
         let engine = self.engine();
         let mut global_vars = MaybeUninit::<entvars_s>::uninit();
 
         if global_entity {
-            let mut restore = SaveReader::new(engine, save_data);
-            restore.precache_mode(false);
-            restore
-                .read_fields(unsafe { global_vars.assume_init_mut() })
+            let mut reader = SaveReader::new(engine);
+            reader.precache_mode(false);
+            reader
+                .read_fields(save_data, unsafe { global_vars.assume_init_mut() })
                 .unwrap();
         }
 
-        let mut restore = SaveReader::new(engine, save_data);
+        let mut reader = SaveReader::new(engine);
         let mut old_offset = vec3_t::ZERO;
-
         if global_entity {
             let tmp_vars = unsafe { global_vars.assume_init_mut() };
             // HACK: restore save pointers
-            restore.data.restore_save_pointers();
+            save_data.restore_save_pointers();
 
             let mut entities = self.global_state.entities.borrow_mut();
             let global = entities.find(tmp_vars.globalname().unwrap()).unwrap();
-            if restore.data.current_map_name() != global.map_name() {
+            if save_data.current_map_name() != global.map_name() {
                 return RestoreResult::Ok;
             }
 
-            old_offset = restore.data.landmark_offset();
+            old_offset = save_data.landmark_offset();
             let classname = tmp_vars.classname().unwrap();
             let globalname = tmp_vars.globalname().unwrap();
             if let Some(new_ent) = find_global_entity(engine, classname, globalname) {
                 let new_ent = unsafe { &mut *new_ent };
-                restore.global_mode(true);
-                let mut landmark_offset = restore.data.landmark_offset();
+                reader.global_mode(true);
+                let mut landmark_offset = save_data.landmark_offset();
                 landmark_offset -= new_ent.v.mins;
                 landmark_offset += tmp_vars.mins;
-                restore.data.set_landmark_offset(landmark_offset);
+                save_data.set_landmark_offset(landmark_offset);
                 ent = new_ent;
                 entities.update(
                     ent.v.globalname().unwrap(),
@@ -142,7 +141,7 @@ impl ServerDll for Dll {
         let Some(entity) = ent.get_entity_mut() else {
             return RestoreResult::Ok;
         };
-        if let Err(err) = entity.restore(&mut restore) {
+        if let Err(err) = entity.restore(&mut reader, save_data) {
             error!("dispatch_restore: entity restore error, {err}");
         }
         if entity.object_caps().intersects(ObjectCaps::MUST_SPAWN) {
@@ -152,7 +151,7 @@ impl ServerDll for Dll {
         }
 
         if global_entity {
-            restore.data.set_landmark_offset(old_offset);
+            save_data.set_landmark_offset(old_offset);
             let origin = entity.vars().as_raw().origin;
             engine.set_origin(entity.as_edict_mut(), origin);
             entity.override_reset();
@@ -178,13 +177,13 @@ impl ServerDll for Dll {
         RestoreResult::Ok
     }
 
-    fn save_global_state(&self, save_data: &mut SAVERESTOREDATA) {
+    fn save_global_state(&self, save_data: &mut SaveRestoreData) {
         if let Err(e) = self.global_state.save(save_data) {
             error!("Failed to save global state: {e:?}");
         }
     }
 
-    fn restore_global_state(&self, save_data: &mut SAVERESTOREDATA) {
+    fn restore_global_state(&self, save_data: &mut SaveRestoreData) {
         if let Err(e) = self.global_state.restore(save_data) {
             error!("Failed to restore global state: {e:?}");
         }

@@ -16,7 +16,7 @@ use xash3d_server::{
         server::{edict_s, entvars_s, KeyValueData, LEVELLIST, TYPEDESCRIPTION},
     },
     prelude::*,
-    save::{define_fields, SaveFields, SaveReader, SaveResult, SaveWriter},
+    save::{define_fields, SaveFields, SaveReader, SaveRestoreData, SaveResult, SaveWriter},
     str::MapString,
 };
 
@@ -125,14 +125,18 @@ impl Entity for ChangeLevel {
             .difference(ObjectCaps::ACROSS_TRANSITION)
     }
 
-    fn save(&mut self, save: &mut SaveWriter) -> SaveResult<()> {
-        self.base.save(save)?;
-        save.write_fields(self)
+    fn save(&mut self, writer: &mut SaveWriter, save_data: &mut SaveRestoreData) -> SaveResult<()> {
+        self.base.save(writer, save_data)?;
+        writer.write_fields(save_data, self)
     }
 
-    fn restore(&mut self, save: &mut SaveReader) -> SaveResult<()> {
-        self.base.restore(save)?;
-        save.read_fields(self)
+    fn restore(
+        &mut self,
+        reader: &mut SaveReader,
+        save_data: &mut SaveRestoreData,
+    ) -> SaveResult<()> {
+        self.base.restore(reader, save_data)?;
+        reader.read_fields(save_data, self)
     }
 
     fn key_value(&mut self, data: &mut KeyValueData) {
@@ -304,9 +308,8 @@ pub fn build_change_list(engine: ServerEngineRef, level_list: &mut [LEVELLIST]) 
     }
 
     if let Some(mut save_data) = engine.globals.save_data() {
-        let save_data = unsafe { save_data.as_mut() };
+        let save_data = &mut SaveRestoreData::new(unsafe { save_data.as_mut() });
         if !save_data.table().is_empty() {
-            let mut save = SaveReader::new(engine, save_data);
             for (i, level) in level_list.iter().enumerate().take(count) {
                 let mut ent_count = 0;
                 let mut ent_list = [ptr::null_mut(); MAX_ENTITY];
@@ -339,8 +342,8 @@ pub fn build_change_list(engine: ServerEngineRef, level_list: &mut [LEVELLIST]) 
                     let landmark_name = level.landmark_name();
                     if ent_flags[j] != 0 && in_transition_volume(engine, ent_list[j], landmark_name)
                     {
-                        if let Some(index) = save.data.entity_index(ent_list[j]) {
-                            save.data.entity_flags_set(index, ent_flags[j] | (1 << i));
+                        if let Some(index) = save_data.entity_index(ent_list[j]) {
+                            save_data.entity_flags_set(index, ent_flags[j] | (1 << i));
                         }
                     }
                 }
