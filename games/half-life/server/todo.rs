@@ -260,7 +260,6 @@ export_entity_stub! {
     env_beam,
     env_beverage,
     env_explosion,
-    env_glow,
     env_laser,
     env_render,
     env_shake,
