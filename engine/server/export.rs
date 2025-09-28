@@ -732,7 +732,7 @@ impl<T: ServerDll> ServerDllExport for Export<T> {
         let ent = unsafe { ent.as_mut() };
         let save_data = unsafe { save_data.as_mut() };
         if let (Some(ent), Some(save_data)) = (ent, save_data) {
-            let save_data = &mut SaveRestoreData::new(save_data);
+            let save_data = SaveRestoreData::new(save_data);
             unsafe { T::global_assume_init_ref() }.dispatch_save(ent, save_data);
         }
     }
@@ -745,7 +745,7 @@ impl<T: ServerDll> ServerDllExport for Export<T> {
         let ent = unsafe { ent.as_mut() };
         let save_data = unsafe { save_data.as_mut() };
         if let (Some(ent), Some(save_data)) = (ent, save_data) {
-            let save_data = &mut SaveRestoreData::new(save_data);
+            let save_data = SaveRestoreData::new(save_data);
             let global_entity = global_entity != 0;
             return unsafe { T::global_assume_init_ref() }
                 .dispatch_restore(ent, save_data, global_entity)
@@ -769,7 +769,7 @@ impl<T: ServerDll> ServerDllExport for Export<T> {
     ) {
         unsafe {
             let save_data = save_data.as_mut().unwrap();
-            let save_data = &mut SaveRestoreData::new(save_data);
+            let save_data = SaveRestoreData::new(save_data);
             let name = cstr_or_none(name).unwrap();
             let fields = slice_from_raw_parts_or_empty_mut(fields, fields_count as usize);
             let dll = T::global_assume_init_ref();
@@ -786,7 +786,7 @@ impl<T: ServerDll> ServerDllExport for Export<T> {
     ) {
         unsafe {
             let save_data = save_data.as_mut().unwrap();
-            let save_data = &mut SaveRestoreData::new(save_data);
+            let save_data = SaveRestoreData::new(save_data);
             let name = cstr_or_none(name).unwrap();
             let fields = slice_from_raw_parts_or_empty_mut(fields, fields_count as usize);
             let dll = T::global_assume_init_ref();
@@ -796,13 +796,13 @@ impl<T: ServerDll> ServerDllExport for Export<T> {
 
     unsafe extern "C" fn save_global_state(save_data: *mut SAVERESTOREDATA) {
         let save_data = unsafe { save_data.as_mut() }.unwrap();
-        let save_data = &mut SaveRestoreData::new(save_data);
+        let save_data = SaveRestoreData::new(save_data);
         unsafe { T::global_assume_init_ref() }.save_global_state(save_data);
     }
 
     unsafe extern "C" fn restore_global_state(save_data: *mut SAVERESTOREDATA) {
         let save_data = unsafe { save_data.as_mut() }.unwrap();
-        let save_data = &mut SaveRestoreData::new(save_data);
+        let save_data = SaveRestoreData::new(save_data);
         unsafe { T::global_assume_init_ref() }.restore_global_state(save_data);
     }
 

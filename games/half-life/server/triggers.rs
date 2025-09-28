@@ -308,7 +308,7 @@ pub fn build_change_list(engine: ServerEngineRef, level_list: &mut [LEVELLIST]) 
     }
 
     if let Some(mut save_data) = engine.globals.save_data() {
-        let save_data = &mut SaveRestoreData::new(unsafe { save_data.as_mut() });
+        let save_data = SaveRestoreData::new(unsafe { save_data.as_mut() });
         if !save_data.table().is_empty() {
             for (i, level) in level_list.iter().enumerate().take(count) {
                 let mut ent_count = 0;

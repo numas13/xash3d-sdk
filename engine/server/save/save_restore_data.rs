@@ -169,24 +169,25 @@ impl SaveRestoreState {
     }
 }
 
-pub struct SaveRestoreData<'a> {
-    data: &'a mut SAVERESTOREDATA,
+#[repr(transparent)]
+pub struct SaveRestoreData {
+    data: SAVERESTOREDATA,
 }
 
-impl<'a> SaveRestoreData<'a> {
-    pub fn new(data: &'a mut SAVERESTOREDATA) -> Self {
-        Self { data }
+impl SaveRestoreData {
+    pub fn new(data: &mut SAVERESTOREDATA) -> &mut Self {
+        unsafe { &mut *(data as *mut _ as *mut Self) }
     }
 
     pub fn split(&self) -> (&SaveRestoreBuffer, &SaveRestoreState) {
-        let data = self.data as *const SAVERESTOREDATA;
+        let data = &self.data as *const SAVERESTOREDATA;
         let buffer = unsafe { &*data.cast::<SaveRestoreBuffer>() };
         let state = unsafe { &*data.cast::<SaveRestoreState>() };
         (buffer, state)
     }
 
     pub fn split_mut(&mut self) -> (&mut SaveRestoreBuffer, &mut SaveRestoreState) {
-        let data = self.data as *mut SAVERESTOREDATA;
+        let data = &mut self.data as *mut SAVERESTOREDATA;
         let buffer = unsafe { &mut *data.cast::<SaveRestoreBuffer>() };
         let state = unsafe { &mut *data.cast::<SaveRestoreState>() };
         (buffer, state)
@@ -202,7 +203,7 @@ impl<'a> SaveRestoreData<'a> {
     }
 }
 
-impl Deref for SaveRestoreData<'_> {
+impl Deref for SaveRestoreData {
     type Target = SaveRestoreState;
 
     fn deref(&self) -> &Self::Target {
@@ -210,7 +211,7 @@ impl Deref for SaveRestoreData<'_> {
     }
 }
 
-impl DerefMut for SaveRestoreData<'_> {
+impl DerefMut for SaveRestoreData {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.split_mut().1
     }
