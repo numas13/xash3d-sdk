@@ -3,7 +3,7 @@ mod macros;
 mod save_restore_data;
 
 use core::{
-    ffi::{c_char, c_float, c_int, c_short, c_uint, CStr},
+    ffi::{c_char, c_float, c_int, c_short, CStr},
     fmt, mem, ptr, slice,
 };
 
@@ -11,9 +11,11 @@ use bitflags::bitflags;
 use csz::{CStrArray, CStrThin};
 use xash3d_shared::{
     ffi::{
+        self,
         common::{string_t, vec3_t},
         server::{edict_s, entvars_s, KeyValueData, TYPEDESCRIPTION},
     },
+    macros::define_enum_for_primitive,
     utils::cstr_or_none,
 };
 
@@ -141,58 +143,34 @@ impl KeyValueDataExt for KeyValueData {
     }
 }
 
-/// TYPEDESCRIPTION.fieldType
-#[allow(non_camel_case_types)]
-#[derive(Copy, Clone, Debug)]
-#[repr(C)]
-pub enum FieldType {
-    FLOAT = 0,
-    STRING = 1,
-    ENTITY = 2,
-    CLASSPTR = 3,
-    EHANDLE = 4,
-    EVARS = 5,
-    EDICT = 6,
-    VECTOR = 7,
-    POSITION_VECTOR = 8,
-    POINTER = 9,
-    INTEGER = 10,
-    FUNCTION = 11,
-    BOOLEAN = 12,
-    SHORT = 13,
-    CHARACTER = 14,
-    TIME = 15,
-    MODELNAME = 16,
-    SOUNDNAME = 17,
-    TYPECOUNT = 18,
+define_enum_for_primitive! {
+    #[derive(Copy, Clone, Debug, PartialEq, Eq)]
+    pub enum FieldType: ffi::server::FIELDTYPE {
+        FLOAT(ffi::server::_fieldtypes_FIELD_FLOAT),
+        STRING(ffi::server::_fieldtypes_FIELD_STRING),
+        ENTITY(ffi::server::_fieldtypes_FIELD_ENTITY),
+        CLASSPTR(ffi::server::_fieldtypes_FIELD_CLASSPTR),
+        EHANDLE(ffi::server::_fieldtypes_FIELD_EHANDLE),
+        EVARS(ffi::server::_fieldtypes_FIELD_EVARS),
+        EDICT(ffi::server::_fieldtypes_FIELD_EDICT),
+        VECTOR(ffi::server::_fieldtypes_FIELD_VECTOR),
+        #[allow(non_camel_case_types)]
+        POSITION_VECTOR(ffi::server::_fieldtypes_FIELD_POSITION_VECTOR),
+        POINTER(ffi::server::_fieldtypes_FIELD_POINTER),
+        INTEGER(ffi::server::_fieldtypes_FIELD_INTEGER),
+        FUNCTION(ffi::server::_fieldtypes_FIELD_FUNCTION),
+        BOOLEAN(ffi::server::_fieldtypes_FIELD_BOOLEAN),
+        SHORT(ffi::server::_fieldtypes_FIELD_SHORT),
+        CHARACTER(ffi::server::_fieldtypes_FIELD_CHARACTER),
+        TIME(ffi::server::_fieldtypes_FIELD_TIME),
+        /// An engine string that is a model name (needs precache).
+        MODELNAME(ffi::server::_fieldtypes_FIELD_MODELNAME),
+        /// An engine string that is a sound name (needs precache).
+        SOUNDNAME(ffi::server::_fieldtypes_FIELD_SOUNDNAME),
+    }
 }
 
 impl FieldType {
-    pub fn from_raw(raw: c_uint) -> Option<Self> {
-        match raw {
-            0 => Some(Self::FLOAT),
-            1 => Some(Self::STRING),
-            2 => Some(Self::ENTITY),
-            3 => Some(Self::CLASSPTR),
-            4 => Some(Self::EHANDLE),
-            5 => Some(Self::EVARS),
-            6 => Some(Self::EDICT),
-            7 => Some(Self::VECTOR),
-            8 => Some(Self::POSITION_VECTOR),
-            9 => Some(Self::POINTER),
-            10 => Some(Self::INTEGER),
-            11 => Some(Self::FUNCTION),
-            12 => Some(Self::BOOLEAN),
-            13 => Some(Self::SHORT),
-            14 => Some(Self::CHARACTER),
-            15 => Some(Self::TIME),
-            16 => Some(Self::MODELNAME),
-            17 => Some(Self::SOUNDNAME),
-            18 => Some(Self::TYPECOUNT),
-            _ => None,
-        }
-    }
-
     pub const fn host_size(&self) -> usize {
         use core::mem::size_of;
 
@@ -202,7 +180,7 @@ impl FieldType {
             Self::ENTITY => size_of::<EntityOffset>(),
             Self::CLASSPTR => size_of::<*const dyn Entity>(),
             // TODO: define EntityHandle
-            // Self::EHANDLE => size_of::<EntityHandle>(),
+            Self::EHANDLE => todo!(), // size_of::<EntityHandle>(),
             Self::EVARS => size_of::<*const entvars_s>(),
             Self::EDICT => size_of::<*const edict_s>(),
             Self::VECTOR => size_of::<vec3_t>(),
@@ -216,7 +194,6 @@ impl FieldType {
             Self::TIME => size_of::<c_float>(),
             Self::MODELNAME => size_of::<c_int>(),
             Self::SOUNDNAME => size_of::<c_int>(),
-            _ => unreachable!(),
         }
     }
 
@@ -242,7 +219,6 @@ impl FieldType {
             Self::TIME => size_of::<c_float>(),
             Self::MODELNAME => size_of::<c_int>(),
             Self::SOUNDNAME => size_of::<c_int>(),
-            _ => unreachable!(),
         }
     }
 }
