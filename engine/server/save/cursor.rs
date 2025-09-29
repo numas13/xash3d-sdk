@@ -293,9 +293,16 @@ impl<'a> CursorMut<'a> {
             return Err(SaveError::Overflow);
         }
         let old_offset = self.set_offset(offset)?;
-        let result = f(self);
-        self.offset = cmp::max(self.offset, old_offset);
-        result
+        match f(self) {
+            Ok(value) => {
+                self.offset = cmp::max(self.offset, old_offset);
+                Ok(value)
+            }
+            Err(err) => {
+                self.offset = old_offset;
+                Err(err)
+            }
+        }
     }
 
     pub fn write(&mut self, bytes: &[u8]) -> SaveResult<usize> {
@@ -587,8 +594,19 @@ mod tests {
         cur.write_at(3, |cur| cur.write(b"FOO")).unwrap();
         assert_eq!(cur.as_slice(), b"BARFOO");
 
-        // an error is returned if we try to set the offset higher than the size
+        // an error is returned if we try to set the offset higher than the current offset
         assert_eq!(cur.write_at(7, |_| Ok(())), Err(SaveError::Overflow));
+
+        // always restore the previous offset on errors
+        let old_offset = cur.offset();
+        let res = cur.write_at(5, |cur| {
+            for _ in 0..cur.avaiable() + 1 {
+                cur.write_u8(b'0')?;
+            }
+            Ok(())
+        });
+        assert_eq!(res, Err(SaveError::Overflow));
+        assert_eq!(cur.offset(), old_offset);
 
         // this will increace the size
         cur.write_at(5, |cur| cur.write(b"OY")).unwrap();
