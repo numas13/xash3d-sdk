@@ -512,7 +512,7 @@ impl SaveReader {
                 _ => warn!("unimplemented field({field_type:?}) read for {name:?}"),
             }
 
-            if dst.capacity() != 0 {
+            if dst.avaiable() != 0 {
                 warn!("field {name:?}({field_type:?}) was partially restored");
             }
 

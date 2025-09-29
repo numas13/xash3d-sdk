@@ -259,6 +259,11 @@ impl<'a> CursorMut<'a> {
 
     #[inline]
     pub fn capacity(&self) -> usize {
+        self.buffer.len()
+    }
+
+    #[inline]
+    pub fn avaiable(&self) -> usize {
         self.buffer.len() - self.offset
     }
 
@@ -271,7 +276,7 @@ impl<'a> CursorMut<'a> {
         &mut self.buffer[..size]
     }
 
-    pub fn check_capacity(&self, size: usize) -> SaveResult<usize> {
+    pub fn check_available(&self, size: usize) -> SaveResult<usize> {
         let new_offset = self.offset + size;
         if self.buffer.len() < new_offset {
             return Err(SaveError::Overflow);
@@ -294,7 +299,7 @@ impl<'a> CursorMut<'a> {
     }
 
     pub fn write(&mut self, bytes: &[u8]) -> SaveResult<usize> {
-        let new_offset = self.check_capacity(bytes.len())?;
+        let new_offset = self.check_available(bytes.len())?;
         self.buffer[self.offset..new_offset].copy_from_slice(bytes);
         self.offset = new_offset;
         Ok(bytes.len())
