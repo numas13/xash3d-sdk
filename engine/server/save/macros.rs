@@ -59,19 +59,19 @@ macro_rules! type_of_field {
 pub use type_of_field;
 
 #[doc(hidden)]
-pub const fn count_of_return_value<T, U>(_: &impl FnOnce(&T) -> &U, ftype: FieldType) -> i16 {
-    let count = core::mem::size_of::<U>() / ftype.size();
+pub const fn host_count_of_return_value<T, U>(_: &impl FnOnce(&T) -> &U, ftype: FieldType) -> i16 {
+    let count = core::mem::size_of::<U>() / ftype.host_size();
     count as i16
 }
 
 #[doc(hidden)]
 #[macro_export]
-macro_rules! count_of_field {
+macro_rules! host_count_of_field {
     ($ftype:expr, $ty:ty, $($fields:tt)+ $(,)?) => ({
-        $crate::save::count_of_return_value(&|t: &$ty| &t.$($fields)+, $ftype)
+        $crate::save::host_count_of_return_value(&|t: &$ty| &t.$($fields)+, $ftype)
     });
 }
-pub use count_of_field;
+pub use host_count_of_field;
 
 #[doc(hidden)]
 #[macro_export]
@@ -85,7 +85,7 @@ macro_rules! define_field {
             Self,
             $name $(.$rest)*,
             $type,
-            $crate::save::count_of_field!($type, Self, $name $(.$rest)*)
+            $crate::save::host_count_of_field!($type, Self, $name $(.$rest)*)
             $(, $global)?
         )
     };

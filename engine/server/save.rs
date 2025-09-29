@@ -11,13 +11,17 @@ use bitflags::bitflags;
 use csz::{CStrArray, CStrThin};
 use xash3d_shared::{
     ffi::{
-        common::vec3_t,
+        common::{string_t, vec3_t},
         server::{edict_s, entvars_s, KeyValueData, TYPEDESCRIPTION},
     },
     utils::cstr_or_none,
 };
 
-use crate::{engine::ServerEngineRef, str::MapString};
+use crate::{
+    engine::ServerEngineRef,
+    entity::{Entity, EntityOffset},
+    str::MapString,
+};
 
 pub use self::cursor::*;
 pub use self::macros::*;
@@ -33,6 +37,10 @@ macro_rules! impl_type_description {
             impl TypeDescription for $type {
                 const TYPE: FieldType = $field_type;
             }
+            xash3d_shared::macros::const_assert_eq!(
+                $field_type.host_size(),
+                core::mem::size_of::<$type>(),
+            );
         )*
     };
 }
@@ -185,31 +193,56 @@ impl FieldType {
         }
     }
 
-    pub const fn size(&self) -> usize {
+    pub const fn host_size(&self) -> usize {
+        use core::mem::size_of;
+
         match self {
-            Self::FLOAT => mem::size_of::<c_float>(),
-            Self::STRING => mem::size_of::<c_int>(),
-            Self::ENTITY => mem::size_of::<c_int>(),
-            Self::CLASSPTR => mem::size_of::<c_int>(),
-            Self::EHANDLE => mem::size_of::<c_int>(),
-            Self::EVARS => mem::size_of::<c_int>(),
-            Self::EDICT => mem::size_of::<c_int>(),
-            Self::VECTOR => mem::size_of::<c_float>() * 3,
-            Self::POSITION_VECTOR => mem::size_of::<c_float>() * 3,
-            Self::POINTER => mem::size_of::<*const c_int>(),
-            Self::INTEGER => mem::size_of::<c_int>(),
-            // #ifdef GNUC
-            Self::FUNCTION => mem::size_of::<*const c_int>() * 2,
-            // #else
-            // Self::FUNCTION         => mem::size_of::<*const c_int>(),
-            // #endif
-            Self::BOOLEAN => mem::size_of::<c_int>(),
-            Self::SHORT => mem::size_of::<c_short>(),
-            Self::CHARACTER => mem::size_of::<c_char>(),
-            Self::TIME => mem::size_of::<c_float>(),
-            Self::MODELNAME => mem::size_of::<c_int>(),
-            Self::SOUNDNAME => mem::size_of::<c_int>(),
-            Self::TYPECOUNT => unreachable!(),
+            Self::FLOAT => size_of::<c_float>(),
+            Self::STRING => size_of::<string_t>(),
+            Self::ENTITY => size_of::<EntityOffset>(),
+            Self::CLASSPTR => size_of::<*const dyn Entity>(),
+            // TODO: define EntityHandle
+            // Self::EHANDLE => size_of::<EntityHandle>(),
+            Self::EVARS => size_of::<*const entvars_s>(),
+            Self::EDICT => size_of::<*const edict_s>(),
+            Self::VECTOR => size_of::<vec3_t>(),
+            Self::POSITION_VECTOR => size_of::<vec3_t>(),
+            Self::POINTER => size_of::<*const c_int>(),
+            Self::INTEGER => size_of::<c_int>(),
+            Self::FUNCTION => size_of::<fn()>(),
+            Self::BOOLEAN => size_of::<c_int>(),
+            Self::SHORT => size_of::<c_short>(),
+            Self::CHARACTER => size_of::<c_char>(),
+            Self::TIME => size_of::<c_float>(),
+            Self::MODELNAME => size_of::<c_int>(),
+            Self::SOUNDNAME => size_of::<c_int>(),
+            _ => unreachable!(),
+        }
+    }
+
+    pub const fn save_size(&self) -> usize {
+        use core::mem::size_of;
+
+        match self {
+            Self::FLOAT => size_of::<c_float>(),
+            Self::STRING => size_of::<string_t>(),
+            Self::ENTITY => size_of::<c_int>(),
+            Self::CLASSPTR => size_of::<c_int>(),
+            Self::EHANDLE => size_of::<c_int>(),
+            Self::EVARS => size_of::<c_int>(),
+            Self::EDICT => size_of::<c_int>(),
+            Self::VECTOR => size_of::<vec3_t>(),
+            Self::POSITION_VECTOR => size_of::<vec3_t>(),
+            Self::POINTER => size_of::<*const c_int>(),
+            Self::INTEGER => size_of::<c_int>(),
+            Self::FUNCTION => size_of::<fn()>(),
+            Self::BOOLEAN => size_of::<c_int>(),
+            Self::SHORT => size_of::<c_short>(),
+            Self::CHARACTER => size_of::<c_char>(),
+            Self::TIME => size_of::<c_float>(),
+            Self::MODELNAME => size_of::<c_int>(),
+            Self::SOUNDNAME => size_of::<c_int>(),
+            _ => unreachable!(),
         }
     }
 }
@@ -428,7 +461,7 @@ impl SaveReader {
             let field_type = field.field_type();
             let count = field.fieldSize as usize;
             let dst_ptr = base_data.wrapping_add(field.fieldOffset as usize);
-            let dst_len = field_type.size() * count;
+            let dst_len = field_type.host_size() * count;
             let dst_slice = unsafe { slice::from_raw_parts_mut(dst_ptr.cast::<u8>(), dst_len) };
             let mut dst = CursorMut::new(dst_slice);
 
@@ -541,7 +574,7 @@ impl SaveReader {
                 continue;
             }
             let data = base_data.wrapping_add(i.fieldOffset as usize);
-            let len = i.fieldSize as usize * i.field_type().size();
+            let len = i.fieldSize as usize * i.field_type().save_size();
             unsafe {
                 ptr::write_bytes(data, 0, len);
             }
@@ -606,7 +639,7 @@ impl SaveWriter {
             let field_type = field.field_type();
             let count = field.fieldSize as usize;
             let src_ptr = base_data.wrapping_add(field.fieldOffset as usize);
-            let src_len = field_type.size() * count;
+            let src_len = field_type.host_size() * count;
             let src_slice = unsafe { slice::from_raw_parts(src_ptr, src_len) };
             let mut src = Cursor::new(src_slice);
 
