@@ -408,6 +408,32 @@ define_entity_trait! {
                 || b.absmax.y() < a.absmin.y()
                 || b.absmax.z() < a.absmin.z())
         }
+
+        /// Called by [Entity::remove_from_world].
+        fn update_on_remove(&mut self) {
+            if self.vars().flags().contains(EdictFlags::GRAPHED) {
+                // TODO: remove from the world graph
+                warn!("Entity::update_on_remove(): remove from the world graph is not implemented");
+            }
+
+            if self.vars().as_raw().globalname != 0 {
+                // TODO: need to move the GlobalState to xash3d-server crate
+                warn!("Entity::update_on_remove(): set GLOBAL_DEAD in the global state is not implemented");
+            }
+        }
+
+        /// Removes this entity from the world.
+        fn remove_from_world(&mut self) {
+            self.update_on_remove();
+
+            let ev = self.vars_mut().as_raw_mut();
+            if ev.health > 0.0 {
+                ev.health = 0.0;
+                warn!("Entity::remove_from_world(): called with health > 0");
+            }
+
+            self.vars_mut().delayed_remove();
+        }
     }
 }
 
