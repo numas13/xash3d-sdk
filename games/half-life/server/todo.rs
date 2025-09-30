@@ -281,7 +281,6 @@ export_entity_stub! {
     func_train,
     func_water,
     gibshooter,
-    infodecal,
     item_battery,
     monster_barnacle,
     monster_barney,
