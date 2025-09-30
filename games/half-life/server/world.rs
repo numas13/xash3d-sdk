@@ -2,12 +2,11 @@ use core::ffi::CStr;
 
 use xash3d_server::{
     engine::TraceIgnore,
-    entity::{delegate_entity, impl_save_restore, BaseEntity, CreateEntity, Entity, UseType},
-    export::export_entity,
-    ffi::{
-        common::vec3_t,
-        server::{KeyValueData, TYPEDESCRIPTION},
+    entity::{
+        delegate_entity, impl_save_restore, BaseEntity, CreateEntity, Entity, KeyValue, UseType,
     },
+    export::export_entity,
+    ffi::{common::vec3_t, server::TYPEDESCRIPTION},
     prelude::*,
     save::{define_fields, SaveFields},
     str::MapString,
@@ -68,7 +67,7 @@ impl Entity for Decal {
     delegate_entity!(base not { key_value, save, restore, spawn, think, used });
     impl_save_restore!(base);
 
-    fn key_value(&mut self, data: &mut KeyValueData) {
+    fn key_value(&mut self, data: &mut KeyValue) {
         if data.key_name() == c"texture" {
             let engine = self.engine();
             let ev = self.vars_mut().as_raw_mut();
@@ -148,7 +147,7 @@ impl CreateEntity for World {
 impl Entity for World {
     delegate_entity!(base not { key_value, precache, spawn });
 
-    fn key_value(&mut self, data: &mut KeyValueData) {
+    fn key_value(&mut self, data: &mut KeyValue) {
         let class_name = data.class_name();
         let key_name = data.key_name();
         let value = data.value();

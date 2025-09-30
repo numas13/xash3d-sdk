@@ -27,7 +27,7 @@ use xash3d_shared::{
 };
 
 use crate::{
-    entity::{EntityPlayer, EntityVars, ObjectCaps, PrivateData, RestoreResult, UseType},
+    entity::{EntityPlayer, EntityVars, KeyValue, ObjectCaps, PrivateData, RestoreResult, UseType},
     global_state::{EntityState, GlobalState, GlobalStateRef},
     prelude::*,
     save::{SaveReader, SaveRestoreData, SaveWriter},
@@ -161,7 +161,7 @@ pub trait ServerDll: UnsyncGlobal {
         blocked.blocked(other);
     }
 
-    fn dispatch_key_value(&self, ent: &mut edict_s, data: &mut KeyValueData) {
+    fn dispatch_key_value(&self, ent: &mut edict_s, data: &mut KeyValue) {
         let mut ev = unsafe { EntityVars::from_raw(self.engine(), &mut ent.v) };
         ev.key_value(data);
 
@@ -866,6 +866,7 @@ impl<T: ServerDll> ServerDllExport for Export<T> {
         let ent = unsafe { ent.as_mut() };
         let data = unsafe { data.as_mut() };
         if let (Some(ent), Some(data)) = (ent, data) {
+            let data = KeyValue::new(data);
             unsafe { T::global_assume_init_ref() }.dispatch_key_value(ent, data);
         }
     }

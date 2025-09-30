@@ -1,10 +1,12 @@
 use core::ffi::CStr;
 
 use xash3d_server::{
-    entity::{delegate_entity, impl_save_restore, BaseEntity, CreateEntity, Entity, UseType},
+    entity::{
+        delegate_entity, impl_save_restore, BaseEntity, CreateEntity, Entity, KeyValue, UseType,
+    },
     export::export_entity,
-    ffi::server::{KeyValueData, TYPEDESCRIPTION},
-    save::{define_fields, KeyValueDataExt, SaveFields},
+    ffi::server::TYPEDESCRIPTION,
+    save::{define_fields, SaveFields},
     str::MapString,
 };
 
@@ -42,24 +44,22 @@ impl Entity for Light {
     delegate_entity!(base not { key_value, save, restore, spawn, used });
     impl_save_restore!(base);
 
-    fn key_value(&mut self, data: &mut KeyValueData) {
-        let name = data.key_name();
-        let value = data.value().to_str().unwrap_or("");
-
-        if name == c"style" {
-            self.style = value.parse().unwrap_or(0);
-            data.set_handled(true);
-        } else if name == c"pitch" {
-            let ev = self.vars_mut().as_raw_mut();
-            ev.angles.set_x(value.parse().unwrap_or(0.0));
-            data.set_handled(true);
-        } else if name == c"pattern" {
-            let engine = self.engine();
-            self.pattern = engine.try_alloc_map_string(data.value());
-            data.set_handled(true);
-        } else {
-            self.base.key_value(data);
+    fn key_value(&mut self, data: &mut KeyValue) {
+        match data.key_name().to_bytes() {
+            b"style" => {
+                self.style = data.value_str().parse().unwrap_or(0);
+            }
+            b"pitch" => {
+                let ev = self.vars_mut().as_raw_mut();
+                ev.angles.set_x(data.value_str().parse().unwrap_or(0.0));
+            }
+            b"pattern" => {
+                let engine = self.engine();
+                self.pattern = engine.try_alloc_map_string(data.value());
+            }
+            _ => return self.base.key_value(data),
         }
+        data.set_handled(true);
     }
 
     fn spawn(&mut self) {

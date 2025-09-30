@@ -17,15 +17,14 @@ use xash3d_shared::{
     },
     macros::const_assert_size_of_field_eq,
     math::fabsf,
+    utils::cstr_or_none,
 };
 
 use crate::{
     self as xash3d_server,
     engine::ServerEngineRef,
     global_state::{EntityState, GlobalStateRef},
-    save::{
-        FieldType, KeyValueDataExt, SaveFields, SaveReader, SaveRestoreData, SaveResult, SaveWriter,
-    },
+    save::{FieldType, SaveFields, SaveReader, SaveRestoreData, SaveResult, SaveWriter},
     str::MapString,
 };
 
@@ -123,6 +122,47 @@ impl AsEdict for EntityVars {
     }
 }
 
+#[repr(transparent)]
+pub struct KeyValue {
+    raw: KeyValueData,
+}
+
+impl KeyValue {
+    pub fn new(raw: &mut KeyValueData) -> &mut KeyValue {
+        unsafe { &mut *(raw as *mut KeyValueData as *mut Self) }
+    }
+
+    /// Returns the class name of an entity related to the data.
+    pub fn class_name(&self) -> Option<&CStrThin> {
+        unsafe { cstr_or_none(self.raw.szClassName) }
+    }
+
+    pub fn key_name(&self) -> &CStrThin {
+        unsafe { cstr_or_none(self.raw.szKeyName) }.unwrap()
+    }
+
+    pub fn key_name_str(&self) -> &str {
+        self.key_name().to_str().unwrap_or("")
+    }
+
+    pub fn value(&self) -> &CStrThin {
+        unsafe { cstr_or_none(self.raw.szValue) }.unwrap()
+    }
+
+    pub fn value_str(&self) -> &str {
+        self.value().to_str().unwrap_or("")
+    }
+
+    /// Returns `true` if the server DLL knows the key name.
+    pub fn handled(&self) -> bool {
+        self.raw.fHandled != 0
+    }
+
+    pub fn set_handled(&mut self, handled: bool) {
+        self.raw.fHandled = handled.into();
+    }
+}
+
 /// A safe wrapper for [entvars_s].
 #[derive(Debug)]
 pub struct EntityVars {
@@ -201,7 +241,7 @@ impl EntityVars {
         self.as_raw_mut().nextthink = 0.0;
     }
 
-    pub fn key_value(&mut self, data: &mut KeyValueData) {
+    pub fn key_value(&mut self, data: &mut KeyValue) {
         let key_name = data.key_name();
         let field = entvars_s::SAVE_FIELDS.iter().find(|i| {
             let name = unsafe { CStrThin::from_ptr(i.fieldName) };
@@ -212,33 +252,29 @@ impl EntityVars {
             let field_type = FieldType::from_raw(field.fieldType).unwrap();
             let pev = self.raw as *mut u8;
             let p = unsafe { pev.offset(field.fieldOffset as isize) };
-            let value = data.value();
 
             match field_type {
                 FieldType::MODELNAME | FieldType::SOUNDNAME | FieldType::STRING => {
-                    let s = self.engine.new_map_string(value);
+                    let s = self.engine.new_map_string(data.value());
                     unsafe {
                         ptr::write(p.cast::<c_int>(), s.index());
                     }
                 }
                 FieldType::TIME | FieldType::FLOAT => {
-                    let s = value.to_str().ok();
-                    let v = s.and_then(|s| s.parse().ok()).unwrap_or(0.0);
+                    let v = data.value_str().parse().unwrap_or(0.0);
                     unsafe {
                         ptr::write(p.cast::<f32>(), v);
                     }
                 }
                 FieldType::INTEGER => {
-                    let s = value.to_str().ok();
-                    let v = s.and_then(|s| s.parse().ok()).unwrap_or(0);
+                    let v = data.value_str().parse().unwrap_or(0);
                     unsafe {
                         ptr::write(p.cast::<c_int>(), v);
                     }
                 }
                 FieldType::POSITION_VECTOR | FieldType::VECTOR => {
-                    let s = value.to_str().unwrap();
                     let mut v = vec3_t::ZERO;
-                    for (i, s) in s.split(' ').enumerate() {
+                    for (i, s) in data.value_str().split(' ').enumerate() {
                         v[i] = s.parse().unwrap_or(0.0);
                     }
                     unsafe {
@@ -367,7 +403,7 @@ define_entity_trait! {
             save_data: &mut xash3d_server::save::SaveRestoreData,
         ) -> xash3d_server::save::SaveResult<()>;
 
-        fn key_value(&mut self, data: &mut xash3d_server::ffi::server::KeyValueData) {
+        fn key_value(&mut self, data: &mut xash3d_server::entity::KeyValue) {
             data.set_handled(false);
         }
 

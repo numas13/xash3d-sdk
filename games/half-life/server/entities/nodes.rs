@@ -1,9 +1,7 @@
 use xash3d_server::{
     consts::SOLID_NOT,
-    entity::{delegate_entity, BaseEntity, CreateEntity, Entity, MoveType, ObjectCaps},
+    entity::{delegate_entity, BaseEntity, CreateEntity, Entity, KeyValue, MoveType, ObjectCaps},
     export::export_entity,
-    ffi::server::KeyValueData,
-    save::KeyValueDataExt,
 };
 
 use crate::{entity::Private, impl_cast};
@@ -35,8 +33,8 @@ impl Entity for NodeEntity {
             .difference(ObjectCaps::ACROSS_TRANSITION)
     }
 
-    fn key_value(&mut self, data: &mut KeyValueData) {
-        let value = data.value().to_str().unwrap_or("");
+    fn key_value(&mut self, data: &mut KeyValue) {
+        let value = data.value_str();
         match data.key_name().to_bytes() {
             b"hinttype" => self.hint_type = value.parse().unwrap_or(0),
             b"activity" => self.hint_activity = value.parse().unwrap_or(0),

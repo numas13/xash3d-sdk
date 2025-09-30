@@ -7,13 +7,13 @@ use csz::{cstr, CStrArray, CStrThin};
 use xash3d_server::{
     consts::{FENTTABLE_GLOBAL, FENTTABLE_MOVEABLE, SOLID_TRIGGER},
     entity::{
-        delegate_entity, impl_save_restore, BaseEntity, CreateEntity, Effects, Entity, MoveType,
-        ObjectCaps,
+        delegate_entity, impl_save_restore, BaseEntity, CreateEntity, Effects, Entity, KeyValue,
+        MoveType, ObjectCaps,
     },
     export::export_entity,
     ffi::{
         common::vec3_t,
-        server::{edict_s, entvars_s, KeyValueData, LEVELLIST, TYPEDESCRIPTION},
+        server::{edict_s, entvars_s, LEVELLIST, TYPEDESCRIPTION},
     },
     prelude::*,
     save::{define_fields, SaveFields, SaveRestoreData},
@@ -130,33 +130,30 @@ impl Entity for ChangeLevel {
             .difference(ObjectCaps::ACROSS_TRANSITION)
     }
 
-    fn key_value(&mut self, data: &mut KeyValueData) {
+    fn key_value(&mut self, data: &mut KeyValue) {
         let engine = self.base.engine;
-        let name = data.key_name();
         let value = data.value();
 
-        if name == c"map" {
-            if value.to_bytes().len() >= MAP_NAME_MAX {
-                error!("Map name {value:?} too long ({MAP_NAME_MAX} chars)");
+        match data.key_name().to_bytes() {
+            b"map" => {
+                if self.map_name.cursor().write_c_str(value).is_err() {
+                    error!("Map name {value:?} too long ({MAP_NAME_MAX} chars)");
+                }
             }
-            self.map_name.cursor().write_c_str(value).unwrap();
-            data.set_handled(true);
-        } else if name == c"landmark" {
-            if value.to_bytes().len() >= MAP_NAME_MAX {
-                error!("Landmark name {value:?} too long ({MAP_NAME_MAX} chars)");
+            b"landmark" => {
+                if self.landmark_name.cursor().write_c_str(value).is_err() {
+                    error!("Landmark name {value:?} too long ({MAP_NAME_MAX} chars)");
+                }
             }
-            self.landmark_name.cursor().write_c_str(value).unwrap();
-            data.set_handled(true);
-        } else if name == c"changetarget" {
-            self.target = Some(engine.new_map_string(value));
-            data.set_handled(true);
-        } else if name == c"changedelay" {
-            let s = value.to_str().ok();
-            self.change_target_delay = s.and_then(|s| s.parse().ok()).unwrap_or(0.0);
-            data.set_handled(true);
-        } else {
-            self.base.key_value(data);
+            b"changetarget" => {
+                self.target = Some(engine.new_map_string(value));
+            }
+            b"changedelay" => {
+                self.change_target_delay = data.value_str().parse().unwrap_or(0.0);
+            }
+            _ => return self.base.key_value(data),
         }
+        data.set_handled(true);
     }
 
     fn spawn(&mut self) {

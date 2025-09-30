@@ -13,7 +13,7 @@ use xash3d_shared::{
     ffi::{
         self,
         common::{string_t, vec3_t},
-        server::{edict_s, entvars_s, KeyValueData, TYPEDESCRIPTION},
+        server::{edict_s, entvars_s, TYPEDESCRIPTION},
     },
     macros::define_enum_for_primitive,
     utils::cstr_or_none,
@@ -102,44 +102,6 @@ impl Token {
 
     pub const fn to_usize(&self) -> usize {
         self.0 as usize
-    }
-}
-
-pub trait KeyValueDataExt {
-    /// Returns the class name of an entity related to the data.
-    fn class_name(&self) -> Option<&CStrThin>;
-
-    fn key_name(&self) -> &CStrThin;
-
-    fn value(&self) -> &CStrThin;
-
-    /// Returns `true` if the server DLL knows the key name.
-    fn handled(&self) -> bool;
-
-    fn set_handled(&mut self, handled: bool);
-}
-
-impl KeyValueDataExt for KeyValueData {
-    /// Returns the class name of an entity related to the data.
-    fn class_name(&self) -> Option<&CStrThin> {
-        unsafe { cstr_or_none(self.szClassName) }
-    }
-
-    fn key_name(&self) -> &CStrThin {
-        unsafe { cstr_or_none(self.szKeyName) }.unwrap()
-    }
-
-    fn value(&self) -> &CStrThin {
-        unsafe { cstr_or_none(self.szValue) }.unwrap()
-    }
-
-    /// Returns `true` if the server DLL knows the key name.
-    fn handled(&self) -> bool {
-        self.fHandled != 0
-    }
-
-    fn set_handled(&mut self, handled: bool) {
-        self.fHandled = handled.into();
     }
 }
 

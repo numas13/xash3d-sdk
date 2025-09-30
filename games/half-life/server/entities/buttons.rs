@@ -2,15 +2,13 @@ use core::ffi::CStr;
 
 use xash3d_server::{
     entity::{
-        delegate_entity, impl_save_restore, BaseEntity, CreateEntity, Entity, EntityVars, UseType,
+        delegate_entity, impl_save_restore, BaseEntity, CreateEntity, Entity, EntityVars, KeyValue,
+        UseType,
     },
     export::export_entity,
-    ffi::{
-        common::vec3_t,
-        server::{KeyValueData, TYPEDESCRIPTION},
-    },
+    ffi::{common::vec3_t, server::TYPEDESCRIPTION},
     prelude::*,
-    save::{define_fields, FieldType, KeyValueDataExt, SaveFields},
+    save::{define_fields, FieldType, SaveFields},
     svc,
 };
 
@@ -67,11 +65,10 @@ impl Entity for EnvSpark {
     delegate_entity!(base not { key_value, save, restore, precache, spawn, think, used });
     impl_save_restore!(base);
 
-    fn key_value(&mut self, data: &mut KeyValueData) {
+    fn key_value(&mut self, data: &mut KeyValue) {
         let name = data.key_name();
         if name == c"MaxDelay" {
-            let value = data.value().to_str().unwrap_or("");
-            self.delay = value.parse().unwrap_or(0.0);
+            self.delay = data.value_str().parse().unwrap_or(0.0);
             data.set_handled(true);
         } else if name == c"style"
             || name == c"height"
