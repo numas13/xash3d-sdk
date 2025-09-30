@@ -1,10 +1,6 @@
 use core::ffi::CStr;
 
-use alloc::rc::Rc;
-use xash3d_server::{
-    game_rules::{GameRules, GameRulesRef},
-    prelude::*,
-};
+use xash3d_server::{game_rules::GameRules, global_state::GlobalStateRef, prelude::*};
 
 pub struct HalfLifeRules {
     engine: ServerEngineRef,
@@ -29,15 +25,13 @@ impl GameRules for HalfLifeRules {
     }
 }
 
-pub fn install_game_rules(engine: ServerEngineRef) {
+pub fn install_game_rules(engine: ServerEngineRef, global_state: GlobalStateRef) {
     engine.server_command(c"exec game.cfg\n");
     engine.server_execute();
 
     if !engine.globals.is_deathmatch() {
         // TODO: g_teamplay = 0;
-        unsafe {
-            GameRulesRef::set(Rc::new(HalfLifeRules::new(engine)));
-        }
+        global_state.set_game_rules(HalfLifeRules::new(engine));
         return;
     } else {
         // TODO:

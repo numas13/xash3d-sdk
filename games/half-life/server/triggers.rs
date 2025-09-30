@@ -75,7 +75,11 @@ impl ChangeLevel {
         let engine = self.base.engine;
         assert!(!self.map_name.is_empty());
 
-        if self.game_rules().is_some_and(|rules| rules.is_deathmatch()) {
+        if self
+            .global_state()
+            .game_rules()
+            .is_some_and(|rules| rules.is_deathmatch())
+        {
             return;
         }
 

@@ -14,6 +14,7 @@ pub mod engine;
 pub mod entity;
 pub mod export;
 pub mod game_rules;
+pub mod global_state;
 pub mod globals;
 pub mod instance;
 mod logger;

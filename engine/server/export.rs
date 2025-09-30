@@ -2,6 +2,7 @@ use core::{
     ffi::{c_char, c_int, c_uchar, c_uint, c_void, CStr},
     fmt::Write,
     marker::PhantomData,
+    mem::MaybeUninit,
     ptr::{self, NonNull},
     slice,
 };
@@ -18,7 +19,7 @@ use xash3d_shared::{
         },
         player_move::playermove_s,
         server::{
-            edict_s, KeyValueData, DLL_FUNCTIONS, NEW_DLL_FUNCTIONS, SAVERESTOREDATA,
+            edict_s, entvars_s, KeyValueData, DLL_FUNCTIONS, NEW_DLL_FUNCTIONS, SAVERESTOREDATA,
             TYPEDESCRIPTION,
         },
     },
@@ -27,6 +28,7 @@ use xash3d_shared::{
 
 use crate::{
     entity::{EntityPlayer, EntityVars, ObjectCaps, PrivateData, RestoreResult, UseType},
+    global_state::{EntityState, GlobalState, GlobalStateRef},
     prelude::*,
     save::{SaveReader, SaveRestoreData, SaveWriter},
     utils::slice_from_raw_parts_or_empty_mut,
@@ -52,15 +54,58 @@ impl From<SpawnResult> for c_int {
 #[allow(unused_variables)]
 #[allow(clippy::missing_safety_doc)]
 pub trait ServerDll: UnsyncGlobal {
-    fn new(engine: ServerEngineRef) -> Self;
+    fn new(engine: ServerEngineRef, global_state: GlobalStateRef) -> Self;
 
     fn engine(&self) -> ServerEngineRef;
+
+    fn global_state(&self) -> GlobalStateRef;
 
     fn is_touch_enabled(&self) -> bool {
         true
     }
 
-    fn dispatch_spawn(&self, ent: &mut edict_s) -> SpawnResult;
+    fn dispatch_spawn(&self, ent: &mut edict_s) -> SpawnResult {
+        let engine = self.engine();
+        let global_state = self.global_state();
+
+        let Some(ent) = ent.get_entity_mut() else {
+            return SpawnResult::Delete;
+        };
+
+        let ev = ent.vars_mut().as_raw_mut();
+        ev.absmin = ev.origin - vec3_t::splat(1.0);
+        ev.absmax = ev.origin + vec3_t::splat(1.0);
+
+        ent.spawn();
+
+        if let Some(false) = global_state
+            .game_rules()
+            .map(|rules| rules.is_allowed_to_spawn(ent))
+        {
+            return SpawnResult::Delete;
+        }
+
+        if ent.vars().flags().intersects(EdictFlags::KILLME) {
+            return SpawnResult::Delete;
+        }
+
+        if let Some(globalname) = ent.globalname() {
+            let mut entities = global_state.entities_mut();
+            let map_name = engine.globals.map_name().unwrap();
+            if let Some(global) = entities.find(globalname) {
+                if global.is_dead() {
+                    return SpawnResult::Delete;
+                }
+                if map_name.as_thin() != global.map_name() {
+                    ent.make_dormant();
+                }
+            } else {
+                entities.add(globalname, map_name, EntityState::On);
+            }
+        }
+
+        SpawnResult::Ok
+    }
 
     fn dispatch_think(&self, ent: &mut edict_s) {
         if let Some(entity) = ent.get_entity_mut() {
@@ -166,10 +211,92 @@ pub trait ServerDll: UnsyncGlobal {
 
     fn dispatch_restore(
         &self,
-        ent: &mut edict_s,
+        mut ent: &mut edict_s,
         save_data: &mut SaveRestoreData,
         global_entity: bool,
-    ) -> RestoreResult;
+    ) -> RestoreResult {
+        let engine = self.engine();
+        let global_state = self.global_state();
+
+        let mut global_vars = MaybeUninit::<entvars_s>::uninit();
+        if global_entity {
+            let mut reader = SaveReader::new(engine);
+            reader.precache_mode(false);
+            reader
+                .read_fields(save_data, unsafe { global_vars.assume_init_mut() })
+                .unwrap();
+        }
+
+        let mut reader = SaveReader::new(engine);
+        let mut old_offset = vec3_t::ZERO;
+        if global_entity {
+            let tmp_vars = unsafe { global_vars.assume_init_mut() };
+            // HACK: restore save pointers
+            save_data.restore_save_pointers();
+
+            let mut entities = global_state.entities_mut();
+            let global = entities.find(tmp_vars.globalname().unwrap()).unwrap();
+            if save_data.current_map_name() != global.map_name() {
+                return RestoreResult::Ok;
+            }
+
+            old_offset = save_data.landmark_offset();
+            let classname = tmp_vars.classname().unwrap();
+            let globalname = tmp_vars.globalname().unwrap();
+            if let Some(new_ent) = engine.find_global_entity(classname, globalname) {
+                let new_ent = unsafe { &mut *new_ent };
+                reader.global_mode(true);
+                let mut landmark_offset = save_data.landmark_offset();
+                landmark_offset -= new_ent.v.mins;
+                landmark_offset += tmp_vars.mins;
+                save_data.set_landmark_offset(landmark_offset);
+                ent = new_ent;
+                entities.update(
+                    ent.v.globalname().unwrap(),
+                    engine.globals.map_name().unwrap(),
+                );
+            } else {
+                return RestoreResult::Ok;
+            }
+        }
+
+        let Some(entity) = ent.get_entity_mut() else {
+            return RestoreResult::Ok;
+        };
+        if let Err(err) = entity.restore(&mut reader, save_data) {
+            error!("dispatch_restore: entity restore error, {err}");
+        }
+        if entity.object_caps().intersects(ObjectCaps::MUST_SPAWN) {
+            entity.spawn();
+        } else {
+            entity.precache();
+        }
+
+        if global_entity {
+            save_data.set_landmark_offset(old_offset);
+            let origin = entity.vars().as_raw().origin;
+            engine.set_origin(entity.as_edict_mut(), origin);
+            entity.override_reset();
+            return RestoreResult::Ok;
+        } else if let Some(globalname) = entity.globalname() {
+            let globals = &engine.globals;
+            let mut entities = global_state.entities_mut();
+            if let Some(global) = entities.find(globalname) {
+                if global.is_dead() {
+                    return RestoreResult::Delete;
+                }
+                if globals.map_name().unwrap().as_thin() != global.map_name() {
+                    entity.make_dormant();
+                }
+            } else {
+                let classname = entity.classname();
+                error!("Global entity \"{globalname}\" (\"{classname}\") not in table!!!");
+                entities.add(globalname, globals.map_name().unwrap(), EntityState::On);
+            }
+        }
+
+        RestoreResult::Ok
+    }
 
     fn dispatch_object_collsion_box(&self, ent: &mut edict_s) {
         match ent.get_entity_mut() {
@@ -208,11 +335,21 @@ pub trait ServerDll: UnsyncGlobal {
         }
     }
 
-    fn save_global_state(&self, save_data: &mut SaveRestoreData);
+    fn save_global_state(&self, save_data: &mut SaveRestoreData) {
+        if let Err(e) = self.global_state().save(save_data) {
+            error!("Failed to save global state: {e:?}");
+        }
+    }
 
-    fn restore_global_state(&self, save_data: &mut SaveRestoreData);
+    fn restore_global_state(&self, save_data: &mut SaveRestoreData) {
+        if let Err(e) = self.global_state().restore(save_data) {
+            error!("Failed to restore global state: {e:?}");
+        }
+    }
 
-    fn reset_global_state(&self);
+    fn reset_global_state(&self) {
+        self.global_state().reset();
+    }
 
     fn client_connect(
         &self,
@@ -257,7 +394,9 @@ pub trait ServerDll: UnsyncGlobal {
     fn parms_change_level(&self) {}
 
     fn get_game_description(&self) -> &'static CStr {
-        c"Half-Life"
+        self.global_state()
+            .game_rules()
+            .map_or(c"Half-Life", |rules| rules.get_game_description())
     }
 
     fn player_customization(&self, ent: &mut edict_s, custom: &mut customization_s) {}
@@ -669,14 +808,19 @@ struct Export<T> {
 
 impl<T: ServerDll> ServerDllExport for Export<T> {
     unsafe extern "C" fn init() {
-        let engine = unsafe { ServerEngineRef::new() };
         unsafe {
-            (&mut *T::global_as_mut_ptr()).write(T::new(engine));
+            let engine = ServerEngineRef::new();
+            (*GlobalState::global_as_mut_ptr()).write(GlobalState::new(engine));
+            let global_state = GlobalStateRef::new();
+            (*T::global_as_mut_ptr()).write(T::new(engine, global_state));
         }
     }
 
     unsafe extern "C" fn shutdown() {
-        unsafe { (&mut *T::global_as_mut_ptr()).assume_init_drop() }
+        unsafe {
+            (*T::global_as_mut_ptr()).assume_init_drop();
+            (*GlobalState::global_as_mut_ptr()).assume_init_drop();
+        }
     }
 
     unsafe extern "C" fn dispatch_spawn(ent: *mut edict_s) -> c_int {
@@ -1242,10 +1386,12 @@ macro_rules! export_entity {
             use $crate::{
                 engine::ServerEngineRef,
                 entity::{CreateEntity, PrivateData, PrivateEntity},
+                global_state::GlobalStateRef,
             };
             unsafe {
                 let engine = ServerEngineRef::new();
-                PrivateData::create_with::<$private, _>(engine, ev, $init);
+                let global_state = GlobalStateRef::new();
+                PrivateData::create_with::<$private, _>(engine, global_state, ev, $init);
             }
         }
     };

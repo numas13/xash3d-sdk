@@ -162,7 +162,7 @@ impl Entity for World {
         engine.set_cvar(c"sv_gravity", c"800");
         engine.set_cvar(c"sv_stepsize", c"18");
         engine.set_cvar(c"room_type", c"0");
-        install_game_rules(engine);
+        install_game_rules(engine, self.global_state());
     }
 
     fn spawn(&mut self) {

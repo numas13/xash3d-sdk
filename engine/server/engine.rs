@@ -21,7 +21,7 @@ use xash3d_shared::{
 
 use crate::{
     cvar::CVarPtr,
-    entity::{AsEdict, EntityOffset},
+    entity::{AsEdict, EntityOffset, GetPrivateData},
     globals::ServerGlobals,
     str::MapString,
     svc::{Message, MessageDest},
@@ -392,6 +392,23 @@ impl ServerEngine {
         value: impl ToEngineStr + 'a,
     ) -> impl 'a + Iterator<Item = *mut edict_s> {
         self.find_ent_by_string_iter(c"targetname", value)
+    }
+
+    pub fn find_global_entity(
+        &self,
+        class_name: MapString,
+        global_name: MapString,
+    ) -> Option<*mut edict_s> {
+        self.find_ent_by_globalname_iter(&global_name).find(|&ent| {
+            if let Some(entity) = unsafe { &*ent }.get_entity() {
+                if entity.is_classname(&class_name) {
+                    return true;
+                } else {
+                    debug!("Global entity found \"{global_name}\", wrong class \"{class_name}\"");
+                }
+            }
+            false
+        })
     }
 
     // pub pfnGetEntityIllum: Option<unsafe extern "C" fn(pEnt: *mut edict_t) -> c_int>,

@@ -8,14 +8,12 @@ use xash3d_server::{
     },
     export::export_entity,
     ffi::server::edict_s,
+    global_state::GlobalStateRef,
     prelude::*,
     save::{SaveReader, SaveRestoreData, SaveResult},
 };
 
-use crate::{
-    entity::{impl_cast, EntityTest, Private},
-    export::global_state,
-};
+use crate::entity::{impl_cast, EntityTest, Private};
 
 pub struct Player {
     base: BaseEntity,
@@ -91,7 +89,10 @@ impl Entity for Player {
         engine.set_physics_key_value(self.as_edict_mut(), c"slj", c"0");
         engine.set_physics_key_value(self.as_edict_mut(), c"hl", c"1");
 
-        self.game_rules().unwrap().get_player_spawn_spot(self);
+        self.global_state()
+            .game_rules()
+            .unwrap()
+            .get_player_spawn_spot(self);
 
         engine.set_model(self.as_edict_mut(), res::valve::models::PLAYER);
     }
@@ -99,8 +100,11 @@ impl Entity for Player {
 
 impl EntityPlayer for Player {
     fn select_spawn_point(&self) -> *mut edict_s {
-        let engine = self.base.engine;
-        let game_rules = self.game_rules().expect("GameRules is not intialized.");
+        let engine = self.engine();
+        let global_state = self.global_state();
+        let game_rules = global_state
+            .game_rules()
+            .expect("GameRules is not intialized.");
 
         if game_rules.is_coop() {
             todo!();
@@ -116,7 +120,7 @@ impl EntityPlayer for Player {
         let spot = engine.find_ent_by_classname(ptr::null_mut(), start_spot);
 
         if !spot.is_null() {
-            *global_state().last_spawn.borrow_mut() = spot;
+            self.global_state().set_last_spawn(spot);
             spot
         } else {
             error!("No info_player_start on level");
@@ -141,8 +145,13 @@ impl Drop for Player {
     }
 }
 
-pub fn client_put_in_server(engine: ServerEngineRef, ent: &mut edict_s) {
-    let player = unsafe { PrivateData::create::<Private<Player>>(engine, &mut ent.v) };
+pub fn client_put_in_server(
+    engine: ServerEngineRef,
+    global_state: GlobalStateRef,
+    ent: &mut edict_s,
+) {
+    let player =
+        unsafe { PrivateData::create::<Private<Player>>(engine, global_state, &mut ent.v) };
 
     // TODO: testing, remove later
     player.set_custom_decal_frames(-1);

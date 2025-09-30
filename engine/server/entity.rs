@@ -7,7 +7,6 @@ use core::{
     mem, ptr,
 };
 
-use alloc::rc::Rc;
 use bitflags::bitflags;
 use csz::CStrThin;
 use xash3d_shared::{
@@ -23,7 +22,7 @@ use xash3d_shared::{
 use crate::{
     self as xash3d_server,
     engine::ServerEngineRef,
-    game_rules::{GameRules, GameRulesRef},
+    global_state::{EntityState, GlobalStateRef},
     save::{
         FieldType, KeyValueDataExt, SaveFields, SaveReader, SaveRestoreData, SaveResult, SaveWriter,
     },
@@ -315,7 +314,7 @@ define_entity_trait! {
         /// Returns a reference to the server engine.
         fn engine(&self) -> xash3d_server::engine::ServerEngineRef;
 
-        fn game_rules(&self) -> Option<alloc::rc::Rc<dyn xash3d_server::game_rules::GameRules>>;
+        fn global_state(&self) -> xash3d_server::global_state::GlobalStateRef;
 
         /// Returns a shared reference to entity variables.
         fn vars(&self) -> &xash3d_server::entity::EntityVars;
@@ -416,9 +415,8 @@ define_entity_trait! {
                 warn!("Entity::update_on_remove(): remove from the world graph is not implemented");
             }
 
-            if self.vars().as_raw().globalname != 0 {
-                // TODO: need to move the GlobalState to xash3d-server crate
-                warn!("Entity::update_on_remove(): set GLOBAL_DEAD in the global state is not implemented");
+            if let Some(globalname) = self.globalname() {
+                self.global_state().set_entity_state(globalname, EntityState::Dead);
             }
         }
 
@@ -451,7 +449,7 @@ impl dyn Entity {
 #[derive(Debug)]
 pub struct BaseEntity {
     pub engine: ServerEngineRef,
-    pub game_rules: GameRulesRef,
+    pub global_state: GlobalStateRef,
     pub vars: EntityVars,
 }
 
@@ -476,8 +474,8 @@ impl Entity for BaseEntity {
         self.engine
     }
 
-    fn game_rules(&self) -> Option<Rc<dyn GameRules>> {
-        self.game_rules.get()
+    fn global_state(&self) -> GlobalStateRef {
+        self.global_state
     }
 
     fn vars(&self) -> &EntityVars {

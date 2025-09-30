@@ -1,18 +1,23 @@
 use core::{
-    cell::RefCell,
+    cell::{Cell, Ref, RefCell, RefMut},
     ffi::{c_int, CStr},
     mem::MaybeUninit,
     ptr,
 };
 
-use alloc::collections::linked_list::LinkedList;
+use alloc::{boxed::Box, collections::linked_list::LinkedList};
 use csz::{CStrArray, CStrThin};
-use xash3d_server::{
+use xash3d_shared::{
+    engine::EngineRef,
+    export::impl_unsync_global,
     ffi::server::{edict_s, TYPEDESCRIPTION},
-    prelude::*,
-    save::{
-        define_fields, FieldType, SaveFields, SaveReader, SaveRestoreData, SaveResult, SaveWriter,
-    },
+};
+
+use crate::{
+    define_fields,
+    engine::ServerEngineRef,
+    game_rules::GameRules,
+    save::{FieldType, SaveFields, SaveReader, SaveRestoreData, SaveResult, SaveWriter},
     str::MapString,
 };
 
@@ -61,6 +66,10 @@ impl GlobalEntity {
 
     pub fn state(&self) -> EntityState {
         self.state
+    }
+
+    pub fn set_state(&mut self, state: EntityState) {
+        self.state = state;
     }
 
     pub fn is_off(&self) -> bool {
@@ -155,17 +164,49 @@ unsafe impl SaveFields for GlobalStateSave {
 
 pub struct GlobalState {
     engine: ServerEngineRef,
-    pub entities: RefCell<Entities>,
-    pub last_spawn: RefCell<*mut edict_s>,
+    entities: RefCell<Entities>,
+    game_rules: RefCell<Option<Box<dyn GameRules>>>,
+    last_spawn: Cell<*mut edict_s>,
 }
+
+impl_unsync_global!(GlobalState);
 
 impl GlobalState {
     pub fn new(engine: ServerEngineRef) -> Self {
         Self {
             engine,
             entities: RefCell::new(Entities::new()),
-            last_spawn: RefCell::new(ptr::null_mut()),
+            game_rules: RefCell::new(None),
+            last_spawn: Cell::new(ptr::null_mut()),
         }
+    }
+
+    pub fn entities(&self) -> Ref<'_, Entities> {
+        self.entities.borrow()
+    }
+
+    pub fn entities_mut(&self) -> RefMut<'_, Entities> {
+        self.entities.borrow_mut()
+    }
+
+    pub fn game_rules(&self) -> Option<Ref<'_, dyn GameRules>> {
+        Ref::filter_map(self.game_rules.borrow(), |i| i.as_deref()).ok()
+    }
+
+    pub fn game_rules_mut(&mut self) -> Option<RefMut<'_, dyn GameRules>> {
+        RefMut::filter_map(self.game_rules.borrow_mut(), |i| i.as_deref_mut()).ok()
+    }
+
+    pub fn set_game_rules<T: GameRules>(&self, game_rules: T) {
+        self.game_rules.replace(Some(Box::new(game_rules)));
+    }
+
+    pub fn last_spawn(&self) -> *mut edict_s {
+        self.last_spawn.get()
+    }
+
+    pub fn set_last_spawn(&self, ent: *mut edict_s) {
+        self.last_spawn.set(ent);
     }
 
     pub fn save(&self, save_data: &mut SaveRestoreData) -> SaveResult<()> {
@@ -202,7 +243,15 @@ impl GlobalState {
     }
 
     pub fn reset(&self) {
-        self.entities.borrow_mut().clear();
+        self.entities_mut().clear();
         // TODO: init_hud = true
     }
+
+    pub fn set_entity_state(&self, name: MapString, state: EntityState) {
+        if let Some(ent) = self.entities_mut().find_mut(name) {
+            ent.set_state(state);
+        }
+    }
 }
+
+pub type GlobalStateRef = EngineRef<GlobalState>;

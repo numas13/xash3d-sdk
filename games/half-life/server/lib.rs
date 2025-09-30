@@ -11,7 +11,6 @@ mod entities;
 mod entity;
 mod export;
 mod game_rules;
-mod global_state;
 mod player;
 mod todo;
 mod triggers;

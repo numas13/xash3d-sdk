@@ -1,10 +1,6 @@
-use core::{any::Any, ffi::CStr, ptr};
+use core::{any::Any, ffi::CStr};
 
-use alloc::rc::Rc;
-use xash3d_shared::{
-    cell::Sync,
-    ffi::{common::vec3_t, server::edict_s},
-};
+use xash3d_shared::ffi::{common::vec3_t, server::edict_s};
 
 use crate::{
     engine::ServerEngineRef,
@@ -52,37 +48,4 @@ pub trait GameRules: Any {
 
     #[allow(unused_variables)]
     fn player_spawn(&self, player: &mut dyn EntityPlayer) {}
-}
-
-// TODO: do not use Rc for GAME_RULES?
-static mut GAME_RULES: Sync<Option<Rc<dyn GameRules>>> = unsafe { Sync::new(None) };
-
-#[derive(Debug)]
-pub struct GameRulesRef {}
-
-impl GameRulesRef {
-    /// Creates a new `GameRulesRef`.
-    ///
-    /// # Safety
-    ///
-    /// Must be called only from the main engine thread.
-    pub unsafe fn new() -> Self {
-        Self {}
-    }
-
-    /// Sets the global game rules object.
-    ///
-    /// # Safety
-    ///
-    /// * Must be called only from the main engine thread.
-    pub unsafe fn set(game_rules: Rc<dyn GameRules>) {
-        unsafe {
-            *GAME_RULES = Some(game_rules);
-        }
-    }
-
-    pub fn get(&self) -> Option<Rc<dyn GameRules>> {
-        let game_rules = unsafe { &*ptr::addr_of_mut!(GAME_RULES) };
-        (*game_rules).clone()
-    }
 }

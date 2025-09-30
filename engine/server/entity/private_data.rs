@@ -10,7 +10,7 @@ use xash3d_shared::ffi::server::{edict_s, entvars_s};
 use crate::{
     engine::ServerEngineRef,
     entity::{AsEdict, BaseEntity, CreateEntity, Entity, EntityCast, EntityVars},
-    game_rules::GameRulesRef,
+    global_state::GlobalStateRef,
 };
 
 /// A virtual table for a private data type.
@@ -152,12 +152,16 @@ impl PrivateData {
     /// # Panics
     ///
     /// Panics if the entity already has a private data.
-    pub unsafe fn create<'a, P>(engine: ServerEngineRef, ev: *mut entvars_s) -> &'a mut P::Entity
+    pub unsafe fn create<'a, P>(
+        engine: ServerEngineRef,
+        global_state: GlobalStateRef,
+        ev: *mut entvars_s,
+    ) -> &'a mut P::Entity
     where
         P: PrivateEntity,
         P::Entity: CreateEntity,
     {
-        unsafe { Self::create_with::<P, _>(engine, ev, P::Entity::create) }
+        unsafe { Self::create_with::<P, _>(engine, global_state, ev, P::Entity::create) }
     }
 
     /// Initialize a private data for the given entity variables with a value returned from `init`
@@ -168,6 +172,7 @@ impl PrivateData {
     /// See [create](Self::create).
     pub unsafe fn create_with<'a, P, F>(
         engine: ServerEngineRef,
+        global_state: GlobalStateRef,
         ev: *mut entvars_s,
         init: F,
     ) -> &'a mut P::Entity
@@ -185,7 +190,7 @@ impl PrivateData {
         }
         let base = BaseEntity {
             engine,
-            game_rules: unsafe { GameRulesRef::new() },
+            global_state,
             vars: unsafe { EntityVars::from_raw(engine, &mut ent.v) },
         };
         let private = Self::alloc::<P>(engine, ent, init(base));
