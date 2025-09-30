@@ -7,6 +7,6 @@ pub use crate::{
 
 pub use crate::{
     engine::LevelListExt,
-    entity::EntityVarsExt,
+    entity::{AsEdict, EntityVarsExt},
     save::{KeyValueDataExt, TypeDescriptionExt},
 };

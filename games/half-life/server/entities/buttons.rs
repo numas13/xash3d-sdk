@@ -1,7 +1,7 @@
 use core::ffi::CStr;
 
 use xash3d_server::{
-    entity::{delegate_entity, AsEdict, BaseEntity, CreateEntity, Entity, EntityVars, UseType},
+    entity::{delegate_entity, BaseEntity, CreateEntity, Entity, EntityVars, UseType},
     export::export_entity,
     ffi::{
         common::vec3_t,

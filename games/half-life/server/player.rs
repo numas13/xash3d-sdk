@@ -3,8 +3,8 @@ use core::{ffi::c_int, ptr};
 use xash3d_server::{
     consts::{DAMAGE_AIM, DEAD_NO, SOLID_SLIDEBOX},
     entity::{
-        delegate_entity, AsEdict, BaseEntity, CreateEntity, EdictFlags, Effects, Entity,
-        EntityIndex, EntityPlayer, MoveType, ObjectCaps, PrivateData,
+        delegate_entity, BaseEntity, CreateEntity, EdictFlags, Effects, Entity, EntityIndex,
+        EntityPlayer, MoveType, ObjectCaps, PrivateData,
     },
     export::export_entity,
     ffi::server::edict_s,
