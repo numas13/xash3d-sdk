@@ -180,6 +180,11 @@ impl EntityVars {
         unsafe { mem::transmute(&mut self.as_raw_mut().flags) }
     }
 
+    /// Ask the engine to remove this entity at the appropriate time.
+    pub fn delayed_remove(&mut self) {
+        self.flags_mut().insert(EdictFlags::KILLME);
+    }
+
     pub fn effects(&self) -> Effects {
         Effects::from_bits_retain(self.as_raw().effects)
     }

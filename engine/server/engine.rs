@@ -17,7 +17,7 @@ use xash3d_shared::{
 
 use crate::{
     cvar::CVarPtr,
-    entity::EntityOffset,
+    entity::{AsEdict, EntityOffset},
     globals::ServerGlobals,
     str::MapString,
     svc::{Message, MessageDest},
@@ -352,8 +352,22 @@ impl ServerEngine {
         unsafe { unwrap!(self, pfnCreateEntity)() }
     }
 
-    pub fn remove_entity(&self, ent: &mut edict_s) {
-        unsafe { unwrap!(self, pfnRemoveEntity)(ent) }
+    /// Call the private data destructor and immediately delete the entity.
+    ///
+    /// Use [EntityVars::delayed_remove](crate::entity::EntityVars::delayed_remove) instead.
+    ///
+    /// # Safety
+    ///
+    /// <div class="warning">
+    ///
+    /// **VERY DANGEROUS**
+    ///
+    /// Any access to [edict_s], [entvars_s](crate::ffi::server::entvars_s) or the associated
+    /// private data after this function will result in an undefined behaviour.
+    ///
+    /// </div>
+    pub unsafe fn remove_entity_now(&self, ent: &mut impl AsEdict) {
+        unsafe { unwrap!(self, pfnRemoveEntity)(ent.as_edict_mut()) }
     }
 
     // pub pfnCreateNamedEntity: Option<unsafe extern "C" fn(className: c_int) -> *mut edict_t>,

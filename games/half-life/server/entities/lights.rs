@@ -1,7 +1,7 @@
 use core::ffi::CStr;
 
 use xash3d_server::{
-    entity::{delegate_entity, AsEdict, BaseEntity, CreateEntity, Entity, UseType},
+    entity::{delegate_entity, BaseEntity, CreateEntity, Entity, UseType},
     export::export_entity,
     ffi::server::{KeyValueData, TYPEDESCRIPTION},
     save::{
@@ -81,7 +81,7 @@ impl Entity for Light {
     fn spawn(&mut self) {
         let engine = self.engine();
         if MapString::from_index(engine, self.vars().as_raw().targetname).is_none() {
-            engine.remove_entity(self.as_edict_mut());
+            self.vars_mut().delayed_remove();
         } else if self.style >= 32 {
             let ev = self.vars_mut().as_raw_mut();
             if ev.spawnflags & Self::SF_START_OFF != 0 {
