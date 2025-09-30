@@ -1,13 +1,17 @@
 use core::{
     ffi::{c_char, c_int, c_long, c_uchar, c_void, CStr},
-    iter, ptr,
+    iter,
+    mem::MaybeUninit,
+    ptr,
 };
 
+use bitflags::bitflags;
 use csz::{CStrSlice, CStrThin};
 use xash3d_shared::{
     entity::EntityIndex,
     export::impl_unsync_global,
     ffi::{
+        self,
         common::{cvar_s, vec3_t},
         server::{edict_s, enginefuncs_s, globalvars_t, ALERT_TYPE, LEVELLIST},
     },
@@ -60,6 +64,15 @@ impl LevelListExt for LEVELLIST {
 
     fn landmark_name_new(&mut self) -> &mut CStrSlice {
         CStrSlice::new_in_slice(&mut self.landmarkName)
+    }
+}
+
+bitflags! {
+    pub struct TraceIgnore: u32 {
+        const NONE      = 0;
+        const MONSTERS  = 1 << 0;
+        const MISSILE   = 1 << 1;
+        const GLASS     = 1 << 8;
     }
 }
 
@@ -169,6 +182,67 @@ impl<'a> SoundBuilder<'a> {
         } else {
             self.ambient_emit(sample, pos, ent);
         }
+    }
+}
+
+pub struct TraceResult {
+    raw: ffi::server::TraceResult,
+}
+
+impl TraceResult {
+    pub fn new(raw: ffi::server::TraceResult) -> Self {
+        debug_assert!(!raw.pHit.is_null());
+        Self { raw }
+    }
+
+    pub fn all_solid(&self) -> bool {
+        self.raw.fAllSolid != 0
+    }
+
+    /// Returns `true` if the initial point was in a solid area.
+    pub fn start_solid(&self) -> bool {
+        self.raw.fStartSolid != 0
+    }
+
+    pub fn in_open(&self) -> bool {
+        self.raw.fInOpen != 0
+    }
+
+    pub fn in_water(&self) -> bool {
+        self.raw.fInWater != 0
+    }
+
+    /// Returns the trace completion fraction, `1.0` if the trace did not hit anything.
+    pub fn fraction(&self) -> f32 {
+        self.raw.flFraction
+    }
+
+    /// Returns the final trace position.
+    pub fn end_position(&self) -> vec3_t {
+        self.raw.vecEndPos
+    }
+
+    pub fn plane_dist(&self) -> f32 {
+        self.raw.flPlaneDist
+    }
+
+    pub fn plane_normal(&self) -> vec3_t {
+        self.raw.vecPlaneNormal
+    }
+
+    pub fn hit_entity(&self) -> &edict_s {
+        // SAFETY: the engine returns non-null pointer
+        unsafe { &*self.raw.pHit }
+    }
+
+    pub fn hit_entity_mut(&mut self) -> &mut edict_s {
+        // SAFETY: the engine returns non-null pointer
+        unsafe { &mut *self.raw.pHit }
+    }
+
+    /// Returns `0` for generic group and non-zero for a specific body part.
+    pub fn hit_group(&self) -> u32 {
+        self.raw.iHitgroup as u32
     }
 }
 
@@ -443,64 +517,128 @@ impl ServerEngine {
         }
     }
 
-    // pub pfnTraceLine: Option<
-    //     unsafe extern "C" fn(
-    //         v1: *const f32,
-    //         v2: *const f32,
-    //         fNoMonsters: c_int,
-    //         pentToSkip: *mut edict_t,
-    //         ptr: *mut TraceResult,
-    //     ),
-    // >,
-    // pub pfnTraceToss: Option<
-    //     unsafe extern "C" fn(pent: *mut edict_t, pentToIgnore: *mut edict_t, ptr: *mut TraceResult),
-    // >,
-    // pub pfnTraceMonsterHull: Option<
-    //     unsafe extern "C" fn(
-    //         pEdict: *mut edict_t,
-    //         v1: *const f32,
-    //         v2: *const f32,
-    //         fNoMonsters: c_int,
-    //         pentToSkip: *mut edict_t,
-    //         ptr: *mut TraceResult,
-    //     ) -> c_int,
-    // >,
-    // pub pfnTraceHull: Option<
-    //     unsafe extern "C" fn(
-    //         v1: *const f32,
-    //         v2: *const f32,
-    //         fNoMonsters: c_int,
-    //         hullNumber: c_int,
-    //         pentToSkip: *mut edict_t,
-    //         ptr: *mut TraceResult,
-    //     ),
-    // >,
-    // pub pfnTraceModel: Option<
-    //     unsafe extern "C" fn(
-    //         v1: *const f32,
-    //         v2: *const f32,
-    //         hullNumber: c_int,
-    //         pent: *mut edict_t,
-    //         ptr: *mut TraceResult,
-    //     ),
-    // >,
-    // pub pfnTraceTexture: Option<
-    //     unsafe extern "C" fn(
-    //         pTextureEntity: *mut edict_t,
-    //         v1: *const f32,
-    //         v2: *const f32,
-    //     ) -> *const c_char,
-    // >,
-    // pub pfnTraceSphere: Option<
-    //     unsafe extern "C" fn(
-    //         v1: *const f32,
-    //         v2: *const f32,
-    //         fNoMonsters: c_int,
-    //         radius: f32,
-    //         pentToSkip: *mut edict_t,
-    //         ptr: *mut TraceResult,
-    //     ),
-    // >,
+    pub fn trace_line(
+        &self,
+        start: vec3_t,
+        end: vec3_t,
+        ignore: TraceIgnore,
+        ignore_ent: Option<&mut impl AsEdict>,
+    ) -> TraceResult {
+        let mut trace = MaybeUninit::uninit();
+        unsafe {
+            unwrap!(self, pfnTraceLine)(
+                start.as_ptr(),
+                end.as_ptr(),
+                ignore.bits() as c_int,
+                ignore_ent.map_or(ptr::null_mut(), |e| e.as_edict_mut()),
+                trace.as_mut_ptr(),
+            );
+        }
+        TraceResult::new(unsafe { trace.assume_init() })
+    }
+
+    pub fn trace_toss(
+        &self,
+        ent: &mut impl AsEdict,
+        ignore_ent: Option<&mut impl AsEdict>,
+    ) -> TraceResult {
+        let mut trace = MaybeUninit::uninit();
+        unsafe {
+            unwrap!(self, pfnTraceToss)(
+                ent.as_edict_mut(),
+                ignore_ent.map_or(ptr::null_mut(), |e| e.as_edict_mut()),
+                trace.as_mut_ptr(),
+            );
+        }
+        TraceResult::new(unsafe { trace.assume_init() })
+    }
+
+    pub fn trace_monster_hull(
+        &self,
+        start: vec3_t,
+        end: vec3_t,
+        ent: &mut impl AsEdict,
+        ignore: TraceIgnore,
+        ignore_ent: Option<&mut impl AsEdict>,
+    ) -> Option<TraceResult> {
+        let mut trace = MaybeUninit::uninit();
+        let result = unsafe {
+            unwrap!(self, pfnTraceMonsterHull)(
+                ent.as_edict_mut(),
+                start.as_ptr(),
+                end.as_ptr(),
+                ignore.bits() as c_int,
+                ignore_ent.map_or(ptr::null_mut(), |e| e.as_edict_mut()),
+                trace.as_mut_ptr(),
+            )
+        };
+        if result != 0 {
+            Some(TraceResult::new(unsafe { trace.assume_init() }))
+        } else {
+            None
+        }
+    }
+
+    pub fn trace_hull(
+        &self,
+        start: vec3_t,
+        end: vec3_t,
+        hull_number: i32,
+        ignore: TraceIgnore,
+        ignore_ent: Option<&mut impl AsEdict>,
+    ) -> TraceResult {
+        let mut trace = MaybeUninit::uninit();
+        unsafe {
+            unwrap!(self, pfnTraceHull)(
+                start.as_ptr(),
+                end.as_ptr(),
+                ignore.bits() as c_int,
+                hull_number,
+                ignore_ent.map_or(ptr::null_mut(), |e| e.as_edict_mut()),
+                trace.as_mut_ptr(),
+            );
+        }
+        TraceResult::new(unsafe { trace.assume_init() })
+    }
+
+    pub fn trace_model(
+        &self,
+        start: vec3_t,
+        end: vec3_t,
+        hull_number: i32,
+        ent: &mut impl AsEdict,
+    ) -> TraceResult {
+        let mut trace = MaybeUninit::uninit();
+        unsafe {
+            unwrap!(self, pfnTraceModel)(
+                start.as_ptr(),
+                end.as_ptr(),
+                hull_number,
+                ent.as_edict_mut(),
+                trace.as_mut_ptr(),
+            );
+        }
+        TraceResult::new(unsafe { trace.assume_init() })
+    }
+
+    pub fn trace_texture(
+        &self,
+        start: vec3_t,
+        end: vec3_t,
+        ent: &mut impl AsEdict,
+    ) -> Option<&CStrThin> {
+        let result = unsafe {
+            unwrap!(self, pfnTraceTexture)(ent.as_edict_mut(), start.as_ptr(), end.as_ptr())
+        };
+        if !result.is_null() {
+            Some(unsafe { CStrThin::from_ptr(result) })
+        } else {
+            None
+        }
+    }
+
+    // pfnTraceSphere is obsolete and not implemented in the engine
+
     // pub pfnGetAimVector:
     //     Option<unsafe extern "C" fn(ent: *mut edict_t, speed: f32, rgflReturn: *mut f32)>,
 
@@ -815,14 +953,24 @@ impl ServerEngine {
     //     ),
     // >,
     // pub pfnIsMapValid: Option<unsafe extern "C" fn(filename: *mut c_char) -> c_int>,
-    // pub pfnStaticDecal: Option<
-    //     unsafe extern "C" fn(
-    //         origin: *const f32,
-    //         decalIndex: c_int,
-    //         entityIndex: c_int,
-    //         modelIndex: c_int,
-    //     ),
-    // >,
+
+    pub fn static_decal(
+        &self,
+        origin: vec3_t,
+        decal_index: u16,
+        entity: EntityIndex,
+        model_index: u16,
+    ) {
+        unsafe {
+            unwrap!(self, pfnStaticDecal)(
+                origin.as_ptr(),
+                decal_index as c_int,
+                entity.to_i32(),
+                model_index as c_int,
+            )
+        }
+    }
+
     // pub pfnPrecacheGeneric: Option<unsafe extern "C" fn(s: *const c_char) -> c_int>,
     // pub pfnGetPlayerUserId: Option<unsafe extern "C" fn(e: *mut edict_t) -> c_int>,
     // pub pfnBuildSoundMsg: Option<
