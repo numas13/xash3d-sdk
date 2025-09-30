@@ -70,7 +70,7 @@ impl ServerDll for Dll {
             return SpawnResult::Delete;
         }
 
-        if let Some(globalname) = ent.vars().globalname() {
+        if let Some(globalname) = ent.globalname() {
             let mut entities = self.global_state.entities.borrow_mut();
             let map_name = self.engine.globals.map_name().unwrap();
             if let Some(global) = entities.find(globalname) {
@@ -156,7 +156,7 @@ impl ServerDll for Dll {
             engine.set_origin(entity.as_edict_mut(), origin);
             entity.override_reset();
             return RestoreResult::Ok;
-        } else if let Some(globalname) = entity.vars().globalname() {
+        } else if let Some(globalname) = entity.globalname() {
             let globals = &engine.globals;
             let mut entities = self.global_state.entities.borrow_mut();
             if let Some(global) = entities.find(globalname) {
@@ -167,7 +167,6 @@ impl ServerDll for Dll {
                     entity.make_dormant();
                 }
             } else {
-                let globalname = entity.globalname();
                 let classname = entity.classname();
                 error!("Global entity \"{globalname}\" (\"{classname}\") not in table!!!");
                 entities.add(globalname, globals.map_name().unwrap(), EntityState::On);

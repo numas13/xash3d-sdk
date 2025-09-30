@@ -323,12 +323,12 @@ define_entity_trait! {
         /// Returns a mutable reference to entity variables.
         fn vars_mut(&mut self) -> &mut xash3d_server::entity::EntityVars;
 
-        fn globalname(&self) -> xash3d_server::str::MapString {
-            self.vars().globalname().unwrap()
+        fn globalname(&self) -> Option<xash3d_server::str::MapString> {
+            self.vars().globalname()
         }
 
         fn is_globalname(&self, name: &csz::CStrThin) -> bool {
-            name == self.globalname().as_thin()
+            self.globalname().is_some_and(|s| name == s.as_thin())
         }
 
         fn classname(&self) -> xash3d_server::str::MapString {

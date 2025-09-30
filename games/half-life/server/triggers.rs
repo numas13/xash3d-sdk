@@ -312,7 +312,7 @@ pub fn build_change_list(engine: ServerEngineRef, level_list: &mut [LEVELLIST]) 
                             if caps.intersects(ObjectCaps::ACROSS_TRANSITION) {
                                 flags |= FENTTABLE_MOVEABLE;
                             }
-                            if entity.vars().globalname().is_some() && !entity.is_dormant() {
+                            if entity.globalname().is_some() && !entity.is_dormant() {
                                 flags |= FENTTABLE_GLOBAL;
                             }
                             if flags != 0 {
