@@ -2,10 +2,12 @@ use core::ffi::CStr;
 
 use xash3d_server::{
     consts::SOLID_NOT,
-    entity::{delegate_entity, AsEdict, BaseEntity, CreateEntity, Entity, MoveType},
+    entity::{
+        delegate_entity, impl_save_restore, AsEdict, BaseEntity, CreateEntity, Entity, MoveType,
+    },
     export::export_entity,
     ffi::server::TYPEDESCRIPTION,
-    save::{define_fields, SaveFields, SaveReader, SaveRestoreData, SaveResult, SaveWriter, Time},
+    save::{define_fields, SaveFields, Time},
     str::MapString,
 };
 
@@ -45,20 +47,7 @@ impl CreateEntity for Glow {
 
 impl Entity for Glow {
     delegate_entity!(base not { save, restore, spawn, think });
-
-    fn save(&mut self, writer: &mut SaveWriter, save_data: &mut SaveRestoreData) -> SaveResult<()> {
-        self.base.save(writer, save_data)?;
-        writer.write_fields(save_data, self)
-    }
-
-    fn restore(
-        &mut self,
-        reader: &mut SaveReader,
-        save_data: &mut SaveRestoreData,
-    ) -> SaveResult<()> {
-        self.base.restore(reader, save_data)?;
-        reader.read_fields(save_data, self)
-    }
+    impl_save_restore!(base);
 
     fn spawn(&mut self) {
         let engine = self.engine();

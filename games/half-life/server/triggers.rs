@@ -6,14 +6,17 @@ use core::{
 use csz::{cstr, CStrArray, CStrThin};
 use xash3d_server::{
     consts::{FENTTABLE_GLOBAL, FENTTABLE_MOVEABLE, SOLID_TRIGGER},
-    entity::{delegate_entity, BaseEntity, CreateEntity, Effects, Entity, MoveType, ObjectCaps},
+    entity::{
+        delegate_entity, impl_save_restore, BaseEntity, CreateEntity, Effects, Entity, MoveType,
+        ObjectCaps,
+    },
     export::export_entity,
     ffi::{
         common::vec3_t,
         server::{edict_s, entvars_s, KeyValueData, LEVELLIST, TYPEDESCRIPTION},
     },
     prelude::*,
-    save::{define_fields, SaveFields, SaveReader, SaveRestoreData, SaveResult, SaveWriter},
+    save::{define_fields, SaveFields, SaveRestoreData},
     str::MapString,
 };
 
@@ -115,25 +118,12 @@ impl CreateEntity for ChangeLevel {
 
 impl Entity for ChangeLevel {
     delegate_entity!(base not { object_caps, save, restore, key_value, spawn, touched });
+    impl_save_restore!(base);
 
     fn object_caps(&self) -> ObjectCaps {
         self.base
             .object_caps()
             .difference(ObjectCaps::ACROSS_TRANSITION)
-    }
-
-    fn save(&mut self, writer: &mut SaveWriter, save_data: &mut SaveRestoreData) -> SaveResult<()> {
-        self.base.save(writer, save_data)?;
-        writer.write_fields(save_data, self)
-    }
-
-    fn restore(
-        &mut self,
-        reader: &mut SaveReader,
-        save_data: &mut SaveRestoreData,
-    ) -> SaveResult<()> {
-        self.base.restore(reader, save_data)?;
-        reader.read_fields(save_data, self)
     }
 
     fn key_value(&mut self, data: &mut KeyValueData) {

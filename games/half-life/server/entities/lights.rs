@@ -1,13 +1,10 @@
 use core::ffi::CStr;
 
 use xash3d_server::{
-    entity::{delegate_entity, BaseEntity, CreateEntity, Entity, UseType},
+    entity::{delegate_entity, impl_save_restore, BaseEntity, CreateEntity, Entity, UseType},
     export::export_entity,
     ffi::server::{KeyValueData, TYPEDESCRIPTION},
-    save::{
-        define_fields, KeyValueDataExt, SaveFields, SaveReader, SaveRestoreData, SaveResult,
-        SaveWriter,
-    },
+    save::{define_fields, KeyValueDataExt, SaveFields},
     str::MapString,
 };
 
@@ -43,6 +40,7 @@ impl CreateEntity for Light {
 
 impl Entity for Light {
     delegate_entity!(base not { key_value, save, restore, spawn, used });
+    impl_save_restore!(base);
 
     fn key_value(&mut self, data: &mut KeyValueData) {
         let name = data.key_name();
@@ -62,20 +60,6 @@ impl Entity for Light {
         } else {
             self.base.key_value(data);
         }
-    }
-
-    fn save(&mut self, writer: &mut SaveWriter, save_data: &mut SaveRestoreData) -> SaveResult<()> {
-        self.base.save(writer, save_data)?;
-        writer.write_fields(save_data, self)
-    }
-
-    fn restore(
-        &mut self,
-        reader: &mut SaveReader,
-        save_data: &mut SaveRestoreData,
-    ) -> SaveResult<()> {
-        self.base.restore(reader, save_data)?;
-        reader.read_fields(save_data, self)
     }
 
     fn spawn(&mut self) {
