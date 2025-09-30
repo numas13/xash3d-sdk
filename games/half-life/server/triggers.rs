@@ -6,10 +6,7 @@ use core::{
 use csz::{cstr, CStrArray, CStrThin};
 use xash3d_server::{
     consts::{FENTTABLE_GLOBAL, FENTTABLE_MOVEABLE, SOLID_TRIGGER},
-    entity::{
-        delegate_entity, BaseEntity, CreateEntity, Effects, Entity, GetPrivateData, MoveType,
-        ObjectCaps,
-    },
+    entity::{delegate_entity, BaseEntity, CreateEntity, Effects, Entity, MoveType, ObjectCaps},
     export::export_entity,
     ffi::{
         common::vec3_t,

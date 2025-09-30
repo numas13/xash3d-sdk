@@ -26,9 +26,7 @@ use xash3d_shared::{
 };
 
 use crate::{
-    entity::{
-        EntityPlayer, EntityVars, GetPrivateData, ObjectCaps, PrivateData, RestoreResult, UseType,
-    },
+    entity::{EntityPlayer, EntityVars, ObjectCaps, PrivateData, RestoreResult, UseType},
     prelude::*,
     save::{SaveReader, SaveRestoreData, SaveWriter},
     utils::slice_from_raw_parts_or_empty_mut,

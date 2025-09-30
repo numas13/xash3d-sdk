@@ -4,7 +4,7 @@ use core::{
 };
 
 use xash3d_server::{
-    entity::{EdictFlags, GetPrivateData, ObjectCaps, RestoreResult},
+    entity::{EdictFlags, ObjectCaps, RestoreResult},
     export::{export_dll, impl_unsync_global, ServerDll, SpawnResult, UnsyncGlobal},
     ffi::{
         common::{clientdata_s, entity_state_s, vec3_t},
