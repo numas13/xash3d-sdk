@@ -54,3 +54,31 @@ pub trait GameRules: Any {
     #[allow(unused_variables)]
     fn player_spawn(&self, player: &mut dyn EntityPlayer) {}
 }
+
+pub struct StubGameRules {
+    engine: ServerEngineRef,
+}
+
+impl StubGameRules {
+    pub fn new(engine: ServerEngineRef) -> Self {
+        Self { engine }
+    }
+}
+
+impl GameRules for StubGameRules {
+    fn engine(&self) -> ServerEngineRef {
+        self.engine
+    }
+
+    fn get_game_description(&self) -> &'static CStr {
+        c"Stub"
+    }
+}
+
+pub struct InstallStubGameRules;
+
+impl InstallGameRules for InstallStubGameRules {
+    fn install_game_rules(engine: ServerEngineRef, global_state: GlobalStateRef) {
+        global_state.set_game_rules(StubGameRules::new(engine));
+    }
+}
