@@ -6,6 +6,11 @@ authors.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 
+[features]
+default = ["export-default-entities", "export-player-entity"]
+export-default-entities = []
+export-player-entity = []
+
 [lib]
 path = "lib.rs"
 
@@ -15,6 +20,7 @@ bitflags.workspace = true
 csz.workspace = true
 xash3d-shared.workspace = true
 xash3d-player-move.workspace = true
+res.workspace = true
 
 [lints]
 workspace = true

@@ -1,18 +1,17 @@
 use core::ffi::CStr;
 
-use xash3d_server::{
+use xash3d_shared::ffi::{common::vec3_t, server::TYPEDESCRIPTION};
+
+use crate::{
+    engine::ServerEngineRef,
     entity::{
-        delegate_entity, impl_save_restore, BaseEntity, CreateEntity, Entity, EntityVars, KeyValue,
-        UseType,
+        delegate_entity, impl_entity_cast, impl_save_restore, BaseEntity, CreateEntity, Entity,
+        EntityVars, KeyValue, UseType,
     },
-    export::export_entity,
-    ffi::{common::vec3_t, server::TYPEDESCRIPTION},
     prelude::*,
     save::{define_fields, FieldType, SaveFields},
     svc,
 };
-
-use crate::{entity::Private, impl_cast};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 #[non_exhaustive]
@@ -49,7 +48,7 @@ impl EnvSpark {
     }
 }
 
-impl_cast!(EnvSpark);
+impl_entity_cast!(EnvSpark);
 
 impl CreateEntity for EnvSpark {
     fn create(base: BaseEntity) -> Self {
@@ -134,9 +133,6 @@ impl Entity for EnvSpark {
     }
 }
 
-export_entity!(env_spark, Private<EnvSpark>);
-export_entity!(env_debris, Private<EnvSpark>);
-
 const SPARK_SOUNDS: &[&CStr] = &[
     res::valve::sound::buttons::SPARK1,
     res::valve::sound::buttons::SPARK2,
@@ -157,4 +153,13 @@ fn do_spark(engine: ServerEngineRef, vars: &mut EntityVars, location: vec3_t) {
         .channel_voice()
         .volume(volume)
         .emit(SPARK_SOUNDS[index], vars.as_edict_mut());
+}
+
+#[cfg(feature = "export-default-entities")]
+mod exports {
+    use super::EnvSpark;
+    use crate::{entity::Private, export::export_entity};
+
+    export_entity!(env_spark, Private<EnvSpark>);
+    export_entity!(env_debris, Private<EnvSpark>);
 }

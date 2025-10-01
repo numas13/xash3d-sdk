@@ -5,7 +5,12 @@ use xash3d_shared::ffi::{common::vec3_t, server::edict_s};
 use crate::{
     engine::ServerEngineRef,
     entity::{Entity, EntityPlayer},
+    global_state::GlobalStateRef,
 };
+
+pub trait InstallGameRules: Sized + 'static {
+    fn install_game_rules(engine: ServerEngineRef, global_state: GlobalStateRef);
+}
 
 pub trait GameRules: Any {
     fn engine(&self) -> ServerEngineRef;

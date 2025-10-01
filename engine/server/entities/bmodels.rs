@@ -1,21 +1,22 @@
-use xash3d_server::{
+use xash3d_shared::{
     consts::SOLID_BSP,
-    entity::{
-        delegate_entity, AsEdict, BaseEntity, CreateEntity, EdictFlags, Entity, MoveType,
-        ObjectCaps, UseType,
-    },
-    export::export_entity,
+    entity::{EdictFlags, MoveType},
     ffi::common::vec3_t,
-    str::MapString,
 };
 
-use crate::{entity::Private, impl_cast};
+use crate::{
+    entity::{
+        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, ObjectCaps, UseType,
+    },
+    prelude::*,
+    str::MapString,
+};
 
 pub struct FuncWall {
     base: BaseEntity,
 }
 
-impl_cast!(FuncWall);
+impl_entity_cast!(FuncWall);
 
 impl CreateEntity for FuncWall {
     fn create(base: BaseEntity) -> Self {
@@ -52,4 +53,9 @@ impl Entity for FuncWall {
     }
 }
 
-export_entity!(func_wall, Private<FuncWall>);
+#[cfg(feature = "export-default-entities")]
+mod exports {
+    use crate::{entity::Private, export::export_entity};
+
+    export_entity!(func_wall, Private<super::FuncWall>);
+}

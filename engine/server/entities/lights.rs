@@ -1,16 +1,16 @@
 use core::ffi::CStr;
 
-use xash3d_server::{
+use xash3d_shared::ffi::server::TYPEDESCRIPTION;
+
+use crate::{
+    entities::subs::PointEntity,
     entity::{
-        delegate_entity, impl_save_restore, BaseEntity, CreateEntity, Entity, KeyValue, UseType,
+        delegate_entity, impl_entity_cast, impl_save_restore, BaseEntity, CreateEntity, Entity,
+        KeyValue, UseType,
     },
-    export::export_entity,
-    ffi::server::TYPEDESCRIPTION,
     save::{define_fields, SaveFields},
     str::MapString,
 };
-
-use crate::{entities::subs::PointEntity, entity::Private, impl_cast};
 
 pub struct Light {
     base: PointEntity,
@@ -28,7 +28,7 @@ impl Light {
     pub const SF_START_OFF: i32 = 1;
 }
 
-impl_cast!(Light);
+impl_entity_cast!(Light);
 
 impl CreateEntity for Light {
     fn create(base: BaseEntity) -> Self {
@@ -106,5 +106,11 @@ impl Entity for Light {
     }
 }
 
-export_entity!(light, Private<Light>);
-export_entity!(light_spot, Private<Light>);
+#[cfg(feature = "export-default-entities")]
+mod exports {
+    use super::Light;
+    use crate::{entity::Private, export::export_entity};
+
+    export_entity!(light, Private<Light>);
+    export_entity!(light_spot, Private<Light>);
+}

@@ -4,42 +4,28 @@ use core::{
 };
 
 use csz::{cstr, CStrArray, CStrThin};
-use xash3d_server::{
-    consts::{FENTTABLE_GLOBAL, FENTTABLE_MOVEABLE, SOLID_TRIGGER},
-    entity::{
-        delegate_entity, impl_save_restore, BaseEntity, CreateEntity, Effects, Entity, KeyValue,
-        MoveType, ObjectCaps,
-    },
-    export::export_entity,
+use xash3d_shared::{
+    consts::SOLID_TRIGGER,
+    entity::{Effects, MoveType},
     ffi::{
         common::vec3_t,
-        server::{edict_s, entvars_s, LEVELLIST, TYPEDESCRIPTION},
+        server::{
+            edict_s, entvars_s, FENTTABLE_GLOBAL, FENTTABLE_MOVEABLE, LEVELLIST, TYPEDESCRIPTION,
+        },
+    },
+};
+
+use crate::{
+    entity::{
+        delegate_entity, impl_entity_cast, impl_save_restore, BaseEntity, CreateEntity, Entity,
+        KeyValue, ObjectCaps,
     },
     prelude::*,
     save::{define_fields, SaveFields, SaveRestoreData},
     str::MapString,
 };
 
-use crate::{
-    entity::{impl_cast, Private},
-    todo::export_entity_stub,
-};
-
 const MAP_NAME_MAX: usize = 32;
-
-export_entity_stub! {
-    trigger_auto,
-    trigger_autosave,
-    trigger_cdaudio,
-    // trigger_changelevel,
-    trigger_hurt,
-    trigger_multiple,
-    trigger_once,
-    trigger_push,
-    trigger_relay,
-    trigger_teleport,
-    trigger_transition,
-}
 
 pub struct ChangeLevel {
     base: BaseEntity,
@@ -50,10 +36,10 @@ pub struct ChangeLevel {
 }
 
 unsafe impl SaveFields for ChangeLevel {
-    const SAVE_NAME: &'static CStr = c"CChangeLevel";
+    const SAVE_NAME: &'static CStr = c"ChangeLevel";
 
     const SAVE_FIELDS: &'static [TYPEDESCRIPTION] =
-        &define_fields![map_name, landmark_name, target, change_target_delay,];
+        &define_fields![map_name, landmark_name, target, change_target_delay];
 }
 
 impl ChangeLevel {
@@ -106,7 +92,7 @@ impl ChangeLevel {
     }
 }
 
-impl_cast!(ChangeLevel);
+impl_entity_cast!(ChangeLevel);
 
 impl CreateEntity for ChangeLevel {
     fn create(base: BaseEntity) -> Self {
@@ -187,9 +173,8 @@ impl Entity for ChangeLevel {
     }
 }
 
-export_entity!(trigger_changelevel, Private<ChangeLevel>);
-
-fn add_transition_to_list(
+#[allow(clippy::not_unsafe_ptr_arg_deref)]
+pub fn add_transition_to_list(
     level_list: &mut [LEVELLIST],
     count: usize,
     map_name: &CStrThin,
@@ -340,4 +325,21 @@ pub fn build_change_list(engine: ServerEngineRef, level_list: &mut [LEVELLIST]) 
     }
 
     count
+}
+
+#[cfg(feature = "export-default-entities")]
+mod exports {
+    use crate::{entity::Private, export::export_entity};
+
+    // TODO: export trigger_auto,
+    // TODO: export trigger_autosave,
+    // TODO: export trigger_cdaudio,
+    export_entity!(trigger_changelevel, Private<super::ChangeLevel>);
+    // TODO: export trigger_hurt,
+    // TODO: export trigger_multiple,
+    // TODO: export trigger_once,
+    // TODO: export trigger_push,
+    // TODO: export trigger_relay,
+    // TODO: export trigger_teleport,
+    // TODO: export trigger_transition,
 }

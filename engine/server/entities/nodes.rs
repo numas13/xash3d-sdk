@@ -1,10 +1,8 @@
-use xash3d_server::{
-    consts::SOLID_NOT,
-    entity::{delegate_entity, BaseEntity, CreateEntity, Entity, KeyValue, MoveType, ObjectCaps},
-    export::export_entity,
-};
+use xash3d_shared::{consts::SOLID_NOT, entity::MoveType};
 
-use crate::{entity::Private, impl_cast};
+use crate::entity::{
+    delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, KeyValue, ObjectCaps,
+};
 
 pub struct NodeEntity {
     base: BaseEntity,
@@ -12,7 +10,7 @@ pub struct NodeEntity {
     hint_activity: u16,
 }
 
-impl_cast!(NodeEntity);
+impl_entity_cast!(NodeEntity);
 
 impl CreateEntity for NodeEntity {
     fn create(base: BaseEntity) -> Self {
@@ -55,7 +53,13 @@ impl Entity for NodeEntity {
     }
 }
 
-export_entity!(info_node, Private<NodeEntity>);
-export_entity!(info_node_air, Private<NodeEntity>);
-
 // TODO: add the world graph
+
+#[cfg(feature = "export-default-entities")]
+mod exports {
+    use super::NodeEntity;
+    use crate::{entity::Private, export::export_entity};
+
+    export_entity!(info_node, Private<NodeEntity>);
+    export_entity!(info_node_air, Private<NodeEntity>);
+}

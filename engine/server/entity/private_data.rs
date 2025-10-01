@@ -1,6 +1,7 @@
 use core::{
     any::TypeId,
     ffi::c_void,
+    marker::PhantomData,
     mem::{self, MaybeUninit},
     ptr,
 };
@@ -268,6 +269,12 @@ impl PrivateData {
     pub fn downcast_mut<U: Entity + ?Sized>(&mut self) -> Option<&mut U> {
         self.downcast::<U>().map(|i| unsafe { &mut *i })
     }
+}
+
+pub struct Private<T>(PhantomData<T>);
+
+impl<T: Entity> PrivateEntity for Private<T> {
+    type Entity = T;
 }
 
 /// Used to get a reference to a private data of entity.

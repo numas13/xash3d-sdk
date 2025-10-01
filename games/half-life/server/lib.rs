@@ -1,20 +1,16 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-//#[macro_use]
+#[allow(unused_imports)]
+#[macro_use]
 extern crate alloc;
 
+#[allow(unused_imports)]
 #[macro_use]
 extern crate log;
 
 mod cvar;
-mod entities;
-mod entity;
 mod export;
 mod game_rules;
-mod player;
-mod todo;
-mod triggers;
-mod world;
 
 // HACK: used by delegate macros to access xash3d_server types
 #[doc(hidden)]

@@ -1,20 +1,17 @@
-use core::ffi::CStr;
+use core::{ffi::CStr, marker::PhantomData};
 
-use xash3d_server::{
+use xash3d_shared::ffi::{common::vec3_t, server::TYPEDESCRIPTION};
+
+use crate::{
     engine::TraceIgnore,
     entity::{
-        delegate_entity, impl_save_restore, BaseEntity, CreateEntity, Entity, KeyValue, UseType,
+        delegate_entity, impl_entity_cast, impl_save_restore, BaseEntity, CreateEntity, Entity,
+        EntityCast, KeyValue, UseType,
     },
-    export::export_entity,
-    ffi::{common::vec3_t, server::TYPEDESCRIPTION},
+    game_rules::InstallGameRules,
     prelude::*,
     save::{define_fields, SaveFields},
     str::MapString,
-};
-
-use crate::{
-    entity::{impl_cast, Private},
-    game_rules::install_game_rules,
 };
 
 pub struct Decal {
@@ -55,7 +52,7 @@ impl Decal {
     }
 }
 
-impl_cast!(Decal);
+impl_entity_cast!(Decal);
 
 impl CreateEntity for Decal {
     fn create(base: BaseEntity) -> Self {
@@ -130,21 +127,25 @@ impl Entity for Decal {
     }
 }
 
-export_entity!(infodecal, Private<Decal>);
-
-pub struct World {
+pub struct World<T> {
     base: BaseEntity,
+    phantom: PhantomData<T>,
 }
 
-impl_cast!(World);
+impl<T: InstallGameRules> EntityCast for World<T> {
+    impl_entity_cast!(cast World<T>);
+}
 
-impl CreateEntity for World {
+impl<T: InstallGameRules> CreateEntity for World<T> {
     fn create(base: BaseEntity) -> Self {
-        Self { base }
+        Self {
+            base,
+            phantom: PhantomData,
+        }
     }
 }
 
-impl Entity for World {
+impl<T: InstallGameRules> Entity for World<T> {
     delegate_entity!(base not { key_value, precache, spawn });
 
     fn key_value(&mut self, data: &mut KeyValue) {
@@ -161,7 +162,7 @@ impl Entity for World {
         engine.set_cvar(c"sv_gravity", c"800");
         engine.set_cvar(c"sv_stepsize", c"18");
         engine.set_cvar(c"room_type", c"0");
-        install_game_rules(engine, self.global_state());
+        T::install_game_rules(engine, self.global_state());
     }
 
     fn spawn(&mut self) {
@@ -170,4 +171,9 @@ impl Entity for World {
     }
 }
 
-export_entity!(worldspawn, Private<World>);
+#[cfg(feature = "export-default-entities")]
+mod exports {
+    use crate::{entity::Private, export::export_entity};
+
+    export_entity!(infodecal, Private<super::Decal>);
+}

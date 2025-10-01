@@ -3,4 +3,7 @@ pub mod buttons;
 pub mod effects;
 pub mod lights;
 pub mod nodes;
+pub mod player;
 pub mod subs;
+pub mod triggers;
+pub mod world;

@@ -13,7 +13,6 @@ workspace = true
 default = ["client-weapons"]
 std = []
 client-weapons = []
-stubs = []
 
 [lib]
 name = "hl"
@@ -28,4 +27,4 @@ libc.workspace = true
 xash3d-player-move.workspace = true
 xash3d-server.workspace = true
 xash3d-allocator.workspace = true
-res = { package = "xash3d-hl-resources", path = "../resources" }
+res.workspace = true

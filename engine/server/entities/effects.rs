@@ -1,17 +1,16 @@
 use core::ffi::CStr;
 
-use xash3d_server::{
-    consts::SOLID_NOT,
+use xash3d_shared::{consts::SOLID_NOT, entity::MoveType, ffi::server::TYPEDESCRIPTION};
+
+use crate::{
+    entities::subs::PointEntity,
     entity::{
-        delegate_entity, impl_save_restore, AsEdict, BaseEntity, CreateEntity, Entity, MoveType,
+        delegate_entity, impl_entity_cast, impl_save_restore, BaseEntity, CreateEntity, Entity,
     },
-    export::export_entity,
-    ffi::server::TYPEDESCRIPTION,
+    prelude::*,
     save::{define_fields, SaveFields, Time},
     str::MapString,
 };
-
-use crate::{entities::subs::PointEntity, entity::Private, impl_cast};
 
 pub struct Glow {
     base: PointEntity,
@@ -33,7 +32,7 @@ impl Glow {
     }
 }
 
-impl_cast!(Glow);
+impl_entity_cast!(Glow);
 
 impl CreateEntity for Glow {
     fn create(base: BaseEntity) -> Self {
@@ -81,7 +80,9 @@ impl Entity for Glow {
     }
 }
 
-export_entity!(env_glow, Private<Glow>);
+#[cfg(feature = "export-default-entities")]
+mod exports {
+    use crate::{entity::Private, export::export_entity};
 
-// Lightning target, just alias landmark.
-export_entity!(info_target, Private<PointEntity>);
+    export_entity!(env_glow, Private<super::Glow>);
+}

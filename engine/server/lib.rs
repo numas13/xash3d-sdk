@@ -11,6 +11,7 @@ pub mod macros;
 
 pub mod consts;
 pub mod engine;
+pub mod entities;
 pub mod entity;
 pub mod export;
 pub mod game_rules;

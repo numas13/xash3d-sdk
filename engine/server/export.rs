@@ -1,5 +1,5 @@
 use core::{
-    ffi::{c_char, c_int, c_uchar, c_uint, c_void, CStr},
+    ffi::{c_char, c_int, c_short, c_uchar, c_uint, c_void, CStr},
     fmt::Write,
     marker::PhantomData,
     mem::MaybeUninit,
@@ -7,11 +7,12 @@ use core::{
     slice,
 };
 
-use csz::{CStrArray, CStrThin};
+use csz::{CStrArray, CStrSlice, CStrThin};
 use xash3d_player_move::{VEC_DUCK_HULL_MIN, VEC_HULL_MIN};
 use xash3d_shared::{
+    consts::{EFLAG_SLERP, ENTITY_BEAM, ENTITY_NORMAL},
     engine::net::netadr_s,
-    entity::{EdictFlags, MoveType},
+    entity::{EdictFlags, Effects, MoveType},
     ffi::{
         common::{
             clientdata_s, customization_s, entity_state_s, qboolean, usercmd_s, vec3_t,
@@ -27,6 +28,7 @@ use xash3d_shared::{
 };
 
 use crate::{
+    entities::{player, triggers},
     entity::{EntityPlayer, EntityVars, KeyValue, ObjectCaps, PrivateData, RestoreResult, UseType},
     global_state::{EntityState, GlobalState, GlobalStateRef},
     prelude::*,
@@ -365,7 +367,9 @@ pub trait ServerDll: UnsyncGlobal {
 
     fn client_kill(&self, ent: &mut edict_s) {}
 
-    fn client_put_in_server(&self, ent: &mut edict_s);
+    fn client_put_in_server(&self, ent: &mut edict_s) {
+        player::client_put_in_server(self.engine(), self.global_state(), ent);
+    }
 
     fn client_command(&self, ent: &mut edict_s) {}
 
@@ -391,7 +395,14 @@ pub trait ServerDll: UnsyncGlobal {
 
     fn parms_new_level(&self) {}
 
-    fn parms_change_level(&self) {}
+    fn parms_change_level(&self) {
+        let engine = self.engine();
+        if let Some(mut save_data) = engine.globals.save_data() {
+            let save_data = unsafe { save_data.as_mut() };
+            save_data.connectionCount =
+                triggers::build_change_list(engine, &mut save_data.levelList) as c_int;
+        }
+    }
 
     fn get_game_description(&self) -> &'static CStr {
         self.global_state()
@@ -448,7 +459,59 @@ pub trait ServerDll: UnsyncGlobal {
         *pas = engine.set_pas(org);
     }
 
-    fn update_client_data(&self, ent: &edict_s, send_weapons: bool, cd: &mut clientdata_s);
+    fn update_client_data(&self, ent: &edict_s, send_weapons: bool, cd: &mut clientdata_s) {
+        if ent.pvPrivateData.is_null() {
+            return;
+        }
+
+        let engine = self.engine();
+        let ev = &ent.v;
+
+        // TODO:
+
+        cd.flags = ev.flags;
+        cd.health = ev.health;
+
+        cd.viewmodel =
+            engine.model_index(ev.viewmodel().as_ref().map_or(c"".into(), |s| s.as_thin()));
+
+        cd.waterlevel = ev.waterlevel;
+        cd.watertype = ev.watertype;
+        cd.weapons = ev.weapons;
+
+        cd.origin = ev.origin;
+        cd.velocity = ev.velocity;
+        cd.view_ofs = ev.view_ofs;
+        cd.punchangle = ev.punchangle;
+
+        cd.bInDuck = ev.bInDuck;
+        cd.flTimeStepSound = ev.flTimeStepSound;
+        cd.flDuckTime = ev.flDuckTime;
+        cd.flSwimTime = ev.flSwimTime;
+        cd.waterjumptime = ev.teleport_time as c_int;
+
+        CStrSlice::new_in_slice(&mut cd.physinfo)
+            .cursor()
+            .write_c_str(engine.get_physics_info_string(ent).into())
+            .unwrap();
+
+        cd.maxspeed = ev.maxspeed;
+        cd.fov = ev.fov;
+        cd.weaponanim = ev.weaponanim;
+
+        cd.pushmsec = ev.pushmsec;
+
+        // TODO: spectator mode
+
+        cd.iuser1 = ev.iuser1;
+        cd.iuser2 = ev.iuser2;
+
+        // TODO: sendweapons
+        // #[cfg(feature = "client-weapons")]
+        // if sendweapons {
+        //
+        // }
+    }
 
     #[allow(clippy::too_many_arguments)]
     fn add_to_full_pack(
@@ -460,7 +523,135 @@ pub trait ServerDll: UnsyncGlobal {
         hostflags: c_int,
         player: bool,
         set: *mut c_uchar,
-    ) -> bool;
+    ) -> bool {
+        if ent.v.effects().intersects(Effects::NODRAW) && !ptr::eq(ent, host) {
+            return false;
+        }
+
+        if ent.v.modelindex == 0 || ent.v.model().unwrap().is_empty() {
+            return false;
+        }
+
+        if ent.v.flags().intersects(EdictFlags::SPECTATOR) && !ptr::eq(ent, host) {
+            return false;
+        }
+
+        let engine = self.engine();
+        if !ptr::eq(ent, host) && !engine.check_visibility(ent, set) {
+            return false;
+        }
+
+        // do not send if the client say it is predicting the entity itself
+        if ent.v.flags().intersects(EdictFlags::SKIPLOCALHOST)
+            && hostflags & 1 != 0
+            && ptr::eq(ent.v.owner, host)
+        {
+            return false;
+        }
+
+        if host.v.groupinfo != 0 {
+            debug!("TODO: add_to_full_pack groupinfo");
+        }
+
+        unsafe {
+            ptr::write_bytes(state, 0, 1);
+        }
+
+        state.number = e;
+
+        state.entityType = if ent.v.flags().intersects(EdictFlags::CUSTOMENTITY) {
+            ENTITY_BEAM
+        } else {
+            ENTITY_NORMAL
+        };
+
+        state.animtime = ((1000.0 * ent.v.animtime) as i32) as f32 / 1000.0;
+
+        state.origin = ent.v.origin;
+        state.angles = ent.v.angles;
+        state.mins = ent.v.mins;
+        state.maxs = ent.v.maxs;
+
+        state.startpos = ent.v.startpos;
+        state.endpos = ent.v.endpos;
+
+        state.modelindex = ent.v.modelindex;
+
+        state.frame = ent.v.frame;
+
+        state.skin = ent.v.skin as c_short;
+        state.effects = ent.v.effects;
+
+        if !player && ent.v.animtime != 0.0 && ent.v.velocity == vec3_t::ZERO {
+            state.eflags |= EFLAG_SLERP as u8;
+        }
+
+        state.scale = ent.v.scale;
+        state.solid = ent.v.solid as c_short;
+        state.colormap = ent.v.colormap;
+
+        state.movetype = ent.v.movetype as c_int;
+        state.sequence = ent.v.sequence;
+        state.framerate = ent.v.framerate;
+        state.body = ent.v.body;
+
+        state.controller = ent.v.controller;
+        state.blending[0] = ent.v.blending[0];
+        state.blending[1] = ent.v.blending[1];
+
+        state.rendermode = ent.v.rendermode as c_int;
+        state.renderamt = ent.v.renderamt as c_int;
+        state.renderfx = ent.v.renderfx as c_int;
+        state.rendercolor.r = ent.v.rendercolor[0] as u8;
+        state.rendercolor.g = ent.v.rendercolor[1] as u8;
+        state.rendercolor.b = ent.v.rendercolor[2] as u8;
+
+        state.aiment = if !ent.v.aiment.is_null() {
+            engine.ent_index(unsafe { &*ent.v.aiment }).to_i32()
+        } else {
+            0
+        };
+
+        state.owner = 0;
+        if !ent.v.owner.is_null() {
+            let owner = engine.ent_index(unsafe { &*ent.v.owner }).to_i32();
+            if owner >= 1 && owner <= engine.globals.max_clients() {
+                state.owner = owner;
+            }
+        }
+
+        if !player {
+            state.playerclass = ent.v.playerclass;
+        }
+
+        if player {
+            state.basevelocity = ent.v.basevelocity;
+
+            state.weaponmodel = engine.model_index(
+                ent.v
+                    .weaponmodel()
+                    .as_ref()
+                    .map_or(c"".into(), |s| s.as_thin()),
+            );
+            state.gaitsequence = ent.v.gaitsequence;
+            state.spectator = ent.v.flags().intersects(EdictFlags::SPECTATOR).into();
+            state.friction = ent.v.friction;
+
+            state.gravity = ent.v.gravity;
+            // state.team = env.v.team;
+
+            state.usehull = if ent.v.flags().intersects(EdictFlags::DUCKING) {
+                1
+            } else {
+                0
+            };
+            state.health = ent.v.health as c_int;
+        }
+
+        // TODO: state.eflags |= EFLAG_FLESH_SOUND
+
+        true
+    }
 
     #[allow(clippy::too_many_arguments)]
     fn create_baseline(
@@ -1384,6 +1575,7 @@ macro_rules! export_entity {
     ($name:ident, $private:ty, $init:expr $(,)?) => {
         #[no_mangle]
         unsafe extern "C" fn $name(ev: *mut $crate::ffi::server::entvars_s) {
+            #[allow(unused_imports)]
             use $crate::{
                 engine::ServerEngineRef,
                 entity::{CreateEntity, PrivateData, PrivateEntity},

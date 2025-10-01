@@ -1,25 +1,27 @@
 use core::{ffi::c_int, ptr};
 
-use xash3d_server::{
+use xash3d_shared::{
     consts::{DAMAGE_AIM, DEAD_NO, SOLID_SLIDEBOX},
-    entity::{
-        delegate_entity, BaseEntity, CreateEntity, EdictFlags, Effects, Entity, EntityIndex,
-        EntityPlayer, MoveType, ObjectCaps, PrivateData,
-    },
-    export::export_entity,
+    entity::{EdictFlags, Effects, EntityIndex, MoveType},
     ffi::server::edict_s,
+};
+
+use crate::{
+    engine::ServerEngineRef,
+    entity::{
+        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, EntityPlayer,
+        ObjectCaps, Private, PrivateData,
+    },
     global_state::GlobalStateRef,
     prelude::*,
     save::{SaveReader, SaveRestoreData, SaveResult},
 };
 
-use crate::entity::{impl_cast, EntityTest, Private};
-
 pub struct Player {
     base: BaseEntity,
 }
 
-impl_cast!(Player);
+impl_entity_cast!(Player);
 
 impl Player {
     pub fn set_custom_decal_frames(&mut self, frames: c_int) {
@@ -89,10 +91,12 @@ impl Entity for Player {
         engine.set_physics_key_value(self.as_edict_mut(), c"slj", c"0");
         engine.set_physics_key_value(self.as_edict_mut(), c"hl", c"1");
 
-        self.global_state()
-            .game_rules()
-            .unwrap()
-            .get_player_spawn_spot(self);
+        match self.global_state().game_rules() {
+            Some(rules) => {
+                rules.get_player_spawn_spot(self);
+            }
+            None => error!("game rules is not initialized by worldspawn entity"),
+        }
 
         engine.set_model(self.as_edict_mut(), res::valve::models::PLAYER);
     }
@@ -104,7 +108,7 @@ impl EntityPlayer for Player {
         let global_state = self.global_state();
         let game_rules = global_state
             .game_rules()
-            .expect("GameRules is not intialized.");
+            .expect("game rules is not initialized by worldspawn entity");
 
         if game_rules.is_coop() {
             todo!();
@@ -133,12 +137,6 @@ impl EntityPlayer for Player {
     fn post_think(&mut self) {}
 }
 
-impl EntityTest for Player {
-    fn do_test_work(&self) {
-        // trace!("do some test work for player entity");
-    }
-}
-
 impl Drop for Player {
     fn drop(&mut self) {
         debug!("drop Player");
@@ -162,4 +160,9 @@ pub fn client_put_in_server(
     ent.v.iuser2 = 0;
 }
 
-export_entity!(player, Private<Player>);
+#[cfg(feature = "export-player-entity")]
+mod exports {
+    use crate::{entity::Private, export::export_entity};
+
+    export_entity!(player, Private<super::Player>);
+}
