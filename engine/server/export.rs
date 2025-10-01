@@ -1560,7 +1560,7 @@ pub use export_dll;
 /// }
 ///
 /// // export the player entity to the engine
-/// export_entity!(player, Private<Player>);
+/// export_entity!(test_player, Private<Player>);
 /// ```
 #[doc(hidden)]
 #[macro_export]
