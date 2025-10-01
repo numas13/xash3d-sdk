@@ -346,6 +346,7 @@ macro_rules! define_entity_trait {
                 /// trait.
                 ///
                 /// See [define_entity_trait] for examples.
+                #[allow(clippy::crate_in_macro_def)]
                 #[doc(hidden)]
                 #[macro_export]
                 macro_rules! $delegate {

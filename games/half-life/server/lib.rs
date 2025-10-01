@@ -16,6 +16,10 @@ mod todo;
 mod triggers;
 mod world;
 
+// HACK: used by delegate macros to access xash3d_server types
+#[doc(hidden)]
+pub use ::xash3d_server;
+
 #[cfg(not(feature = "std"))]
 #[cfg(not(test))]
 #[global_allocator]

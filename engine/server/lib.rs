@@ -26,3 +26,7 @@ pub mod svc;
 pub mod utils;
 
 pub use xash3d_shared::{cell, color, cvar, ffi, math, render};
+
+// HACK: used by delegate macros to access xash3d_server types
+#[doc(hidden)]
+pub use crate as xash3d_server;
