@@ -7,7 +7,7 @@ edition.workspace = true
 rust-version.workspace = true
 
 [features]
-default = ["export-default-entities", "export-player-entity"]
+default = []
 export-default-entities = []
 export-player-entity = []
 

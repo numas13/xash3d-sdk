@@ -721,12 +721,17 @@ impl ServerEngine {
         self.msg_send(MessageDest::All, None, None, msg);
     }
 
-    pub fn msg_one<T: ServerMessage>(&self, ent: &mut edict_s, msg: &T) {
-        self.msg_send(MessageDest::One, None, Some(ent), msg);
+    pub fn msg_one<T: ServerMessage>(&self, ent: &mut impl AsEdict, msg: &T) {
+        self.msg_send(MessageDest::One, None, Some(ent.as_edict_mut()), msg);
     }
 
-    pub fn msg_one_reliable<T: ServerMessage>(&self, ent: &mut edict_s, msg: &T) {
-        self.msg_send(MessageDest::OneReliable, None, Some(ent), msg);
+    pub fn msg_one_reliable<T: ServerMessage>(&self, ent: &mut impl AsEdict, msg: &T) {
+        self.msg_send(
+            MessageDest::OneReliable,
+            None,
+            Some(ent.as_edict_mut()),
+            msg,
+        );
     }
 
     pub fn msg_init<T: ServerMessage>(&self, msg: &T) {
