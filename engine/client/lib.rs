@@ -9,12 +9,12 @@ pub mod export;
 pub mod input;
 pub mod instance;
 mod logger;
-pub mod message;
 pub mod prelude;
 pub mod render;
 pub mod screen;
 pub mod sprite;
 mod studio;
+pub mod user_message;
 pub mod utils;
 
 pub use xash3d_shared::{

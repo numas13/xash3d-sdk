@@ -1,6 +1,10 @@
 use core::ffi::c_int;
 
-use xash3d_client::{message::hook_message, prelude::*};
+use xash3d_client::{
+    prelude::*,
+    user_message::{hook_user_message, UserMessageError},
+};
+use xash3d_hl_shared::user_message;
 
 use crate::{
     export::hud,
@@ -36,29 +40,32 @@ pub struct History {
 
 impl History {
     pub fn new(engine: ClientEngineRef) -> Self {
-        hook_message!(engine, AmmoPickup, |_, msg| {
-            let index = msg.read_u8()?;
-            let count = msg.read_u8()?;
-            if count != 0 {
+        hook_user_message!(engine, AmmoPickup, |_, msg| {
+            let msg = msg.read::<user_message::AmmoPickup>()?;
+            if msg.count != 0 {
                 let hud = hud();
                 hud.items
                     .get_mut::<History>()
-                    .add(&hud.state, ItemKind::Ammo(index, count));
+                    .add(&hud.state, ItemKind::Ammo(msg.index, msg.count));
             }
             Ok(())
         });
 
-        hook_message!(engine, WeapPickup, |_, msg| {
-            let index = msg.read_u8()?;
+        hook_user_message!(engine, WeapPickup, |_, msg| {
+            let msg = msg.read::<user_message::WeapPickup>()?;
             let hud = hud();
             hud.items
                 .get_mut::<History>()
-                .add(&hud.state, ItemKind::Weapon(index));
+                .add(&hud.state, ItemKind::Weapon(msg.index));
             Ok(())
         });
 
-        hook_message!(engine, ItemPickup, |_, msg| {
-            let name = msg.read_str()?;
+        hook_user_message!(engine, ItemPickup, |_, msg| {
+            let msg = msg.read::<user_message::ItemPickup>()?;
+            let name = msg
+                .classname
+                .to_str()
+                .map_err(|_| UserMessageError::InvalidUtf8String)?;
             let hud = hud();
             let index = hud.state.find_sprite_index(name);
             hud.items

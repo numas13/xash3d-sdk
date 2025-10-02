@@ -1,5 +1,7 @@
 #![no_std]
 
+#[allow(unused_imports)]
+#[macro_use]
 extern crate alloc;
 
 #[cfg(any(test, feature = "std"))]
@@ -19,13 +21,11 @@ pub mod color;
 pub mod consts;
 pub mod cvar;
 pub mod engine;
-pub mod engine_private;
 pub mod entity;
 pub mod export;
 pub mod input;
 pub mod logger;
 pub mod math;
-pub mod message;
 pub mod misc;
 pub mod model;
 pub mod parser;
@@ -33,6 +33,7 @@ pub mod prelude;
 pub mod render;
 pub mod sound;
 pub mod str;
+pub mod user_message;
 pub mod utils;
 
 pub use xash3d_ffi as ffi;

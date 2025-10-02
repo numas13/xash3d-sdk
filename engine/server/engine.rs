@@ -1,6 +1,6 @@
 use core::{
     ffi::{c_char, c_int, c_long, c_uchar, c_void, CStr},
-    iter,
+    fmt, iter,
     mem::MaybeUninit,
     ptr,
 };
@@ -17,6 +17,7 @@ use xash3d_shared::{
     },
     sound::{Attenuation, Channel, Pitch, SoundFlags},
     str::{AsCStrPtr, ToEngineStr},
+    user_message::{Angle, Coord, UserMessageValue, UserMessageWrite},
 };
 
 use crate::{
@@ -24,7 +25,7 @@ use crate::{
     entity::{AsEdict, EntityOffset, GetPrivateData},
     globals::ServerGlobals,
     str::MapString,
-    svc::{Message, MessageDest},
+    user_message::{MessageDest, ServerMessage},
 };
 
 pub use xash3d_shared::engine::{AddCmdError, EngineRef};
@@ -38,6 +39,15 @@ pub(crate) mod prelude {
 pub use self::prelude::*;
 
 pub type ServerEngineRef = EngineRef<ServerEngine>;
+
+#[derive(Debug)]
+pub struct RegisterUserMessageError;
+
+impl fmt::Display for RegisterUserMessageError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("failed to register user message")
+    }
+}
 
 pub trait LevelListExt {
     fn map_name(&self) -> &CStrThin;
@@ -691,55 +701,55 @@ impl ServerEngine {
 
     // pub pfnPointContents: Option<unsafe extern "C" fn(rgflVector: *const f32) -> c_int>,
 
-    fn msg_send<T: Message>(
+    fn msg_send<T: ServerMessage>(
         &self,
         dest: MessageDest,
         position: Option<vec3_t>,
         ent: Option<&mut edict_s>,
         msg: &T,
     ) {
-        self.msg_begin(dest, T::MSG_TYPE, position, ent);
-        msg.write_body(self);
+        self.msg_begin(dest, T::msg_type(None), position, ent);
+        msg.msg_write_body(&mut MsgWriter { engine: self });
         self.msg_end();
     }
 
-    pub fn msg_broadcast<T: Message>(&self, msg: &T) {
+    pub fn msg_broadcast<T: ServerMessage>(&self, msg: &T) {
         self.msg_send(MessageDest::Broadcast, None, None, msg);
     }
 
-    pub fn msg_all<T: Message>(&self, msg: &T) {
+    pub fn msg_all<T: ServerMessage>(&self, msg: &T) {
         self.msg_send(MessageDest::All, None, None, msg);
     }
 
-    pub fn msg_one<T: Message>(&self, ent: &mut edict_s, msg: &T) {
+    pub fn msg_one<T: ServerMessage>(&self, ent: &mut edict_s, msg: &T) {
         self.msg_send(MessageDest::One, None, Some(ent), msg);
     }
 
-    pub fn msg_one_reliable<T: Message>(&self, ent: &mut edict_s, msg: &T) {
+    pub fn msg_one_reliable<T: ServerMessage>(&self, ent: &mut edict_s, msg: &T) {
         self.msg_send(MessageDest::OneReliable, None, Some(ent), msg);
     }
 
-    pub fn msg_init<T: Message>(&self, msg: &T) {
+    pub fn msg_init<T: ServerMessage>(&self, msg: &T) {
         self.msg_send(MessageDest::Init, None, None, msg);
     }
 
-    pub fn msg_pvs<T: Message>(&self, position: vec3_t, msg: &T) {
+    pub fn msg_pvs<T: ServerMessage>(&self, position: vec3_t, msg: &T) {
         self.msg_send(MessageDest::Pvs, Some(position), None, msg);
     }
 
-    pub fn msg_pvs_reliable<T: Message>(&self, position: vec3_t, msg: &T) {
+    pub fn msg_pvs_reliable<T: ServerMessage>(&self, position: vec3_t, msg: &T) {
         self.msg_send(MessageDest::PvsReliable, Some(position), None, msg);
     }
 
-    pub fn msg_pas<T: Message>(&self, position: vec3_t, msg: &T) {
+    pub fn msg_pas<T: ServerMessage>(&self, position: vec3_t, msg: &T) {
         self.msg_send(MessageDest::Pas, Some(position), None, msg);
     }
 
-    pub fn msg_reliable<T: Message>(&self, position: vec3_t, msg: &T) {
+    pub fn msg_reliable<T: ServerMessage>(&self, position: vec3_t, msg: &T) {
         self.msg_send(MessageDest::PasReliable, Some(position), None, msg);
     }
 
-    pub fn msg_spec<T: Message>(&self, msg: &T) {
+    pub fn msg_spec<T: ServerMessage>(&self, msg: &T) {
         self.msg_send(MessageDest::Spec, None, None, msg);
     }
 
@@ -885,7 +895,36 @@ impl ServerEngine {
 
     // pub pfnFindEntityByVars: Option<unsafe extern "C" fn(pvars: *mut entvars_s) -> *mut edict_t>,
     // pub pfnGetModelPtr: Option<unsafe extern "C" fn(pEdict: *mut edict_t) -> *mut c_void>,
-    // pub pfnRegUserMsg: Option<unsafe extern "C" fn(pszName: *const c_char, iSize: c_int) -> c_int>,
+
+    pub fn register_user_message<'a, T>(
+        &self,
+        name: impl ToEngineStr,
+    ) -> Result<i32, RegisterUserMessageError>
+    where
+        T: ServerMessage + UserMessageValue<'a>,
+    {
+        let id = self.register_user_message_raw(name, T::msg_size())?;
+        T::msg_type(Some(id));
+        Ok(id)
+    }
+
+    pub fn register_user_message_raw(
+        &self,
+        name: impl ToEngineStr,
+        size: Option<usize>,
+    ) -> Result<i32, RegisterUserMessageError> {
+        let name = name.to_engine_str();
+        let size = size.map_or(-1, |i| i as c_int);
+        let id = unsafe { unwrap!(self, pfnRegUserMsg)(name.as_ptr(), size) };
+        if id != ffi::common::svc_bad {
+            debug!("register user message {id} {}", name.as_ref());
+            Ok(id)
+        } else {
+            error!("failed to register user message {}", name.as_ref());
+            Err(RegisterUserMessageError)
+        }
+    }
+
     // pub pfnAnimationAutomove: Option<unsafe extern "C" fn(pEdict: *const edict_t, flTime: f32)>,
     // pub pfnGetBonePosition: Option<
     //     unsafe extern "C" fn(
@@ -1220,5 +1259,55 @@ impl EngineSystemTime for ServerEngine {
     fn system_time_f64(&self) -> f64 {
         // XXX: server dll has only f32 system time
         unsafe { unwrap!(self, pfnTime)() as f64 }
+    }
+}
+
+pub struct MsgWriter<'a> {
+    engine: &'a ServerEngine,
+}
+
+impl UserMessageWrite for MsgWriter<'_> {
+    fn write_u8(&mut self, value: u8) {
+        self.engine.msg_write_u8(value);
+    }
+
+    fn write_i8(&mut self, value: i8) {
+        self.engine.msg_write_i8(value);
+    }
+
+    fn write_u16(&mut self, value: u16) {
+        self.engine.msg_write_u16(value);
+    }
+
+    fn write_i16(&mut self, value: i16) {
+        self.engine.msg_write_i16(value);
+    }
+
+    fn write_u32(&mut self, value: u32) {
+        self.engine.msg_write_u32(value);
+    }
+
+    fn write_i32(&mut self, value: i32) {
+        self.engine.msg_write_i32(value);
+    }
+
+    fn write_f32(&mut self, value: f32) {
+        self.engine.msg_write_u32(value.to_bits());
+    }
+
+    fn write_coord(&mut self, coord: Coord<f32>) {
+        self.engine.msg_write_coord(coord.into());
+    }
+
+    fn write_angle(&mut self, angle: Angle) {
+        self.engine.msg_write_angle(angle.to_degrees());
+    }
+
+    fn write_entity(&mut self, entity: EntityIndex) {
+        self.engine.msg_write_entity(entity);
+    }
+
+    fn write_str(&mut self, str: impl ToEngineStr) {
+        self.engine.msg_write_string(str);
     }
 }

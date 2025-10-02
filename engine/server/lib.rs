@@ -23,7 +23,7 @@ pub mod prelude;
 pub mod save;
 pub mod sound;
 pub mod str;
-pub mod svc;
+pub mod user_message;
 pub mod utils;
 
 pub use xash3d_shared::{cell, color, cvar, ffi, math, render};

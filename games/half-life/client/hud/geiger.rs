@@ -1,7 +1,8 @@
 use core::fmt::Write;
 
 use csz::CStrArray;
-use xash3d_client::{message::hook_message, prelude::*};
+use xash3d_client::{prelude::*, user_message::hook_user_message};
+use xash3d_hl_shared::user_message;
 
 use crate::{
     export::hud,
@@ -19,9 +20,9 @@ pub struct Geiger {
 
 impl Geiger {
     pub fn new(engine: ClientEngineRef) -> Self {
-        hook_message!(engine, Geiger, |_, msg| {
-            let x = msg.read_u8()?;
-            hud().items.get_mut::<Geiger>().range = (x as u16) << 2;
+        hook_user_message!(engine, Geiger, |_, msg| {
+            let msg = msg.read::<user_message::Geiger>()?;
+            hud().items.get_mut::<Geiger>().range = (msg.x as u16) << 2;
             Ok(())
         });
 

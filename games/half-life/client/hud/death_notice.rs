@@ -6,7 +6,8 @@ use core::{
 
 use alloc::collections::vec_deque::VecDeque;
 use csz::{CStrArray, CStrThin};
-use xash3d_client::{color::RGB, message::hook_message, prelude::*};
+use xash3d_client::{color::RGB, prelude::*, user_message::hook_user_message};
+use xash3d_hl_shared::user_message;
 
 use crate::{
     export::hud,
@@ -82,15 +83,10 @@ pub struct DeathNotice {
 
 impl DeathNotice {
     pub fn new(engine: ClientEngineRef) -> Self {
-        hook_message!(engine, DeathMsg, |_, msg| {
-            let killer = msg.read_u8()?;
-            let victim = msg.read_u8()?;
-            // FIXME: read cstr
-            let killed_with = msg.read_str()?;
+        hook_user_message!(engine, DeathMsg, |_, msg| {
+            let msg = msg.read::<user_message::DeathMsg>()?;
             let hud = hud();
-            hud.items
-                .get_mut::<DeathNotice>()
-                .death(&hud.state, killer, victim, killed_with);
+            hud.items.get_mut::<DeathNotice>().death(&hud.state, &msg);
             Ok(())
         });
 
@@ -101,12 +97,15 @@ impl DeathNotice {
         }
     }
 
-    fn death(&mut self, state: &State, killer_id: u8, victim_id: u8, killed_with: &str) {
+    fn death(&mut self, state: &State, msg: &user_message::DeathMsg) {
+        let killer_id = msg.killer;
+        let victim_id = msg.victim;
+        let killed_with: &CStrThin = msg.killed_with.into();
         // TODO: spectator.death_message(victim);
 
         let engine = self.engine;
         let suicide = killer_id == victim_id || killer_id == 0;
-        let team_kill = killed_with == "d_teammate";
+        let team_kill = killed_with == c"d_teammate";
 
         let killer = if !suicide {
             engine.get_player_info(killer_id as c_int).map(|info| {
@@ -130,7 +129,6 @@ impl DeathNotice {
         };
 
         let weapon = {
-            // FIXME: need cstr
             let mut buf = CStrArray::<128>::new();
             write!(buf.cursor(), "d_{killed_with}").ok();
             buf.to_str().ok().and_then(|s| state.find_sprite(s))
@@ -150,19 +148,19 @@ impl DeathNotice {
                     engine.console_print(victim.name());
                 } else {
                     engine.console_print(victim.name());
-                    if killed_with == "world" {
+                    if killed_with == c"world" {
                         engine.console_print(c" died");
                     } else {
                         engine.console_print(c" killed self");
                     }
                 }
 
-                if !killed_with.is_empty() && killed_with != "world" && !team_kill {
+                if !killed_with.is_empty() && killed_with != c"world" && !team_kill {
                     engine.console_print(c" with ");
 
-                    if killed_with == "egon" {
+                    if killed_with == c"egon" {
                         engine.console_print(c"gluon gun");
-                    } else if killed_with == "gauss" {
+                    } else if killed_with == c"gauss" {
                         engine.console_print(c"tau cannon");
                     } else {
                         engine.console_print(killed_with);

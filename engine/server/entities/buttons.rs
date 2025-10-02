@@ -10,7 +10,7 @@ use crate::{
     },
     prelude::*,
     save::{define_fields, FieldType, SaveFields},
-    svc,
+    user_message,
 };
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -145,7 +145,7 @@ const SPARK_SOUNDS: &[&CStr] = &[
 fn do_spark(engine: ServerEngineRef, vars: &mut EntityVars, location: vec3_t) {
     let ev = vars.as_raw();
     let pos = location + ev.size * 0.5;
-    engine.msg_pvs(pos, &svc::Sparks::new(pos));
+    engine.msg_pvs(pos, &user_message::Sparks::new(pos));
     let volume = engine.random_float(0.25, 0.75) * 0.4;
     let index = (engine.random_float(0.0, 1.0) * SPARK_SOUNDS.len() as f32) as usize;
     engine

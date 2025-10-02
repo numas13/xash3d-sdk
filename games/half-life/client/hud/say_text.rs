@@ -2,7 +2,8 @@ use core::ffi::{c_int, CStr};
 
 use alloc::collections::vec_deque::VecDeque;
 use csz::CStrArray;
-use xash3d_client::{color::RGB, math::fminf, message::hook_message, prelude::*};
+use xash3d_client::{color::RGB, math::fminf, prelude::*, user_message::hook_user_message};
+use xash3d_hl_shared::user_message;
 
 use crate::export::hud;
 
@@ -35,13 +36,14 @@ pub struct SayText {
 
 impl SayText {
     pub fn new(engine: ClientEngineRef) -> Self {
-        hook_message!(engine, SayText, |_, msg| {
-            let client_index = msg.read_u8()? as c_int;
-            let text = msg.read_cstr()?;
+        hook_user_message!(engine, SayText, |_, msg| {
+            let msg = msg.read::<user_message::SayText>()?;
             let hud = hud();
-            hud.items
-                .get_mut::<SayText>()
-                .say_text(&hud.state, text, client_index);
+            hud.items.get_mut::<SayText>().say_text(
+                &hud.state,
+                msg.text,
+                msg.client_index as c_int,
+            );
             Ok(())
         });
 

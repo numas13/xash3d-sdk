@@ -1,0 +1,17 @@
+[package]
+name = "xash3d-hl-shared"
+version = "0.1.0"
+license.workspace = true
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[lints]
+workspace = true
+
+[lib]
+path = "lib.rs"
+
+[dependencies]
+csz.workspace = true
+xash3d-shared.workspace = true

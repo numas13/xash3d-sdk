@@ -1,47 +1,48 @@
-pub use xash3d_shared::message::*;
+pub use xash3d_shared::user_message::*;
 
 #[doc(hidden)]
 #[macro_export]
-macro_rules! hook_message {
+macro_rules! hook_user_message {
     ($engine:expr, $name:ident, $block:block) => {{
-        $crate::message::hook_message!($engine, $name, |_, _| $block);
+        $crate::user_message::hook_user_message!($engine, $name, |_, _| $block,);
     }};
-    ($engine:expr, $name:ident, $handle:expr) => {{
+    ($engine:expr, $name:ident, $handle:expr $(,)?) => {{
         use core::{
             ffi::{c_char, c_int, c_void, CStr},
             slice,
         };
 
-        unsafe extern "C" fn message_hook(
+        unsafe extern "C" fn user_message_hook(
             name: *const c_char,
             size: c_int,
             msg: *mut c_void,
         ) -> c_int {
+            #[allow(unused_imports)]
             use $crate::{
-                message::{Message, MessageResult},
                 prelude::*,
+                user_message::{IntoUserMessageResult, UserMessageBuffer},
             };
             let engine = unsafe { ClientEngineRef::new() };
             let name = unsafe { CStr::from_ptr(name) };
             let raw = unsafe { slice::from_raw_parts(msg as *const u8, size as usize) };
-            let mut msg = Message::new(name, raw);
+            let mut msg = UserMessageBuffer::new(name, raw);
             // debug!("user message {name:?} = {msg:?}");
-            let handle: fn(ClientEngineRef, &mut Message) -> _ = $handle;
-            handle(engine, &mut msg).convert()
+            let handle: fn(ClientEngineRef, &mut UserMessageBuffer) -> _ = $handle;
+            handle(engine, &mut msg).into_user_message_result()
         }
 
         let name = $crate::macros::cstringify!($name);
-        $engine.hook_user_msg(name, Some(message_hook));
+        $engine.hook_user_msg(name, Some(user_message_hook));
     }};
 }
 #[doc(inline)]
-pub use hook_message;
+pub use hook_user_message;
 
 #[doc(hidden)]
 #[macro_export]
-macro_rules! hook_message_flag {
+macro_rules! hook_user_message_flag {
     ($engine:expr, $name:ident, $flag:expr) => {{
-        $crate::message::hook_message!($engine, $name, |_, msg| {
+        $crate::user_message::hook_user_message!($engine, $name, |_, msg| {
             let value = msg.read_u8().map_or(false, |i| i != 0);
             $flag = value;
             true
@@ -49,4 +50,4 @@ macro_rules! hook_message_flag {
     }};
 }
 #[doc(inline)]
-pub use hook_message_flag;
+pub use hook_user_message_flag;

@@ -1,6 +1,7 @@
 use core::{cmp, ffi::c_int};
 
-use xash3d_client::{message::hook_message, prelude::*};
+use xash3d_client::{prelude::*, user_message::hook_user_message};
+use xash3d_hl_shared::user_message;
 
 use crate::{
     export::hud,
@@ -17,9 +18,9 @@ pub struct Battery {
 
 impl Battery {
     pub fn new(engine: ClientEngineRef) -> Self {
-        hook_message!(engine, Battery, |_, msg| {
-            let x = msg.read_i16()?;
-            hud().items.get_mut::<Battery>().set(x);
+        hook_user_message!(engine, Battery, |_, msg| {
+            let msg = msg.read::<user_message::Battery>()?;
+            hud().items.get_mut::<Battery>().set(msg.x);
             Ok(())
         });
 

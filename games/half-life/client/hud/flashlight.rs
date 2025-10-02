@@ -1,6 +1,7 @@
 use core::ffi::c_int;
 
-use xash3d_client::{color::RGB, message::hook_message, prelude::*};
+use xash3d_client::{color::RGB, prelude::*, user_message::hook_user_message};
+use xash3d_hl_shared::user_message;
 
 use crate::{
     export::hud,
@@ -19,19 +20,18 @@ pub struct Flashlight {
 
 impl Flashlight {
     pub fn new(engine: ClientEngineRef) -> Self {
-        hook_message!(engine, FlashBat, |_, msg| {
-            let x = msg.read_u8()?;
-            hud().items.get_mut::<Flashlight>().set(x);
+        hook_user_message!(engine, FlashBat, |_, msg| {
+            let msg = msg.read::<user_message::FlashBat>()?;
+            hud().items.get_mut::<Flashlight>().set(msg.x);
             Ok(())
         });
 
-        hook_message!(engine, Flashlight, |_, msg| {
-            let on = msg.read_u8()?;
-            let x = msg.read_u8()?;
+        hook_user_message!(engine, Flashlight, |_, msg| {
+            let msg = msg.read::<user_message::Flashlight>()?;
             let hud = hud();
             let mut flash = hud.items.get_mut::<Flashlight>();
-            flash.enabled(on != 0);
-            flash.set(x);
+            flash.enabled(msg.on);
+            flash.set(msg.x);
             Ok(())
         });
 

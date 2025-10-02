@@ -7,9 +7,10 @@ use csz::CStrArray;
 use xash3d_client::{
     color::RGB,
     macros::{spr_get_list, spr_load},
-    message::{hook_message, Message, MessageError},
     prelude::*,
+    user_message::{hook_user_message, UserMessageBuffer, UserMessageError},
 };
+use xash3d_hl_shared::user_message;
 
 use crate::hud::{hud_mut, weapon_menu::WeaponMenu, Sprite, Weapons, MAX_WEAPONS};
 
@@ -65,41 +66,41 @@ pub struct Weapon {
 impl Weapon {
     pub fn read_from_message(
         engine: ClientEngineRef,
-        msg: &mut Message,
-    ) -> Result<Self, MessageError> {
-        let name = msg.read_str()?;
-        let ammo1 = msg.read_i8()?;
-        let max1 = msg.read_u8()?;
-        let ammo2 = msg.read_i8()?;
-        let max2 = msg.read_u8()?;
-        let slot = msg.read_i8()? as i32 as u32;
-        let slot_pos = msg.read_i8()? as i32 as u32;
-        let id = msg.read_i8()? as i32 as u32;
-        let flags = msg.read_u8()? as u32;
+        msg: &mut UserMessageBuffer,
+    ) -> Result<Self, UserMessageError> {
+        let msg = msg.read::<user_message::WeaponList>()?;
+        let ammo1 = msg.ammo1;
+        let max1 = msg.max1;
+        let ammo2 = msg.ammo2;
+        let max2 = msg.max2;
+        let slot = msg.slot as i32 as u32;
+        let slot_pos = msg.slot_pos as i32 as u32;
+        let id = msg.id as i32 as u32;
+        let flags = msg.flags as u32;
         let clip = 0;
 
         if id as usize >= MAX_WEAPONS {
-            return Err(MessageError);
+            return Err(UserMessageError::InvalidNumber);
         }
 
         if slot as usize > MAX_WEAPON_SLOTS {
-            return Err(MessageError);
+            return Err(UserMessageError::InvalidNumber);
         }
 
         if slot_pos as usize > MAX_WEAPON_POSITIONS {
-            return Err(MessageError);
+            return Err(UserMessageError::InvalidNumber);
         }
 
         if ammo1 < -1 || ammo1 >= MAX_AMMO_TYPES as i8 {
-            return Err(MessageError);
+            return Err(UserMessageError::InvalidNumber);
         }
 
         if ammo2 < -1 || ammo2 >= MAX_AMMO_TYPES as i8 {
-            return Err(MessageError);
+            return Err(UserMessageError::InvalidNumber);
         }
 
         if (ammo1 >= 0 && max1 == 0) || (ammo2 >= 0 && max2 == 0) {
-            return Err(MessageError);
+            return Err(UserMessageError::InvalidNumber);
         }
 
         let ammo1 = Ammo::new(ammo1, max1);
@@ -108,7 +109,7 @@ impl Weapon {
         Ok(Self {
             engine,
 
-            name: CStrArray::try_from(name).unwrap(),
+            name: CStrArray::try_from(msg.name).unwrap(),
             ammo: [ammo1, ammo2],
             slot,
             slot_pos,
@@ -186,7 +187,7 @@ pub struct Inventory {
 
 impl Inventory {
     pub fn new(engine: ClientEngineRef) -> Self {
-        hook_message!(engine, WeaponList, |engine, msg| {
+        hook_user_message!(engine, WeaponList, |engine, msg| {
             match Weapon::read_from_message(engine, msg) {
                 Ok(weapon) => {
                     hud_mut().state.inv.weapon_add(weapon);
@@ -199,25 +200,28 @@ impl Inventory {
             }
         });
 
-        hook_message!(engine, AmmoX, |_, msg| {
-            let ty = msg.read_u8()? as u32;
-            let count = msg.read_u8()? as u32;
-            hud_mut().state.inv.ammo_set(ty, count);
+        hook_user_message!(engine, AmmoX, |_, msg| {
+            let msg = msg.read::<user_message::AmmoX>()?;
+            hud_mut()
+                .state
+                .inv
+                .ammo_set(msg.ty.into(), msg.count.into());
             Ok(())
         });
 
-        hook_message!(engine, CurWeapon, |engine, msg| {
-            let state = msg.read_u8()?;
-            let id = msg.read_i8()?;
-            let clip = msg.read_i8()?;
-            Ok(Inventory::msg_cur_weapon(engine, state, id, clip))
+        hook_user_message!(engine, CurWeapon, |engine, msg| {
+            let msg = msg.read::<user_message::CurWeapon>()?;
+            Ok(Inventory::msg_cur_weapon(
+                engine, msg.state, msg.id, msg.clip,
+            ))
         });
 
-        hook_message!(engine, HideWeapon, |engine, msg| {
+        hook_user_message!(engine, HideWeapon, |engine, msg| {
             use super::Hide;
 
+            let msg = msg.read::<user_message::HideWeapon>()?;
             let mut hud = hud_mut();
-            hud.state.hide = Hide::from_bits(msg.read_u8()? as u32).unwrap();
+            hud.state.hide = Hide::from_bits(msg.hide as u32).unwrap();
 
             if !engine.is_spectator_only() {
                 if hud.state.is_hidden(Hide::WEAPONS | Hide::ALL) {

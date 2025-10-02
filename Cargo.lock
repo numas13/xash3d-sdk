@@ -71,6 +71,7 @@ dependencies = [
  "xash3d-allocator",
  "xash3d-client",
  "xash3d-hl-resources",
+ "xash3d-hl-shared",
  "xash3d-player-move",
 ]
 
@@ -88,8 +89,17 @@ dependencies = [
  "log",
  "xash3d-allocator",
  "xash3d-hl-resources",
+ "xash3d-hl-shared",
  "xash3d-player-move",
  "xash3d-server",
+]
+
+[[package]]
+name = "xash3d-hl-shared"
+version = "0.1.0"
+dependencies = [
+ "csz",
+ "xash3d-shared",
 ]
 
 [[package]]

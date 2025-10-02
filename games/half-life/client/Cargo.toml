@@ -27,4 +27,5 @@ csz.workspace = true
 xash3d-player-move.workspace = true
 xash3d-client.workspace = true
 xash3d-allocator.workspace = true
+xash3d-hl-shared.workspace = true
 res = { package = "xash3d-hl-resources", path = "../resources" }

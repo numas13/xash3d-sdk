@@ -4,8 +4,8 @@ use alloc::string::String;
 use csz::CStrArray;
 use xash3d_client::{
     color::RGB,
-    message::{hook_message, Message, MessageError},
     prelude::*,
+    user_message::{hook_user_message, UserMessageBuffer, UserMessageError},
 };
 
 use crate::export::hud;
@@ -24,7 +24,7 @@ pub struct Menu {
 
 impl Menu {
     pub fn new(engine: ClientEngineRef) -> Self {
-        hook_message!(engine, ShowMenu, Menu::msg_show_menu);
+        hook_user_message!(engine, ShowMenu, Menu::msg_show_menu);
 
         Self {
             engine,
@@ -77,7 +77,10 @@ impl Menu {
         }
     }
 
-    pub fn msg_show_menu(_: ClientEngineRef, msg: &mut Message) -> Result<(), MessageError> {
+    pub fn msg_show_menu(
+        _: ClientEngineRef,
+        msg: &mut UserMessageBuffer,
+    ) -> Result<(), UserMessageError> {
         let slots = msg.read_u16()?;
         let time = msg.read_u8()?;
         let more = msg.read_u8()? != 0;

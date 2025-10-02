@@ -1,6 +1,9 @@
 use core::ffi::c_int;
 
-use xash3d_client::{macros::spr_load, message::hook_message, prelude::*, sprite::SpriteHandle};
+use xash3d_client::{
+    macros::spr_load, prelude::*, sprite::SpriteHandle, user_message::hook_user_message,
+};
+use xash3d_hl_shared::user_message;
 
 use crate::{
     export::hud,
@@ -15,9 +18,9 @@ pub struct Train {
 
 impl Train {
     pub fn new(engine: ClientEngineRef) -> Self {
-        hook_message!(engine, Train, |_, msg| {
-            let x = msg.read_u8()?;
-            hud().items.get_mut::<Train>().set_pos(x);
+        hook_user_message!(engine, Train, |_, msg| {
+            let msg = msg.read::<user_message::Train>()?;
+            hud().items.get_mut::<Train>().set_pos(msg.x);
             Ok(())
         });
 

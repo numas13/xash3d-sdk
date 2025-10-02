@@ -34,10 +34,11 @@ use xash3d_client::{
         common::{vec3_t, wrect_s},
     },
     macros::{hook_command, spr_load},
-    message::{hook_message, hook_message_flag},
     prelude::*,
     sprite::SpriteHandle,
+    user_message::{hook_user_message, hook_user_message_flag},
 };
+use xash3d_hl_shared::user_message;
 
 use crate::{
     export::{hud_mut, input, input_mut},
@@ -572,20 +573,14 @@ impl Hud {
         self.state.fov
     }
 
-    pub fn score_info(
-        &mut self,
-        cl: u8,
-        frags: i16,
-        deaths: i16,
-        _player_class: i16,
-        teamnumber: i16,
-    ) {
+    pub fn score_info(&mut self, info: &user_message::ScoreInfo) {
+        let cl = info.cl;
         if cl > 0 && cl <= MAX_PLAYERS as u8 {
             let index = cl as usize;
             let extra = PlayerInfoExtra {
-                frags,
-                deaths,
-                teamnumber: cmp::max(0, teamnumber),
+                frags: info.frags,
+                deaths: info.deaths,
+                teamnumber: cmp::max(0, info.teamnumber),
             };
             self.items.get_mut::<ScoreBoard>().score_info(cl, &extra);
             self.state.player_info_extra[index] = Some(extra);
@@ -812,47 +807,45 @@ fn parse_color(s: &str) -> Option<RGB> {
 }
 
 fn hook_messages_and_commands(engine: ClientEngineRef) {
-    hook_message_flag!(engine, Logo, hud_mut().logo);
+    hook_user_message_flag!(engine, Logo, hud_mut().logo);
 
-    hook_message!(engine, InitHUD, {
+    hook_user_message!(engine, InitHUD, {
         hud_mut().init_hud();
         true
     });
 
-    hook_message!(engine, GameMode, {
+    hook_user_message!(engine, GameMode, {
         trace!("message GameMode is not implemented");
         true
     });
 
-    hook_message!(engine, SetFOV, |_, msg| {
-        let fov = msg.read_u8()?;
+    hook_user_message!(engine, SetFOV, |_, msg| {
+        let msg = msg.read::<user_message::SetFOV>()?;
         let mut hud = hud_mut();
-        hud.set_last_fov(fov);
-        hud.set_fov(fov);
+        hud.set_last_fov(msg.fov);
+        hud.set_fov(msg.fov);
         Ok(())
     });
 
-    hook_message!(engine, ScoreInfo, |_, msg| {
-        let cl = msg.read_u8()?;
-        let frags = msg.read_i16()?;
-        let deaths = msg.read_i16()?;
-        let player_class = msg.read_i16()?;
-        let teamnumber = msg.read_i16()?;
-        hud_mut().score_info(cl, frags, deaths, player_class, teamnumber);
+    hook_user_message!(engine, ScoreInfo, |_, msg| {
+        let msg = msg.read::<user_message::ScoreInfo>()?;
+        hud_mut().score_info(&msg);
         Ok(())
     });
 
-    hook_message!(engine, ServerName, |_, msg| {
-        hud_mut().state.server_name = msg.read_cstr()?.into();
+    hook_user_message!(engine, ServerName, |_, msg| {
+        let msg = msg.read::<user_message::ServerName>()?;
+        hud_mut().state.server_name = msg.name.into();
         Ok(())
     });
 
-    hook_message!(engine, ResetHUD, |_, msg| {
-        if !matches!(msg.data(), &[0]) {
+    hook_user_message!(engine, ResetHUD, |_, msg| {
+        let msg = msg.read::<user_message::ResetHUD>()?;
+        if msg.x != 0 {
             warn!("ResetHUD: unexpected user message data");
         }
         hud_mut().reset();
-        true
+        Ok(())
     });
 
     fn cmd_slot(slot: u32) {

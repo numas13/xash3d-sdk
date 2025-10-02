@@ -7,10 +7,11 @@ use xash3d_client::{
     ffi::common::vec3_t,
     macros::spr_load,
     math::{fabsf, fmaxf, sinf},
-    message::hook_message,
     prelude::*,
     sprite::SpriteHandle,
+    user_message::hook_user_message,
 };
+use xash3d_hl_shared::user_message;
 
 use crate::{
     export::{hud, hud_mut},
@@ -103,17 +104,18 @@ pub struct Health {
 
 impl Health {
     pub fn new(engine: ClientEngineRef) -> Self {
-        hook_message!(engine, Health, |_, msg| {
-            let x = msg.read_u8()?;
-            hud().items.get_mut::<Health>().set(x);
+        hook_user_message!(engine, Health, |_, msg| {
+            let msg = msg.read::<user_message::Health>()?;
+            hud().items.get_mut::<Health>().set(msg.x);
             Ok(())
         });
 
-        hook_message!(engine, Damage, |_, msg| {
-            let armor = msg.read_u8()?;
-            let damage_taken = msg.read_u8()?;
-            let damage_bits = msg.read_u32()?;
-            let from = vec3_t::new(msg.read_coord()?, msg.read_coord()?, msg.read_coord()?);
+        hook_user_message!(engine, Damage, |_, msg| {
+            let msg = msg.read::<user_message::Damage>()?;
+            let armor = msg.armor;
+            let damage_taken = msg.damage_taken;
+            let damage_bits = msg.damage_bits;
+            let from = msg.from.into();
 
             let hud = &mut *hud_mut();
             let mut health = hud.items.get_mut::<Health>();

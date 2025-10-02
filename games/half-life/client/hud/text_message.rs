@@ -2,8 +2,8 @@ use core::ffi::{c_int, CStr};
 
 use alloc::string::String;
 use xash3d_client::{
-    message::{hook_message, Message, MessageError},
     prelude::*,
+    user_message::{hook_user_message, UserMessageBuffer, UserMessageError},
 };
 
 use crate::{export::hud, hud::say_text::SayText};
@@ -25,20 +25,23 @@ pub struct TextMessage {}
 
 impl TextMessage {
     pub fn new(engine: ClientEngineRef) -> Self {
-        hook_message!(engine, TextMsg, TextMessage::msg_text);
+        hook_user_message!(engine, TextMsg, TextMessage::msg_text);
 
         Self {}
     }
 
-    fn msg_text(engine: ClientEngineRef, msg: &mut Message) -> Result<(), MessageError> {
+    fn msg_text(
+        engine: ClientEngineRef,
+        msg: &mut UserMessageBuffer,
+    ) -> Result<(), UserMessageError> {
         const MSG_BUF_SIZE: usize = 128;
 
         let dest = msg.read_u8()? as c_int;
-        let (dest, format) = lookup_string(engine, dest, msg.read_cstr()?);
+        let (dest, format) = lookup_string(engine, dest, msg.read_c_str()?);
 
         let mut strings = [[0; MSG_BUF_SIZE]; 4];
         for i in &mut strings {
-            let Ok(s) = msg.read_cstr() else { break };
+            let Ok(s) = msg.read_c_str() else { break };
             let (_, s) = lookup_string(engine, 0, s);
             let len = cstr_copy(i, s.to_bytes());
             for c in i[..len].iter_mut().rev() {

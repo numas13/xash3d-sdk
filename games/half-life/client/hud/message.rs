@@ -8,10 +8,11 @@ use xash3d_client::{
     color::RGB,
     ffi::{client::client_textmessage_s, common::byte},
     math::fabsf,
-    message::hook_message,
     prelude::*,
     screen::ScreenInfo,
+    user_message::{hook_user_message, UserMessageError},
 };
+use xash3d_hl_shared::user_message;
 
 use crate::export::hud;
 
@@ -170,8 +171,12 @@ pub struct HudMessage {
 
 impl HudMessage {
     pub fn new(engine: ClientEngineRef) -> Self {
-        hook_message!(engine, HudText, |_, msg| {
-            let s = msg.read_str()?;
+        hook_user_message!(engine, HudText, |_, msg| {
+            let msg = msg.read::<user_message::HudText>()?;
+            let s = msg
+                .text
+                .to_str()
+                .map_err(|_| UserMessageError::InvalidUtf8String)?;
             let hud = hud();
             hud.items
                 .get_mut::<HudMessage>()
@@ -179,7 +184,7 @@ impl HudMessage {
             Ok(())
         });
 
-        hook_message!(engine, GameTitle, {
+        hook_user_message!(engine, GameTitle, {
             let hud = hud();
             hud.items.get_mut::<HudMessage>().msg_game_title(&hud.state);
             true
