@@ -53,8 +53,6 @@ impl Dll {
         // register_user_message!(engine, user_message::TeamNames)?;
         // register_user_message!(engine, user_message::StatusText)?;
         // register_user_message!(engine, user_message::StatusValue)?;
-        register_user_message!(engine, user_message::SetFOV)?;
-        register_user_message!(engine, user_message::ScoreInfo)?;
 
         Ok(())
     }
