@@ -917,7 +917,7 @@ impl ServerEngine {
         let size = size.map_or(-1, |i| i as c_int);
         let id = unsafe { unwrap!(self, pfnRegUserMsg)(name.as_ptr(), size) };
         if id != ffi::common::svc_bad {
-            debug!("register user message {id} {}", name.as_ref());
+            debug!("register user message {id} {} (size {size})", name.as_ref());
             Ok(id)
         } else {
             error!("failed to register user message {}", name.as_ref());
