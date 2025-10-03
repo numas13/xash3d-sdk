@@ -2,7 +2,8 @@ use core::ffi::c_int;
 
 use xash3d_server::{
     engine::RegisterUserMessageError,
-    entity::Private,
+    entities::world::World,
+    entity::{BaseEntity, Private},
     export::{export_dll, impl_unsync_global, ServerDll},
     ffi::server::edict_s,
     global_state::GlobalStateRef,
@@ -10,7 +11,7 @@ use xash3d_server::{
     user_message::register_user_message,
 };
 
-use crate::entities::player::TestPlayer;
+use crate::{entities::player::TestPlayer, game_rules::install_game_rules};
 
 struct Dll {
     engine: ServerEngineRef,
@@ -63,6 +64,7 @@ impl Dll {
 }
 
 impl ServerDll for Dll {
+    type World = Private<World>;
     type Player = Private<TestPlayer>;
 
     fn new(engine: ServerEngineRef, global_state: GlobalStateRef) -> Self {
@@ -74,6 +76,10 @@ impl ServerDll for Dll {
             engine,
             global_state,
         }
+    }
+
+    fn create_world(base: BaseEntity) -> World {
+        World::create(base, install_game_rules)
     }
 
     fn engine(&self) -> ServerEngineRef {

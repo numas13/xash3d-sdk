@@ -2,8 +2,8 @@ use core::ffi::c_int;
 
 use xash3d_server::{
     entities::{player::Player, world::World},
-    entity::Private,
-    export::{export_dll, export_entity, impl_unsync_global, ServerDll},
+    entity::{BaseEntity, Private},
+    export::{export_dll, impl_unsync_global, ServerDll},
     game_rules::StubGameRules,
     global_state::GlobalStateRef,
     prelude::*,
@@ -17,6 +17,7 @@ struct Dll {
 impl_unsync_global!(Dll);
 
 impl ServerDll for Dll {
+    type World = Private<World>;
     type Player = Private<Player>;
 
     fn new(engine: ServerEngineRef, global_state: GlobalStateRef) -> Self {
@@ -24,6 +25,10 @@ impl ServerDll for Dll {
             engine,
             global_state,
         }
+    }
+
+    fn create_world(base: BaseEntity) -> World {
+        World::create(base, StubGameRules::install)
     }
 
     fn engine(&self) -> ServerEngineRef {
@@ -35,8 +40,4 @@ impl ServerDll for Dll {
     }
 }
 
-export_entity!(worldspawn, Private<World>, |base| World::create(
-    base,
-    StubGameRules::install
-));
 export_dll!(Dll);

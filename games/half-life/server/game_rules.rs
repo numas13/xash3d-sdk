@@ -1,9 +1,6 @@
 use core::ffi::CStr;
 
-use xash3d_server::{
-    entities::world::World, entity::Private, export::export_entity, game_rules::GameRules,
-    global_state::GlobalStateRef, prelude::*,
-};
+use xash3d_server::{game_rules::GameRules, global_state::GlobalStateRef, prelude::*};
 
 pub struct HalfLifeRules {
     engine: ServerEngineRef,
@@ -31,7 +28,7 @@ impl GameRules for HalfLifeRules {
     }
 }
 
-fn install_game_rules(engine: ServerEngineRef, global_state: GlobalStateRef) {
+pub fn install_game_rules(engine: ServerEngineRef, global_state: GlobalStateRef) {
     engine.server_command(c"exec game.cfg\n");
     engine.server_execute();
 
@@ -44,8 +41,3 @@ fn install_game_rules(engine: ServerEngineRef, global_state: GlobalStateRef) {
     }
     todo!();
 }
-
-export_entity!(worldspawn, Private<World>, |base| World::create(
-    base,
-    install_game_rules
-));

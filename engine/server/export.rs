@@ -30,8 +30,8 @@ use xash3d_shared::{
 use crate::{
     entities::triggers,
     entity::{
-        CreateEntity, Entity, EntityPlayer, EntityVars, KeyValue, ObjectCaps, PrivateData,
-        PrivateEntity, RestoreResult, UseType,
+        BaseEntity, CreateEntity, Entity, EntityPlayer, EntityVars, KeyValue, ObjectCaps,
+        PrivateData, PrivateEntity, RestoreResult, UseType,
     },
     global_state::{EntityState, GlobalState, GlobalStateRef},
     prelude::*,
@@ -62,10 +62,15 @@ pub trait ServerDll: UnsyncGlobal
 where
     <<Self as ServerDll>::Player as PrivateEntity>::Entity: CreateEntity,
 {
+    /// A private world entity.
+    type World: PrivateEntity;
+
     /// A private player entity used to spawn players.
     type Player: PrivateEntity;
 
     fn new(engine: ServerEngineRef, global_state: GlobalStateRef) -> Self;
+
+    fn create_world(base: BaseEntity) -> <Self::World as PrivateEntity>::Entity;
 
     fn engine(&self) -> ServerEngineRef;
 
@@ -1480,6 +1485,12 @@ impl<T: ServerDll> ServerDllExport for Export<T> {
 #[macro_export]
 macro_rules! export_dll {
     ($server_dll:ty $($init:block)?) => {
+        $crate::export::export_entity!(
+            worldspawn,
+            <$server_dll as $crate::export::ServerDll>::World,
+            <$server_dll as $crate::export::ServerDll>::create_world
+        );
+
         $crate::export::export_entity!(
             player,
             <$server_dll as $crate::export::ServerDll>::Player,
