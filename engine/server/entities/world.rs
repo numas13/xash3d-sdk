@@ -1,4 +1,4 @@
-use core::{ffi::CStr, marker::PhantomData};
+use core::{ffi::CStr, marker::PhantomData, ptr};
 
 use xash3d_shared::ffi::{common::vec3_t, server::TYPEDESCRIPTION};
 
@@ -132,6 +132,15 @@ pub struct World<T> {
     phantom: PhantomData<T>,
 }
 
+impl<T> World<T> {
+    /// Fade from black at startup.
+    pub const SF_DARK: i32 = 1 << 0;
+    /// Display game title at startup.
+    pub const SF_TITLE: i32 = 1 << 1;
+    /// Force teams.
+    pub const SF_FORCE_TEAM: i32 = 1 << 2;
+}
+
 impl<T: InstallGameRules> EntityCast for World<T> {
     impl_entity_cast!(cast World<T>);
 }
@@ -158,17 +167,226 @@ impl<T: InstallGameRules> Entity for World<T> {
     }
 
     fn precache(&mut self) {
-        let engine = self.base.engine;
+        let engine = self.engine();
+        let global_state = self.global_state();
+
+        global_state.set_last_spawn(ptr::null_mut());
+
         engine.set_cvar(c"sv_gravity", c"800");
         engine.set_cvar(c"sv_stepsize", c"18");
         engine.set_cvar(c"room_type", c"0");
+
         T::install_game_rules(engine, self.global_state());
+
+        // TODO: spawn sound entity
+        // TODO: init bodyque
+        // TODO: sentence init
+        // TODO: precache weapons
+
+        client_precache(engine);
+
+        // sounds used from C physics code
+        const PRECACHE_SOUNDS: &[&CStr] = &[
+            // clears sound channels
+            res::valve::sound::common::NULL,
+            // temporary sound for respawning weapons.
+            res::valve::sound::items::SUITCHARGEOK1,
+            // player picks up a gun.
+            // res::valve::sound::items::GUNPICKUP1,
+            res::valve::sound::items::GUNPICKUP2,
+            // res::valve::sound::items::GUNPICKUP3,
+            // res::valve::sound::items::GUNPICKUP4,
+
+            // dead bodies hitting the ground (animation events)
+            // res::valve::sound::common::BODYDROP1,
+            // res::valve::sound::common::BODYDROP2,
+            res::valve::sound::common::BODYDROP3,
+            res::valve::sound::common::BODYDROP4,
+            res::valve::sound::weapons::RIC1,
+            res::valve::sound::weapons::RIC2,
+            res::valve::sound::weapons::RIC3,
+            res::valve::sound::weapons::RIC4,
+            res::valve::sound::weapons::RIC5,
+        ];
+
+        for i in PRECACHE_SOUNDS {
+            engine.precache_sound(*i);
+        }
+
+        engine.precache_model(res::valve::models::HGIBS);
+        engine.precache_model(res::valve::models::AGIBS);
+
+        // Setup light animation tables. 'a' is total darkness, 'z' is maxbright.
+        const LIGHT_STYLES: &[(i32, &CStr)] = &[
+            // 0 normal
+            (0, c"m"),
+            // 1 FLICKER (first variety)
+            (1, c"mmnmmommommnonmmonqnmmo"),
+            // 2 SLOW STRONG PULSE
+            (2, c"abcdefghijklmnopqrstuvwxyzyxwvutsrqponmlkjihgfedcba"),
+            // 3 CANDLE (first variety)
+            (3, c"mmmmmaaaaammmmmaaaaaabcdefgabcdefg"),
+            // 4 FAST STROBE
+            (4, c"mamamamamama"),
+            // 5 GENTLE PULSE 1
+            (5, c"jklmnopqrstuvwxyzyxwvutsrqponmlkj"),
+            // 6 FLICKER (second variety)
+            (6, c"nmonqnmomnmomomno"),
+            // 7 CANDLE (second variety)
+            (7, c"mmmaaaabcdefgmmmmaaaammmaamm"),
+            // 8 CANDLE (third variety)
+            (8, c"mmmaaammmaaammmabcdefaaaammmmabcdefmmmaaaa"),
+            // 9 SLOW STROBE (fourth variety)
+            (9, c"aaaaaaaazzzzzzzz"),
+            // 10 FLUORESCENT FLICKER
+            (10, c"mmamammmmammamamaaamammma"),
+            // 11 SLOW PULSE NOT FADE TO BLACK
+            (11, c"abcdefghijklmnopqrrqponmlkjihgfedcba"),
+            // 12 UNDERWATER LIGHT MUTATION
+            // this light only distorts the lightmap - no contribution
+            // is made to the brightness of affected surfaces
+            (12, c"mmnnmmnnnmmnn"),
+            // styles 32-62 are assigned by the light program for switchable lights
+            // 63 testing
+            (63, c"a"),
+        ];
+        for (style, value) in LIGHT_STYLES {
+            engine.light_style(*style, *value);
+        }
+
+        // TODO: init decals
+        // TODO: init world graph
+
+        let ev = self.vars_mut().as_raw_mut();
+        let zmax = if ev.speed > 0.0 { ev.speed } else { 4096.0 };
+        engine.set_cvar(c"sv_zmax", zmax);
+        engine.set_cvar(c"sv_wateramp", ev.scale);
+
+        // TODO: if ev.netname
+
+        engine.set_cvar(c"v_dark", ev.spawnflags & Self::SF_DARK != 0);
+
+        // TODO: display world title
+
+        // do not apply fade after save/restore
+        ev.spawnflags &= !(Self::SF_DARK | Self::SF_TITLE);
+
+        engine.set_cvar(c"mp_defaultteam", ev.spawnflags & Self::SF_FORCE_TEAM != 0);
     }
 
     fn spawn(&mut self) {
         // TODO: global_game_over = false;
         self.precache();
     }
+}
+
+pub fn client_precache(engine: ServerEngineRef) {
+    // setup precaches always needed
+    const PRECACHE_SOUNDS: &[&CStr] = &[
+        // spray paint sound for PreAlpha
+        res::valve::sound::player::SPRAYER,
+        // fall pain
+        // res::valve::sound::player::PL_FALLPAIN1,
+        res::valve::sound::player::PL_FALLPAIN2,
+        res::valve::sound::player::PL_FALLPAIN3,
+        // walk on concrete
+        res::valve::sound::player::PL_STEP1,
+        res::valve::sound::player::PL_STEP2,
+        res::valve::sound::player::PL_STEP3,
+        res::valve::sound::player::PL_STEP4,
+        // NPC walk on concrete
+        res::valve::sound::common::NPC_STEP1,
+        res::valve::sound::common::NPC_STEP2,
+        res::valve::sound::common::NPC_STEP3,
+        res::valve::sound::common::NPC_STEP4,
+        // walk on metal
+        res::valve::sound::player::PL_METAL1,
+        res::valve::sound::player::PL_METAL2,
+        res::valve::sound::player::PL_METAL3,
+        res::valve::sound::player::PL_METAL4,
+        // walk on dirt
+        res::valve::sound::player::PL_DIRT1,
+        res::valve::sound::player::PL_DIRT2,
+        res::valve::sound::player::PL_DIRT3,
+        res::valve::sound::player::PL_DIRT4,
+        // walk in duct
+        res::valve::sound::player::PL_DUCT1,
+        res::valve::sound::player::PL_DUCT2,
+        res::valve::sound::player::PL_DUCT3,
+        res::valve::sound::player::PL_DUCT4,
+        // walk on grate
+        res::valve::sound::player::PL_GRATE1,
+        res::valve::sound::player::PL_GRATE2,
+        res::valve::sound::player::PL_GRATE3,
+        res::valve::sound::player::PL_GRATE4,
+        // walk in shallow water
+        res::valve::sound::player::PL_SLOSH1,
+        res::valve::sound::player::PL_SLOSH2,
+        res::valve::sound::player::PL_SLOSH3,
+        res::valve::sound::player::PL_SLOSH4,
+        // walk on tile
+        res::valve::sound::player::PL_TILE1,
+        res::valve::sound::player::PL_TILE2,
+        res::valve::sound::player::PL_TILE3,
+        res::valve::sound::player::PL_TILE4,
+        res::valve::sound::player::PL_TILE5,
+        // breathe bubbles
+        res::valve::sound::player::PL_SWIM1,
+        res::valve::sound::player::PL_SWIM2,
+        res::valve::sound::player::PL_SWIM3,
+        res::valve::sound::player::PL_SWIM4,
+        // climb ladder rung
+        res::valve::sound::player::PL_LADDER1,
+        res::valve::sound::player::PL_LADDER2,
+        res::valve::sound::player::PL_LADDER3,
+        res::valve::sound::player::PL_LADDER4,
+        // wade in water
+        res::valve::sound::player::PL_WADE1,
+        res::valve::sound::player::PL_WADE2,
+        res::valve::sound::player::PL_WADE3,
+        res::valve::sound::player::PL_WADE4,
+        // hit wood texture
+        res::valve::sound::debris::WOOD1,
+        res::valve::sound::debris::WOOD2,
+        res::valve::sound::debris::WOOD3,
+        // use a train
+        res::valve::sound::plats::TRAIN_USE1,
+        // hit computer texture
+        res::valve::sound::buttons::SPARK5,
+        res::valve::sound::buttons::SPARK6,
+        res::valve::sound::debris::GLASS1,
+        res::valve::sound::debris::GLASS2,
+        res::valve::sound::debris::GLASS3,
+        // player gib sounds
+        res::valve::sound::common::BODYSPLAT,
+        // player pain sounds
+        res::valve::sound::player::PL_PAIN2,
+        res::valve::sound::player::PL_PAIN4,
+        res::valve::sound::player::PL_PAIN5,
+        res::valve::sound::player::PL_PAIN6,
+        res::valve::sound::player::PL_PAIN7,
+        // hud sounds
+        res::valve::sound::common::WPN_HUDOFF,
+        res::valve::sound::common::WPN_HUDON,
+        res::valve::sound::common::WPN_MOVESELECT,
+        res::valve::sound::common::WPN_SELECT,
+        res::valve::sound::common::WPN_DENYSELECT,
+        // geiger sounds
+        res::valve::sound::player::GEIGER1,
+        res::valve::sound::player::GEIGER2,
+        res::valve::sound::player::GEIGER3,
+        res::valve::sound::player::GEIGER4,
+        res::valve::sound::player::GEIGER5,
+        res::valve::sound::player::GEIGER6,
+        // other
+        res::valve::sound::plats::VEHICLE_IGNITION,
+    ];
+
+    for i in PRECACHE_SOUNDS {
+        engine.precache_sound(*i);
+    }
+
+    engine.precache_model(res::valve::models::PLAYER);
 }
 
 #[cfg(feature = "export-default-entities")]
