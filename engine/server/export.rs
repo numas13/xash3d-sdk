@@ -58,15 +58,12 @@ impl From<SpawnResult> for c_int {
 
 #[allow(unused_variables)]
 #[allow(clippy::missing_safety_doc)]
-pub trait ServerDll: UnsyncGlobal
-where
-    <<Self as ServerDll>::Player as PrivateEntity>::Entity: CreateEntity,
-{
+pub trait ServerDll: UnsyncGlobal {
     /// A private world entity.
     type World: PrivateEntity;
 
     /// A private player entity used to spawn players.
-    type Player: PrivateEntity;
+    type Player: PrivateEntity<Entity: CreateEntity>;
 
     fn new(engine: ServerEngineRef, global_state: GlobalStateRef) -> Self;
 
