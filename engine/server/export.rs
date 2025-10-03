@@ -28,8 +28,11 @@ use xash3d_shared::{
 };
 
 use crate::{
-    entities::{player, triggers},
-    entity::{EntityPlayer, EntityVars, KeyValue, ObjectCaps, PrivateData, RestoreResult, UseType},
+    entities::triggers,
+    entity::{
+        CreateEntity, Entity, EntityPlayer, EntityVars, KeyValue, ObjectCaps, PrivateData,
+        PrivateEntity, RestoreResult, UseType,
+    },
     global_state::{EntityState, GlobalState, GlobalStateRef},
     prelude::*,
     save::{SaveReader, SaveRestoreData, SaveWriter},
@@ -55,7 +58,13 @@ impl From<SpawnResult> for c_int {
 
 #[allow(unused_variables)]
 #[allow(clippy::missing_safety_doc)]
-pub trait ServerDll: UnsyncGlobal {
+pub trait ServerDll: UnsyncGlobal
+where
+    <<Self as ServerDll>::Player as PrivateEntity>::Entity: CreateEntity,
+{
+    /// A private player entity used to spawn players.
+    type Player: PrivateEntity;
+
     fn new(engine: ServerEngineRef, global_state: GlobalStateRef) -> Self;
 
     fn engine(&self) -> ServerEngineRef;
@@ -368,7 +377,17 @@ pub trait ServerDll: UnsyncGlobal {
     fn client_kill(&self, ent: &mut edict_s) {}
 
     fn client_put_in_server(&self, ent: &mut edict_s) {
-        player::client_put_in_server(self.engine(), self.global_state(), ent);
+        let engine = self.engine();
+        let global_state = self.global_state();
+
+        let player =
+            unsafe { PrivateData::create::<Self::Player>(engine, global_state, &mut ent.v) };
+
+        player.spawn();
+
+        ent.v.effects_mut().insert(Effects::NOINTERP);
+        ent.v.iuser1 = 0;
+        ent.v.iuser2 = 0;
     }
 
     fn client_command(&self, ent: &mut edict_s) {}
@@ -1461,6 +1480,11 @@ impl<T: ServerDll> ServerDllExport for Export<T> {
 #[macro_export]
 macro_rules! export_dll {
     ($server_dll:ty $($init:block)?) => {
+        $crate::export::export_entity!(
+            player,
+            <$server_dll as $crate::export::ServerDll>::Player,
+        );
+
         #[no_mangle]
         unsafe extern "C" fn GiveFnptrsToDll(
             eng_funcs: *const $crate::ffi::server::enginefuncs_s,

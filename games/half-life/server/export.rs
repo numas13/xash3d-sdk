@@ -2,12 +2,15 @@ use core::ffi::c_int;
 
 use xash3d_server::{
     engine::RegisterUserMessageError,
+    entity::Private,
     export::{export_dll, impl_unsync_global, ServerDll},
     ffi::server::edict_s,
     global_state::GlobalStateRef,
     prelude::*,
     user_message::register_user_message,
 };
+
+use crate::entities::player::TestPlayer;
 
 struct Dll {
     engine: ServerEngineRef,
@@ -60,6 +63,8 @@ impl Dll {
 }
 
 impl ServerDll for Dll {
+    type Player = Private<TestPlayer>;
+
     fn new(engine: ServerEngineRef, global_state: GlobalStateRef) -> Self {
         crate::cvar::init(engine);
         if let Err(err) = Self::register_user_messages(engine) {
@@ -77,10 +82,6 @@ impl ServerDll for Dll {
 
     fn global_state(&self) -> GlobalStateRef {
         self.global_state
-    }
-
-    fn client_put_in_server(&self, ent: &mut edict_s) {
-        crate::entities::player::client_put_in_server(self.engine, self.global_state, ent);
     }
 
     fn client_command(&self, _ent: &mut edict_s) {

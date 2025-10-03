@@ -2,16 +2,12 @@ use core::{ffi::CStr, mem};
 
 use xash3d_hl_shared::user_message;
 use xash3d_server::{
-    engine::ServerEngineRef,
     entities::player::Player as BasePlayer,
     entity::{
         delegate_entity, delegate_player, impl_entity_cast, impl_save_restore, AsEdict, BaseEntity,
-        CreateEntity, Effects, Entity, EntityPlayer, Private, PrivateData,
+        CreateEntity, Effects, Entity, EntityPlayer,
     },
-    export::export_entity,
-    ffi::server::{edict_s, TYPEDESCRIPTION},
-    global_state::GlobalStateRef,
-    prelude::EntityVarsExt,
+    ffi::server::TYPEDESCRIPTION,
     save::{define_fields, SaveFields},
     time::MapTime,
 };
@@ -242,20 +238,3 @@ impl EntityPlayer for TestPlayer {
         self.impulse_commands();
     }
 }
-
-pub fn client_put_in_server(
-    engine: ServerEngineRef,
-    global_state: GlobalStateRef,
-    ent: &mut edict_s,
-) {
-    let player =
-        unsafe { PrivateData::create::<Private<TestPlayer>>(engine, global_state, &mut ent.v) };
-
-    player.spawn();
-
-    ent.v.effects_mut().insert(Effects::NOINTERP);
-    ent.v.iuser1 = 0;
-    ent.v.iuser2 = 0;
-}
-
-export_entity!(player, Private<TestPlayer>);

@@ -17,6 +17,8 @@ struct Dll {
 impl_unsync_global!(Dll);
 
 impl ServerDll for Dll {
+    type Player = Private<Player>;
+
     fn new(engine: ServerEngineRef, global_state: GlobalStateRef) -> Self {
         Self {
             engine,
@@ -37,5 +39,4 @@ export_entity!(worldspawn, Private<World>, |base| World::create(
     base,
     StubGameRules::install
 ));
-export_entity!(player, Private<Player>);
 export_dll!(Dll);

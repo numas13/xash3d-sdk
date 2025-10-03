@@ -7,12 +7,10 @@ use xash3d_shared::{
 };
 
 use crate::{
-    engine::ServerEngineRef,
     entity::{
         delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, EntityPlayer,
-        ObjectCaps, Private, PrivateData,
+        ObjectCaps,
     },
-    global_state::GlobalStateRef,
     prelude::*,
     save::{SaveReader, SaveRestoreData, SaveResult},
 };
@@ -141,21 +139,4 @@ impl Drop for Player {
     fn drop(&mut self) {
         debug!("drop Player");
     }
-}
-
-pub fn client_put_in_server(
-    engine: ServerEngineRef,
-    global_state: GlobalStateRef,
-    ent: &mut edict_s,
-) {
-    let player =
-        unsafe { PrivateData::create::<Private<Player>>(engine, global_state, &mut ent.v) };
-
-    // TODO: testing, remove later
-    player.set_custom_decal_frames(-1);
-    player.spawn();
-
-    ent.v.effects_mut().insert(Effects::NOINTERP);
-    ent.v.iuser1 = 0;
-    ent.v.iuser2 = 0;
 }
