@@ -1,7 +1,7 @@
 use core::ffi::c_int;
 
 use xash3d_server::{
-    entities::world::World,
+    entities::{player::Player, world::World},
     entity::Private,
     export::{export_dll, export_entity, impl_unsync_global, ServerDll},
     game_rules::InstallStubGameRules,
@@ -34,4 +34,5 @@ impl ServerDll for Dll {
 }
 
 export_entity!(worldspawn, Private<World<InstallStubGameRules>>);
+export_entity!(player, Private<Player>);
 export_dll!(Dll);

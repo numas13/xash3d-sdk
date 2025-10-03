@@ -20,7 +20,7 @@ impl Battery {
     pub fn new(engine: ClientEngineRef) -> Self {
         hook_user_message!(engine, Battery, |_, msg| {
             let msg = msg.read::<user_message::Battery>()?;
-            hud().items.get_mut::<Battery>().set(msg.x);
+            hud().items.get_mut::<Battery>().set(msg.battery);
             Ok(())
         });
 

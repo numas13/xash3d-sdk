@@ -159,10 +159,3 @@ pub fn client_put_in_server(
     ent.v.iuser1 = 0;
     ent.v.iuser2 = 0;
 }
-
-#[cfg(feature = "export-player-entity")]
-mod exports {
-    use crate::{entity::Private, export::export_entity};
-
-    export_entity!(player, Private<super::Player>);
-}

@@ -20,7 +20,7 @@ impl Train {
     pub fn new(engine: ClientEngineRef) -> Self {
         hook_user_message!(engine, Train, |_, msg| {
             let msg = msg.read::<user_message::Train>()?;
-            hud().items.get_mut::<Train>().set_pos(msg.x);
+            hud().items.get_mut::<Train>().set_pos(msg.pos);
             Ok(())
         });
 

@@ -82,6 +82,12 @@ impl ServerDll for Dll {
     fn client_put_in_server(&self, ent: &mut edict_s) {
         crate::entities::player::client_put_in_server(self.engine, self.global_state, ent);
     }
+
+    fn client_command(&self, _ent: &mut edict_s) {
+        if let Some(args) = self.engine.cmd_args_raw() {
+            trace!("client command {args}");
+        }
+    }
 }
 
 export_dll!(Dll);

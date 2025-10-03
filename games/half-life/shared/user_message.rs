@@ -24,26 +24,50 @@ define_user_message! {
 
 define_user_message! {
     pub struct Geiger {
-        pub x: u8,
+        pub range: u8,
+    }
+}
+
+impl Geiger {
+    pub const fn new(range: u8) -> Self {
+        Self { range }
     }
 }
 
 define_user_message! {
     pub struct Flashlight {
         pub on: bool,
-        pub x: u8,
+        pub battery: u8,
+    }
+}
+
+impl Flashlight {
+    pub const fn new(on: bool, battery: u8) -> Self {
+        Self { on, battery }
     }
 }
 
 define_user_message! {
     pub struct FlashBat {
-        pub x: u8,
+        pub battery: u8,
+    }
+}
+
+impl FlashBat {
+    pub const fn new(battery: u8) -> Self {
+        Self { battery }
     }
 }
 
 define_user_message! {
     pub struct Health {
-        pub x: u8,
+        pub health: u8,
+    }
+}
+
+impl Health {
+    pub const fn new(health: u8) -> Self {
+        Self { health }
     }
 }
 
@@ -58,13 +82,25 @@ define_user_message! {
 
 define_user_message! {
     pub struct Battery {
-        pub x: i16,
+        pub battery: i16,
+    }
+}
+
+impl Battery {
+    pub const fn new(battery: i16) -> Self {
+        Self { battery }
     }
 }
 
 define_user_message! {
     pub struct Train {
-        pub x: u8,
+        pub pos: u8,
+    }
+}
+
+impl Train {
+    pub const fn new(pos: u8) -> Self {
+        Self { pos }
     }
 }
 

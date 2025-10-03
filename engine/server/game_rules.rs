@@ -53,6 +53,10 @@ pub trait GameRules: Any {
 
     #[allow(unused_variables)]
     fn player_spawn(&self, player: &mut dyn EntityPlayer) {}
+
+    fn allow_flashlight(&self) -> bool {
+        false
+    }
 }
 
 pub struct StubGameRules {

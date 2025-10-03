@@ -29,6 +29,10 @@ impl GameRules for HalfLifeRules {
     fn get_game_description(&self) -> &'static CStr {
         c"Half-Life"
     }
+
+    fn allow_flashlight(&self) -> bool {
+        true
+    }
 }
 
 struct InstallHalfLifeGameRules;

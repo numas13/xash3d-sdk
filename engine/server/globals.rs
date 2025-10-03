@@ -1,11 +1,11 @@
-use core::{ffi::c_int, ptr::NonNull, time::Duration};
+use core::{ffi::c_int, ptr::NonNull};
 
 use xash3d_shared::ffi::{
     common::vec3_t,
     server::{globalvars_t, SAVERESTOREDATA},
 };
 
-use crate::{prelude::*, str::MapString};
+use crate::{prelude::*, str::MapString, time::MapTime};
 
 pub struct ServerGlobals {
     engine: ServerEngineRef,
@@ -29,8 +29,8 @@ impl ServerGlobals {
         unsafe { (*self.raw).time }
     }
 
-    pub fn map_time(&self) -> Duration {
-        Duration::from_secs_f32(self.map_time_f32())
+    pub fn map_time(&self) -> MapTime {
+        MapTime::from_secs_f32(self.map_time_f32())
     }
 
     pub fn map_name(&self) -> Option<MapString> {

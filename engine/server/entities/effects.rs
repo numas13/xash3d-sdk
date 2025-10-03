@@ -8,13 +8,14 @@ use crate::{
         delegate_entity, impl_entity_cast, impl_save_restore, BaseEntity, CreateEntity, Entity,
     },
     prelude::*,
-    save::{define_fields, SaveFields, Time},
+    save::{define_fields, SaveFields},
     str::MapString,
+    time::MapTime,
 };
 
 pub struct Glow {
     base: PointEntity,
-    last_time: Time,
+    last_time: MapTime,
     max_frame: f32,
 }
 
@@ -38,7 +39,7 @@ impl CreateEntity for Glow {
     fn create(base: BaseEntity) -> Self {
         Self {
             base: PointEntity::create(base),
-            last_time: Time(0.0),
+            last_time: MapTime::ZERO,
             max_frame: 0.0,
         }
     }
@@ -67,16 +68,17 @@ impl Entity for Glow {
         if self.max_frame > 1.0 && ev.framerate != 0.0 {
             self.vars_mut().set_next_think_time(0.1);
         }
-        self.last_time = Time(engine.globals.map_time_f32());
+        self.last_time = engine.globals.map_time();
     }
 
     fn think(&mut self) {
         let engine = self.base.engine();
         let ev = self.base.vars().as_raw();
-        self.animate(ev.framerate * (engine.globals.map_time_f32() - self.last_time.0));
+        let now = engine.globals.map_time();
+        self.animate(ev.framerate * now.duration_since(self.last_time).as_secs_f32());
 
         self.vars_mut().set_next_think_time(0.1);
-        self.last_time = Time(engine.globals.map_time_f32());
+        self.last_time = engine.globals.map_time();
     }
 }
 

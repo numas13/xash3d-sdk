@@ -22,7 +22,7 @@ impl Geiger {
     pub fn new(engine: ClientEngineRef) -> Self {
         hook_user_message!(engine, Geiger, |_, msg| {
             let msg = msg.read::<user_message::Geiger>()?;
-            hud().items.get_mut::<Geiger>().range = (msg.x as u16) << 2;
+            hud().items.get_mut::<Geiger>().range = (msg.range as u16) << 2;
             Ok(())
         });
 

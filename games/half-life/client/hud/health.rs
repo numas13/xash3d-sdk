@@ -106,7 +106,7 @@ impl Health {
     pub fn new(engine: ClientEngineRef) -> Self {
         hook_user_message!(engine, Health, |_, msg| {
             let msg = msg.read::<user_message::Health>()?;
-            hud().items.get_mut::<Health>().set(msg.x);
+            hud().items.get_mut::<Health>().set(msg.health);
             Ok(())
         });
 

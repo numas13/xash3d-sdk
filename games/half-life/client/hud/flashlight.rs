@@ -22,7 +22,7 @@ impl Flashlight {
     pub fn new(engine: ClientEngineRef) -> Self {
         hook_user_message!(engine, FlashBat, |_, msg| {
             let msg = msg.read::<user_message::FlashBat>()?;
-            hud().items.get_mut::<Flashlight>().set(msg.x);
+            hud().items.get_mut::<Flashlight>().set(msg.battery);
             Ok(())
         });
 
@@ -31,7 +31,7 @@ impl Flashlight {
             let hud = hud();
             let mut flash = hud.items.get_mut::<Flashlight>();
             flash.enabled(msg.on);
-            flash.set(msg.x);
+            flash.set(msg.battery);
             Ok(())
         });
 

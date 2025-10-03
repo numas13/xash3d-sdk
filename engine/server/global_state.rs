@@ -167,6 +167,7 @@ pub struct GlobalState {
     entities: RefCell<Entities>,
     game_rules: RefCell<Option<Box<dyn GameRules>>>,
     last_spawn: Cell<*mut edict_s>,
+    init_hud: Cell<bool>,
 }
 
 impl_unsync_global!(GlobalState);
@@ -178,6 +179,7 @@ impl GlobalState {
             entities: RefCell::new(Entities::new()),
             game_rules: RefCell::new(None),
             last_spawn: Cell::new(ptr::null_mut()),
+            init_hud: Cell::new(true),
         }
     }
 
@@ -244,13 +246,23 @@ impl GlobalState {
 
     pub fn reset(&self) {
         self.entities_mut().clear();
-        // TODO: init_hud = true
+        self.init_hud.set(true);
     }
 
     pub fn set_entity_state(&self, name: MapString, state: EntityState) {
         if let Some(ent) = self.entities_mut().find_mut(name) {
             ent.set_state(state);
         }
+    }
+
+    /// Returns `true` if the client HUD needs to be initialized.
+    pub fn init_hud(&self) -> bool {
+        self.init_hud.get()
+    }
+
+    /// Call with `false` after initializing the client HUD.
+    pub fn set_init_hud(&self, value: bool) {
+        self.init_hud.set(value);
     }
 }
 

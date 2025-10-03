@@ -23,6 +23,7 @@ use crate::{
     engine::ServerEngineRef,
     entity::{Entity, EntityOffset},
     str::MapString,
+    time::MapTime,
 };
 
 pub use self::cursor::*;
@@ -58,7 +59,7 @@ impl_type_description! {
     FieldType::INTEGER => u32,
 
     FieldType::FLOAT => f32,
-    FieldType::TIME => Time,
+    FieldType::TIME => MapTime,
 
     FieldType::VECTOR => vec3_t,
     FieldType::POSITION_VECTOR => PositionVector,
@@ -81,9 +82,6 @@ impl<T: TypeDescription, const N: usize> TypeDescription for [T; N] {
 impl<const N: usize> TypeDescription for CStrArray<N> {
     const TYPE: FieldType = FieldType::CHARACTER;
 }
-
-#[derive(Copy, Clone, Debug, Default, PartialEq, PartialOrd)]
-pub struct Time(pub f32);
 
 #[derive(Copy, Clone, Debug, Default, PartialEq)]
 pub struct PositionVector(pub vec3_t);
