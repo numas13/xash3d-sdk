@@ -8,10 +8,6 @@ use crate::{
     global_state::GlobalStateRef,
 };
 
-pub trait InstallGameRules: Sized + 'static {
-    fn install_game_rules(engine: ServerEngineRef, global_state: GlobalStateRef);
-}
-
 pub trait GameRules: Any {
     fn engine(&self) -> ServerEngineRef;
 
@@ -64,6 +60,10 @@ pub struct StubGameRules {
 }
 
 impl StubGameRules {
+    pub fn install(engine: ServerEngineRef, global_state: GlobalStateRef) {
+        global_state.set_game_rules(Self::new(engine));
+    }
+
     pub fn new(engine: ServerEngineRef) -> Self {
         Self { engine }
     }
@@ -76,13 +76,5 @@ impl GameRules for StubGameRules {
 
     fn get_game_description(&self) -> &'static CStr {
         c"Stub"
-    }
-}
-
-pub struct InstallStubGameRules;
-
-impl InstallGameRules for InstallStubGameRules {
-    fn install_game_rules(engine: ServerEngineRef, global_state: GlobalStateRef) {
-        global_state.set_game_rules(StubGameRules::new(engine));
     }
 }

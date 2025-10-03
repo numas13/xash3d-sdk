@@ -4,7 +4,7 @@ use xash3d_server::{
     entities::{player::Player, world::World},
     entity::Private,
     export::{export_dll, export_entity, impl_unsync_global, ServerDll},
-    game_rules::InstallStubGameRules,
+    game_rules::StubGameRules,
     global_state::GlobalStateRef,
     prelude::*,
 };
@@ -33,6 +33,9 @@ impl ServerDll for Dll {
     }
 }
 
-export_entity!(worldspawn, Private<World<InstallStubGameRules>>);
+export_entity!(worldspawn, Private<World>, |base| World::create(
+    base,
+    StubGameRules::install
+));
 export_entity!(player, Private<Player>);
 export_dll!(Dll);

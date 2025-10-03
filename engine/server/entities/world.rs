@@ -1,4 +1,4 @@
-use core::{ffi::CStr, marker::PhantomData, ptr};
+use core::{ffi::CStr, ptr};
 
 use xash3d_shared::ffi::{common::vec3_t, server::TYPEDESCRIPTION};
 
@@ -6,9 +6,9 @@ use crate::{
     engine::TraceIgnore,
     entity::{
         delegate_entity, impl_entity_cast, impl_save_restore, BaseEntity, CreateEntity, Entity,
-        EntityCast, KeyValue, UseType,
+        KeyValue, UseType,
     },
-    game_rules::InstallGameRules,
+    global_state::GlobalStateRef,
     prelude::*,
     save::{define_fields, SaveFields},
     str::MapString,
@@ -127,34 +127,32 @@ impl Entity for Decal {
     }
 }
 
-pub struct World<T> {
+pub type InstallGameRulesFn = fn(ServerEngineRef, GlobalStateRef);
+
+pub struct World {
     base: BaseEntity,
-    phantom: PhantomData<T>,
+    install_game_rules: InstallGameRulesFn,
 }
 
-impl<T> World<T> {
+impl World {
     /// Fade from black at startup.
     pub const SF_DARK: i32 = 1 << 0;
     /// Display game title at startup.
     pub const SF_TITLE: i32 = 1 << 1;
     /// Force teams.
     pub const SF_FORCE_TEAM: i32 = 1 << 2;
-}
 
-impl<T: InstallGameRules> EntityCast for World<T> {
-    impl_entity_cast!(cast World<T>);
-}
-
-impl<T: InstallGameRules> CreateEntity for World<T> {
-    fn create(base: BaseEntity) -> Self {
+    pub fn create(base: BaseEntity, install_game_rules: InstallGameRulesFn) -> Self {
         Self {
             base,
-            phantom: PhantomData,
+            install_game_rules,
         }
     }
 }
 
-impl<T: InstallGameRules> Entity for World<T> {
+impl_entity_cast!(World);
+
+impl Entity for World {
     delegate_entity!(base not { key_value, precache, spawn });
 
     fn key_value(&mut self, data: &mut KeyValue) {
@@ -176,7 +174,7 @@ impl<T: InstallGameRules> Entity for World<T> {
         engine.set_cvar(c"sv_stepsize", c"18");
         engine.set_cvar(c"room_type", c"0");
 
-        T::install_game_rules(engine, self.global_state());
+        (self.install_game_rules)(engine, self.global_state());
 
         // TODO: spawn sound entity
         // TODO: init bodyque
