@@ -1,7 +1,7 @@
 use core::{
     ffi::{c_int, CStr},
     fmt,
-    num::NonZeroI32,
+    num::NonZero,
     ops::Deref,
 };
 
@@ -15,14 +15,13 @@ use crate::prelude::*;
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct MapString {
     engine: ServerEngineRef,
-    // TODO: replace with NonZero<c_int> when MSRV >= 1.79
-    index: NonZeroI32,
+    index: NonZero<c_int>,
 }
 
 impl MapString {
     /// Creates a new string from the given index.
     pub fn from_index(engine: ServerEngineRef, index: c_int) -> Option<Self> {
-        NonZeroI32::new(index).map(|index| Self { engine, index })
+        NonZero::new(index).map(|index| Self { engine, index })
     }
 
     pub const fn index(&self) -> c_int {

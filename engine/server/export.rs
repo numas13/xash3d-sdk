@@ -5,6 +5,7 @@ use core::{
     mem::MaybeUninit,
     ptr::{self, NonNull},
     slice,
+    sync::atomic::{AtomicBool, Ordering},
 };
 
 use csz::{CStrArray, CStrSlice, CStrThin};
@@ -91,10 +92,7 @@ pub trait ServerDll: UnsyncGlobal {
 
         ent.spawn();
 
-        if let Some(false) = global_state
-            .game_rules()
-            .map(|rules| rules.is_allowed_to_spawn(ent))
-        {
+        if !global_state.game_rules().is_allowed_to_spawn(ent) {
             return SpawnResult::Delete;
         }
 
@@ -425,10 +423,12 @@ pub trait ServerDll: UnsyncGlobal {
         }
     }
 
+    /// Called before initialization.
+    fn get_game_description_static() -> &'static CStr;
+
+    /// Called after initialization.
     fn get_game_description(&self) -> &'static CStr {
-        self.global_state()
-            .game_rules()
-            .map_or(c"Half-Life", |rules| rules.get_game_description())
+        self.global_state().game_rules().get_game_description()
     }
 
     fn player_customization(&self, ent: &mut edict_s, custom: &mut customization_s) {}
@@ -1018,6 +1018,8 @@ struct Export<T> {
     dll: PhantomData<T>,
 }
 
+static INITIALIZED: AtomicBool = AtomicBool::new(false);
+
 impl<T: ServerDll> ServerDllExport for Export<T> {
     unsafe extern "C" fn init() {
         unsafe {
@@ -1026,9 +1028,11 @@ impl<T: ServerDll> ServerDllExport for Export<T> {
             let global_state = GlobalStateRef::new();
             (*T::global_as_mut_ptr()).write(T::new(engine, global_state));
         }
+        INITIALIZED.store(true, Ordering::Relaxed);
     }
 
     unsafe extern "C" fn shutdown() {
+        INITIALIZED.store(false, Ordering::Relaxed);
         unsafe {
             (*T::global_as_mut_ptr()).assume_init_drop();
             (*GlobalState::global_as_mut_ptr()).assume_init_drop();
@@ -1243,9 +1247,13 @@ impl<T: ServerDll> ServerDllExport for Export<T> {
     }
 
     unsafe extern "C" fn get_game_description() -> *const c_char {
-        unsafe { T::global_assume_init_ref() }
-            .get_game_description()
-            .as_ptr()
+        if INITIALIZED.load(Ordering::Relaxed) {
+            unsafe { T::global_assume_init_ref() }
+                .get_game_description()
+                .as_ptr()
+        } else {
+            T::get_game_description_static().as_ptr()
+        }
     }
 
     unsafe extern "C" fn player_customization(ent: *mut edict_s, custom: *mut customization_s) {

@@ -89,12 +89,7 @@ impl Entity for Player {
         engine.set_physics_key_value(self.as_edict_mut(), c"slj", c"0");
         engine.set_physics_key_value(self.as_edict_mut(), c"hl", c"1");
 
-        match self.global_state().game_rules() {
-            Some(rules) => {
-                rules.get_player_spawn_spot(self);
-            }
-            None => error!("game rules is not initialized by worldspawn entity"),
-        }
+        self.global_state().game_rules().get_player_spawn_spot(self);
 
         engine.set_model(self.as_edict_mut(), res::valve::models::PLAYER);
     }
@@ -104,9 +99,7 @@ impl EntityPlayer for Player {
     fn select_spawn_point(&self) -> *mut edict_s {
         let engine = self.engine();
         let global_state = self.global_state();
-        let game_rules = global_state
-            .game_rules()
-            .expect("game rules is not initialized by worldspawn entity");
+        let game_rules = global_state.game_rules();
 
         if game_rules.is_coop() {
             todo!();

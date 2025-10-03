@@ -16,7 +16,7 @@ use xash3d_shared::{
 use crate::{
     define_fields,
     engine::ServerEngineRef,
-    game_rules::GameRules,
+    game_rules::{GameRules, StubGameRules},
     save::{FieldType, SaveFields, SaveReader, SaveRestoreData, SaveResult, SaveWriter},
     str::MapString,
 };
@@ -165,7 +165,7 @@ unsafe impl SaveFields for GlobalStateSave {
 pub struct GlobalState {
     engine: ServerEngineRef,
     entities: RefCell<Entities>,
-    game_rules: RefCell<Option<Box<dyn GameRules>>>,
+    game_rules: RefCell<Box<dyn GameRules>>,
     last_spawn: Cell<*mut edict_s>,
     init_hud: Cell<bool>,
 }
@@ -177,7 +177,7 @@ impl GlobalState {
         Self {
             engine,
             entities: RefCell::new(Entities::new()),
-            game_rules: RefCell::new(None),
+            game_rules: RefCell::new(Box::new(StubGameRules::new(engine))),
             last_spawn: Cell::new(ptr::null_mut()),
             init_hud: Cell::new(true),
         }
@@ -191,16 +191,16 @@ impl GlobalState {
         self.entities.borrow_mut()
     }
 
-    pub fn game_rules(&self) -> Option<Ref<'_, dyn GameRules>> {
-        Ref::filter_map(self.game_rules.borrow(), |i| i.as_deref()).ok()
+    pub fn game_rules(&self) -> Ref<'_, dyn GameRules> {
+        Ref::map(self.game_rules.borrow(), |i| i.as_ref())
     }
 
-    pub fn game_rules_mut(&mut self) -> Option<RefMut<'_, dyn GameRules>> {
-        RefMut::filter_map(self.game_rules.borrow_mut(), |i| i.as_deref_mut()).ok()
+    pub fn game_rules_mut(&mut self) -> RefMut<'_, dyn GameRules> {
+        RefMut::map(self.game_rules.borrow_mut(), |i| i.as_mut())
     }
 
     pub fn set_game_rules<T: GameRules>(&self, game_rules: T) {
-        self.game_rules.replace(Some(Box::new(game_rules)));
+        self.game_rules.replace(Box::new(game_rules));
     }
 
     pub fn last_spawn(&self) -> *mut edict_s {

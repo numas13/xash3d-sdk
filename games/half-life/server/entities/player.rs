@@ -58,8 +58,7 @@ impl TestPlayer {
     fn flashlight_turn_on(&mut self) {
         let engine = self.engine();
         let global_state = self.global_state();
-        let game_rules = global_state.game_rules();
-        if !game_rules.is_some_and(|r| r.allow_flashlight()) || !self.has_suit() {
+        if !global_state.game_rules().allow_flashlight() || !self.has_suit() {
             return;
         }
 

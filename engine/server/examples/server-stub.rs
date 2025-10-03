@@ -1,4 +1,4 @@
-use core::ffi::c_int;
+use core::ffi::{c_int, CStr};
 
 use xash3d_server::{
     entities::{player::Player, world::World},
@@ -37,6 +37,10 @@ impl ServerDll for Dll {
 
     fn global_state(&self) -> GlobalStateRef {
         self.global_state
+    }
+
+    fn get_game_description_static() -> &'static CStr {
+        c"ServerStub"
     }
 }
 
