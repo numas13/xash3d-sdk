@@ -194,3 +194,13 @@ pub fn calc_roll(angles: vec3_t, velocity: vec3_t, roll_angle: f32, roll_speed: 
 pub fn angle_mod(a: f32) -> f32 {
     (360.0 / 65536.0) * ((a * (65536.0 / 360.0)) as i32 & 65535) as f32
 }
+
+pub trait Vec3Ext {
+    fn abs(&self) -> vec3_t;
+}
+
+impl Vec3Ext for vec3_t {
+    fn abs(&self) -> vec3_t {
+        vec3_t::new(fabsf(self.x()), fabsf(self.y()), fabsf(self.z()))
+    }
+}

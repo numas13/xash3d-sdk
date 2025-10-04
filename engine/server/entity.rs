@@ -16,7 +16,7 @@ use xash3d_shared::{
         server::{edict_s, entvars_s, KeyValueData, TYPEDESCRIPTION},
     },
     macros::const_assert_size_of_field_eq,
-    math::fabsf,
+    math::{fabsf, ToAngleVectors},
     utils::cstr_or_none,
 };
 
@@ -218,6 +218,14 @@ impl EntityVars {
         unsafe { mem::transmute(&mut self.as_raw_mut().flags) }
     }
 
+    pub fn spawn_flags(&self) -> u32 {
+        self.as_raw().spawnflags as u32
+    }
+
+    pub fn set_spawn_flags(&mut self, flags: u32) {
+        self.as_raw_mut().spawnflags = flags as c_int;
+    }
+
     /// Ask the engine to remove this entity at the appropriate time.
     pub fn delayed_remove(&mut self) {
         self.flags_mut().insert(EdictFlags::KILLME);
@@ -232,12 +240,66 @@ impl EntityVars {
         unsafe { mem::transmute(&mut self.as_raw_mut().effects) }
     }
 
+    /// Sets the next think time relative to the map time.
     pub fn set_next_think_time(&mut self, relative_time: f32) {
         self.as_raw_mut().nextthink = self.engine.globals.map_time_f32() + relative_time;
     }
 
+    /// Sets the next think time relative to the last think time.
+    pub fn set_next_think_time_from_last(&mut self, relative_time: f32) {
+        self.as_raw_mut().nextthink = self.as_raw().ltime + relative_time;
+    }
+
     pub fn stop_thinking(&mut self) {
-        self.as_raw_mut().nextthink = 0.0;
+        self.as_raw_mut().nextthink = -1.0;
+    }
+
+    pub fn origin(&self) -> vec3_t {
+        self.as_raw().origin
+    }
+
+    pub fn set_origin(&mut self, origin: vec3_t) {
+        self.as_raw_mut().origin = origin;
+    }
+
+    pub fn angles(&self) -> vec3_t {
+        self.as_raw().angles
+    }
+
+    pub fn set_angles(&mut self, angles: vec3_t) {
+        self.as_raw_mut().angles = angles;
+    }
+
+    pub fn size(&self) -> vec3_t {
+        self.as_raw().size
+    }
+
+    pub fn set_size(&mut self, size: vec3_t) {
+        self.as_raw_mut().size = size;
+    }
+
+    pub fn velocity(&self) -> vec3_t {
+        self.as_raw().velocity
+    }
+
+    pub fn set_velocity(&mut self, vel: vec3_t) {
+        self.as_raw_mut().velocity = vel;
+    }
+
+    pub fn move_dir(&self) -> vec3_t {
+        self.as_raw().movedir
+    }
+
+    pub fn set_move_dir(&mut self) {
+        let ev = self.as_raw_mut();
+        if ev.angles == vec3_t::new(0.0, -1.0, 0.0) {
+            ev.movedir = vec3_t::new(0.0, 0.0, 1.0);
+        } else if ev.angles == vec3_t::new(0.0, -2.0, 0.0) {
+            ev.movedir = vec3_t::new(0.0, 0.0, -1.0);
+        } else {
+            ev.movedir = ev.angles.angle_vectors().forward();
+        }
+        ev.angles = vec3_t::ZERO;
     }
 
     pub fn key_value(&mut self, data: &mut KeyValue) {
@@ -443,8 +505,8 @@ define_entity_trait! {
                 || b.absmax.z() < a.absmin.z())
         }
 
-        /// Called by [Entity::remove_from_world].
-        fn update_on_remove(&mut self) {
+        /// Removes this entity from the world.
+        fn remove_from_world(&mut self) {
             if self.vars().flags().contains(EdictFlags::GRAPHED) {
                 // TODO: remove from the world graph
                 warn!("Entity::update_on_remove(): remove from the world graph is not implemented");
@@ -453,11 +515,6 @@ define_entity_trait! {
             if let Some(globalname) = self.globalname() {
                 self.global_state().set_entity_state(globalname, EntityState::Dead);
             }
-        }
-
-        /// Removes this entity from the world.
-        fn remove_from_world(&mut self) {
-            self.update_on_remove();
 
             let ev = self.vars_mut().as_raw_mut();
             if ev.health > 0.0 {
@@ -546,6 +603,15 @@ impl Entity for BaseEntity {
         }
 
         status
+    }
+
+    fn key_value(&mut self, data: &mut KeyValue) {
+        if !data.handled() {
+            let classname = self.classname();
+            let key = data.key_name();
+            let value = data.value();
+            warn!("{classname}: not handled key={key:?}, value={value:?}");
+        }
     }
 }
 

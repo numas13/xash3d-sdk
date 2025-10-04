@@ -9,9 +9,7 @@ use xash3d_shared::{
     entity::{Effects, MoveType},
     ffi::{
         common::vec3_t,
-        server::{
-            edict_s, entvars_s, FENTTABLE_GLOBAL, FENTTABLE_MOVEABLE, LEVELLIST, TYPEDESCRIPTION,
-        },
+        server::{edict_s, FENTTABLE_GLOBAL, FENTTABLE_MOVEABLE, LEVELLIST, TYPEDESCRIPTION},
     },
 };
 
@@ -45,10 +43,11 @@ unsafe impl SaveFields for ChangeLevel {
 impl ChangeLevel {
     fn init_trigger(&mut self) {
         let engine = self.base.engine;
-        let ev = self.vars_mut().as_raw_mut();
-        if ev.angles != vec3_t::ZERO {
-            set_move_dir(engine, ev);
+        let v = self.vars_mut();
+        if v.angles() != vec3_t::ZERO {
+            v.set_move_dir();
         }
+        let ev = v.as_raw_mut();
         ev.solid = SOLID_TRIGGER;
         ev.movetype = MoveType::None.into();
         engine.set_model(unsafe { &mut *ev.pContainingEntity }, &ev.model().unwrap());
@@ -197,18 +196,6 @@ pub fn add_transition_to_list(
     level_list[count].pentLandmark = landmark;
     level_list[count].vecLandmarkOrigin = unsafe { (*landmark).v.origin };
     true
-}
-
-fn set_move_dir(engine: ServerEngineRef, ev: &mut entvars_s) {
-    if ev.angles == vec3_t::new(0.0, -1.0, 0.0) {
-        ev.movedir = vec3_t::new(0.0, 0.0, 1.0);
-    } else if ev.angles == vec3_t::new(0.0, -2.0, 0.0) {
-        ev.movedir = vec3_t::new(0.0, 0.0, -1.0);
-    } else {
-        engine.make_vectors(ev.angles);
-        ev.movedir = engine.globals.forward();
-    }
-    ev.angles = vec3_t::ZERO;
 }
 
 fn find_landmark(engine: ServerEngineRef, landmark_name: &CStrThin) -> *mut edict_s {
