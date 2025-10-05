@@ -4,8 +4,8 @@ use xash3d_hl_shared::user_message;
 use xash3d_server::{
     entities::player::Player as BasePlayer,
     entity::{
-        delegate_entity, delegate_player, impl_entity_cast, impl_save_restore, AsEdict, BaseEntity,
-        CreateEntity, Effects, Entity, EntityPlayer,
+        delegate_entity, delegate_player, fire_targets, impl_entity_cast, impl_save_restore,
+        AsEdict, BaseEntity, CreateEntity, Effects, Entity, EntityPlayer, UseType::Toggle,
     },
     ffi::server::TYPEDESCRIPTION,
     save::{define_fields, SaveFields},
@@ -115,6 +115,8 @@ impl TestPlayer {
                 self.game_hud_initialized = 1;
                 engine.msg_one(self, &user_message::InitHUD::default());
             }
+
+            fire_targets(c"game_playerspawn".into(), self, Toggle, 0.0);
 
             let msg =
                 user_message::Flashlight::new(self.is_flashlight_on(), self.flashlight_battery);

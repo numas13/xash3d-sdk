@@ -254,8 +254,8 @@ pub trait ServerDll: UnsyncGlobal {
             old_offset = save_data.landmark_offset();
             let classname = tmp_vars.classname().unwrap();
             let globalname = tmp_vars.globalname().unwrap();
-            if let Some(new_ent) = engine.find_global_entity(classname, globalname) {
-                let new_ent = unsafe { &mut *new_ent };
+            if let Some(mut new_ent) = engine.find_global_entity(classname, globalname) {
+                let new_ent = unsafe { new_ent.as_mut() };
                 reader.global_mode(true);
                 let mut landmark_offset = save_data.landmark_offset();
                 landmark_offset -= new_ent.v.mins;

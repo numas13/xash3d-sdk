@@ -2,7 +2,7 @@ use core::{
     ffi::{c_char, c_int, c_long, c_uchar, c_void, CStr},
     fmt, iter,
     mem::MaybeUninit,
-    ptr,
+    ptr::{self, NonNull},
 };
 
 use bitflags::bitflags;
@@ -296,9 +296,9 @@ impl ServerEngine {
         unsafe { unwrap!(self, pfnPrecacheSound)(name.as_ptr()) }
     }
 
-    pub fn set_model(&self, ent: &mut edict_s, model: impl ToEngineStr) {
+    pub fn set_model(&self, ent: &mut impl AsEdict, model: impl ToEngineStr) {
         let model = model.to_engine_str();
-        unsafe { unwrap!(self, pfnSetModel)(ent, model.as_ptr()) }
+        unsafe { unwrap!(self, pfnSetModel)(ent.as_edict_mut(), model.as_ptr()) }
     }
 
     pub fn model_index(&self, m: impl ToEngineStr) -> c_int {
@@ -310,8 +310,8 @@ impl ServerEngine {
         unsafe { unwrap!(self, pfnModelFrames)(model_index) }
     }
 
-    pub fn set_size(&self, ent: &mut edict_s, min: vec3_t, max: vec3_t) {
-        unsafe { unwrap!(self, pfnSetSize)(ent, min.as_ptr(), max.as_ptr()) }
+    pub fn set_size(&self, ent: &mut impl AsEdict, min: vec3_t, max: vec3_t) {
+        unsafe { unwrap!(self, pfnSetSize)(ent.as_edict_mut(), min.as_ptr(), max.as_ptr()) }
     }
 
     pub fn change_level(&self, map: impl ToEngineStr, spot: impl ToEngineStr) {
@@ -367,7 +367,7 @@ impl ServerEngine {
         &'a self,
         field: impl ToEngineStr + 'a,
         value: impl ToEngineStr + 'a,
-    ) -> impl 'a + Iterator<Item = *mut edict_s> {
+    ) -> impl 'a + Iterator<Item = NonNull<edict_s>> {
         let field = field.to_engine_str();
         let value = value.to_engine_str();
         let func = unwrap!(self, pfnFindEntityByString);
@@ -376,7 +376,7 @@ impl ServerEngine {
             if !self.is_null_ent(ent) {
                 let tmp = ent;
                 ent = unsafe { func(ent, field.as_ptr(), value.as_ptr()) };
-                Some(tmp)
+                Some(unsafe { NonNull::new_unchecked(tmp) })
             } else {
                 None
             }
@@ -386,21 +386,21 @@ impl ServerEngine {
     pub fn find_ent_by_classname_iter<'a>(
         &'a self,
         value: impl ToEngineStr + 'a,
-    ) -> impl 'a + Iterator<Item = *mut edict_s> {
+    ) -> impl 'a + Iterator<Item = NonNull<edict_s>> {
         self.find_ent_by_string_iter(c"classname", value)
     }
 
     pub fn find_ent_by_globalname_iter<'a>(
         &'a self,
         value: impl ToEngineStr + 'a,
-    ) -> impl 'a + Iterator<Item = *mut edict_s> {
+    ) -> impl 'a + Iterator<Item = NonNull<edict_s>> {
         self.find_ent_by_string_iter(c"globalname", value)
     }
 
     pub fn find_ent_by_targetname_iter<'a>(
         &'a self,
         value: impl ToEngineStr + 'a,
-    ) -> impl 'a + Iterator<Item = *mut edict_s> {
+    ) -> impl 'a + Iterator<Item = NonNull<edict_s>> {
         self.find_ent_by_string_iter(c"targetname", value)
     }
 
@@ -408,9 +408,9 @@ impl ServerEngine {
         &self,
         class_name: MapString,
         global_name: MapString,
-    ) -> Option<*mut edict_s> {
+    ) -> Option<NonNull<edict_s>> {
         self.find_ent_by_globalname_iter(&global_name).find(|&ent| {
-            if let Some(entity) = unsafe { &*ent }.get_entity() {
+            if let Some(entity) = unsafe { ent.as_ref() }.get_entity() {
                 if entity.is_classname(&class_name) {
                     return true;
                 } else {

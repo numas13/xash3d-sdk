@@ -7,7 +7,6 @@ use crate::{
     entity::{
         delegate_entity, impl_entity_cast, impl_save_restore, BaseEntity, CreateEntity, Entity,
     },
-    prelude::*,
     save::{define_fields, SaveFields},
     str::MapString,
     time::MapTime,
@@ -60,7 +59,7 @@ impl Entity for Glow {
 
         if let Some(model) = MapString::from_index(engine, ev.model) {
             engine.precache_model(&model);
-            engine.set_model(self.as_edict_mut(), &model);
+            engine.set_model(self, &model);
         }
 
         let ev = self.base.vars_mut().as_raw_mut();
@@ -84,7 +83,23 @@ impl Entity for Glow {
 
 #[cfg(feature = "export-default-entities")]
 mod exports {
-    use crate::{entity::Private, export::export_entity};
+    use crate::{
+        entity::{Private, StubEntity},
+        export::export_entity,
+    };
 
     export_entity!(env_glow, Private<super::Glow>);
+
+    export_entity!(env_bubbles, Private<StubEntity>);
+    export_entity!(beam, Private<StubEntity>);
+    export_entity!(env_lightning, Private<StubEntity>);
+    export_entity!(env_beam, Private<StubEntity>);
+    export_entity!(env_laser, Private<StubEntity>);
+    export_entity!(env_sprite, Private<StubEntity>);
+    export_entity!(gibshooter, Private<StubEntity>);
+    export_entity!(env_shooter, Private<StubEntity>);
+    export_entity!(test_effect, Private<StubEntity>);
+    export_entity!(env_blood, Private<StubEntity>);
+    export_entity!(env_shake, Private<StubEntity>);
+    export_entity!(env_fade, Private<StubEntity>);
 }

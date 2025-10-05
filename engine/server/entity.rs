@@ -10,7 +10,7 @@ use core::{
 use bitflags::bitflags;
 use csz::CStrThin;
 use xash3d_shared::{
-    consts::{SOLID_BSP, SOLID_NOT, SOLID_SLIDEBOX},
+    consts::{SOLID_BSP, SOLID_NOT, SOLID_SLIDEBOX, SOLID_TRIGGER},
     ffi::{
         common::{entity_state_s, vec3_t},
         server::{edict_s, entvars_s, KeyValueData, TYPEDESCRIPTION},
@@ -195,6 +195,14 @@ impl EntityVars {
 
     pub fn globalname(&self) -> Option<MapString> {
         MapString::from_index(self.engine, self.as_raw().globalname)
+    }
+
+    pub fn target_name(&self) -> Option<MapString> {
+        MapString::from_index(self.engine, self.as_raw().targetname)
+    }
+
+    pub fn target(&self) -> Option<MapString> {
+        MapString::from_index(self.engine, self.as_raw().target)
     }
 
     pub fn model(&self) -> Option<MapString> {
@@ -435,6 +443,14 @@ define_entity_trait! {
             name == self.classname().as_thin()
         }
 
+        fn name(&self) -> crate::xash3d_server::str::MapString {
+            self.vars().target_name().unwrap_or_else(|| self.classname())
+        }
+
+        fn target(&self) -> Option<crate::xash3d_server::str::MapString> {
+            self.vars().target()
+        }
+
         fn object_caps(&self) -> crate::xash3d_server::entity::ObjectCaps {
             ObjectCaps::ACROSS_TRANSITION
         }
@@ -537,6 +553,24 @@ impl dyn Entity {
     }
 }
 
+pub fn fire_targets(
+    target_name: &CStrThin,
+    activator: &mut dyn Entity,
+    use_type: UseType,
+    value: f32,
+) {
+    let engine = activator.engine();
+    trace!("Firing: ({target_name})");
+    for mut target in engine.find_ent_by_targetname_iter(target_name) {
+        if let Some(target) = unsafe { target.as_mut() }.get_entity_mut() {
+            if !target.vars().flags().intersects(EdictFlags::KILLME) {
+                trace!("Found: {}, firing ({target_name})", target.classname());
+                target.used(activator, use_type, value);
+            }
+        }
+    }
+}
+
 /// Base type for all entities.
 #[derive(Debug)]
 pub struct BaseEntity {
@@ -598,20 +632,11 @@ impl Entity for BaseEntity {
             let maxs = ev.maxs;
             let engine = self.engine();
             engine.precache_model(&model);
-            engine.set_model(self.as_edict_mut(), &model);
-            engine.set_size(self.as_edict_mut(), mins, maxs);
+            engine.set_model(self, &model);
+            engine.set_size(self, mins, maxs);
         }
 
         status
-    }
-
-    fn key_value(&mut self, data: &mut KeyValue) {
-        if !data.handled() {
-            let classname = self.classname();
-            let key = data.key_name();
-            let value = data.value();
-            warn!("{classname}: not handled key={key:?}, value={value:?}");
-        }
     }
 }
 
@@ -766,5 +791,98 @@ impl EntityVarsExt for entvars_s {
 
     fn effects_mut(&mut self) -> &mut Effects {
         unsafe { mem::transmute(&mut self.effects) }
+    }
+}
+
+pub struct StubEntity {
+    base: BaseEntity,
+    dump_key_value: bool,
+}
+
+impl StubEntity {
+    pub fn new(base: BaseEntity, dump_key_value: bool) -> Self {
+        Self {
+            base,
+            dump_key_value,
+        }
+    }
+}
+
+impl CreateEntity for StubEntity {
+    fn create(base: BaseEntity) -> Self {
+        Self::new(base, false)
+    }
+}
+
+impl_entity_cast!(StubEntity);
+
+impl Entity for StubEntity {
+    delegate_entity!(base not { object_caps, key_value, spawn, touched, used, blocked });
+
+    fn object_caps(&self) -> ObjectCaps {
+        self.base
+            .object_caps()
+            .difference(ObjectCaps::ACROSS_TRANSITION)
+    }
+
+    fn key_value(&mut self, data: &mut KeyValue) {
+        self.base.key_value(data);
+
+        if self.dump_key_value && !data.handled() {
+            let name = self.name();
+            let key = data.key_name();
+            let value = data.value();
+            trace!("{name}: key={key} value={value}");
+        }
+    }
+
+    fn spawn(&mut self) {
+        let classname = self.classname();
+        let name = self.vars().target_name();
+        let target = self.vars().target();
+        trace!("spawn {classname}({name:?}), target={target:?}");
+
+        let engine = self.engine();
+        let v = self.vars_mut();
+        v.set_move_dir();
+        let ev = v.as_raw_mut();
+        ev.solid = SOLID_TRIGGER;
+        ev.movetype = MoveType::Push.into();
+        if let Some(model) = v.model() {
+            engine.set_model(self, &model);
+        }
+    }
+
+    fn touched(&mut self, other: &mut dyn Entity) {
+        let classname = self.classname();
+        if let Some(name) = self.vars().target_name() {
+            trace!("{classname}({name}) touched by {}", other.name());
+        } else {
+            trace!("{classname} touched by {}", other.name());
+        }
+    }
+
+    fn used(&mut self, other: &mut dyn Entity, use_type: UseType, value: f32) {
+        let classname = self.classname();
+        if let Some(name) = self.vars().target_name() {
+            trace!(
+                "{classname}({name}) used({use_type:?}, {value}) by {}",
+                other.name()
+            );
+        } else {
+            trace!(
+                "{classname} used({use_type:?}, {value}) by {}",
+                other.name()
+            );
+        }
+    }
+
+    fn blocked(&mut self, other: &mut dyn Entity) {
+        let classname = self.classname();
+        if let Some(name) = self.vars().target_name() {
+            trace!("{classname}({name}) blocked by {}", other.name());
+        } else {
+            trace!("{classname} blocked by {}", other.name());
+        }
     }
 }

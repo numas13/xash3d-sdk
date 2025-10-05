@@ -1,9 +1,16 @@
 pub mod bmodels;
+pub mod breakable;
 pub mod buttons;
+pub mod doors;
 pub mod effects;
+pub mod explode;
+pub mod items;
 pub mod lights;
 pub mod nodes;
+pub mod plats;
 pub mod player;
+pub mod scripted;
+pub mod sound;
 pub mod subs;
 pub mod triggers;
 pub mod world;

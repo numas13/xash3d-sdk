@@ -158,8 +158,18 @@ fn do_spark(engine: ServerEngineRef, vars: &mut EntityVars, location: vec3_t) {
 #[cfg(feature = "export-default-entities")]
 mod exports {
     use super::EnvSpark;
-    use crate::{entity::Private, export::export_entity};
+    use crate::{
+        entity::{Private, StubEntity},
+        export::export_entity,
+    };
 
     export_entity!(env_spark, Private<EnvSpark>);
     export_entity!(env_debris, Private<EnvSpark>);
+
+    export_entity!(button_target, Private<StubEntity>);
+    export_entity!(env_global, Private<StubEntity>);
+    export_entity!(func_button, Private<StubEntity>);
+    export_entity!(func_rot_button, Private<StubEntity>);
+    export_entity!(momentary_rot_button, Private<StubEntity>);
+    export_entity!(multisource, Private<StubEntity>);
 }

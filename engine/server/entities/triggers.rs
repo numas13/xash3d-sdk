@@ -1,6 +1,6 @@
 use core::{
     ffi::{c_int, CStr},
-    ptr,
+    ptr::{self, NonNull},
 };
 
 use csz::{cstr, CStrArray, CStrThin};
@@ -50,7 +50,7 @@ impl ChangeLevel {
         let ev = v.as_raw_mut();
         ev.solid = SOLID_TRIGGER;
         ev.movetype = MoveType::None.into();
-        engine.set_model(unsafe { &mut *ev.pContainingEntity }, &ev.model().unwrap());
+        engine.set_model(ev, &ev.model().unwrap());
         if engine.get_cvar_float(c"showtriggers") == 0.0 {
             ev.effects_mut().insert(Effects::NODRAW);
         }
@@ -73,12 +73,11 @@ impl ChangeLevel {
 
         ev.dmgtime = time;
 
-        let landmark = find_landmark(engine, self.landmark_name.as_thin());
         let mut next_spot = cstr!("");
-        if !engine.is_null_ent(landmark) {
+        if let Some(landmark) = find_landmark(engine, self.landmark_name.as_thin()) {
             next_spot = self.landmark_name.as_thin();
             unsafe {
-                globals.set_landmark_offset((*landmark).v.origin);
+                globals.set_landmark_offset(landmark.as_ref().v.origin);
             }
         }
 
@@ -198,14 +197,13 @@ pub fn add_transition_to_list(
     true
 }
 
-fn find_landmark(engine: ServerEngineRef, landmark_name: &CStrThin) -> *mut edict_s {
+fn find_landmark(engine: ServerEngineRef, landmark_name: &CStrThin) -> Option<NonNull<edict_s>> {
     engine
         .find_ent_by_targetname_iter(landmark_name)
         .find(|&ent| {
-            let classname = unsafe { &*ent }.v.classname().unwrap();
+            let classname = unsafe { ent.as_ref() }.v.classname().unwrap();
             classname.as_thin() == c"info_landmark"
         })
-        .unwrap_or(ptr::null_mut())
 }
 
 fn in_transition_volume(
@@ -250,13 +248,18 @@ pub fn build_change_list(engine: ServerEngineRef, level_list: &mut [LEVELLIST]) 
         if let Some(trigger) = private.downcast_mut::<ChangeLevel>() {
             let map_name = trigger.map_name.as_thin();
             let landmark_name = trigger.landmark_name.as_thin();
-            let landmark = find_landmark(engine, landmark_name);
-            if !landmark.is_null()
-                && add_transition_to_list(level_list, count, map_name, landmark_name, landmark)
-            {
-                count += 1;
-                if count >= level_list.len() {
-                    break;
+            if let Some(landmark) = find_landmark(engine, landmark_name) {
+                if add_transition_to_list(
+                    level_list,
+                    count,
+                    map_name,
+                    landmark_name,
+                    landmark.as_ptr(),
+                ) {
+                    count += 1;
+                    if count >= level_list.len() {
+                        break;
+                    }
                 }
             }
         }
@@ -312,17 +315,35 @@ pub fn build_change_list(engine: ServerEngineRef, level_list: &mut [LEVELLIST]) 
 
 #[cfg(feature = "export-default-entities")]
 mod exports {
-    use crate::{entity::Private, export::export_entity};
+    use crate::{
+        entity::{Private, StubEntity},
+        export::export_entity,
+    };
 
-    // TODO: export trigger_auto,
-    // TODO: export trigger_autosave,
-    // TODO: export trigger_cdaudio,
     export_entity!(trigger_changelevel, Private<super::ChangeLevel>);
-    // TODO: export trigger_hurt,
-    // TODO: export trigger_multiple,
-    // TODO: export trigger_once,
-    // TODO: export trigger_push,
-    // TODO: export trigger_relay,
-    // TODO: export trigger_teleport,
-    // TODO: export trigger_transition,
+
+    export_entity!(env_render, Private<StubEntity>);
+    export_entity!(fireanddie, Private<StubEntity>);
+    export_entity!(func_friction, Private<StubEntity>);
+    export_entity!(func_ladder, Private<StubEntity>);
+    export_entity!(info_teleport_destination, Private<StubEntity>);
+    export_entity!(multi_manager, Private<StubEntity>);
+    export_entity!(target_cdaudio, Private<StubEntity>);
+    export_entity!(trigger, Private<StubEntity>);
+    export_entity!(trigger_auto, Private<StubEntity>);
+    export_entity!(trigger_autosave, Private<StubEntity>);
+    export_entity!(trigger_camera, Private<StubEntity>);
+    export_entity!(trigger_cdaudio, Private<StubEntity>);
+    export_entity!(trigger_changetarget, Private<StubEntity>);
+    export_entity!(trigger_counter, Private<StubEntity>);
+    export_entity!(trigger_endsection, Private<StubEntity>);
+    export_entity!(trigger_gravity, Private<StubEntity>);
+    export_entity!(trigger_hurt, Private<StubEntity>);
+    export_entity!(trigger_monsterjump, Private<StubEntity>);
+    export_entity!(trigger_multiple, Private<StubEntity>);
+    export_entity!(trigger_once, Private<StubEntity>);
+    export_entity!(trigger_push, Private<StubEntity>);
+    export_entity!(trigger_relay, Private<StubEntity>);
+    export_entity!(trigger_teleport, Private<StubEntity>);
+    export_entity!(trigger_transition, Private<StubEntity>);
 }

@@ -8,7 +8,6 @@ use crate::{
     entity::{
         delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, ObjectCaps, UseType,
     },
-    prelude::*,
     str::MapString,
 };
 
@@ -41,7 +40,7 @@ impl Entity for FuncWall {
         ev.solid = SOLID_BSP;
         ev.flags |= EdictFlags::WORLDBRUSH.bits();
         if let Some(model) = MapString::from_index(engine, ev.model) {
-            engine.set_model(self.as_edict_mut(), &model);
+            engine.set_model(self, &model);
         }
     }
 
@@ -55,7 +54,12 @@ impl Entity for FuncWall {
 
 #[cfg(feature = "export-default-entities")]
 mod exports {
-    use crate::{entity::Private, export::export_entity};
+    use crate::{
+        entity::{Private, StubEntity},
+        export::export_entity,
+    };
 
+    export_entity!(func_rotating, Private<StubEntity>);
     export_entity!(func_wall, Private<super::FuncWall>);
+    export_entity!(func_illusionary, Private<StubEntity>);
 }
