@@ -412,46 +412,46 @@ pub trait EntityCast: 'static {
 define_entity_trait! {
     /// The base trait for all entities.
     pub trait Entity(delegate_entity): (EntityCast + AsEdict) {
-        fn private(&self) -> &crate::xash3d_server::entity::PrivateData;
+        fn private(&self) -> &::xash3d_server::entity::PrivateData;
 
-        fn private_mut(&mut self) -> &mut crate::xash3d_server::entity::PrivateData;
+        fn private_mut(&mut self) -> &mut ::xash3d_server::entity::PrivateData;
 
         /// Returns a reference to the server engine.
-        fn engine(&self) -> crate::xash3d_server::engine::ServerEngineRef;
+        fn engine(&self) -> ::xash3d_server::engine::ServerEngineRef;
 
-        fn global_state(&self) -> crate::xash3d_server::global_state::GlobalStateRef;
+        fn global_state(&self) -> ::xash3d_server::global_state::GlobalStateRef;
 
         /// Returns a shared reference to entity variables.
-        fn vars(&self) -> &crate::xash3d_server::entity::EntityVars;
+        fn vars(&self) -> &::xash3d_server::entity::EntityVars;
 
         /// Returns a mutable reference to entity variables.
-        fn vars_mut(&mut self) -> &mut crate::xash3d_server::entity::EntityVars;
+        fn vars_mut(&mut self) -> &mut ::xash3d_server::entity::EntityVars;
 
-        fn globalname(&self) -> Option<crate::xash3d_server::str::MapString> {
+        fn globalname(&self) -> Option<::xash3d_server::str::MapString> {
             self.vars().globalname()
         }
 
-        fn is_globalname(&self, name: &csz::CStrThin) -> bool {
+        fn is_globalname(&self, name: &::csz::CStrThin) -> bool {
             self.globalname().is_some_and(|s| name == s.as_thin())
         }
 
-        fn classname(&self) -> crate::xash3d_server::str::MapString {
+        fn classname(&self) -> ::xash3d_server::str::MapString {
             self.vars().classname().unwrap()
         }
 
-        fn is_classname(&self, name: &csz::CStrThin) -> bool {
+        fn is_classname(&self, name: &::csz::CStrThin) -> bool {
             name == self.classname().as_thin()
         }
 
-        fn name(&self) -> crate::xash3d_server::str::MapString {
+        fn name(&self) -> ::xash3d_server::str::MapString {
             self.vars().target_name().unwrap_or_else(|| self.classname())
         }
 
-        fn target(&self) -> Option<crate::xash3d_server::str::MapString> {
+        fn target(&self) -> Option<::xash3d_server::str::MapString> {
             self.vars().target()
         }
 
-        fn object_caps(&self) -> crate::xash3d_server::entity::ObjectCaps {
+        fn object_caps(&self) -> ::xash3d_server::entity::ObjectCaps {
             ObjectCaps::ACROSS_TRANSITION
         }
 
@@ -470,17 +470,17 @@ define_entity_trait! {
 
         fn save(
             &mut self,
-            writer: &mut crate::xash3d_server::save::SaveWriter,
-            save_data: &mut crate::xash3d_server::save::SaveRestoreData,
-        ) -> crate::xash3d_server::save::SaveResult<()>;
+            writer: &mut ::xash3d_server::save::SaveWriter,
+            save_data: &mut ::xash3d_server::save::SaveRestoreData,
+        ) -> ::xash3d_server::save::SaveResult<()>;
 
         fn restore(
             &mut self,
-            reader: &mut crate::xash3d_server::save::SaveReader,
-            save_data: &mut crate::xash3d_server::save::SaveRestoreData,
-        ) -> crate::xash3d_server::save::SaveResult<()>;
+            reader: &mut ::xash3d_server::save::SaveReader,
+            save_data: &mut ::xash3d_server::save::SaveRestoreData,
+        ) -> ::xash3d_server::save::SaveResult<()>;
 
-        fn key_value(&mut self, data: &mut crate::xash3d_server::entity::KeyValue) {
+        fn key_value(&mut self, data: &mut ::xash3d_server::entity::KeyValue) {
             data.set_handled(false);
         }
 
@@ -491,18 +491,18 @@ define_entity_trait! {
         fn think(&mut self) {}
 
         #[allow(unused_variables)]
-        fn touched(&mut self, other: &mut dyn crate::xash3d_server::entity::Entity) {}
+        fn touched(&mut self, other: &mut dyn ::xash3d_server::entity::Entity) {}
 
         #[allow(unused_variables)]
         fn used(
             &mut self,
-            other: &mut dyn crate::xash3d_server::entity::Entity,
-            use_type: crate::xash3d_server::entity::UseType,
+            other: &mut dyn ::xash3d_server::entity::Entity,
+            use_type: ::xash3d_server::entity::UseType,
             value: f32,
         ) {}
 
         #[allow(unused_variables)]
-        fn blocked(&mut self, other: &mut dyn crate::xash3d_server::entity::Entity) {}
+        fn blocked(&mut self, other: &mut dyn ::xash3d_server::entity::Entity) {}
 
         fn override_reset(&mut self) {}
 
@@ -510,7 +510,7 @@ define_entity_trait! {
             set_object_collision_box(self.vars_mut().as_raw_mut());
         }
 
-        fn intersects(&self, other: &dyn crate::xash3d_server::entity::Entity) -> bool {
+        fn intersects(&self, other: &dyn ::xash3d_server::entity::Entity) -> bool {
             let a = self.vars().as_raw();
             let b = other.vars().as_raw();
             !(b.absmin.x() > a.absmax.x()
@@ -642,7 +642,7 @@ impl Entity for BaseEntity {
 
 define_entity_trait! {
     pub trait EntityPlayer(delegate_player): (Entity) {
-        fn select_spawn_point(&self) -> *mut crate::xash3d_server::ffi::server::edict_s;
+        fn select_spawn_point(&self) -> *mut ::xash3d_server::ffi::server::edict_s;
 
         fn pre_think(&mut self);
 

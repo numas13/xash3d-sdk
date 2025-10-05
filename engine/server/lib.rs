@@ -1,10 +1,15 @@
 #![no_std]
 
-//#[macro_use]
+#[allow(unused_imports)]
+#[macro_use]
 extern crate alloc;
 
 #[macro_use]
 extern crate log;
+
+// HACK: used by delegate macros to access xash3d_server types
+#[doc(hidden)]
+extern crate self as xash3d_server;
 
 #[macro_use]
 pub mod macros;
@@ -28,7 +33,3 @@ pub mod user_message;
 pub mod utils;
 
 pub use xash3d_shared::{cell, color, cvar, ffi, math, render};
-
-// HACK: used by delegate macros to access xash3d_server types
-#[doc(hidden)]
-pub use crate as xash3d_server;
