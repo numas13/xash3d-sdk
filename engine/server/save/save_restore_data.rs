@@ -106,14 +106,19 @@ impl SaveRestoreState {
         unsafe { slice_from_raw_parts_or_empty_mut(self.data.pTable, len) }
     }
 
-    pub fn tokens(&mut self) -> &[*mut c_char] {
+    fn tokens(&self) -> &[*mut c_char] {
         let len = self.data.tokenCount as usize;
         unsafe { slice_from_raw_parts_or_empty(self.data.pTokens, len) }
     }
 
-    pub fn tokens_mut(&mut self) -> &mut [*mut c_char] {
+    fn tokens_mut(&mut self) -> &mut [*mut c_char] {
         let len = self.data.tokenCount as usize;
         unsafe { slice_from_raw_parts_or_empty_mut(self.data.pTokens, len) }
+    }
+
+    pub fn token_str(&self, token: Token) -> Option<&CStrThin> {
+        let s = self.tokens().get(token.to_usize())?;
+        Some(unsafe { CStrThin::from_ptr(*s) })
     }
 
     pub fn token_hash(&mut self, token: &CStr) -> Token {

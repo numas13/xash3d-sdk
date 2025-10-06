@@ -49,6 +49,10 @@ impl<'a> Field<'a> {
         self.data.len()
     }
 
+    pub fn cursor(&self) -> Cursor<'a> {
+        Cursor::new(self.data())
+    }
+
     pub fn header(&self) -> Header {
         Header::new(self.data.len() as u16, self.token)
     }

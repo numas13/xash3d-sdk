@@ -519,11 +519,14 @@ impl SaveReader {
         let mut last_field = 0;
         for _ in 0..field_count {
             let field = src.read_field()?;
-            let token = state.tokens_mut()[field.token().to_usize()];
-            let token = unsafe { CStrThin::from_ptr(token) };
-            let data = &mut Cursor::new(field.data());
-            last_field =
-                unsafe { self.read_field(state, base_data, fields, last_field, token, data)? };
+            let Some(token) = state.token_str(field.token()) else {
+                warn!("restore: token({}) not found", field.token().to_u16());
+                continue;
+            };
+            let data = &mut field.cursor();
+            unsafe {
+                last_field = self.read_field(state, base_data, fields, last_field, token, data)?;
+            }
             last_field += 1;
         }
 
