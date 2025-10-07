@@ -1502,7 +1502,7 @@ macro_rules! export_dll {
         );
 
         #[no_mangle]
-        unsafe extern "C" fn GiveFnptrsToDll(
+        unsafe extern "system" fn GiveFnptrsToDll(
             eng_funcs: *const $crate::ffi::server::enginefuncs_s,
             globals: *mut $crate::ffi::server::globalvars_t,
         ) {
