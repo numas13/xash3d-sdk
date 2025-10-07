@@ -55,6 +55,15 @@ pub trait GameRules: Any {
     }
 }
 
+impl dyn GameRules {
+    pub fn downcast_ref<T>(&self) -> Option<&T>
+    where
+        T: Any,
+    {
+        (self as &dyn Any).downcast_ref::<T>()
+    }
+}
+
 pub struct StubGameRules {
     engine: ServerEngineRef,
 }
