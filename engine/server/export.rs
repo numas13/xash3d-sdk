@@ -1596,6 +1596,7 @@ pub use export_dll;
 ///         delegate_entity,
 ///     },
 ///     export::export_entity,
+///     save::{Save, Restore},
 /// };
 ///
 /// // define a private wrapper for our entities
@@ -1606,6 +1607,7 @@ pub use export_dll;
 /// }
 ///
 /// // define a player entity
+/// #[derive(Save, Restore)]
 /// struct Player {
 ///     base: BaseEntity,
 /// }

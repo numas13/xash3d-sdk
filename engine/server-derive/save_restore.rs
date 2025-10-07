@@ -288,7 +288,7 @@ impl Container {
             while !cur.is_empty() {
                 let field = cur.read_field()?;
                 let Some(name) = state.token_str(field.token()) else {
-                    warn!("restore: token({}) not found", field.token().to_u16());
+                    ::log::warn!("restore: token({}) not found", field.token().to_u16());
                     continue;
                 };
                 self.restore_field(state, &mut field.cursor(), name.as_c_str())?;
