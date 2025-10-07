@@ -28,3 +28,7 @@ workspace = true
 [[example]]
 name = "server-stub"
 crate-type = ["cdylib"]
+
+[[example]]
+name = "server-custom-trait"
+crate-type = ["cdylib"]
