@@ -1,5 +1,5 @@
 use core::{
-    ffi::{c_int, CStr},
+    ffi::c_int,
     ptr::{self, NonNull},
 };
 
@@ -9,35 +9,28 @@ use xash3d_shared::{
     entity::{Effects, MoveType},
     ffi::{
         common::vec3_t,
-        server::{edict_s, FENTTABLE_GLOBAL, FENTTABLE_MOVEABLE, LEVELLIST, TYPEDESCRIPTION},
+        server::{edict_s, FENTTABLE_GLOBAL, FENTTABLE_MOVEABLE, LEVELLIST},
     },
 };
 
 use crate::{
     entity::{
-        delegate_entity, impl_entity_cast, impl_save_restore, BaseEntity, CreateEntity, Entity,
-        KeyValue, ObjectCaps,
+        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, KeyValue, ObjectCaps,
     },
     prelude::*,
-    save::{define_fields, SaveFields, SaveRestoreData},
+    save::{Restore, Save, SaveRestoreData},
     str::MapString,
 };
 
 const MAP_NAME_MAX: usize = 32;
 
+#[derive(Save, Restore)]
 pub struct ChangeLevel {
     base: BaseEntity,
     map_name: CStrArray<MAP_NAME_MAX>,
     landmark_name: CStrArray<MAP_NAME_MAX>,
     target: Option<MapString>,
     change_target_delay: f32,
-}
-
-unsafe impl SaveFields for ChangeLevel {
-    const SAVE_NAME: &'static CStr = c"ChangeLevel";
-
-    const SAVE_FIELDS: &'static [TYPEDESCRIPTION] =
-        &define_fields![map_name, landmark_name, target, change_target_delay];
 }
 
 impl ChangeLevel {
@@ -101,8 +94,7 @@ impl CreateEntity for ChangeLevel {
 }
 
 impl Entity for ChangeLevel {
-    delegate_entity!(base not { object_caps, save, restore, key_value, spawn, touched });
-    impl_save_restore!(base);
+    delegate_entity!(base not { object_caps, key_value, spawn, touched });
 
     fn object_caps(&self) -> ObjectCaps {
         self.base

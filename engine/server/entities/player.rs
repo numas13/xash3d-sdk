@@ -12,14 +12,30 @@ use crate::{
         ObjectCaps,
     },
     prelude::*,
-    save::{SaveReader, SaveRestoreData, SaveResult},
+    save::{self, Restore, Save},
 };
 
+#[derive(Save, Restore)]
 pub struct Player {
     base: BaseEntity,
 }
 
 impl_entity_cast!(Player);
+
+impl save::OnRestore for Player {
+    fn on_restore(&mut self) {
+        let engine = self.base.engine;
+
+        // TODO:
+
+        let ev = self.vars_mut().as_raw_mut();
+        ev.v_angle.set_z(0.0);
+        ev.angles = ev.v_angle;
+        ev.fixangle = 1;
+
+        engine.set_physics_key_value(self.as_edict_mut(), c"hl", c"1");
+    }
+}
 
 impl Player {
     pub fn set_custom_decal_frames(&mut self, frames: c_int) {
@@ -40,27 +56,6 @@ impl Entity for Player {
         self.base
             .object_caps()
             .difference(ObjectCaps::ACROSS_TRANSITION)
-    }
-
-    fn restore(
-        &mut self,
-        reader: &mut SaveReader,
-        save_data: &mut SaveRestoreData,
-    ) -> SaveResult<()> {
-        self.base.restore(reader, save_data)?;
-
-        let engine = self.base.engine;
-
-        // TODO:
-
-        let ev = self.vars_mut().as_raw_mut();
-        ev.v_angle.set_z(0.0);
-        ev.angles = ev.v_angle;
-        ev.fixangle = 1;
-
-        engine.set_physics_key_value(self.as_edict_mut(), c"hl", c"1");
-
-        Ok(())
     }
 
     fn spawn(&mut self) {

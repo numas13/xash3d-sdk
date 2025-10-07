@@ -9,7 +9,7 @@ use csz::CStrThin;
 
 pub use xash3d_shared::str::ToEngineStr;
 
-use crate::prelude::*;
+use crate::{prelude::*, save};
 
 /// A string that valid until the end of the current map.
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -80,5 +80,30 @@ impl<'a> ToEngineStr for &'a MapString {
 
     fn to_engine_str(&self) -> Self::Output {
         self.as_thin()
+    }
+}
+
+impl save::Save for Option<MapString> {
+    fn save(&self, _: &mut save::SaveState, cur: &mut save::CursorMut) -> save::SaveResult<()> {
+        let bytes = self.as_ref().map_or(&[0][..], |s| s.to_bytes_with_nul());
+        cur.write_bytes_with_size(bytes)?;
+        Ok(())
+    }
+}
+
+impl save::Restore for Option<MapString> {
+    fn restore(
+        &mut self,
+        state: &save::RestoreState,
+        cur: &mut save::Cursor,
+    ) -> save::SaveResult<()> {
+        let bytes = cur.read_bytes_with_size()?;
+        if !bytes.is_empty() {
+            let s = CStr::from_bytes_with_nul(bytes).map_err(|_| save::SaveError::InvalidString)?;
+            *self = Some(state.engine().new_map_string(s));
+        } else {
+            *self = None;
+        }
+        Ok(())
     }
 }

@@ -121,23 +121,31 @@ impl SaveRestoreState {
         Some(unsafe { CStrThin::from_ptr(*s) })
     }
 
-    pub fn token_hash(&mut self, token: &CStr) -> Token {
-        fn hash_string(token: &CStr) -> c_uint {
-            token
-                .to_bytes()
-                .iter()
-                .fold(0, |hash, &byte| hash.rotate_right(4) ^ (byte as c_uint))
-        }
-
-        let tokens = self.tokens_mut();
-        let hash = (hash_string(token) % (tokens.len() as c_uint)) as c_ushort;
+    pub fn get_token_hash(&self, str: &CStr) -> Option<Token> {
+        let tokens = self.tokens();
+        let hash = (hash_string(str) % (tokens.len() as c_uint)) as c_ushort;
         for i in 0..tokens.len() {
             let mut index = i + hash as usize;
             if index >= tokens.len() {
                 index -= tokens.len();
             }
-            if tokens[index].is_null() || token == unsafe { CStr::from_ptr(tokens[index]) } {
-                tokens[index] = token.as_ptr() as *mut c_char;
+            if tokens[index].is_null() || str == unsafe { CStr::from_ptr(tokens[index]) } {
+                return Some(Token::new(index as u16));
+            }
+        }
+        None
+    }
+
+    pub fn token_hash(&mut self, str: &'static CStr) -> Token {
+        let tokens = self.tokens_mut();
+        let hash = (hash_string(str) % (tokens.len() as c_uint)) as c_ushort;
+        for i in 0..tokens.len() {
+            let mut index = i + hash as usize;
+            if index >= tokens.len() {
+                index -= tokens.len();
+            }
+            if tokens[index].is_null() || str == unsafe { CStr::from_ptr(tokens[index]) } {
+                tokens[index] = str.as_ptr() as *mut c_char;
                 return Token::new(index as u16);
             }
         }
@@ -172,6 +180,13 @@ impl SaveRestoreState {
             0
         }
     }
+}
+
+fn hash_string(token: &CStr) -> c_uint {
+    token
+        .to_bytes()
+        .iter()
+        .fold(0, |hash, &byte| hash.rotate_right(4) ^ (byte as c_uint))
 }
 
 #[repr(transparent)]

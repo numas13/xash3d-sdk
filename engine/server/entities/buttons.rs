@@ -1,40 +1,52 @@
 use core::ffi::CStr;
 
-use xash3d_shared::ffi::{common::vec3_t, server::TYPEDESCRIPTION};
+use xash3d_shared::ffi::common::vec3_t;
 
 use crate::{
     engine::ServerEngineRef,
     entity::{
-        delegate_entity, impl_entity_cast, impl_save_restore, BaseEntity, CreateEntity, Entity,
-        EntityVars, KeyValue, UseType,
+        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, EntityVars, KeyValue,
+        UseType,
     },
     prelude::*,
-    save::{define_fields, FieldType, SaveFields},
+    save::{self, Restore, Save},
     user_message,
 };
 
+// TODO: derive Save and Restore
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 #[non_exhaustive]
-#[repr(i32)]
+#[repr(u8)]
 enum EnvSparkState {
-    Off,
+    Off = 0,
     On,
     AlwaysOn,
 }
 
+impl Save for EnvSparkState {
+    fn save(&self, _: &mut save::SaveState, cur: &mut save::CursorMut) -> save::SaveResult<()> {
+        cur.write_u8(*self as u8)?;
+        Ok(())
+    }
+}
+
+impl Restore for EnvSparkState {
+    fn restore(&mut self, _: &save::RestoreState, cur: &mut save::Cursor) -> save::SaveResult<()> {
+        match cur.read_u8()? {
+            0 => *self = Self::Off,
+            1 => *self = Self::On,
+            2 => *self = Self::AlwaysOn,
+            _ => return Err(save::SaveError::InvalidEnum),
+        }
+        Ok(())
+    }
+}
+
+#[derive(Save, Restore)]
 pub struct EnvSpark {
     base: BaseEntity,
     delay: f32,
     state: EnvSparkState,
-}
-
-unsafe impl SaveFields for EnvSpark {
-    const SAVE_NAME: &'static CStr = c"EnvSpark";
-
-    const SAVE_FIELDS: &'static [TYPEDESCRIPTION] = &define_fields![
-        delay,
-        state => unsafe FieldType::INTEGER,
-    ];
 }
 
 impl EnvSpark {
@@ -61,8 +73,7 @@ impl CreateEntity for EnvSpark {
 }
 
 impl Entity for EnvSpark {
-    delegate_entity!(base not { key_value, save, restore, precache, spawn, think, used });
-    impl_save_restore!(base);
+    delegate_entity!(base not { key_value, precache, spawn, think, used });
 
     fn key_value(&mut self, data: &mut KeyValue) {
         let name = data.key_name();

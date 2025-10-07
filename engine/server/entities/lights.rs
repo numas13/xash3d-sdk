@@ -1,27 +1,17 @@
-use core::ffi::CStr;
-
-use xash3d_shared::ffi::server::TYPEDESCRIPTION;
-
 use crate::{
     entities::subs::PointEntity,
     entity::{
-        delegate_entity, impl_entity_cast, impl_save_restore, BaseEntity, CreateEntity, Entity,
-        KeyValue, UseType,
+        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, KeyValue, UseType,
     },
-    save::{define_fields, SaveFields},
+    save::{Restore, Save},
     str::MapString,
 };
 
+#[derive(Save, Restore)]
 pub struct Light {
     base: PointEntity,
     style: i32,
     pattern: Option<MapString>,
-}
-
-unsafe impl SaveFields for Light {
-    const SAVE_NAME: &'static CStr = c"Light";
-
-    const SAVE_FIELDS: &'static [TYPEDESCRIPTION] = &define_fields![style, pattern];
 }
 
 impl Light {
@@ -41,8 +31,7 @@ impl CreateEntity for Light {
 }
 
 impl Entity for Light {
-    delegate_entity!(base not { key_value, save, restore, spawn, used });
-    impl_save_restore!(base);
+    delegate_entity!(base not { key_value, spawn, used });
 
     fn key_value(&mut self, data: &mut KeyValue) {
         match data.key_name().to_bytes() {

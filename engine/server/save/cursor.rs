@@ -1,6 +1,6 @@
-use core::{cmp, mem};
+use core::{cmp, ffi::CStr, mem};
 
-use crate::save::{SaveError, SaveResult, Token};
+use crate::save::{Save, SaveError, SaveResult, SaveState, Token};
 
 #[derive(Copy, Clone, Default, Debug, PartialEq, Eq)]
 pub struct Header {
@@ -160,6 +160,10 @@ impl<'a> Cursor<'a> {
         self.read_u8().map(|i| i as i8)
     }
 
+    pub fn read_bool(&mut self) -> SaveResult<bool> {
+        self.read_u8().map(|i| i != 0)
+    }
+
     impl_read_num! {
         from_ne_bytes {
             fn read_u16_ne() -> u16,
@@ -221,6 +225,11 @@ impl<'a> Cursor<'a> {
         let header = self.read_header()?;
         let data = self.read(header.size() as usize)?;
         Field::new(header.token(), data)
+    }
+
+    pub fn read_bytes_with_size(&mut self) -> SaveResult<&'a [u8]> {
+        let len = self.read_u16_le()?;
+        self.read(len.into())
     }
 }
 
@@ -329,6 +338,10 @@ impl<'a> CursorMut<'a> {
         self.write_u8(value as u8)
     }
 
+    pub fn write_bool(&mut self, value: bool) -> SaveResult<usize> {
+        self.write_u8(value as u8)
+    }
+
     impl_write_num! {
         to_ne_bytes {
             fn write_u16_ne(u16),
@@ -384,16 +397,35 @@ impl<'a> CursorMut<'a> {
         self.write_u16_le(token.to_u16())
     }
 
-    pub fn write_header(&mut self, header: Header) -> SaveResult<()> {
-        self.write_u16_le(header.size)?;
-        self.write_token(header.token())?;
-        Ok(())
+    pub fn write_field<T: Save + ?Sized>(
+        &mut self,
+        state: &mut SaveState,
+        name: &'static CStr,
+        value: &T,
+    ) -> SaveResult<()> {
+        let header_offset = self.skip(4)?;
+        value.save(state, self)?;
+        let size = self.offset() - header_offset - 4;
+        let size = size.try_into().map_err(|_| SaveError::SizeOverflow)?;
+        self.write_at(header_offset, |cur| {
+            cur.write_u16_le(size)?;
+            cur.write_token(state.token_hash(name))?;
+            Ok(())
+        })
     }
 
-    pub fn write_field(&mut self, field: Field) -> SaveResult<()> {
-        self.write_header(field.header())?;
-        self.write(field.data())?;
-        Ok(())
+    pub fn write_bytes_with_size(&mut self, bytes: &[u8]) -> SaveResult<usize> {
+        if bytes.len() + 2 < self.avaiable() {
+            let len = bytes
+                .len()
+                .try_into()
+                .map_err(|_| SaveError::SizeOverflow)?;
+            self.write_u16_le(len)?;
+            self.write(bytes)?;
+            Ok(2 + bytes.len())
+        } else {
+            Err(SaveError::Overflow)
+        }
     }
 }
 

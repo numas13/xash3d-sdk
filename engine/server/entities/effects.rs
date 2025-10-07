@@ -1,26 +1,18 @@
-use core::ffi::CStr;
-
-use xash3d_shared::{consts::SOLID_NOT, entity::MoveType, ffi::server::TYPEDESCRIPTION};
+use xash3d_shared::{consts::SOLID_NOT, entity::MoveType};
 
 use crate::{
     entities::subs::PointEntity,
-    entity::{
-        delegate_entity, impl_entity_cast, impl_save_restore, BaseEntity, CreateEntity, Entity,
-    },
-    save::{define_fields, SaveFields},
+    entity::{delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity},
+    save::{Restore, Save},
     str::MapString,
     time::MapTime,
 };
 
+#[derive(Save, Restore)]
 pub struct Glow {
     base: PointEntity,
     last_time: MapTime,
     max_frame: f32,
-}
-
-unsafe impl SaveFields for Glow {
-    const SAVE_NAME: &'static CStr = c"Glow";
-    const SAVE_FIELDS: &'static [TYPEDESCRIPTION] = &define_fields![last_time, max_frame];
 }
 
 impl Glow {
@@ -45,8 +37,7 @@ impl CreateEntity for Glow {
 }
 
 impl Entity for Glow {
-    delegate_entity!(base not { save, restore, spawn, think });
-    impl_save_restore!(base);
+    delegate_entity!(base not { spawn, think });
 
     fn spawn(&mut self) {
         let engine = self.engine();

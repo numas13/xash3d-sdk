@@ -4,11 +4,10 @@ use xash3d_hl_shared::user_message;
 use xash3d_server::{
     entities::player::Player as BasePlayer,
     entity::{
-        delegate_entity, delegate_player, fire_targets, impl_entity_cast, impl_save_restore,
-        AsEdict, BaseEntity, CreateEntity, Effects, Entity, EntityPlayer, UseType::Toggle,
+        delegate_entity, delegate_player, fire_targets, impl_entity_cast, AsEdict, BaseEntity,
+        CreateEntity, Effects, Entity, EntityPlayer, UseType::Toggle,
     },
-    ffi::server::TYPEDESCRIPTION,
-    save::{define_fields, SaveFields},
+    save::{Restore, Save},
     time::MapTime,
 };
 
@@ -20,10 +19,11 @@ const SOUND_FLASHLIGHT_OFF: &CStr = res::valve::sound::items::FLASHLIGHT1;
 const FLASH_DRAIN_TIME: f32 = 1.2; // 100 units/3 minutes
 const FLASH_CHARGE_TIME: f32 = 0.2; // 100 units/20 seconds (seconds per unit)
 
+#[derive(Save, Restore)]
 pub struct TestPlayer {
     base: BasePlayer,
-    init_hud: u8,
-    game_hud_initialized: u8,
+    init_hud: bool,
+    game_hud_initialized: bool,
 
     health: u8,
     battery: i16,
@@ -32,18 +32,6 @@ pub struct TestPlayer {
     flashlight_time: MapTime,
     /// Flashlight battery draw.
     flashlight_battery: u8,
-}
-
-unsafe impl SaveFields for TestPlayer {
-    const SAVE_NAME: &'static CStr = c"TestPlayer";
-    const SAVE_FIELDS: &'static [TYPEDESCRIPTION] = &define_fields![
-        init_hud,
-        game_hud_initialized,
-        health,
-        battery,
-        flashlight_time,
-        flashlight_battery,
-    ];
 }
 
 impl TestPlayer {
@@ -105,14 +93,14 @@ impl TestPlayer {
         let global_state = self.global_state();
         let time = engine.globals.map_time();
 
-        if self.init_hud != 0 {
-            self.init_hud = 0;
+        if self.init_hud {
+            self.init_hud = false;
             global_state.set_init_hud(false);
 
             engine.msg_one(self, &user_message::ResetHUD::default());
 
-            if self.game_hud_initialized == 0 {
-                self.game_hud_initialized = 1;
+            if !self.game_hud_initialized {
+                self.game_hud_initialized = true;
                 engine.msg_one(self, &user_message::InitHUD::default());
             }
 
@@ -155,8 +143,8 @@ impl CreateEntity for TestPlayer {
     fn create(base: BaseEntity) -> Self {
         Self {
             base: BasePlayer::create(base),
-            init_hud: 1,
-            game_hud_initialized: 0,
+            init_hud: true,
+            game_hud_initialized: false,
             health: 100,
             battery: 0,
 
@@ -167,8 +155,7 @@ impl CreateEntity for TestPlayer {
 }
 
 impl Entity for TestPlayer {
-    delegate_entity!(base not { save, restore, precache, spawn, think });
-    impl_save_restore!(base);
+    delegate_entity!(base not { precache, spawn, think });
 
     fn precache(&mut self) {
         self.base.precache();
@@ -181,7 +168,7 @@ impl Entity for TestPlayer {
         self.flashlight_time = MapTime::from_secs_f32(1.0);
 
         if self.global_state().init_hud() {
-            self.init_hud = 1;
+            self.init_hud = true;
         }
     }
 
@@ -196,7 +183,7 @@ impl Entity for TestPlayer {
 
         self.vars_mut().set_next_think_time(0.1);
 
-        self.init_hud = 1;
+        self.init_hud = true;
     }
 
     fn think(&mut self) {

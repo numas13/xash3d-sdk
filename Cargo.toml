@@ -28,6 +28,7 @@ xash3d-shared = { version = "0.1.0", path = "engine/shared" }
 xash3d-player-move = { version = "0.1.0", path = "engine/player-move" }
 xash3d-client = { version = "0.1.0", path = "engine/client" }
 xash3d-server = { version = "0.1.0", path = "engine/server" }
+xash3d-server-derive = { version = "0.1.0", path = "engine/server-derive" }
 res = { package = "xash3d-hl-resources", path = "games/half-life/resources" }
 xash3d-hl-shared = { version = "0.1.0", path = "games/half-life/shared" }
 

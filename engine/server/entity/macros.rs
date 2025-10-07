@@ -18,7 +18,7 @@
 #[doc(hidden)]
 #[macro_export]
 macro_rules! static_trait_cast {
-    ($ty:ty, $trait:path, $value:expr $(, $mut:ident)?) => ({
+    ($ty:ty, $trait:path, $value:expr $(, $mut:ident)? $(,)?) => ({
         #[allow(dead_code)]
         trait NoImpl {
             // called if trait is not implemented
@@ -384,65 +384,3 @@ macro_rules! define_entity_trait {
 }
 #[doc(inline)]
 pub use define_entity_trait;
-
-/// Implement save and restore methods.
-///
-/// # Examples
-///
-/// ```
-/// extern crate alloc;
-///
-/// use core::ffi::CStr;
-///
-/// use xash3d_server::{
-///     entity::{BaseEntity, Entity, delegate_entity, impl_entity_cast, impl_save_restore},
-///     ffi::{common::vec3_t, server::TYPEDESCRIPTION},
-///     save::{SaveFields, define_fields},
-/// };
-///
-/// struct MyEntity {
-///     base: BaseEntity,
-///     pos: vec3_t,
-/// }
-///
-/// unsafe impl SaveFields for MyEntity {
-///     const SAVE_NAME: &'static CStr = c"MyEntity";
-///     const SAVE_FIELDS: &[TYPEDESCRIPTION] = &define_fields![pos];
-/// }
-///
-/// impl_entity_cast!(MyEntity);
-///
-/// impl Entity for MyEntity {
-///     delegate_entity!(base not { save, restore });
-///
-///     // Generate methods to save/restore this entity. The implementation will
-///     // forward the call to the base field and then save/restore other struct
-///     // fields specified in `SAVE_FIELDS`.
-///     impl_save_restore!(base);
-/// }
-/// ```
-#[doc(hidden)]
-#[macro_export]
-macro_rules! impl_save_restore {
-    ($( $base:ident ),* $(,)?) => {
-        fn save(
-            &mut self,
-            writer: &mut $crate::save::SaveWriter,
-            save_data: &mut $crate::save::SaveRestoreData,
-        ) -> $crate::save::SaveResult<()> {
-            $( self.$base.save(writer, save_data)?; )*
-            writer.write_fields(save_data, self)
-        }
-
-        fn restore(
-            &mut self,
-            reader: &mut $crate::save::SaveReader,
-            save_data: &mut $crate::save::SaveRestoreData,
-        ) -> $crate::save::SaveResult<()> {
-            $( self.$base.restore(reader, save_data)?; )*
-            reader.read_fields(save_data, self)
-        }
-    };
-}
-#[doc(inline)]
-pub use impl_save_restore;

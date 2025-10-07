@@ -36,11 +36,13 @@ use crate::{
     },
     global_state::{EntityState, GlobalState, GlobalStateRef},
     prelude::*,
-    save::{SaveReader, SaveRestoreData, SaveWriter},
+    save::{self, SaveReader, SaveRestoreData, SaveWriter},
     utils::slice_from_raw_parts_or_empty_mut,
 };
 
 pub use xash3d_shared::export::{impl_unsync_global, UnsyncGlobal};
+
+const ENTITY_SAVE_NAME: &CStr = c"ENTITY";
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum SpawnResult {
@@ -205,19 +207,24 @@ pub trait ServerDll: UnsyncGlobal {
             ev.nextthink = ev.ltime + delta;
         }
 
-        let start_offset = save_data.offset();
-        {
-            let writer = &mut SaveWriter::new(engine);
-            if let Err(err) = entity.save(writer, save_data) {
-                error!("failed to save {}, {err}", entity.classname());
-            }
+        let location = save_data.offset();
+        let (buffer, data) = save_data.split_mut();
+        let mut state = save::SaveState::new(engine, data);
+        let mut cur = save::CursorMut::new(buffer.as_slice_mut());
+        let start_offset = cur.offset();
+        let res = cur.write_field(&mut state, ENTITY_SAVE_NAME, entity);
+        let size = cur.offset() - start_offset;
+        if let Err(err) = res {
+            let classname = entity.classname();
+            error!("dispatch_save: failed to save an entity {classname}, {err}");
+        } else if let Err(err) = buffer.advance(size) {
+            error!("dispatch_save: failed to advance the save buffer by {size} bytes, {err}");
         }
-        let end_offset = save_data.offset();
 
         let table = &mut save_data.table_mut()[current_index];
         table.classname = entity.vars().as_raw().classname;
-        table.location = start_offset as i32;
-        table.size = (end_offset - start_offset) as i32;
+        table.location = location as i32;
+        table.size = size as i32;
     }
 
     fn dispatch_restore(
@@ -238,7 +245,7 @@ pub trait ServerDll: UnsyncGlobal {
                 .unwrap();
         }
 
-        let mut reader = SaveReader::new(engine);
+        let mut global_mode = false;
         let mut old_offset = vec3_t::ZERO;
         if global_entity {
             let tmp_vars = unsafe { global_vars.assume_init_mut() };
@@ -256,7 +263,7 @@ pub trait ServerDll: UnsyncGlobal {
             let globalname = tmp_vars.globalname().unwrap();
             if let Some(mut new_ent) = engine.find_global_entity(classname, globalname) {
                 let new_ent = unsafe { new_ent.as_mut() };
-                reader.global_mode(true);
+                global_mode = true;
                 let mut landmark_offset = save_data.landmark_offset();
                 landmark_offset -= new_ent.v.mins;
                 landmark_offset += tmp_vars.mins;
@@ -274,9 +281,25 @@ pub trait ServerDll: UnsyncGlobal {
         let Some(entity) = ent.get_entity_mut() else {
             return RestoreResult::Ok;
         };
-        if let Err(err) = entity.restore(&mut reader, save_data) {
-            error!("dispatch_restore: entity restore error, {err}");
+
+        let (buffer, data) = save_data.split_mut();
+        let mut state = save::RestoreState::new(engine, data);
+        state.set_global(global_mode);
+        let mut cur = save::Cursor::new(buffer.as_slice());
+        let start_offset = cur.offset();
+        let result = cur.read_field().and_then(|field| {
+            let name = state.token_str(field.token());
+            assert_eq!(name, Some(ENTITY_SAVE_NAME.into()));
+            entity.restore(&state, &mut field.cursor())
+        });
+        let size = cur.offset() - start_offset;
+        if let Err(err) = result {
+            error!("dispatch_restore: failed to restore an entity, {err}");
         }
+        if let Err(err) = buffer.advance(size) {
+            error!("dispatch_restore: failed to advance restore buffer by {size} bytes, {err}");
+        }
+
         if entity.object_caps().intersects(ObjectCaps::MUST_SPAWN) {
             entity.spawn();
         } else {
@@ -319,7 +342,7 @@ pub trait ServerDll: UnsyncGlobal {
     unsafe fn save_write_fields(
         &self,
         save_data: &mut SaveRestoreData,
-        name: &CStrThin,
+        name: &'static CStrThin,
         base_data: *mut c_void,
         fields: &mut [TYPEDESCRIPTION],
     ) {

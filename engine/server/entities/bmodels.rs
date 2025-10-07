@@ -8,9 +8,11 @@ use crate::{
     entity::{
         delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, ObjectCaps, UseType,
     },
+    save::{Restore, Save},
     str::MapString,
 };
 
+#[derive(Save, Restore)]
 pub struct FuncWall {
     base: BaseEntity,
 }

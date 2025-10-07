@@ -33,6 +33,41 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a7a70ba024b9dc04c27ea2f0c0548feb474ec5c54bba33a7f72f873a39d07b24"
 
 [[package]]
+name = "proc-macro2"
+version = "1.0.101"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "89ae43fd86e4158d6db51ad8e2b80f313af9cc74f5c0e03ccb87de09998732de"
+dependencies = [
+ "unicode-ident",
+]
+
+[[package]]
+name = "quote"
+version = "1.0.41"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ce25767e7b499d1b604768e7cde645d14cc8584231ea6b295e9c9eb22c02e1d1"
+dependencies = [
+ "proc-macro2",
+]
+
+[[package]]
+name = "syn"
+version = "2.0.106"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ede7c438028d4436d71104916910f5bb611972c5cfd7f89b8300a8186e6fada6"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "unicode-ident",
+]
+
+[[package]]
+name = "unicode-ident"
+version = "1.0.19"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f63a545481291138910575129486daeaf8ac54aee4387fe7906919f7830c7d9d"
+
+[[package]]
 name = "xash3d-allocator"
 version = "0.1.0"
 dependencies = [
@@ -132,7 +167,17 @@ dependencies = [
  "log",
  "xash3d-hl-resources",
  "xash3d-player-move",
+ "xash3d-server-derive",
  "xash3d-shared",
+]
+
+[[package]]
+name = "xash3d-server-derive"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]

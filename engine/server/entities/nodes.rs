@@ -1,12 +1,18 @@
 use xash3d_shared::{consts::SOLID_NOT, entity::MoveType};
 
-use crate::entity::{
-    delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, KeyValue, ObjectCaps,
+use crate::{
+    entity::{
+        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, KeyValue, ObjectCaps,
+    },
+    save::{Restore, Save},
 };
 
+#[derive(Save, Restore)]
 pub struct NodeEntity {
     base: BaseEntity,
+    #[save(skip)]
     hint_type: u16,
+    #[save(skip)]
     hint_activity: u16,
 }
 

@@ -1,28 +1,22 @@
 use core::{ffi::CStr, ptr};
 
-use xash3d_shared::ffi::{common::vec3_t, server::TYPEDESCRIPTION};
+use xash3d_shared::ffi::common::vec3_t;
 
 use crate::{
     engine::TraceIgnore,
     entity::{
-        delegate_entity, impl_entity_cast, impl_save_restore, BaseEntity, CreateEntity, Entity,
-        KeyValue, UseType,
+        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, KeyValue, UseType,
     },
     global_state::GlobalStateRef,
     prelude::*,
-    save::{define_fields, SaveFields},
+    save::{Restore, Save},
     str::MapString,
 };
 
+#[derive(Save, Restore)]
 pub struct Decal {
     base: BaseEntity,
     state: u8,
-}
-
-unsafe impl SaveFields for Decal {
-    const SAVE_NAME: &'static CStr = c"Decal";
-
-    const SAVE_FIELDS: &'static [TYPEDESCRIPTION] = &define_fields![state];
 }
 
 impl Decal {
@@ -61,8 +55,7 @@ impl CreateEntity for Decal {
 }
 
 impl Entity for Decal {
-    delegate_entity!(base not { key_value, save, restore, spawn, think, used });
-    impl_save_restore!(base);
+    delegate_entity!(base not { key_value, spawn, think, used });
 
     fn key_value(&mut self, data: &mut KeyValue) {
         if data.key_name() == c"texture" {
@@ -129,8 +122,10 @@ impl Entity for Decal {
 
 pub type InstallGameRulesFn = fn(ServerEngineRef, GlobalStateRef);
 
+#[derive(Save, Restore)]
 pub struct World {
     base: BaseEntity,
+    #[save(skip)]
     install_game_rules: InstallGameRulesFn,
 }
 

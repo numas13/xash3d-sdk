@@ -13,7 +13,7 @@ use xash3d_shared::{
     consts::{SOLID_BSP, SOLID_NOT, SOLID_SLIDEBOX, SOLID_TRIGGER},
     ffi::{
         common::{entity_state_s, vec3_t},
-        server::{edict_s, entvars_s, KeyValueData, TYPEDESCRIPTION},
+        server::{edict_s, entvars_s, KeyValueData},
     },
     macros::const_assert_size_of_field_eq,
     math::{fabsf, ToAngleVectors},
@@ -23,7 +23,7 @@ use xash3d_shared::{
 use crate::{
     engine::ServerEngineRef,
     global_state::{EntityState, GlobalStateRef},
-    save::{FieldType, SaveFields, SaveReader, SaveRestoreData, SaveResult, SaveWriter},
+    save::{self, FieldType, Restore, Save, SaveFields, SaveResult},
     str::MapString,
 };
 
@@ -363,6 +363,18 @@ impl EntityVars {
     }
 }
 
+impl Save for EntityVars {
+    fn save(&self, state: &mut save::SaveState, cur: &mut save::CursorMut) -> SaveResult<()> {
+        save::write_fields(state, cur, self.as_raw())
+    }
+}
+
+impl Restore for EntityVars {
+    fn restore(&mut self, state: &save::RestoreState, cur: &mut save::Cursor) -> SaveResult<()> {
+        save::read_fields(state, cur, self.as_raw_mut())
+    }
+}
+
 pub trait CreateEntity: Entity {
     fn create(base: BaseEntity) -> Self;
 }
@@ -411,7 +423,7 @@ pub trait EntityCast: 'static {
 
 define_entity_trait! {
     /// The base trait for all entities.
-    pub trait Entity(delegate_entity): (EntityCast + AsEdict) {
+    pub trait Entity(delegate_entity): (Save + Restore + EntityCast + AsEdict) {
         fn private(&self) -> &::xash3d_server::entity::PrivateData;
 
         fn private_mut(&mut self) -> &mut ::xash3d_server::entity::PrivateData;
@@ -467,18 +479,6 @@ define_entity_trait! {
         fn is_dormant(&self) -> bool {
             self.vars().flags().intersects(EdictFlags::DORMANT)
         }
-
-        fn save(
-            &mut self,
-            writer: &mut ::xash3d_server::save::SaveWriter,
-            save_data: &mut ::xash3d_server::save::SaveRestoreData,
-        ) -> ::xash3d_server::save::SaveResult<()>;
-
-        fn restore(
-            &mut self,
-            reader: &mut ::xash3d_server::save::SaveReader,
-            save_data: &mut ::xash3d_server::save::SaveRestoreData,
-        ) -> ::xash3d_server::save::SaveResult<()>;
 
         fn key_value(&mut self, data: &mut ::xash3d_server::entity::KeyValue) {
             data.set_handled(false);
@@ -572,17 +572,27 @@ pub fn fire_targets(
 }
 
 /// Base type for all entities.
-#[derive(Debug)]
+#[derive(Debug, Save, Restore)]
 pub struct BaseEntity {
+    #[save(skip)]
     pub engine: ServerEngineRef,
+    #[save(skip)]
     pub global_state: GlobalStateRef,
     pub vars: EntityVars,
 }
 
-unsafe impl SaveFields for BaseEntity {
-    const SAVE_NAME: &'static CStr = c"BASE";
-
-    const SAVE_FIELDS: &'static [TYPEDESCRIPTION] = &[];
+impl save::OnRestore for BaseEntity {
+    fn on_restore(&mut self) {
+        let ev = self.vars.as_raw();
+        if let (true, Some(model)) = (ev.modelindex != 0, ev.model()) {
+            let mins = ev.mins;
+            let maxs = ev.maxs;
+            let engine = self.engine();
+            engine.precache_model(&model);
+            engine.set_model(self, &model);
+            engine.set_size(self, mins, maxs);
+        }
+    }
 }
 
 impl_entity_cast!(BaseEntity);
@@ -610,33 +620,6 @@ impl Entity for BaseEntity {
 
     fn vars_mut(&mut self) -> &mut EntityVars {
         &mut self.vars
-    }
-
-    fn save(&mut self, writer: &mut SaveWriter, save_data: &mut SaveRestoreData) -> SaveResult<()> {
-        writer.write_fields(save_data, self.vars_mut().as_raw_mut())?;
-        writer.write_fields(save_data, self)
-    }
-
-    fn restore(
-        &mut self,
-        reader: &mut SaveReader,
-        save_data: &mut SaveRestoreData,
-    ) -> SaveResult<()> {
-        let status = reader
-            .read_fields(save_data, self.vars_mut().as_raw_mut())
-            .and_then(|_| reader.read_fields(save_data, self));
-
-        let ev = self.vars.as_raw();
-        if let (true, Some(model)) = (ev.modelindex != 0, ev.model()) {
-            let mins = ev.mins;
-            let maxs = ev.maxs;
-            let engine = self.engine();
-            engine.precache_model(&model);
-            engine.set_model(self, &model);
-            engine.set_size(self, mins, maxs);
-        }
-
-        status
     }
 }
 
@@ -794,6 +777,7 @@ impl EntityVarsExt for entvars_s {
     }
 }
 
+#[derive(Save, Restore)]
 pub struct StubEntity {
     base: BaseEntity,
     dump_key_value: bool,
