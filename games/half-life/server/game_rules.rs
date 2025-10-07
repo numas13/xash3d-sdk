@@ -1,4 +1,4 @@
-use core::ffi::CStr;
+use core::{any::Any, ffi::CStr};
 
 use xash3d_server::{game_rules::GameRules, global_state::GlobalStateRef, prelude::*};
 
@@ -15,6 +15,10 @@ impl HalfLifeRules {
 }
 
 impl GameRules for HalfLifeRules {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
     fn engine(&self) -> ServerEngineRef {
         self.engine
     }

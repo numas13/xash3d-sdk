@@ -9,6 +9,8 @@ use crate::{
 };
 
 pub trait GameRules: Any {
+    fn as_any(&self) -> &dyn Any;
+
     fn engine(&self) -> ServerEngineRef;
 
     fn is_multiplayer(&self) -> bool {
@@ -60,7 +62,7 @@ impl dyn GameRules {
     where
         T: Any,
     {
-        (self as &dyn Any).downcast_ref::<T>()
+        self.as_any().downcast_ref::<T>()
     }
 }
 
@@ -79,6 +81,10 @@ impl StubGameRules {
 }
 
 impl GameRules for StubGameRules {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
     fn engine(&self) -> ServerEngineRef {
         self.engine
     }
