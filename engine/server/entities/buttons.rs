@@ -2,6 +2,8 @@ use core::ffi::CStr;
 
 use xash3d_shared::ffi::common::vec3_t;
 
+#[cfg(feature = "save")]
+use crate::save::{self, Restore, Save};
 use crate::{
     engine::ServerEngineRef,
     entity::{
@@ -9,7 +11,6 @@ use crate::{
         UseType,
     },
     prelude::*,
-    save::{self, Restore, Save},
     user_message,
 };
 
@@ -23,6 +24,7 @@ enum EnvSparkState {
     AlwaysOn,
 }
 
+#[cfg(feature = "save")]
 impl Save for EnvSparkState {
     fn save(&self, _: &mut save::SaveState, cur: &mut save::CursorMut) -> save::SaveResult<()> {
         cur.write_u8(*self as u8)?;
@@ -30,6 +32,7 @@ impl Save for EnvSparkState {
     }
 }
 
+#[cfg(feature = "save")]
 impl Restore for EnvSparkState {
     fn restore(&mut self, _: &save::RestoreState, cur: &mut save::Cursor) -> save::SaveResult<()> {
         match cur.read_u8()? {
@@ -42,7 +45,7 @@ impl Restore for EnvSparkState {
     }
 }
 
-#[derive(Save, Restore)]
+#[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct EnvSpark {
     base: BaseEntity,
     delay: f32,

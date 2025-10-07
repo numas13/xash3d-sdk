@@ -1,14 +1,15 @@
 use xash3d_shared::{consts::SOLID_NOT, entity::MoveType};
 
+#[cfg(feature = "save")]
+use crate::save::{Restore, Save};
 use crate::{
     entities::subs::PointEntity,
     entity::{delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity},
-    save::{Restore, Save},
     str::MapString,
     time::MapTime,
 };
 
-#[derive(Save, Restore)]
+#[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct Glow {
     base: PointEntity,
     last_time: MapTime,

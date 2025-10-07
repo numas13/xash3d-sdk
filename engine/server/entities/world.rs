@@ -2,6 +2,8 @@ use core::{ffi::CStr, ptr};
 
 use xash3d_shared::ffi::common::vec3_t;
 
+#[cfg(feature = "save")]
+use crate::save::{Restore, Save};
 use crate::{
     engine::TraceIgnore,
     entity::{
@@ -9,11 +11,10 @@ use crate::{
     },
     global_state::GlobalStateRef,
     prelude::*,
-    save::{Restore, Save},
     str::MapString,
 };
 
-#[derive(Save, Restore)]
+#[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct Decal {
     base: BaseEntity,
     state: u8,
@@ -122,10 +123,10 @@ impl Entity for Decal {
 
 pub type InstallGameRulesFn = fn(ServerEngineRef, GlobalStateRef);
 
-#[derive(Save, Restore)]
+#[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct World {
     base: BaseEntity,
-    #[save(skip)]
+    #[cfg_attr(feature = "save", save(skip))]
     install_game_rules: InstallGameRulesFn,
 }
 

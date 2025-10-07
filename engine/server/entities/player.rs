@@ -6,23 +6,25 @@ use xash3d_shared::{
     ffi::server::edict_s,
 };
 
+#[cfg(feature = "save")]
+use crate::save::{Restore, Save};
 use crate::{
     entity::{
         delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, EntityPlayer,
         ObjectCaps,
     },
     prelude::*,
-    save::{self, Restore, Save},
 };
 
-#[derive(Save, Restore)]
+#[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct Player {
     base: BaseEntity,
 }
 
 impl_entity_cast!(Player);
 
-impl save::OnRestore for Player {
+#[cfg(feature = "save")]
+impl crate::save::OnRestore for Player {
     fn on_restore(&mut self) {
         let engine = self.base.engine;
 

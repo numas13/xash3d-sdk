@@ -1,11 +1,12 @@
 use xash3d_shared::consts::SOLID_NOT;
 
-use crate::{
-    entity::{delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, ObjectCaps},
-    save::{Restore, Save},
+use crate::entity::{
+    delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, ObjectCaps,
 };
+#[cfg(feature = "save")]
+use crate::save::{Restore, Save};
 
-#[derive(Save, Restore)]
+#[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct PointEntity {
     base: BaseEntity,
 }

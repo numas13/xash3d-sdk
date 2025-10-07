@@ -13,18 +13,20 @@ use xash3d_shared::{
     },
 };
 
+#[cfg(feature = "save")]
+use crate::save::{Restore, Save};
 use crate::{
     entity::{
         delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, KeyValue, ObjectCaps,
     },
     prelude::*,
-    save::{Restore, Save, SaveRestoreData},
+    save::SaveRestoreData,
     str::MapString,
 };
 
 const MAP_NAME_MAX: usize = 32;
 
-#[derive(Save, Restore)]
+#[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct ChangeLevel {
     base: BaseEntity,
     map_name: CStrArray<MAP_NAME_MAX>,

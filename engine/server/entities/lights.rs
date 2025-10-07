@@ -1,13 +1,14 @@
+#[cfg(feature = "save")]
+use crate::save::{Restore, Save};
 use crate::{
     entities::subs::PointEntity,
     entity::{
         delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, KeyValue, UseType,
     },
-    save::{Restore, Save},
     str::MapString,
 };
 
-#[derive(Save, Restore)]
+#[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct Light {
     base: PointEntity,
     style: i32,

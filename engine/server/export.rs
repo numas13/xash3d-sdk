@@ -2,7 +2,6 @@ use core::{
     ffi::{c_char, c_int, c_short, c_uchar, c_uint, c_void, CStr},
     fmt::Write,
     marker::PhantomData,
-    mem::MaybeUninit,
     ptr::{self, NonNull},
     slice,
     sync::atomic::{AtomicBool, Ordering},
@@ -13,7 +12,7 @@ use xash3d_player_move::{VEC_DUCK_HULL_MIN, VEC_HULL_MIN};
 use xash3d_shared::{
     consts::{EFLAG_SLERP, ENTITY_BEAM, ENTITY_NORMAL},
     engine::net::netadr_s,
-    entity::{EdictFlags, Effects, MoveType},
+    entity::{EdictFlags, Effects},
     ffi::{
         common::{
             clientdata_s, customization_s, entity_state_s, qboolean, usercmd_s, vec3_t,
@@ -21,7 +20,7 @@ use xash3d_shared::{
         },
         player_move::playermove_s,
         server::{
-            edict_s, entvars_s, KeyValueData, DLL_FUNCTIONS, NEW_DLL_FUNCTIONS, SAVERESTOREDATA,
+            edict_s, KeyValueData, DLL_FUNCTIONS, NEW_DLL_FUNCTIONS, SAVERESTOREDATA,
             TYPEDESCRIPTION,
         },
     },
@@ -31,17 +30,18 @@ use xash3d_shared::{
 use crate::{
     entities::triggers,
     entity::{
-        BaseEntity, CreateEntity, Entity, EntityPlayer, EntityVars, KeyValue, ObjectCaps,
-        PrivateData, PrivateEntity, RestoreResult, UseType,
+        BaseEntity, CreateEntity, Entity, EntityPlayer, EntityVars, KeyValue, PrivateData,
+        PrivateEntity, RestoreResult, UseType,
     },
     global_state::{EntityState, GlobalState, GlobalStateRef},
     prelude::*,
-    save::{self, SaveReader, SaveRestoreData, SaveWriter},
+    save::{SaveReader, SaveRestoreData, SaveWriter},
     utils::slice_from_raw_parts_or_empty_mut,
 };
 
 pub use xash3d_shared::export::{impl_unsync_global, UnsyncGlobal};
 
+#[cfg(feature = "save")]
 const ENTITY_SAVE_NAME: &CStr = c"ENTITY";
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -187,7 +187,29 @@ pub trait ServerDll: UnsyncGlobal {
         }
     }
 
+    #[cfg(not(feature = "save"))]
+    fn dispatch_save(&self, _ent: &mut edict_s, _save_data: &mut SaveRestoreData) {
+        error!("dispatch_save: feature \"save\" is not enabled");
+    }
+
+    #[cfg(not(feature = "save"))]
+    fn dispatch_restore(
+        &self,
+        _ent: &mut edict_s,
+        _save_data: &mut SaveRestoreData,
+        _global_entity: bool,
+    ) -> RestoreResult {
+        error!("dispatch_restore: feature \"save\" is not enabled");
+        RestoreResult::Ok
+    }
+
+    #[cfg(feature = "save")]
     fn dispatch_save(&self, ent: &mut edict_s, save_data: &mut SaveRestoreData) {
+        use crate::{
+            entity::{MoveType, ObjectCaps},
+            save,
+        };
+
         let engine = self.engine();
         let current_index = save_data.current_index();
         if save_data.table()[current_index].pent != ent {
@@ -227,12 +249,19 @@ pub trait ServerDll: UnsyncGlobal {
         table.size = size as i32;
     }
 
+    #[cfg(feature = "save")]
     fn dispatch_restore(
         &self,
         mut ent: &mut edict_s,
         save_data: &mut SaveRestoreData,
         global_entity: bool,
     ) -> RestoreResult {
+        use core::mem::MaybeUninit;
+
+        use xash3d_shared::ffi::server::entvars_s;
+
+        use crate::{entity::ObjectCaps, save};
+
         let engine = self.engine();
         let global_state = self.global_state();
 

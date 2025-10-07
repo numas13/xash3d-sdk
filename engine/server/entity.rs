@@ -20,10 +20,12 @@ use xash3d_shared::{
     utils::cstr_or_none,
 };
 
+#[cfg(feature = "save")]
+use crate::save::{self, Restore, Save, SaveResult};
 use crate::{
     engine::ServerEngineRef,
     global_state::{EntityState, GlobalStateRef},
-    save::{self, FieldType, Restore, Save, SaveFields, SaveResult},
+    save::{FieldType, SaveFields},
     str::MapString,
 };
 
@@ -363,13 +365,15 @@ impl EntityVars {
     }
 }
 
-impl Save for EntityVars {
+#[cfg(feature = "save")]
+impl save::Save for EntityVars {
     fn save(&self, state: &mut save::SaveState, cur: &mut save::CursorMut) -> SaveResult<()> {
         save::write_fields(state, cur, self.as_raw())
     }
 }
 
-impl Restore for EntityVars {
+#[cfg(feature = "save")]
+impl save::Restore for EntityVars {
     fn restore(&mut self, state: &save::RestoreState, cur: &mut save::Cursor) -> SaveResult<()> {
         save::read_fields(state, cur, self.as_raw_mut())
     }
@@ -421,9 +425,21 @@ pub trait EntityCast: 'static {
     fn as_player_mut(&mut self) -> Option<&mut dyn EntityPlayer>;
 }
 
+#[cfg(feature = "save")]
+pub trait EntitySaveRestore: Save + Restore {}
+
+#[cfg(feature = "save")]
+impl<T: Save + Restore> EntitySaveRestore for T {}
+
+#[cfg(not(feature = "save"))]
+pub trait EntitySaveRestore {}
+
+#[cfg(not(feature = "save"))]
+impl<T> EntitySaveRestore for T {}
+
 define_entity_trait! {
     /// The base trait for all entities.
-    pub trait Entity(delegate_entity): (Save + Restore + EntityCast + AsEdict) {
+    pub trait Entity(delegate_entity): (EntitySaveRestore + EntityCast + AsEdict) {
         fn private(&self) -> &::xash3d_server::entity::PrivateData;
 
         fn private_mut(&mut self) -> &mut ::xash3d_server::entity::PrivateData;
@@ -572,15 +588,17 @@ pub fn fire_targets(
 }
 
 /// Base type for all entities.
-#[derive(Debug, Save, Restore)]
+#[derive(Debug)]
+#[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct BaseEntity {
-    #[save(skip)]
+    #[cfg_attr(feature = "save", save(skip))]
     pub engine: ServerEngineRef,
-    #[save(skip)]
+    #[cfg_attr(feature = "save", save(skip))]
     pub global_state: GlobalStateRef,
     pub vars: EntityVars,
 }
 
+#[cfg(feature = "save")]
 impl save::OnRestore for BaseEntity {
     fn on_restore(&mut self) {
         let ev = self.vars.as_raw();
@@ -777,7 +795,7 @@ impl EntityVarsExt for entvars_s {
     }
 }
 
-#[derive(Save, Restore)]
+#[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct StubEntity {
     base: BaseEntity,
     dump_key_value: bool,

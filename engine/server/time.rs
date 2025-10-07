@@ -1,7 +1,5 @@
 use core::{cmp, ops, time::Duration};
 
-use crate::save;
-
 #[derive(Copy, Clone, Debug, Default, PartialEq, PartialOrd)]
 pub struct MapTime(f32);
 
@@ -30,24 +28,6 @@ impl From<f32> for MapTime {
 impl From<MapTime> for f32 {
     fn from(value: MapTime) -> Self {
         value.0
-    }
-}
-
-impl save::Save for MapTime {
-    fn save(&self, state: &mut save::SaveState, cur: &mut save::CursorMut) -> save::SaveResult<()> {
-        cur.write_f32_le(self.0 - state.time())?;
-        Ok(())
-    }
-}
-
-impl save::Restore for MapTime {
-    fn restore(
-        &mut self,
-        state: &save::RestoreState,
-        cur: &mut save::Cursor,
-    ) -> save::SaveResult<()> {
-        self.0 = cur.read_f32_le()? + state.time();
-        Ok(())
     }
 }
 

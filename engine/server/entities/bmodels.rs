@@ -4,15 +4,16 @@ use xash3d_shared::{
     ffi::common::vec3_t,
 };
 
+#[cfg(feature = "save")]
+use crate::save::{Restore, Save};
 use crate::{
     entity::{
         delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, ObjectCaps, UseType,
     },
-    save::{Restore, Save},
     str::MapString,
 };
 
-#[derive(Save, Restore)]
+#[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct FuncWall {
     base: BaseEntity,
 }

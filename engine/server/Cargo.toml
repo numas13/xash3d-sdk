@@ -7,8 +7,9 @@ edition.workspace = true
 rust-version.workspace = true
 
 [features]
-default = []
+default = ["save"]
 export-default-entities = []
+save = ["dep:xash3d-server-derive"]
 
 [lib]
 path = "lib.rs"
@@ -19,7 +20,7 @@ bitflags.workspace = true
 csz.workspace = true
 xash3d-shared.workspace = true
 xash3d-player-move.workspace = true
-xash3d-server-derive.workspace = true
+xash3d-server-derive = { workspace = true, optional = true }
 res.workspace = true
 
 [lints]

@@ -1,6 +1,8 @@
-use core::{cmp, ffi::CStr, mem};
+use core::{cmp, mem};
 
-use crate::save::{Save, SaveError, SaveResult, SaveState, Token};
+#[cfg(feature = "save")]
+use crate::save::{Save, SaveState};
+use crate::save::{SaveError, SaveResult, Token};
 
 #[derive(Copy, Clone, Default, Debug, PartialEq, Eq)]
 pub struct Header {
@@ -397,10 +399,11 @@ impl<'a> CursorMut<'a> {
         self.write_u16_le(token.to_u16())
     }
 
+    #[cfg(feature = "save")]
     pub fn write_field<T: Save + ?Sized>(
         &mut self,
         state: &mut SaveState,
-        name: &'static CStr,
+        name: &'static core::ffi::CStr,
         value: &T,
     ) -> SaveResult<()> {
         let header_offset = self.skip(4)?;
