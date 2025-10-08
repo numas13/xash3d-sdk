@@ -134,7 +134,16 @@ impl Entity for DelayedUse {
     delegate_entity!(base not { think });
 
     fn think(&mut self) {
+        if let Some(activator) = unsafe { self.vars().as_raw().owner.as_mut() } {
+            if let Some(activator) = activator.get_entity_mut() {
+                utils::use_targets(self.kill_target, self.use_type, 0.0, activator, Some(self));
+                self.remove_from_world();
+                return;
+            }
+        }
+
         utils::use_targets(self.kill_target, self.use_type, 0.0, self, None);
+        self.remove_from_world();
     }
 }
 
