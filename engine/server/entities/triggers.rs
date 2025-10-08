@@ -3,7 +3,7 @@ use core::ptr::{self, NonNull};
 use bitflags::bitflags;
 use csz::{cstr, CStrArray, CStrThin};
 use xash3d_shared::{
-    consts::SOLID_TRIGGER,
+    consts::{SOLID_NOT, SOLID_TRIGGER},
     entity::{EdictFlags, Effects, MoveType},
     ffi::{
         common::vec3_t,
@@ -14,7 +14,7 @@ use xash3d_shared::{
 #[cfg(feature = "save")]
 use crate::save::{Restore, Save};
 use crate::{
-    entities::subs::DelayedUse,
+    entities::subs::{DelayedUse, PointEntity},
     entity::{
         delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, EntityPlayer,
         EntityVars, KeyValue, ObjectCaps, UseType,
@@ -360,6 +360,36 @@ impl Entity for TriggerSave {
 }
 
 #[cfg_attr(feature = "save", derive(Save, Restore))]
+pub struct TriggerVolume {
+    base: PointEntity,
+}
+
+impl_entity_cast!(TriggerVolume);
+
+impl CreateEntity for TriggerVolume {
+    fn create(base: BaseEntity) -> Self {
+        Self {
+            base: PointEntity::create(base),
+        }
+    }
+}
+
+impl Entity for TriggerVolume {
+    delegate_entity!(base not { spawn });
+
+    fn spawn(&mut self) {
+        if let Some(model) = self.vars().model() {
+            self.engine().set_model(self, &model);
+        }
+        let ev = self.vars_mut().as_raw_mut();
+        ev.solid = SOLID_NOT;
+        ev.movetype = MoveType::None.into();
+        ev.model = 0;
+        ev.modelindex = 0;
+    }
+}
+
+#[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct ChangeLevel {
     base: BaseEntity,
     map_name: CStrArray<MAP_NAME_MAX>,
@@ -637,6 +667,7 @@ mod exports {
     export_entity!(trigger_autosave, Private<super::TriggerSave>);
     export_entity!(trigger_multiple, Private<super::TriggerMultiple>);
     export_entity!(trigger_once, Private<super::TriggerOnce>);
+    export_entity!(trigger_transition, Private<super::TriggerVolume>);
     export_entity!(trigger_changelevel, Private<super::ChangeLevel>);
 
     export_entity!(env_render, Private<StubEntity>);
@@ -658,5 +689,4 @@ mod exports {
     export_entity!(trigger_push, Private<StubEntity>);
     export_entity!(trigger_relay, Private<StubEntity>);
     export_entity!(trigger_teleport, Private<StubEntity>);
-    export_entity!(trigger_transition, Private<StubEntity>);
 }
