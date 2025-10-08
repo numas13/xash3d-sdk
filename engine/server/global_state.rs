@@ -195,7 +195,7 @@ impl GlobalState {
         Ref::map(self.game_rules.borrow(), |i| i.as_ref())
     }
 
-    pub fn game_rules_mut(&mut self) -> RefMut<'_, dyn GameRules> {
+    pub fn game_rules_mut(&self) -> RefMut<'_, dyn GameRules> {
         RefMut::map(self.game_rules.borrow_mut(), |i| i.as_mut())
     }
 
