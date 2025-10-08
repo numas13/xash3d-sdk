@@ -4,11 +4,12 @@ use xash3d_hl_shared::user_message;
 use xash3d_server::{
     entities::player::Player as BasePlayer,
     entity::{
-        delegate_entity, delegate_player, fire_targets, impl_entity_cast, AsEdict, BaseEntity,
-        CreateEntity, Effects, Entity, EntityPlayer, UseType::Toggle,
+        delegate_entity, delegate_player, impl_entity_cast, AsEdict, BaseEntity, CreateEntity,
+        Effects, Entity, EntityPlayer, UseType::Toggle,
     },
     save::{Restore, Save},
     time::MapTime,
+    utils,
 };
 
 const WEAPON_SUIT: i32 = (1_u32 << 31) as i32;
@@ -104,7 +105,7 @@ impl TestPlayer {
                 engine.msg_one(self, &user_message::InitHUD::default());
             }
 
-            fire_targets(c"game_playerspawn".into(), self, None, Toggle, 0.0);
+            utils::fire_targets(c"game_playerspawn".into(), Toggle, 0.0, self, None);
 
             let msg =
                 user_message::Flashlight::new(self.is_flashlight_on(), self.flashlight_battery);

@@ -239,6 +239,7 @@ impl EntityVars {
     /// Ask the engine to remove this entity at the appropriate time.
     pub fn delayed_remove(&mut self) {
         self.flags_mut().insert(EdictFlags::KILLME);
+        self.as_raw_mut().targetname = 0;
     }
 
     pub fn effects(&self) -> Effects {
@@ -575,23 +576,15 @@ impl dyn Entity {
     }
 }
 
+#[deprecated(note = "moved to utils module")]
 pub fn fire_targets(
     target_name: &CStrThin,
     activator: &mut dyn Entity,
-    mut caller: Option<&mut dyn Entity>,
+    caller: Option<&mut dyn Entity>,
     use_type: UseType,
     value: f32,
 ) {
-    let engine = activator.engine();
-    trace!("Firing: ({target_name})");
-    for mut target in engine.find_ent_by_targetname_iter(target_name) {
-        if let Some(target) = unsafe { target.as_mut() }.get_entity_mut() {
-            if !target.vars().flags().intersects(EdictFlags::KILLME) {
-                trace!("Found: {}, firing ({target_name})", target.classname());
-                target.used(activator, caller.as_deref_mut(), use_type, value);
-            }
-        }
-    }
+    crate::utils::fire_targets(target_name, use_type, value, activator, caller)
 }
 
 /// Base type for all entities.

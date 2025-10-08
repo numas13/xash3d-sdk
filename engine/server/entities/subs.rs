@@ -4,8 +4,10 @@ use xash3d_shared::consts::SOLID_NOT;
 use crate::save::{Restore, Save};
 use crate::{
     entity::{
-        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, KeyValue, ObjectCaps,
+        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, EntityPlayer,
+        KeyValue, ObjectCaps, Private, UseType,
     },
+    prelude::*,
     str::MapString,
     utils,
 };
@@ -74,6 +76,65 @@ impl Entity for DeathMatchStart {
         } else {
             true
         }
+    }
+}
+
+#[cfg_attr(feature = "save", derive(Save, Restore))]
+pub struct DelayedUse {
+    base: BaseEntity,
+    use_type: UseType,
+    kill_target: Option<MapString>,
+}
+
+impl DelayedUse {
+    pub fn new(base: BaseEntity, use_type: UseType, kill_target: Option<MapString>) -> Self {
+        Self {
+            base,
+            use_type,
+            kill_target,
+        }
+    }
+
+    pub fn create(
+        engine: ServerEngineRef,
+        delay: f32,
+        target: Option<MapString>,
+        use_type: UseType,
+        kill_target: Option<MapString>,
+        activator: Option<&mut dyn Entity>,
+    ) {
+        if target.is_none() && kill_target.is_none() {
+            return;
+        }
+
+        let temp = engine
+            .new_entity_with::<Private<DelayedUse>>(|base| {
+                DelayedUse::new(base, use_type, kill_target)
+            })
+            .class_name(c"DelayedUse")
+            .vars(|e| {
+                e.set_next_think_time(delay);
+                if let Some(target) = target {
+                    e.as_raw_mut().target = target.index();
+                }
+            })
+            .build();
+
+        if let Some(activator) = activator {
+            if activator.downcast_ref::<dyn EntityPlayer>().is_some() {
+                temp.vars_mut().as_raw_mut().owner = activator.as_edict_mut();
+            }
+        }
+    }
+}
+
+impl_entity_cast!(DelayedUse);
+
+impl Entity for DelayedUse {
+    delegate_entity!(base not { think });
+
+    fn think(&mut self) {
+        utils::use_targets(self.kill_target, self.use_type, 0.0, self, None);
     }
 }
 

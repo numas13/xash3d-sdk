@@ -16,15 +16,111 @@ use xash3d_shared::{
 #[cfg(feature = "save")]
 use crate::save::{Restore, Save};
 use crate::{
+    entities::subs::DelayedUse,
     entity::{
         delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, KeyValue, ObjectCaps,
+        UseType,
     },
+    global_state::EntityState,
     prelude::*,
     save::SaveRestoreData,
     str::MapString,
+    utils,
 };
 
 const MAP_NAME_MAX: usize = 32;
+
+#[cfg_attr(feature = "save", derive(Save, Restore))]
+pub struct AutoTrigger {
+    base: BaseEntity,
+    delay: f32,
+    kill_target: Option<MapString>,
+    global_state: Option<MapString>,
+    trigger_type: UseType,
+}
+
+impl AutoTrigger {
+    /// Remove this trigger after firing.
+    const SF_FIREONCE: u32 = 1 << 0;
+}
+
+impl_entity_cast!(AutoTrigger);
+
+impl CreateEntity for AutoTrigger {
+    fn create(base: BaseEntity) -> Self {
+        Self {
+            base,
+            delay: 0.0,
+            kill_target: None,
+            global_state: None,
+            trigger_type: UseType::Off,
+        }
+    }
+}
+
+impl Entity for AutoTrigger {
+    delegate_entity!(base not { object_caps, key_value, precache, spawn, think });
+
+    fn object_caps(&self) -> ObjectCaps {
+        self.base
+            .object_caps()
+            .difference(ObjectCaps::ACROSS_TRANSITION)
+    }
+
+    fn key_value(&mut self, data: &mut KeyValue) {
+        match data.key_name().to_bytes() {
+            b"globalstate" => {
+                self.global_state = Some(self.engine().new_map_string(data.value()));
+            }
+            b"triggerstate" => match data.value().to_bytes() {
+                b"0" => self.trigger_type = UseType::Off,
+                b"2" => self.trigger_type = UseType::Toggle,
+                _ => self.trigger_type = UseType::On,
+            },
+            b"delay" => {
+                self.delay = data.value_str().parse().unwrap_or(0.0);
+            }
+            b"killtarget" => {
+                self.kill_target = Some(self.engine().new_map_string(data.value()));
+            }
+            _ => return self.base.key_value(data),
+        }
+        data.set_handled(true);
+    }
+
+    fn precache(&mut self) {
+        self.vars_mut().set_next_think_time(0.1);
+    }
+
+    fn spawn(&mut self) {
+        self.precache();
+    }
+
+    fn think(&mut self) {
+        if !self.global_state.map_or(true, |name| {
+            self.global_state().entity_state(name) == EntityState::On
+        }) {
+            return;
+        }
+
+        if self.delay != 0.0 {
+            DelayedUse::create(
+                self.engine(),
+                self.delay,
+                self.vars().target(),
+                self.trigger_type,
+                self.kill_target,
+                Some(self),
+            );
+        } else {
+            utils::use_targets(self.kill_target, self.trigger_type, 0.0, self, None);
+        }
+
+        if self.vars().spawn_flags() & Self::SF_FIREONCE != 0 {
+            self.remove_from_world();
+        }
+    }
+}
 
 #[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct ChangeLevel {
@@ -314,6 +410,7 @@ mod exports {
         export::export_entity,
     };
 
+    export_entity!(trigger_auto, Private<super::AutoTrigger>);
     export_entity!(trigger_changelevel, Private<super::ChangeLevel>);
 
     export_entity!(env_render, Private<StubEntity>);
@@ -324,7 +421,6 @@ mod exports {
     export_entity!(multi_manager, Private<StubEntity>);
     export_entity!(target_cdaudio, Private<StubEntity>);
     export_entity!(trigger, Private<StubEntity>);
-    export_entity!(trigger_auto, Private<StubEntity>);
     export_entity!(trigger_autosave, Private<StubEntity>);
     export_entity!(trigger_camera, Private<StubEntity>);
     export_entity!(trigger_cdaudio, Private<StubEntity>);

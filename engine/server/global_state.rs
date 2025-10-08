@@ -21,9 +21,10 @@ use crate::{
     str::MapString,
 };
 
-#[derive(Copy, Clone, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
 #[repr(C)]
 pub enum EntityState {
+    #[default]
     Off,
     On,
     Dead,
@@ -247,6 +248,13 @@ impl GlobalState {
     pub fn reset(&self) {
         self.entities_mut().clear();
         self.init_hud.set(true);
+    }
+
+    pub fn entity_state(&self, name: MapString) -> EntityState {
+        self.entities()
+            .find(name)
+            .map(|ent| ent.state())
+            .unwrap_or_default()
     }
 
     pub fn set_entity_state(&self, name: MapString, state: EntityState) {
