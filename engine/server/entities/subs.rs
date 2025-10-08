@@ -40,14 +40,16 @@ impl Entity for PointEntity {
 
 #[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct DeathMatchStart {
-    base: BaseEntity,
+    base: PointEntity,
 }
 
 impl_entity_cast!(DeathMatchStart);
 
 impl CreateEntity for DeathMatchStart {
     fn create(base: BaseEntity) -> Self {
-        Self { base }
+        Self {
+            base: PointEntity::create(base),
+        }
     }
 }
 
