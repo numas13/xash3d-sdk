@@ -546,7 +546,12 @@ define_entity_trait! {
 
         /// Removes this entity from the world.
         fn remove_from_world(&mut self) {
-            if self.vars().flags().contains(EdictFlags::GRAPHED) {
+            if self.vars().flags().intersects(EdictFlags::KILLME) {
+                warn!("{}: trying to remove dead entity", self.classname());
+                return;
+            }
+
+            if self.vars().flags().intersects(EdictFlags::GRAPHED) {
                 // TODO: remove from the world graph
                 warn!("Entity::update_on_remove(): remove from the world graph is not implemented");
             }

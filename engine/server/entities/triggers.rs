@@ -16,8 +16,8 @@ use crate::save::{Restore, Save};
 use crate::{
     entities::subs::DelayedUse,
     entity::{
-        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, EntityVars, KeyValue,
-        ObjectCaps, UseType,
+        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, EntityPlayer,
+        EntityVars, KeyValue, ObjectCaps, UseType,
     },
     global_state::EntityState,
     prelude::*,
@@ -303,6 +303,63 @@ impl Entity for TriggerOnce {
 }
 
 #[cfg_attr(feature = "save", derive(Save, Restore))]
+pub struct TriggerSave {
+    base: BaseEntity,
+    master: Option<MapString>,
+}
+
+impl_entity_cast!(TriggerSave);
+
+impl CreateEntity for TriggerSave {
+    fn create(base: BaseEntity) -> Self {
+        Self { base, master: None }
+    }
+}
+
+impl Entity for TriggerSave {
+    delegate_entity!(base not { object_caps, key_value, spawn, touched });
+
+    fn object_caps(&self) -> ObjectCaps {
+        self.base
+            .object_caps()
+            .difference(ObjectCaps::ACROSS_TRANSITION)
+    }
+
+    fn key_value(&mut self, data: &mut KeyValue) {
+        if data.key_name() == c"master" {
+            self.master = Some(self.engine().new_map_string(data.value()));
+            data.set_handled(true);
+        } else {
+            self.base.key_value(data);
+        }
+    }
+
+    fn spawn(&mut self) {
+        if self.global_state().game_rules().is_deathmatch() {
+            self.remove_from_world();
+            return;
+        }
+
+        init_trigger(&self.engine(), self.vars_mut());
+    }
+
+    fn touched(&mut self, other: &mut dyn Entity) {
+        let engine = self.engine();
+
+        if let Some(master) = self.master {
+            if !utils::is_master_triggered(&engine, master, other) {
+                return;
+            }
+        }
+
+        if other.downcast_ref::<dyn EntityPlayer>().is_some() {
+            self.remove_from_world();
+            engine.server_command(c"autosave\n");
+        }
+    }
+}
+
+#[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct ChangeLevel {
     base: BaseEntity,
     map_name: CStrArray<MAP_NAME_MAX>,
@@ -577,6 +634,7 @@ mod exports {
     };
 
     export_entity!(trigger_auto, Private<super::AutoTrigger>);
+    export_entity!(trigger_autosave, Private<super::TriggerSave>);
     export_entity!(trigger_multiple, Private<super::TriggerMultiple>);
     export_entity!(trigger_once, Private<super::TriggerOnce>);
     export_entity!(trigger_changelevel, Private<super::ChangeLevel>);
@@ -589,7 +647,6 @@ mod exports {
     export_entity!(multi_manager, Private<StubEntity>);
     export_entity!(target_cdaudio, Private<StubEntity>);
     export_entity!(trigger, Private<StubEntity>);
-    export_entity!(trigger_autosave, Private<StubEntity>);
     export_entity!(trigger_camera, Private<StubEntity>);
     export_entity!(trigger_cdaudio, Private<StubEntity>);
     export_entity!(trigger_changetarget, Private<StubEntity>);
