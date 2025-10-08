@@ -139,7 +139,7 @@ pub trait ServerDll: UnsyncGlobal {
             return;
         };
         if !used.vars().flags().intersects(EdictFlags::KILLME) {
-            used.used(other, None, UseType::Toggle, 0.0);
+            used.used(None, other, UseType::Toggle, 0.0);
         }
     }
 

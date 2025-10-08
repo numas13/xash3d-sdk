@@ -113,7 +113,7 @@ impl Entity for AutoTrigger {
                 Some(self),
             );
         } else {
-            utils::use_targets(self.kill_target, self.trigger_type, 0.0, self, None);
+            utils::use_targets(self.kill_target, self.trigger_type, 0.0, None, self);
         }
 
         if self.vars().spawn_flags() & Self::SF_FIREONCE != 0 {

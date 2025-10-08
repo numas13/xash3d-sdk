@@ -513,8 +513,8 @@ define_entity_trait! {
         #[allow(unused_variables)]
         fn used(
             &mut self,
-            activator: &mut dyn ::xash3d_server::entity::Entity,
-            caller: Option<&mut dyn ::xash3d_server::entity::Entity>,
+            activator: Option<&mut dyn ::xash3d_server::entity::Entity>,
+            caller: &mut dyn ::xash3d_server::entity::Entity,
             use_type: ::xash3d_server::entity::UseType,
             value: f32,
         ) {}
@@ -574,17 +574,6 @@ impl dyn Entity {
     pub fn downcast_mut<U: Entity + ?Sized + 'static>(&mut self) -> Option<&mut U> {
         self.private_mut().downcast_mut::<U>()
     }
-}
-
-#[deprecated(note = "moved to utils module")]
-pub fn fire_targets(
-    target_name: &CStrThin,
-    activator: &mut dyn Entity,
-    caller: Option<&mut dyn Entity>,
-    use_type: UseType,
-    value: f32,
-) {
-    crate::utils::fire_targets(target_name, use_type, value, activator, caller)
 }
 
 /// Base type for all entities.
@@ -866,8 +855,8 @@ impl Entity for StubEntity {
 
     fn used(
         &mut self,
-        activator: &mut dyn Entity,
-        _caller: Option<&mut dyn Entity>,
+        _activator: Option<&mut dyn Entity>,
+        caller: &mut dyn Entity,
         use_type: UseType,
         value: f32,
     ) {
@@ -875,12 +864,12 @@ impl Entity for StubEntity {
         if let Some(name) = self.vars().target_name() {
             trace!(
                 "{classname}({name}) used({use_type:?}, {value}) by {}",
-                activator.name()
+                caller.name()
             );
         } else {
             trace!(
                 "{classname} used({use_type:?}, {value}) by {}",
-                activator.name()
+                caller.name()
             );
         }
     }

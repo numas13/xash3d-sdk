@@ -588,8 +588,8 @@ impl Entity for AmbientGeneric {
     #[allow(unused_variables)]
     fn used(
         &mut self,
-        activator: &mut dyn Entity,
-        caller: Option<&mut dyn Entity>,
+        activator: Option<&mut dyn Entity>,
+        caller: &mut dyn Entity,
         use_type: UseType,
         value: f32,
     ) {

@@ -105,7 +105,7 @@ impl TestPlayer {
                 engine.msg_one(self, &user_message::InitHUD::default());
             }
 
-            utils::fire_targets(c"game_playerspawn".into(), Toggle, 0.0, self, None);
+            utils::fire_targets(c"game_playerspawn".into(), Toggle, 0.0, None, self);
 
             let msg =
                 user_message::Flashlight::new(self.is_flashlight_on(), self.flashlight_battery);

@@ -24,16 +24,16 @@ pub fn fire_targets(
     target_name: &CStrThin,
     use_type: UseType,
     value: f32,
-    activator: &mut dyn Entity,
-    mut caller: Option<&mut dyn Entity>,
+    mut activator: Option<&mut dyn Entity>,
+    caller: &mut dyn Entity,
 ) {
-    let engine = activator.engine();
+    let engine = caller.engine();
     trace!("Firing: ({target_name})");
     for mut target in engine.find_ent_by_targetname_iter(target_name) {
         if let Some(target) = unsafe { target.as_mut() }.get_entity_mut() {
             if !target.vars().flags().intersects(EdictFlags::KILLME) {
                 trace!("Found: {}, firing ({target_name})", target.classname());
-                target.used(activator, caller.as_deref_mut(), use_type, value);
+                target.used(activator.as_deref_mut(), caller, use_type, value);
             }
         }
     }
@@ -43,11 +43,11 @@ pub fn use_targets(
     kill_target: Option<MapString>,
     use_type: UseType,
     value: f32,
-    activator: &mut dyn Entity,
-    caller: Option<&mut dyn Entity>,
+    activator: Option<&mut dyn Entity>,
+    caller: &mut dyn Entity,
 ) {
     if let Some(kill_target) = kill_target {
-        let engine = activator.engine();
+        let engine = caller.engine();
         trace!("KillTarget: {kill_target}");
         for mut target in engine.find_ent_by_targetname_iter(&kill_target) {
             if let Some(target) = unsafe { target.as_mut() }.get_entity_mut() {
@@ -57,7 +57,7 @@ pub fn use_targets(
         }
     }
 
-    if let Some(target) = activator.vars().target() {
+    if let Some(target) = caller.vars().target() {
         fire_targets(&target, use_type, value, activator, caller);
     }
 }

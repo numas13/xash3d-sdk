@@ -68,7 +68,7 @@ impl Entity for Light {
         }
     }
 
-    fn used(&mut self, _: &mut dyn Entity, _: Option<&mut dyn Entity>, use_type: UseType, _: f32) {
+    fn used(&mut self, _: Option<&mut dyn Entity>, _: &mut dyn Entity, use_type: UseType, _: f32) {
         if self.style < 32 {
             return;
         }

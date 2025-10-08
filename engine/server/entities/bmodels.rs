@@ -47,7 +47,7 @@ impl Entity for FuncWall {
         }
     }
 
-    fn used(&mut self, _: &mut dyn Entity, _: Option<&mut dyn Entity>, use_type: UseType, _: f32) {
+    fn used(&mut self, _: Option<&mut dyn Entity>, _: &mut dyn Entity, use_type: UseType, _: f32) {
         let ev = self.vars_mut().as_raw_mut();
         if use_type.should_toggle(ev.frame != 0.0) {
             ev.frame = 1.0 - ev.frame;
