@@ -1,4 +1,5 @@
 use alloc::{ffi::CString, string::String, vec::Vec};
+use xash3d_shared::sound::Attenuation;
 
 use crate::{str::MapString, time::MapTime};
 
@@ -249,6 +250,20 @@ impl<T: Restore + Default> Restore for Vec<T> {
             value.restore(state, cur)?;
             self.push(value);
         }
+        Ok(())
+    }
+}
+
+impl Save for Attenuation {
+    fn save(&self, _: &mut SaveState, cur: &mut CursorMut) -> SaveResult<()> {
+        cur.write_f32_le((*self).into())?;
+        Ok(())
+    }
+}
+
+impl Restore for Attenuation {
+    fn restore(&mut self, _: &RestoreState, cur: &mut Cursor) -> SaveResult<()> {
+        *self = cur.read_f32_le()?.into();
         Ok(())
     }
 }

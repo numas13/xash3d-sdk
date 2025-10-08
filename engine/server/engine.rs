@@ -150,9 +150,9 @@ impl<'a> SoundBuilder<'a> {
         self
     }
 
-    pub fn emit(self, sample: impl ToEngineStr, ent: &mut edict_s) {
+    pub fn emit(self, sample: impl ToEngineStr, ent: &mut impl AsEdict) {
         self.engine.emit_sound(
-            ent,
+            ent.as_edict_mut(),
             self.channel,
             sample,
             self.volume,
@@ -162,19 +162,19 @@ impl<'a> SoundBuilder<'a> {
         );
     }
 
-    pub fn emit_dyn(self, sample: impl ToEngineStr, ent: &mut edict_s) {
+    pub fn emit_dyn(self, sample: impl ToEngineStr, ent: &mut impl AsEdict) {
         let sample = sample.to_engine_str();
         let sample = sample.as_ref();
         if let Some(b'!') = sample.to_bytes().first() {
-            // TODO: find sound sample in sentences.txt
+            warn!("SoundBuilder::emit_dyn: find sound sample in sentences.txt is not implemented");
         } else {
             self.emit(sample, ent);
         }
     }
 
-    pub fn ambient_emit(self, sample: impl ToEngineStr, pos: vec3_t, ent: &mut edict_s) {
+    pub fn ambient_emit(self, sample: impl ToEngineStr, pos: vec3_t, ent: &mut impl AsEdict) {
         self.engine.emit_ambient_sound(
-            ent,
+            ent.as_edict_mut(),
             pos,
             sample,
             self.volume,
@@ -184,11 +184,11 @@ impl<'a> SoundBuilder<'a> {
         );
     }
 
-    pub fn ambient_emit_dyn(self, sample: impl ToEngineStr, pos: vec3_t, ent: &mut edict_s) {
+    pub fn ambient_emit_dyn(self, sample: impl ToEngineStr, pos: vec3_t, ent: &mut impl AsEdict) {
         let sample = sample.to_engine_str();
         let sample = sample.as_ref();
         if let Some(b'!') = sample.to_bytes().first() {
-            // TODO: find sound sample in sentences.txt
+            warn!("SoundBuilder::ambient_emit_dyn: find sound sample in sentences.txt is not implemented");
         } else {
             self.ambient_emit(sample, pos, ent);
         }
