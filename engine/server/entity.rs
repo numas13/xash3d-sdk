@@ -521,6 +521,11 @@ define_entity_trait! {
         #[allow(unused_variables)]
         fn blocked(&mut self, other: &mut dyn ::xash3d_server::entity::Entity) {}
 
+        #[allow(unused_variables)]
+        fn is_triggered(&self, activator: &dyn ::xash3d_server::entity::Entity) -> bool {
+            true
+        }
+
         fn override_reset(&mut self) {}
 
         fn set_object_collision_box(&mut self) {
