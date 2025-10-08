@@ -512,7 +512,8 @@ define_entity_trait! {
         #[allow(unused_variables)]
         fn used(
             &mut self,
-            other: &mut dyn ::xash3d_server::entity::Entity,
+            activator: &mut dyn ::xash3d_server::entity::Entity,
+            caller: Option<&mut dyn ::xash3d_server::entity::Entity>,
             use_type: ::xash3d_server::entity::UseType,
             value: f32,
         ) {}
@@ -572,6 +573,7 @@ impl dyn Entity {
 pub fn fire_targets(
     target_name: &CStrThin,
     activator: &mut dyn Entity,
+    mut caller: Option<&mut dyn Entity>,
     use_type: UseType,
     value: f32,
 ) {
@@ -581,7 +583,7 @@ pub fn fire_targets(
         if let Some(target) = unsafe { target.as_mut() }.get_entity_mut() {
             if !target.vars().flags().intersects(EdictFlags::KILLME) {
                 trace!("Found: {}, firing ({target_name})", target.classname());
-                target.used(activator, use_type, value);
+                target.used(activator, caller.as_deref_mut(), use_type, value);
             }
         }
     }
@@ -864,17 +866,23 @@ impl Entity for StubEntity {
         }
     }
 
-    fn used(&mut self, other: &mut dyn Entity, use_type: UseType, value: f32) {
+    fn used(
+        &mut self,
+        activator: &mut dyn Entity,
+        _caller: Option<&mut dyn Entity>,
+        use_type: UseType,
+        value: f32,
+    ) {
         let classname = self.classname();
         if let Some(name) = self.vars().target_name() {
             trace!(
                 "{classname}({name}) used({use_type:?}, {value}) by {}",
-                other.name()
+                activator.name()
             );
         } else {
             trace!(
                 "{classname} used({use_type:?}, {value}) by {}",
-                other.name()
+                activator.name()
             );
         }
     }
