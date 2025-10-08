@@ -1,12 +1,10 @@
-use core::{
-    ffi::c_int,
-    ptr::{self, NonNull},
-};
+use core::ptr::{self, NonNull};
 
+use bitflags::bitflags;
 use csz::{cstr, CStrArray, CStrThin};
 use xash3d_shared::{
     consts::SOLID_TRIGGER,
-    entity::{Effects, MoveType},
+    entity::{EdictFlags, Effects, MoveType},
     ffi::{
         common::vec3_t,
         server::{edict_s, FENTTABLE_GLOBAL, FENTTABLE_MOVEABLE, LEVELLIST},
@@ -18,13 +16,14 @@ use crate::save::{Restore, Save};
 use crate::{
     entities::subs::DelayedUse,
     entity::{
-        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, KeyValue, ObjectCaps,
-        UseType,
+        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, EntityVars, KeyValue,
+        ObjectCaps, UseType,
     },
     global_state::EntityState,
     prelude::*,
     save::SaveRestoreData,
     str::MapString,
+    time::MapTime,
     utils,
 };
 
@@ -122,6 +121,187 @@ impl Entity for AutoTrigger {
     }
 }
 
+bitflags! {
+    #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
+    pub struct TriggerSpawnFlags: u32 {
+        /// Monsters allowed to fire this trigger.
+        const ALLOW_MONSTERS = 1 << 0;
+        /// Players not allowed to fire this trigger.
+        const NO_CLIENTS = 1 << 1;
+        /// Only pushables can fire this trigger.
+        const PUSHABLES = 1 << 2;
+    }
+}
+
+fn init_trigger(engine: &ServerEngine, v: &mut EntityVars) {
+    if v.angles() != vec3_t::ZERO {
+        v.set_move_dir();
+    }
+    let ev = v.as_raw_mut();
+    ev.solid = SOLID_TRIGGER;
+    ev.movetype = MoveType::None.into();
+    if let Some(model) = ev.model() {
+        engine.set_model(ev, &model);
+    }
+    if !engine.get_cvar::<bool>(c"showtriggers") {
+        ev.effects_mut().insert(Effects::NODRAW);
+    }
+}
+
+#[cfg_attr(feature = "save", derive(Save, Restore))]
+pub struct TriggerMultiple {
+    base: BaseEntity,
+    delay: f32,
+    /// Time in seconds before the trigger is ready to be re-triggered.
+    wait: f32,
+    /// The time when this trigger can be re-triggered.
+    reset_time: MapTime,
+    kill_target: Option<MapString>,
+    master: Option<MapString>,
+}
+
+impl TriggerMultiple {
+    fn activate_trigger(&mut self, other: &mut dyn Entity) {
+        let engine = self.engine();
+        if engine.globals.map_time() < self.reset_time {
+            // still waiting for reset time
+            return;
+        }
+
+        if let Some(master) = self.master {
+            if !utils::is_master_triggered(&engine, master, other) {
+                return;
+            }
+        }
+
+        let v = self.base.vars_mut();
+        if let Some(noise) = MapString::from_index(engine, v.as_raw().noise) {
+            engine.build_sound().channel_voice().emit(&noise, self);
+        }
+
+        if self.delay != 0.0 {
+            DelayedUse::create(
+                self.engine(),
+                self.delay,
+                self.vars().target(),
+                UseType::Toggle,
+                self.kill_target,
+                Some(self),
+            );
+        } else {
+            utils::use_targets(self.kill_target, UseType::Toggle, 0.0, Some(other), self);
+        }
+
+        let v = self.base.vars_mut();
+        if let Some(_message) = MapString::from_index(engine, v.as_raw().message) {
+            // TODO: need HudText user message defined in xash3d-hl-shared =\
+            warn!(
+                "{}: show a hud message is not implemented",
+                self.classname()
+            );
+        }
+
+        if self.wait > 0.0 {
+            self.reset_time = engine.globals.map_time() + self.wait;
+        } else {
+            self.remove_from_world();
+        }
+    }
+}
+
+impl_entity_cast!(TriggerMultiple);
+
+impl CreateEntity for TriggerMultiple {
+    fn create(base: BaseEntity) -> Self {
+        Self {
+            base,
+            delay: 0.0,
+            wait: 0.2,
+            reset_time: MapTime::ZERO,
+            kill_target: None,
+            master: None,
+        }
+    }
+}
+
+impl Entity for TriggerMultiple {
+    delegate_entity!(base not { object_caps, key_value, spawn, touched, think });
+
+    fn object_caps(&self) -> ObjectCaps {
+        self.base
+            .object_caps()
+            .difference(ObjectCaps::ACROSS_TRANSITION)
+    }
+
+    fn key_value(&mut self, data: &mut KeyValue) {
+        match data.key_name().to_bytes() {
+            b"master" => {
+                self.master = Some(self.engine().new_map_string(data.value()));
+            }
+            b"wait" => {
+                self.wait = data.value_str().parse().unwrap_or(0.0);
+            }
+            b"delay" => {
+                self.delay = data.value_str().parse().unwrap_or(0.0);
+            }
+            b"killtarget" => {
+                self.kill_target = Some(self.engine().new_map_string(data.value()));
+            }
+            _ => return self.base.key_value(data),
+        }
+        data.set_handled(true);
+    }
+
+    fn spawn(&mut self) {
+        init_trigger(&self.engine(), self.vars_mut());
+    }
+
+    fn touched(&mut self, other: &mut dyn Entity) {
+        let spawn_flags = TriggerSpawnFlags::from_bits_retain(self.vars().spawn_flags());
+        let flags = other.vars().flags();
+        if spawn_flags.intersects(TriggerSpawnFlags::NO_CLIENTS)
+            && flags.intersects(EdictFlags::CLIENT)
+        {
+            return;
+        }
+        if !spawn_flags.intersects(TriggerSpawnFlags::ALLOW_MONSTERS)
+            && flags.intersects(EdictFlags::MONSTER)
+        {
+            return;
+        }
+        if !spawn_flags.intersects(TriggerSpawnFlags::PUSHABLES)
+            && other.is_classname(c"func_pushable".into())
+        {
+            return;
+        }
+        self.activate_trigger(other);
+    }
+}
+
+#[cfg_attr(feature = "save", derive(Save, Restore))]
+pub struct TriggerOnce {
+    base: TriggerMultiple,
+}
+
+impl_entity_cast!(TriggerOnce);
+
+impl CreateEntity for TriggerOnce {
+    fn create(base: BaseEntity) -> Self {
+        Self {
+            base: TriggerMultiple::create(base),
+        }
+    }
+}
+
+impl Entity for TriggerOnce {
+    delegate_entity!(base not { spawn });
+
+    fn spawn(&mut self) {
+        self.base.wait = -1.0;
+        self.base.spawn();
+    }
+}
+
 #[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct ChangeLevel {
     base: BaseEntity,
@@ -132,20 +312,7 @@ pub struct ChangeLevel {
 }
 
 impl ChangeLevel {
-    fn init_trigger(&mut self) {
-        let engine = self.base.engine;
-        let v = self.vars_mut();
-        if v.angles() != vec3_t::ZERO {
-            v.set_move_dir();
-        }
-        let ev = v.as_raw_mut();
-        ev.solid = SOLID_TRIGGER;
-        ev.movetype = MoveType::None.into();
-        engine.set_model(ev, &ev.model().unwrap());
-        if engine.get_cvar_float(c"showtriggers") == 0.0 {
-            ev.effects_mut().insert(Effects::NODRAW);
-        }
-    }
+    const SF_USE_ONLY: u32 = 1 << 1;
 
     fn change_level_now(&mut self, _other: &mut dyn Entity) {
         let engine = self.base.engine;
@@ -242,10 +409,9 @@ impl Entity for ChangeLevel {
             // TODO: use target name
         }
 
-        self.init_trigger();
+        init_trigger(&self.engine(), self.vars_mut());
 
-        const SF_CHANGELEVEL_USEONLY: c_int = 0x0002;
-        if self.vars().as_raw().spawnflags & SF_CHANGELEVEL_USEONLY != 0 {
+        if self.vars().spawn_flags() & Self::SF_USE_ONLY != 0 {
             // TODO: set touch
         }
     }
@@ -411,6 +577,8 @@ mod exports {
     };
 
     export_entity!(trigger_auto, Private<super::AutoTrigger>);
+    export_entity!(trigger_multiple, Private<super::TriggerMultiple>);
+    export_entity!(trigger_once, Private<super::TriggerOnce>);
     export_entity!(trigger_changelevel, Private<super::ChangeLevel>);
 
     export_entity!(env_render, Private<StubEntity>);
@@ -430,8 +598,6 @@ mod exports {
     export_entity!(trigger_gravity, Private<StubEntity>);
     export_entity!(trigger_hurt, Private<StubEntity>);
     export_entity!(trigger_monsterjump, Private<StubEntity>);
-    export_entity!(trigger_multiple, Private<StubEntity>);
-    export_entity!(trigger_once, Private<StubEntity>);
     export_entity!(trigger_push, Private<StubEntity>);
     export_entity!(trigger_relay, Private<StubEntity>);
     export_entity!(trigger_teleport, Private<StubEntity>);
