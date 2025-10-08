@@ -162,7 +162,7 @@ impl PrivateData {
         P: PrivateEntity,
         P::Entity: CreateEntity,
     {
-        unsafe { Self::create_with::<P, _>(engine, global_state, ev, P::Entity::create) }
+        unsafe { Self::create_with::<P>(engine, global_state, ev, P::Entity::create) }
     }
 
     /// Initialize a private data for the given entity variables with a value returned from `init`
@@ -171,15 +171,14 @@ impl PrivateData {
     /// # Safety
     ///
     /// See [create](Self::create).
-    pub unsafe fn create_with<'a, P, F>(
+    pub unsafe fn create_with<'a, P>(
         engine: ServerEngineRef,
         global_state: GlobalStateRef,
         ev: *mut entvars_s,
-        init: F,
+        mut init: impl FnMut(BaseEntity) -> P::Entity,
     ) -> &'a mut P::Entity
     where
         P: PrivateEntity,
-        F: Fn(BaseEntity) -> P::Entity,
     {
         let ent = unsafe {
             ev.as_ref()

@@ -13,7 +13,7 @@ use xash3d_shared::{
     ffi::{
         self,
         common::{cvar_s, vec3_t},
-        server::{edict_s, enginefuncs_s, globalvars_t, ALERT_TYPE, LEVELLIST},
+        server::{edict_s, enginefuncs_s, globalvars_t, KeyValueData, ALERT_TYPE, LEVELLIST},
     },
     sound::{Attenuation, Channel, Pitch, SoundFlags},
     str::{AsCStrPtr, ToEngineStr},
@@ -22,7 +22,11 @@ use xash3d_shared::{
 
 use crate::{
     cvar::CVarPtr,
-    entity::{AsEdict, EntityOffset, GetPrivateData},
+    entity::{
+        AsEdict, BaseEntity, CreateEntity, Entity, EntityOffset, EntityVars, GetPrivateData,
+        KeyValue, PrivateData, PrivateEntity,
+    },
+    global_state::GlobalStateRef,
     globals::ServerGlobals,
     str::MapString,
     user_message::{MessageDest, ServerMessage},
@@ -192,6 +196,66 @@ impl<'a> SoundBuilder<'a> {
         } else {
             self.ambient_emit(sample, pos, ent);
         }
+    }
+}
+
+pub struct EntityBuilder<'a, T: Entity> {
+    engine: &'a ServerEngine,
+    entity: &'a mut T,
+    class_name: Option<MapString>,
+}
+
+impl<'a, T: Entity> EntityBuilder<'a, T> {
+    fn new(engine: &'a ServerEngine, entity: &'a mut T) -> Self {
+        Self {
+            class_name: entity.vars().classname(),
+            engine,
+            entity,
+        }
+    }
+
+    pub fn class_name(mut self, class_name: impl ToEngineStr) -> Self {
+        let s = self.engine.new_map_string(class_name);
+        self.entity.vars_mut().as_raw_mut().classname = s.index();
+        self.class_name = Some(s);
+        self
+    }
+
+    pub fn target_name(self, target_name: impl ToEngineStr) -> Self {
+        let s = self.engine.new_map_string(target_name);
+        self.entity.vars_mut().as_raw_mut().targetname = s.index();
+        self
+    }
+
+    pub fn target(self, target: impl ToEngineStr) -> Self {
+        let s = self.engine.new_map_string(target);
+        self.entity.vars_mut().as_raw_mut().target = s.index();
+        self
+    }
+
+    pub fn key_value(self, key: &CStr, value: impl ToEngineStr) -> Self {
+        let classname = self.class_name.as_deref().unwrap_or(c"null".into());
+        let value = value.to_engine_str();
+        let mut data = KeyValueData {
+            szClassName: classname.as_ptr().cast_mut(),
+            szKeyName: key.as_ptr().cast_mut(),
+            szValue: value.as_ref().as_ptr().cast_mut(),
+            fHandled: 0,
+        };
+        self.entity.key_value(KeyValue::new(&mut data));
+        if data.fHandled == 0 {
+            warn!("{classname}: key={key:?} is not handled");
+        }
+        self
+    }
+
+    pub fn vars(self, mut f: impl FnMut(&mut EntityVars)) -> Self {
+        f(self.entity.vars_mut());
+        self
+    }
+
+    pub fn build(self) -> &'a mut T {
+        self.entity
     }
 }
 
@@ -1193,6 +1257,26 @@ impl ServerEngine {
     //     Option<unsafe extern "C" fn(parm: *mut c_char, ppnext: *mut *mut c_char) -> c_int>,
     // pub pfnPEntityOfEntIndexAllEntities:
     //     Option<unsafe extern "C" fn(iEntIndex: c_int) -> *mut edict_t>,
+
+    pub fn new_entity_with<'a, P: PrivateEntity>(
+        &'a self,
+        init: impl FnMut(BaseEntity) -> P::Entity,
+    ) -> EntityBuilder<'a, P::Entity> {
+        let entity = unsafe {
+            let engine = ServerEngineRef::new();
+            let global_state = GlobalStateRef::new();
+            PrivateData::create_with::<P>(engine, global_state, ptr::null_mut(), init)
+        };
+        EntityBuilder::new(self, entity)
+    }
+
+    pub fn new_entity<'a, P>(&'a self) -> EntityBuilder<'a, P::Entity>
+    where
+        P: PrivateEntity,
+        P::Entity: CreateEntity,
+    {
+        self.new_entity_with::<P>(P::Entity::create)
+    }
 }
 
 impl EngineCvar for ServerEngine {

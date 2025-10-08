@@ -1678,7 +1678,7 @@ macro_rules! export_entity {
             unsafe {
                 let engine = ServerEngineRef::new();
                 let global_state = GlobalStateRef::new();
-                PrivateData::create_with::<$private, _>(engine, global_state, ev, $init);
+                PrivateData::create_with::<$private>(engine, global_state, ev, $init);
             }
         }
     };
