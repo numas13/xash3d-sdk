@@ -1,5 +1,6 @@
 use core::{ffi::CStr, ptr};
 
+use bitflags::bitflags;
 use xash3d_shared::ffi::common::vec3_t;
 
 #[cfg(feature = "save")]
@@ -61,9 +62,8 @@ impl Entity for Decal {
     fn key_value(&mut self, data: &mut KeyValue) {
         if data.key_name() == c"texture" {
             let engine = self.engine();
-            let ev = self.vars_mut().as_raw_mut();
             if let Some(skin) = engine.decal_index(data.value()) {
-                ev.skin = skin.into();
+                self.vars_mut().set_skin(skin);
                 data.set_handled(true);
             } else {
                 warn!("failed to find decal {}", data.value());
@@ -124,6 +124,19 @@ impl Entity for Decal {
 
         self.state = Self::STATE_REMOVE;
         self.vars_mut().set_next_think_time(0.1);
+    }
+}
+
+bitflags! {
+    #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
+    #[repr(transparent)]
+    pub struct WorldSpawnFlags: u32 {
+        /// Fade from black at startup.
+        const DARK = 1 << 0;
+        /// Display game title at startup.
+        const TITLE = 1 << 1;
+        /// Force teams.
+        const FORCE_TEAM = 1 << 2;
     }
 }
 
@@ -257,21 +270,25 @@ impl Entity for World {
         // TODO: init decals
         // TODO: init world graph
 
-        let ev = self.vars_mut().as_raw_mut();
-        let zmax = if ev.speed > 0.0 { ev.speed } else { 4096.0 };
+        let v = self.vars_mut();
+        let zmax = if v.speed() > 0.0 { v.speed() } else { 4096.0 };
         engine.set_cvar(c"sv_zmax", zmax);
-        engine.set_cvar(c"sv_wateramp", ev.scale);
+        engine.set_cvar(c"sv_wateramp", v.scale());
 
         // TODO: if ev.netname
 
-        engine.set_cvar(c"v_dark", ev.spawnflags & Self::SF_DARK != 0);
+        let mut spawn_flags = WorldSpawnFlags::from_bits_retain(v.spawn_flags());
+        engine.set_cvar(c"v_dark", spawn_flags.intersects(WorldSpawnFlags::DARK));
+        engine.set_cvar(
+            c"mp_defaultteam",
+            spawn_flags.intersects(WorldSpawnFlags::FORCE_TEAM),
+        );
 
         // TODO: display world title
 
         // do not apply fade after save/restore
-        ev.spawnflags &= !(Self::SF_DARK | Self::SF_TITLE);
-
-        engine.set_cvar(c"mp_defaultteam", ev.spawnflags & Self::SF_FORCE_TEAM != 0);
+        spawn_flags.remove(WorldSpawnFlags::DARK | WorldSpawnFlags::TITLE);
+        v.set_spawn_flags(spawn_flags.bits());
     }
 
     fn spawn(&mut self) {

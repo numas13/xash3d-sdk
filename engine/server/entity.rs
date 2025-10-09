@@ -4,19 +4,22 @@ mod private_data;
 
 use core::{
     ffi::{c_int, c_short, CStr},
-    mem, ptr,
+    mem,
+    num::NonZeroI32,
+    ptr::{self, NonNull},
 };
 
 use bitflags::bitflags;
 use csz::CStrThin;
 use xash3d_shared::{
-    consts::{SOLID_BSP, SOLID_NOT, SOLID_SLIDEBOX, SOLID_TRIGGER},
     ffi::{
+        self,
         common::{entity_state_s, vec3_t},
         server::{edict_s, entvars_s, KeyValueData},
     },
-    macros::const_assert_size_of_field_eq,
+    macros::{const_assert_size_of_field_eq, define_enum_for_primitive},
     math::{fabsf, ToAngleVectors},
+    str::ToEngineStr,
     utils::cstr_or_none,
 };
 
@@ -27,6 +30,7 @@ use crate::{
     global_state::{EntityState, GlobalStateRef},
     save::{FieldType, SaveFields},
     str::MapString,
+    time::MapTime,
 };
 
 pub use self::macros::*;
@@ -164,6 +168,20 @@ impl KeyValue {
     }
 }
 
+define_enum_for_primitive! {
+    #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
+    pub enum Solid: i32 {
+        #[default]
+        Not(ffi::common::SOLID_NOT),
+        Trigger(ffi::common::SOLID_TRIGGER),
+        BBox(ffi::common::SOLID_BBOX),
+        SlideBox(ffi::common::SOLID_SLIDEBOX),
+        Bsp(ffi::common::SOLID_BSP),
+        Custom(ffi::common::SOLID_CUSTOM),
+        Portal(ffi::common::SOLID_PORTAL),
+    }
+}
+
 /// A safe wrapper for [entvars_s].
 #[derive(Debug)]
 pub struct EntityVars {
@@ -191,6 +209,14 @@ impl EntityVars {
         unsafe { &mut *self.raw }
     }
 
+    pub fn owner(&self) -> Option<NonNull<edict_s>> {
+        NonNull::new(self.as_raw().owner)
+    }
+
+    pub fn set_owner<T: ?Sized + AsEdict>(&mut self, owner: &mut T) {
+        self.as_raw_mut().owner = owner.as_edict_mut();
+    }
+
     pub fn classname(&self) -> Option<MapString> {
         MapString::from_index(self.engine, self.as_raw().classname)
     }
@@ -207,8 +233,58 @@ impl EntityVars {
         MapString::from_index(self.engine, self.as_raw().target)
     }
 
-    pub fn model(&self) -> Option<MapString> {
+    pub fn set_target(&mut self, target: MapString) {
+        self.as_raw_mut().target = target.index();
+    }
+
+    pub fn net_name(&self) -> Option<MapString> {
+        MapString::from_index(self.engine, self.as_raw().netname)
+    }
+
+    pub fn set_net_name(&mut self, net_name: MapString) {
+        self.as_raw_mut().netname = net_name.index();
+    }
+
+    pub fn model_name(&self) -> Option<MapString> {
         MapString::from_index(self.engine, self.as_raw().model)
+    }
+
+    pub fn model_index_raw(&self) -> i32 {
+        self.as_raw().modelindex
+    }
+
+    pub fn model_index(&self) -> Option<NonZeroI32> {
+        NonZeroI32::new(self.model_index_raw())
+    }
+
+    pub fn set_model(&mut self, name: impl ToEngineStr) {
+        let engine = self.engine;
+        engine.set_model(self, name)
+    }
+
+    pub fn set_model_with_precache(&mut self, name: impl ToEngineStr) {
+        let engine = self.engine;
+        let name = name.to_engine_str();
+        engine.precache_model(name.as_ref());
+        engine.set_model(self, name.as_ref())
+    }
+
+    pub fn reload_model(&mut self) {
+        if let Some(name) = self.model_name() {
+            self.set_model(&name);
+        }
+    }
+
+    pub fn reload_model_with_precache(&mut self) {
+        if let Some(name) = self.model_name() {
+            self.set_model_with_precache(&name);
+        }
+    }
+
+    pub fn remove_model(&mut self) {
+        let ev = self.as_raw_mut();
+        ev.model = 0;
+        ev.modelindex = 0;
     }
 
     pub fn viewmodel(&self) -> Option<MapString> {
@@ -217,6 +293,10 @@ impl EntityVars {
 
     pub fn weaponmodel(&self) -> Option<MapString> {
         MapString::from_index(self.engine, self.as_raw().weaponmodel)
+    }
+
+    pub fn message(&self) -> Option<MapString> {
+        MapString::from_index(self.engine, self.as_raw().message)
     }
 
     pub fn flags(&self) -> EdictFlags {
@@ -236,6 +316,11 @@ impl EntityVars {
         self.as_raw_mut().spawnflags = flags as c_int;
     }
 
+    pub fn spawn_flags_mut(&mut self) -> &mut u32 {
+        const_assert_size_of_field_eq!(u32, entvars_s, spawnflags);
+        unsafe { mem::transmute(&mut self.as_raw_mut().spawnflags) }
+    }
+
     /// Ask the engine to remove this entity at the appropriate time.
     pub fn delayed_remove(&mut self) {
         self.flags_mut().insert(EdictFlags::KILLME);
@@ -251,6 +336,10 @@ impl EntityVars {
         unsafe { mem::transmute(&mut self.as_raw_mut().effects) }
     }
 
+    pub fn remove_effects(&mut self) {
+        self.as_raw_mut().effects = 0;
+    }
+
     /// Sets the next think time relative to the map time.
     pub fn set_next_think_time(&mut self, relative_time: f32) {
         self.as_raw_mut().nextthink = self.engine.globals.map_time_f32() + relative_time;
@@ -262,7 +351,41 @@ impl EntityVars {
     }
 
     pub fn stop_thinking(&mut self) {
+        // numas13: is there any difference between -1.0 and 0.0???
         self.as_raw_mut().nextthink = -1.0;
+    }
+
+    /// Returns the map time at which this entity last took damage.
+    pub fn damage_time(&self) -> MapTime {
+        MapTime::from_secs_f32(self.as_raw().dmgtime)
+    }
+
+    pub fn set_damage_time(&mut self, time: MapTime) {
+        self.as_raw_mut().dmgtime = time.as_secs_f32();
+    }
+
+    pub fn move_type(&self) -> MoveType {
+        MoveType::from_raw(self.as_raw().movetype).unwrap()
+    }
+
+    pub fn set_move_type(&mut self, move_type: MoveType) {
+        self.as_raw_mut().movetype = move_type.into_raw();
+    }
+
+    pub fn solid(&self) -> Solid {
+        Solid::from_raw(self.as_raw().solid).unwrap()
+    }
+
+    pub fn set_solid(&mut self, solid: Solid) {
+        self.as_raw_mut().solid = solid.into_raw();
+    }
+
+    pub fn skin(&self) -> u16 {
+        self.as_raw().skin.try_into().unwrap()
+    }
+
+    pub fn set_skin(&mut self, skin: u16) {
+        self.as_raw_mut().skin = skin as i32;
     }
 
     pub fn origin(&self) -> vec3_t {
@@ -289,12 +412,38 @@ impl EntityVars {
         self.as_raw_mut().size = size;
     }
 
+    /// Returns this entity rendering scale. Applies to studio and sprite models.
+    pub fn scale(&self) -> f32 {
+        self.as_raw().scale
+    }
+
+    pub fn set_scale(&mut self, scale: f32) {
+        debug_assert!((0.0..255.0).contains(&scale));
+        self.as_raw_mut().scale = scale;
+    }
+
     pub fn velocity(&self) -> vec3_t {
         self.as_raw().velocity
     }
 
     pub fn set_velocity(&mut self, vel: vec3_t) {
         self.as_raw_mut().velocity = vel;
+    }
+
+    pub fn speed(&self) -> f32 {
+        self.as_raw().speed
+    }
+
+    pub fn set_speed(&mut self, speed: f32) {
+        self.as_raw_mut().speed = speed;
+    }
+
+    pub fn max_speed(&self) -> f32 {
+        self.as_raw().maxspeed
+    }
+
+    pub fn set_max_speed(&mut self, max_speed: f32) {
+        self.as_raw_mut().maxspeed = max_speed;
     }
 
     pub fn move_dir(&self) -> vec3_t {
@@ -311,6 +460,22 @@ impl EntityVars {
             ev.movedir = ev.angles.angle_vectors().forward();
         }
         ev.angles = vec3_t::ZERO;
+    }
+
+    pub fn frame(&self) -> f32 {
+        self.as_raw().frame
+    }
+
+    pub fn set_frame(&mut self, frame: f32) {
+        self.as_raw_mut().frame = frame;
+    }
+
+    pub fn framerate(&self) -> f32 {
+        self.as_raw().framerate
+    }
+
+    pub fn set_framerate(&mut self, framerate: f32) {
+        self.as_raw_mut().framerate = framerate;
     }
 
     pub fn key_value(&mut self, data: &mut KeyValue) {
@@ -485,12 +650,12 @@ define_entity_trait! {
         }
 
         fn make_dormant(&mut self) {
-            let ev = self.vars_mut().as_raw_mut();
-            ev.flags_mut().insert(EdictFlags::DORMANT);
-            ev.solid = SOLID_NOT;
-            ev.movetype = MoveType::None.into();
-            ev.effects_mut().insert(Effects::NODRAW);
-            ev.nextthink = 0.0;
+            let v = self.vars_mut();
+            v.flags_mut().insert(EdictFlags::DORMANT);
+            v.set_solid(Solid::Not);
+            v.set_move_type(MoveType::None);
+            v.effects_mut().insert(Effects::NODRAW);
+            v.stop_thinking();
         }
 
         fn is_dormant(&self) -> bool {
@@ -646,7 +811,7 @@ define_entity_trait! {
 }
 
 pub fn set_object_collision_box(ev: &mut entvars_s) {
-    if ev.solid == SOLID_BSP && ev.angles != vec3_t::ZERO {
+    if ev.solid == Solid::Bsp.into() && ev.angles != vec3_t::ZERO {
         let mut max = 0.0;
         for i in 0..3 {
             let v = fabsf(ev.mins[i]);
@@ -701,7 +866,7 @@ pub fn create_baseline(
         baseline.movetype = MoveType::Walk.into();
 
         baseline.scale = ent.v.scale;
-        baseline.solid = SOLID_SLIDEBOX as c_short;
+        baseline.solid = Solid::SlideBox.into_raw() as c_short;
         baseline.framerate = 1.0;
         baseline.gravity = 1.0;
     } else {
@@ -838,15 +1003,11 @@ impl Entity for StubEntity {
         let target = self.vars().target();
         trace!("spawn {classname}({name:?}), target={target:?}");
 
-        let engine = self.engine();
         let v = self.vars_mut();
         v.set_move_dir();
-        let ev = v.as_raw_mut();
-        ev.solid = SOLID_TRIGGER;
-        ev.movetype = MoveType::Push.into();
-        if let Some(model) = v.model() {
-            engine.set_model(self, &model);
-        }
+        v.set_solid(Solid::Trigger);
+        v.set_move_type(MoveType::Push);
+        v.reload_model();
     }
 
     fn touched(&mut self, other: &mut dyn Entity) {

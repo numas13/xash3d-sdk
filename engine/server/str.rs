@@ -42,10 +42,12 @@ impl MapString {
         self.as_thin().is_empty()
     }
 
+    pub fn is_none_or_empty(s: Option<MapString>) -> bool {
+        s.map(|s| s.is_empty()).unwrap_or(true)
+    }
+
     pub fn is_null_or_empty(engine: ServerEngineRef, index: c_int) -> bool {
-        MapString::from_index(engine, index)
-            .map(|s| s.is_empty())
-            .unwrap_or(true)
+        Self::is_none_or_empty(MapString::from_index(engine, index))
     }
 }
 

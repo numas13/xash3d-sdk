@@ -3,7 +3,6 @@ use core::ptr::{self, NonNull};
 use bitflags::bitflags;
 use csz::{cstr, CStrArray, CStrThin};
 use xash3d_shared::{
-    consts::{SOLID_NOT, SOLID_TRIGGER},
     entity::{EdictFlags, Effects, MoveType},
     ffi::{
         common::vec3_t,
@@ -17,7 +16,7 @@ use crate::{
     entities::subs::{DelayedUse, PointEntity},
     entity::{
         delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, EntityPlayer,
-        EntityVars, KeyValue, ObjectCaps, UseType,
+        EntityVars, KeyValue, ObjectCaps, Solid, UseType,
     },
     global_state::EntityState,
     prelude::*,
@@ -137,14 +136,11 @@ fn init_trigger(engine: &ServerEngine, v: &mut EntityVars) {
     if v.angles() != vec3_t::ZERO {
         v.set_move_dir();
     }
-    let ev = v.as_raw_mut();
-    ev.solid = SOLID_TRIGGER;
-    ev.movetype = MoveType::None.into();
-    if let Some(model) = ev.model() {
-        engine.set_model(ev, &model);
-    }
+    v.set_solid(Solid::Trigger);
+    v.set_move_type(MoveType::None);
+    v.reload_model();
     if !engine.get_cvar::<bool>(c"showtriggers") {
-        ev.effects_mut().insert(Effects::NODRAW);
+        v.effects_mut().insert(Effects::NODRAW);
     }
 }
 
@@ -378,14 +374,11 @@ impl Entity for TriggerVolume {
     delegate_entity!(base not { spawn });
 
     fn spawn(&mut self) {
-        if let Some(model) = self.vars().model() {
-            self.engine().set_model(self, &model);
-        }
-        let ev = self.vars_mut().as_raw_mut();
-        ev.solid = SOLID_NOT;
-        ev.movetype = MoveType::None.into();
-        ev.model = 0;
-        ev.modelindex = 0;
+        let v = self.vars_mut();
+        v.set_solid(Solid::Not);
+        v.set_move_type(MoveType::None);
+        v.reload_model();
+        v.remove_model();
     }
 }
 
@@ -403,27 +396,26 @@ impl ChangeLevel {
 
     fn change_level_now(&mut self, _other: &mut dyn Entity) {
         let engine = self.base.engine;
-        assert!(!self.map_name.is_empty());
+        if self.map_name.is_empty() {
+            panic!("Detected problems with save/restore!!!");
+        }
 
         if self.global_state().game_rules().is_deathmatch() {
             return;
         }
 
-        let globals = &engine.globals;
-        let ev = self.vars_mut().as_raw_mut();
-        let time = globals.map_time_f32();
-        if time == ev.dmgtime {
+        let v = self.base.vars_mut();
+        let now = engine.globals.map_time();
+        if now == v.damage_time() {
             return;
         }
-
-        ev.dmgtime = time;
+        v.set_damage_time(now);
 
         let mut next_spot = cstr!("");
         if let Some(landmark) = find_landmark(engine, self.landmark_name.as_thin()) {
             next_spot = self.landmark_name.as_thin();
-            unsafe {
-                globals.set_landmark_offset(landmark.as_ref().v.origin);
-            }
+            let landmark_origin = unsafe { landmark.as_ref() }.v.origin;
+            engine.globals.set_landmark_offset(landmark_origin);
         }
 
         info!("CHANGE LEVEL: {:?} {next_spot:?}", self.map_name);

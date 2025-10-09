@@ -1,11 +1,10 @@
-use xash3d_shared::{consts::SOLID_NOT, entity::MoveType};
+use xash3d_shared::entity::MoveType;
 
 #[cfg(feature = "save")]
 use crate::save::{Restore, Save};
 use crate::{
     entities::subs::PointEntity,
-    entity::{delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity},
-    str::MapString,
+    entity::{delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, Solid},
     time::MapTime,
 };
 
@@ -19,8 +18,8 @@ pub struct Glow {
 impl Glow {
     fn animate(&mut self, frames: f32) {
         if self.max_frame > 0.0 {
-            let ev = self.base.vars_mut().as_raw_mut();
-            ev.frame = (ev.frame + frames) % self.max_frame;
+            let v = self.base.vars_mut();
+            v.set_frame((v.frame() + frames) % self.max_frame);
         }
     }
 }
@@ -42,31 +41,27 @@ impl Entity for Glow {
 
     fn spawn(&mut self) {
         let engine = self.engine();
-        let ev = self.base.vars_mut().as_raw_mut();
+        let v = self.base.vars_mut();
 
-        ev.solid = SOLID_NOT;
-        ev.movetype = MoveType::None.into();
-        ev.effects = 0;
-        ev.frame = 0.0;
+        v.set_solid(Solid::Not);
+        v.set_move_type(MoveType::None);
+        v.remove_effects();
+        v.set_frame(0.0);
+        v.reload_model_with_precache();
 
-        if let Some(model) = MapString::from_index(engine, ev.model) {
-            engine.precache_model(&model);
-            engine.set_model(self, &model);
-        }
-
-        let ev = self.base.vars_mut().as_raw_mut();
-        self.max_frame = (engine.model_frames(ev.modelindex) - 1) as f32;
-        if self.max_frame > 1.0 && ev.framerate != 0.0 {
-            self.vars_mut().set_next_think_time(0.1);
+        let v = self.base.vars_mut();
+        self.max_frame = (engine.model_frames(v.model_index_raw()) - 1) as f32;
+        if self.max_frame > 1.0 && v.framerate() != 0.0 {
+            v.set_next_think_time(0.1);
         }
         self.last_time = engine.globals.map_time();
     }
 
     fn think(&mut self) {
         let engine = self.base.engine();
-        let ev = self.base.vars().as_raw();
+        let v = self.base.vars();
         let now = engine.globals.map_time();
-        self.animate(ev.framerate * now.duration_since(self.last_time).as_secs_f32());
+        self.animate(v.framerate() * now.duration_since(self.last_time).as_secs_f32());
 
         self.vars_mut().set_next_think_time(0.1);
         self.last_time = engine.globals.map_time();

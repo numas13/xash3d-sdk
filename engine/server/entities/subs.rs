@@ -1,11 +1,9 @@
-use xash3d_shared::consts::SOLID_NOT;
-
 #[cfg(feature = "save")]
 use crate::save::{Restore, Save};
 use crate::{
     entity::{
         delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, EntityPlayer,
-        KeyValue, ObjectCaps, Private, UseType,
+        KeyValue, ObjectCaps, Private, Solid, UseType,
     },
     prelude::*,
     str::MapString,
@@ -35,8 +33,8 @@ impl Entity for PointEntity {
     }
 
     fn spawn(&mut self) {
-        let ev = self.vars_mut().as_raw_mut();
-        ev.solid = SOLID_NOT;
+        let v = self.vars_mut();
+        v.set_solid(Solid::Not);
     }
 }
 
@@ -61,8 +59,8 @@ impl Entity for DeathMatchStart {
     fn key_value(&mut self, data: &mut KeyValue) {
         if data.key_name() == c"master" {
             let engine = self.engine();
-            let ev = self.vars_mut().as_raw_mut();
-            ev.netname = engine.new_map_string(data.value()).index();
+            let v = self.vars_mut();
+            v.set_net_name(engine.new_map_string(data.value()));
             data.set_handled(true);
         } else {
             self.base.key_value(data);
@@ -115,14 +113,14 @@ impl DelayedUse {
             .vars(|e| {
                 e.set_next_think_time(delay);
                 if let Some(target) = target {
-                    e.as_raw_mut().target = target.index();
+                    e.set_target(target);
                 }
             })
             .build();
 
         if let Some(activator) = activator {
             if activator.downcast_ref::<dyn EntityPlayer>().is_some() {
-                temp.vars_mut().as_raw_mut().owner = activator.as_edict_mut();
+                temp.vars_mut().set_owner(activator);
             }
         }
     }

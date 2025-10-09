@@ -2,7 +2,6 @@ use core::cmp::min;
 
 use bitflags::bitflags;
 use xash3d_shared::{
-    consts::SOLID_NOT,
     entity::MoveType,
     ffi::common::PITCH_NORM,
     sound::{Attenuation, Pitch, SoundFlags},
@@ -13,7 +12,7 @@ use crate::save::{Restore, Save};
 use crate::{
     entity::{
         delegate_entity, impl_entity_cast, AsEdict, BaseEntity, CreateEntity, Entity, KeyValue,
-        ObjectCaps, UseType,
+        ObjectCaps, Solid, UseType,
     },
     prelude::*,
     str::MapString,
@@ -291,7 +290,7 @@ impl DynamicPitchVolume {
 bitflags! {
     #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
     #[repr(transparent)]
-    pub struct AmbientSound: i32 {
+    pub struct AmbientSound: u32 {
         // medium radius attenuation
         const STATIC          = 0;
         const EVERYWHERE      = 1 << 0;
@@ -317,6 +316,10 @@ pub struct AmbientGeneric {
 impl AmbientGeneric {
     fn init_modulation_parms(&mut self) {
         self.dpv.init(self.vars().as_raw().health);
+    }
+
+    fn spawn_flags(&self) -> AmbientSound {
+        AmbientSound::from_bits_retain(self.vars().spawn_flags())
     }
 }
 
@@ -355,8 +358,7 @@ impl Entity for AmbientGeneric {
     fn precache(&mut self) {
         let engine = self.engine();
 
-        let ev = self.base.vars.as_raw();
-        if let Some(sample) = MapString::from_index(engine, ev.message) {
+        if let Some(sample) = self.vars().message() {
             let sound_file = sample.as_thin();
             if !sound_file.is_empty() && sound_file.to_bytes_with_nul()[0] != b'!' {
                 engine.precache_sound(sound_file);
@@ -365,20 +367,21 @@ impl Entity for AmbientGeneric {
 
         self.init_modulation_parms();
 
-        let ev = self.base.vars.as_raw_mut();
-        let spawn_flags = AmbientSound::from_bits_retain(ev.spawnflags);
+        let spawn_flags = self.spawn_flags();
         if !spawn_flags.intersects(AmbientSound::START_SILENT) && self.looping {
             self.active = true;
         }
+
+        let v = self.base.vars();
         if self.active {
-            if let Some(sample) = MapString::from_index(engine, ev.message) {
+            if let Some(sample) = v.message() {
                 engine
                     .build_sound()
                     .volume(self.dpv.vol as f32 * 0.01)
                     .attenuation(self.attenuation)
                     .flags(SoundFlags::SPAWNING)
                     .pitch(self.dpv.pitch)
-                    .ambient_emit_dyn(&sample, ev.origin, self.as_edict_mut());
+                    .ambient_emit_dyn(&sample, v.origin(), self.as_edict_mut());
                 self.vars_mut()
                     .set_next_think_time(engine.globals.map_time_f32() + 0.1);
             }
@@ -386,10 +389,7 @@ impl Entity for AmbientGeneric {
     }
 
     fn spawn(&mut self) {
-        let engine = self.engine();
-        let ev = self.base.vars.as_raw_mut();
-
-        let spawn_flags = AmbientSound::from_bits_retain(ev.spawnflags);
+        let spawn_flags = self.spawn_flags();
         if spawn_flags.intersects(AmbientSound::EVERYWHERE) {
             self.attenuation = Attenuation::NONE;
         } else if spawn_flags.intersects(AmbientSound::SMALL_RADIUS) {
@@ -402,21 +402,18 @@ impl Entity for AmbientGeneric {
             self.attenuation = Attenuation::STATIC;
         }
 
-        if MapString::is_null_or_empty(engine, ev.message) {
-            error!(
-                "Empty ambient at {}, {}, {}",
-                ev.origin.x(),
-                ev.origin.y(),
-                ev.origin.z()
-            );
+        let v = self.base.vars_mut();
+        if MapString::is_none_or_empty(v.message()) {
+            let [x, y, z] = v.origin().into();
+            error!("Empty ambient at {x}, {y}, {z}");
             self.remove_me = true;
-            self.vars_mut().set_next_think_time(0.1);
+            v.set_next_think_time(0.1);
             return;
         };
 
-        ev.solid = SOLID_NOT;
-        ev.movetype = MoveType::None.into();
-        ev.nextthink = 0.0;
+        v.set_solid(Solid::Not);
+        v.set_move_type(MoveType::None);
+        v.stop_thinking();
 
         self.active = false;
         self.looping = !spawn_flags.intersects(AmbientSound::NOT_LOOPING);

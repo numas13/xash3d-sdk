@@ -1,17 +1,13 @@
 use xash3d_shared::{
-    consts::SOLID_BSP,
     entity::{EdictFlags, MoveType},
     ffi::common::vec3_t,
 };
 
+use crate::entity::{
+    delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, ObjectCaps, Solid, UseType,
+};
 #[cfg(feature = "save")]
 use crate::save::{Restore, Save};
-use crate::{
-    entity::{
-        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, ObjectCaps, UseType,
-    },
-    str::MapString,
-};
 
 #[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct FuncWall {
@@ -36,21 +32,18 @@ impl Entity for FuncWall {
     }
 
     fn spawn(&mut self) {
-        let engine = self.engine();
-        let ev = self.vars_mut().as_raw_mut();
-        ev.angles = vec3_t::ZERO;
-        ev.movetype = MoveType::Push.into();
-        ev.solid = SOLID_BSP;
-        ev.flags |= EdictFlags::WORLDBRUSH.bits();
-        if let Some(model) = MapString::from_index(engine, ev.model) {
-            engine.set_model(self, &model);
-        }
+        let v = self.vars_mut();
+        v.set_angles(vec3_t::ZERO);
+        v.set_solid(Solid::Bsp);
+        v.set_move_type(MoveType::Push);
+        v.flags_mut().insert(EdictFlags::WORLDBRUSH);
+        v.reload_model();
     }
 
     fn used(&mut self, _: Option<&mut dyn Entity>, _: &mut dyn Entity, use_type: UseType, _: f32) {
-        let ev = self.vars_mut().as_raw_mut();
-        if use_type.should_toggle(ev.frame != 0.0) {
-            ev.frame = 1.0 - ev.frame;
+        let v = self.base.vars_mut();
+        if use_type.should_toggle(v.frame() != 0.0) {
+            v.set_frame(1.0 - v.frame());
         }
     }
 }

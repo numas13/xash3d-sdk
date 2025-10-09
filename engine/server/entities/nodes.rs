@@ -1,7 +1,8 @@
-use xash3d_shared::{consts::SOLID_NOT, entity::MoveType};
+use xash3d_shared::entity::MoveType;
 
 use crate::entity::{
     delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, KeyValue, ObjectCaps,
+    Solid,
 };
 #[cfg(feature = "save")]
 use crate::save::{Restore, Save};
@@ -47,12 +48,12 @@ impl Entity for NodeEntity {
     }
 
     fn spawn(&mut self) {
-        let ev = self.vars_mut().as_raw_mut();
-        ev.movetype = MoveType::None.into();
-        ev.solid = SOLID_NOT;
+        let v = self.vars_mut();
+        v.set_solid(Solid::Not);
+        v.set_move_type(MoveType::None);
 
         // TODO: add node entity to the world graph
-        warn!("spawn {} is not implemented", self.classname());
+        warn!("{}: spawn is not implemented", self.classname());
 
         self.vars_mut().delayed_remove();
     }

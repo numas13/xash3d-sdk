@@ -1,5 +1,6 @@
 use core::ffi::CStr;
 
+use bitflags::bitflags;
 use xash3d_shared::ffi::common::vec3_t;
 
 #[cfg(feature = "save")]
@@ -45,6 +46,15 @@ impl Restore for EnvSparkState {
     }
 }
 
+bitflags! {
+    #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
+    #[repr(transparent)]
+    pub struct EnvSparkSpawnFlags: u32 {
+        const USE = 1 << 5;
+        const USE_START_ON = 1 << 6;
+    }
+}
+
 #[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct EnvSpark {
     base: BaseEntity,
@@ -53,8 +63,9 @@ pub struct EnvSpark {
 }
 
 impl EnvSpark {
-    pub const SF_USE: i32 = 1 << 5;
-    pub const SF_USE_START_ON: i32 = 1 << 6;
+    fn spawn_flags(&self) -> EnvSparkSpawnFlags {
+        EnvSparkSpawnFlags::from_bits_retain(self.vars().spawn_flags())
+    }
 
     fn set_next_think_time(&mut self) {
         let engine = self.engine();
@@ -108,9 +119,9 @@ impl Entity for EnvSpark {
             self.delay = 1.5;
         }
 
-        let ev = self.vars_mut().as_raw_mut();
-        if ev.spawnflags & Self::SF_USE != 0 {
-            if ev.spawnflags & Self::SF_USE_START_ON != 0 {
+        let spawn_flags = self.spawn_flags();
+        if spawn_flags.intersects(EnvSparkSpawnFlags::USE) {
+            if spawn_flags.intersects(EnvSparkSpawnFlags::USE_START_ON) {
                 self.set_next_think_time();
                 self.state = EnvSparkState::On;
             } else {
