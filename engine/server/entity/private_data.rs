@@ -189,9 +189,7 @@ impl PrivateData {
             panic!("The entity already has a private data.");
         }
         let base = BaseEntity {
-            engine,
-            global_state,
-            vars: unsafe { EntityVars::from_raw(engine, &mut ent.v) },
+            vars: unsafe { EntityVars::from_raw(engine, global_state, &mut ent.v) },
         };
         let private = Self::alloc::<P>(engine, ent, init(base));
         ent.pvPrivateData = private.data.cast();

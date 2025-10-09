@@ -5,8 +5,9 @@ use xash3d_server::{
     entities::player::Player as BasePlayer,
     entity::{
         delegate_entity, delegate_player, impl_entity_cast, AsEdict, BaseEntity, CreateEntity,
-        Effects, Entity, EntityPlayer, UseType::Toggle,
+        Effects, Entity, EntityPlayer, EntityVars, UseType::Toggle,
     },
+    prelude::*,
     save::{Restore, Save},
     time::MapTime,
     utils,
@@ -19,6 +20,53 @@ const SOUND_FLASHLIGHT_OFF: &CStr = res::valve::sound::items::FLASHLIGHT1;
 
 const FLASH_DRAIN_TIME: f32 = 1.2; // 100 units/3 minutes
 const FLASH_CHARGE_TIME: f32 = 0.2; // 100 units/20 seconds (seconds per unit)
+
+#[derive(Copy, Clone, Default)]
+struct Geiger {
+    range: f32,
+    range_prev: u8,
+    delay: MapTime,
+}
+
+impl Geiger {
+    fn set_range(&mut self, range: f32) {
+        if self.range >= range {
+            self.range = range;
+        }
+    }
+
+    fn set_delay(&mut self, delay: MapTime) {
+        self.delay = delay;
+    }
+
+    fn update(&mut self, player: &mut EntityVars) {
+        const GEIGER_DELAY: f32 = 0.25;
+
+        let engine = player.engine();
+        let now = engine.globals.map_time();
+        if now < self.delay {
+            return;
+        }
+        self.delay = now + GEIGER_DELAY;
+
+        let range = (self.range / 4.0) as u8;
+        if range != self.range_prev {
+            self.range_prev = range;
+
+            let msg = user_message::Geiger::new(range);
+            engine.msg_one_reliable(player, &msg);
+        }
+
+        if engine.random_int(0, 3) == 0 {
+            self.reset();
+        }
+    }
+
+    fn reset(&mut self) {
+        self.range = 1000.0;
+        self.range_prev = 250;
+    }
+}
 
 #[derive(Save, Restore)]
 pub struct TestPlayer {
@@ -33,6 +81,9 @@ pub struct TestPlayer {
     flashlight_time: MapTime,
     /// Flashlight battery draw.
     flashlight_battery: u8,
+
+    #[save(skip)]
+    geiger: Geiger,
 }
 
 impl TestPlayer {
@@ -87,6 +138,18 @@ impl TestPlayer {
                 warn!("unimplemented impulse command {impulse}");
             }
         }
+    }
+
+    fn check_suit_update(&mut self) {
+        if !self.has_suit() {
+            return;
+        }
+
+        self.geiger.update(self.base.vars_mut());
+
+        // if self.global_state().game_rules().is_multiplayer() {
+        //     return;
+        // }
     }
 
     fn client_update_data(&mut self) {
@@ -151,6 +214,8 @@ impl CreateEntity for TestPlayer {
 
             flashlight_time: MapTime::ZERO,
             flashlight_battery: 100,
+
+            geiger: Geiger::default(),
         }
     }
 }
@@ -160,6 +225,8 @@ impl Entity for TestPlayer {
 
     fn precache(&mut self) {
         self.base.precache();
+
+        self.geiger.reset();
 
         let engine = self.engine();
         engine.precache_sound(SOUND_FLASHLIGHT_ON);
@@ -175,6 +242,10 @@ impl Entity for TestPlayer {
 
     fn spawn(&mut self) {
         self.base.spawn();
+        let engine = self.engine();
+
+        // wait a few seconds until user-defined message registrations are recived by all clients
+        self.geiger.set_delay(engine.globals.map_time() + 2.0);
 
         // enable suit
         // TODO: move Weapons type to shared crate
@@ -217,13 +288,19 @@ impl Entity for TestPlayer {
 }
 
 impl EntityPlayer for TestPlayer {
-    delegate_player!(base not { pre_think, post_think });
+    delegate_player!(base not { pre_think, post_think, set_geiger_range });
 
     fn pre_think(&mut self) {
         self.client_update_data();
+
+        self.check_suit_update();
     }
 
     fn post_think(&mut self) {
         self.impulse_commands();
+    }
+
+    fn set_geiger_range(&mut self, range: f32) {
+        self.geiger.set_range(range);
     }
 }

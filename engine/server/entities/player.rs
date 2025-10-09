@@ -26,7 +26,7 @@ impl_entity_cast!(Player);
 #[cfg(feature = "save")]
 impl crate::save::OnRestore for Player {
     fn on_restore(&mut self) {
-        let engine = self.base.engine;
+        let engine = self.base.engine();
 
         // TODO:
 
@@ -61,7 +61,7 @@ impl Entity for Player {
     }
 
     fn spawn(&mut self) {
-        let engine = self.base.engine;
+        let engine = self.base.engine();
         let ev = self.vars_mut().as_raw_mut();
         ev.classname = engine.try_alloc_map_string(c"player").unwrap().index();
         ev.health = 100.0;

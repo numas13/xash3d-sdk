@@ -292,3 +292,28 @@ impl Restore for UseType {
         Ok(())
     }
 }
+
+#[doc(hidden)]
+#[macro_export]
+macro_rules! impl_save_restore_for_bitflags {
+    ($ty:ty) => {
+        impl Save for $ty {
+            fn save(&self, state: &mut SaveState, cur: &mut CursorMut) -> SaveResult<()> {
+                self.bits().save(state, cur)
+            }
+        }
+
+        impl Restore for $ty {
+            fn restore(&mut self, state: &RestoreState, cur: &mut Cursor) -> SaveResult<()> {
+                let mut bits = self.bits();
+                bits.restore(state, cur)?;
+                *self = <$ty>::from_bits_retain(bits);
+                Ok(())
+            }
+        }
+    };
+}
+#[doc(inline)]
+pub use impl_save_restore_for_bitflags;
+
+impl_save_restore_for_bitflags!(xash3d_shared::entity::DamageFlags);

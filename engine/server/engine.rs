@@ -493,7 +493,11 @@ impl ServerEngine {
     //         rad: f32,
     //     ) -> *mut edict_t,
     // >,
-    // pub pfnFindClientInPVS: Option<unsafe extern "C" fn(pEdict: *mut edict_t) -> *mut edict_t>,
+
+    pub fn find_client_in_pvs(&self, ent: &mut impl AsEdict) -> Option<NonNull<edict_s>> {
+        let ret = unsafe { unwrap!(self, pfnFindClientInPVS)(ent.as_edict_mut()) };
+        NonNull::new(ret)
+    }
 
     pub fn entities_in_pvs(&self, player: *mut edict_s) -> *mut edict_s {
         unsafe { unwrap!(self, pfnEntitiesInPVS)(player) }

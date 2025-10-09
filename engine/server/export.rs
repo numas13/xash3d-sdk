@@ -175,7 +175,8 @@ pub trait ServerDll: UnsyncGlobal {
     }
 
     fn dispatch_key_value(&self, ent: &mut edict_s, data: &mut KeyValue) {
-        let mut ev = unsafe { EntityVars::from_raw(self.engine(), &mut ent.v) };
+        let mut ev =
+            unsafe { EntityVars::from_raw(self.engine(), self.global_state(), &mut ent.v) };
         ev.key_value(data);
 
         if data.handled() || data.class_name().is_none() {

@@ -183,10 +183,179 @@ define_enum_for_primitive! {
     }
 }
 
+define_enum_for_primitive! {
+    #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
+    pub enum TakeDamage: f32 {
+        #[default]
+        No(Self::DAMAGE_NO),
+        Yes(Self::DAMAGE_YES),
+        Aim(Self::DAMAGE_AIM),
+    }
+}
+
+impl TakeDamage {
+    const DAMAGE_NO: f32 = ffi::common::DAMAGE_NO as f32;
+    const DAMAGE_YES: f32 = ffi::common::DAMAGE_YES as f32;
+    const DAMAGE_AIM: f32 = ffi::common::DAMAGE_AIM as f32;
+}
+
+define_enum_for_primitive! {
+    #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
+    pub enum Dead: i32 {
+        /// Alive.
+        #[default]
+        No(ffi::common::DEAD_NO),
+        /// Playing death animation or still falling off of a ledge waiting to hit ground.
+        Dying(ffi::common::DEAD_DYING),
+        /// Dead. Lying still.
+        Yes(ffi::common::DEAD_DEAD),
+        Respawnable(ffi::common::DEAD_RESPAWNABLE),
+        DiscardBody(ffi::common::DEAD_DISCARDBODY),
+    }
+}
+
+macro_rules! entvars_value {
+    (
+        $field:ident: $ty:ty,
+        $( #[$get_attr:meta] )* fn $get:ident
+        $(, $( #[$set_attr:meta] )* fn $set:ident)? $(,)?
+    ) => {
+        $( #[$get_attr] )*
+        pub fn $get(&self) -> $ty {
+            self.as_raw().$field
+        }
+
+        $(
+            $( #[$set_attr] )*
+            pub fn $set(&mut self, $get: $ty) {
+                self.as_raw_mut().$field = $get;
+            }
+        )?
+    }
+}
+
+macro_rules! entvars_str {
+    (
+        $field:ident,
+        $( #[$get_attr:meta] )* fn $get:ident
+        $(, $( #[$set_attr:meta] )* fn $set:ident)? $(,)?
+    ) => {
+        $( #[$get_attr] )*
+        pub fn $get(&self) -> Option<MapString> {
+            MapString::from_index(self.engine, self.as_raw().$field)
+        }
+
+        $(
+            $( #[$set_attr] )*
+            pub fn $set(&mut self, $get: impl Into<Option<MapString>>) {
+                self.as_raw_mut().$field = $get.into().map_or(0, |s| s.index());
+            }
+        )?
+    }
+}
+
+macro_rules! entvars_enum {
+    (
+        $field:ident: $ty:ty,
+        $( #[$get_attr:meta] )* fn $get:ident
+        $(, $( #[$set_attr:meta] )* fn $set:ident)? $(,)?
+    ) => {
+        $( #[$get_attr] )*
+        pub fn $get(&self) -> $ty {
+            <$ty>::from_raw(self.as_raw().$field).unwrap()
+        }
+
+        $(
+            $( #[$set_attr] )*
+            pub fn $set(&mut self, $get: $ty) {
+                self.as_raw_mut().$field = $get.into_raw();
+            }
+        )?
+    }
+}
+
+macro_rules! entvars_time {
+    (
+        $field:ident,
+        $( #[$get_attr:meta] )* fn $get:ident
+        $(, $( #[$set_attr:meta] )* fn $set:ident)? $(,)?
+    ) => {
+        $( #[$get_attr] )*
+        pub fn $get(&self) -> MapTime {
+            MapTime::from_secs_f32(self.as_raw().$field)
+        }
+
+        $(
+            $( #[$set_attr] )*
+            pub fn $set(&mut self, $get: MapTime) {
+                self.as_raw_mut().$field = $get.as_secs_f32();
+            }
+        )?
+    }
+}
+
+macro_rules! entvars_bitflags {
+    (
+        $field:ident: $ty:ty,
+        $( #[$get_attr:meta] )* fn $get:ident
+        $(, $( #[$set_attr:meta] )* fn $set:ident $(, $( #[$mut_attr:meta] )* fn $get_mut:ident)?)?
+        $(,)?
+    ) => {
+        $( #[$get_attr] )*
+        pub fn $get(&self) -> $ty {
+            <$ty>::from_bits_retain(self.as_raw().$field)
+        }
+
+        $(
+            $(#[$set_attr])*
+            pub fn $set(&mut self, $get: $ty) {
+                self.as_raw_mut().$field = $get.bits();
+            }
+
+            $(
+                $(#[$mut_attr])*
+                pub fn $get_mut(&mut self) -> &mut $ty {
+                    const_assert_size_of_field_eq!($ty, entvars_s, $field);
+                    unsafe { mem::transmute(&mut self.as_raw_mut().$field) }
+                }
+            )?
+        )?
+    }
+}
+
+macro_rules! entvars_vec3 {
+    (
+        $field:ident,
+        $( #[$get_attr:meta] )* fn $get:ident
+        $(, $( #[$set_attr:meta] )* fn $set:ident $(, $( #[$mut_attr:meta] )* fn $get_mut:ident)?)?
+        $(,)?
+    ) => {
+        $( #[$get_attr] )*
+        pub fn $get(&self) -> vec3_t {
+            self.as_raw().$field
+        }
+
+        $(
+            $(#[$set_attr])*
+            pub fn $set(&mut self, $get: vec3_t) {
+                self.as_raw_mut().$field = $get;
+            }
+
+            $(
+                $(#[$mut_attr])*
+                pub fn $get_mut(&mut self) -> &mut vec3_t {
+                    &mut self.as_raw_mut().$field
+                }
+            )?
+        )?
+    }
+}
+
 /// A safe wrapper for [entvars_s].
 #[derive(Debug)]
 pub struct EntityVars {
     engine: ServerEngineRef,
+    global_state: GlobalStateRef,
     raw: *mut entvars_s,
 }
 
@@ -198,8 +367,16 @@ impl EntityVars {
     /// Behavior is undefined if any of the following conditions are violated:
     ///
     /// * The raw pointer must be non-null and received from the engine.
-    pub unsafe fn from_raw(engine: ServerEngineRef, raw: *mut entvars_s) -> Self {
-        Self { engine, raw }
+    pub unsafe fn from_raw(
+        engine: ServerEngineRef,
+        global_state: GlobalStateRef,
+        raw: *mut entvars_s,
+    ) -> Self {
+        Self {
+            engine,
+            global_state,
+            raw,
+        }
     }
 
     pub fn as_raw(&self) -> &entvars_s {
@@ -210,6 +387,14 @@ impl EntityVars {
         unsafe { &mut *self.raw }
     }
 
+    pub fn engine(&self) -> ServerEngineRef {
+        self.engine
+    }
+
+    pub fn global_state(&self) -> GlobalStateRef {
+        self.global_state
+    }
+
     pub fn owner(&self) -> Option<NonNull<edict_s>> {
         NonNull::new(self.as_raw().owner)
     }
@@ -218,37 +403,12 @@ impl EntityVars {
         self.as_raw_mut().owner = owner.as_edict_mut();
     }
 
-    pub fn classname(&self) -> Option<MapString> {
-        MapString::from_index(self.engine, self.as_raw().classname)
-    }
-
-    pub fn globalname(&self) -> Option<MapString> {
-        MapString::from_index(self.engine, self.as_raw().globalname)
-    }
-
-    pub fn target_name(&self) -> Option<MapString> {
-        MapString::from_index(self.engine, self.as_raw().targetname)
-    }
-
-    pub fn target(&self) -> Option<MapString> {
-        MapString::from_index(self.engine, self.as_raw().target)
-    }
-
-    pub fn set_target(&mut self, target: MapString) {
-        self.as_raw_mut().target = target.index();
-    }
-
-    pub fn net_name(&self) -> Option<MapString> {
-        MapString::from_index(self.engine, self.as_raw().netname)
-    }
-
-    pub fn set_net_name(&mut self, net_name: MapString) {
-        self.as_raw_mut().netname = net_name.index();
-    }
-
-    pub fn model_name(&self) -> Option<MapString> {
-        MapString::from_index(self.engine, self.as_raw().model)
-    }
+    entvars_str!(classname, fn classname, fn set_classname);
+    entvars_str!(globalname, fn globalname, fn set_globalname);
+    entvars_str!(targetname, fn target_name, fn set_target_name);
+    entvars_str!(target, fn target, fn set_target);
+    entvars_str!(netname, fn net_name, fn set_net_name);
+    entvars_str!(model, fn model_name);
 
     pub fn model_index_raw(&self) -> i32 {
         self.as_raw().modelindex
@@ -300,14 +460,7 @@ impl EntityVars {
         MapString::from_index(self.engine, self.as_raw().message)
     }
 
-    pub fn flags(&self) -> EdictFlags {
-        EdictFlags::from_bits_retain(self.as_raw().flags)
-    }
-
-    pub fn flags_mut(&mut self) -> &mut EdictFlags {
-        const_assert_size_of_field_eq!(EdictFlags, entvars_s, flags);
-        unsafe { mem::transmute(&mut self.as_raw_mut().flags) }
-    }
+    entvars_bitflags!(flags: EdictFlags, fn flags, fn set_flags, fn flags_mut);
 
     pub fn spawn_flags(&self) -> u32 {
         self.as_raw().spawnflags as u32
@@ -328,14 +481,7 @@ impl EntityVars {
         self.as_raw_mut().targetname = 0;
     }
 
-    pub fn effects(&self) -> Effects {
-        Effects::from_bits_retain(self.as_raw().effects)
-    }
-
-    pub fn effects_mut(&mut self) -> &mut Effects {
-        const_assert_size_of_field_eq!(Effects, entvars_s, effects);
-        unsafe { mem::transmute(&mut self.as_raw_mut().effects) }
-    }
+    entvars_bitflags!(effects: Effects, fn effects, fn set_effects, fn effects_mut);
 
     pub fn remove_effects(&mut self) {
         self.as_raw_mut().effects = 0;
@@ -356,132 +502,64 @@ impl EntityVars {
         self.as_raw_mut().nextthink = -1.0;
     }
 
-    /// Returns the map time at which this entity last took damage.
-    pub fn damage_time(&self) -> MapTime {
-        MapTime::from_secs_f32(self.as_raw().dmgtime)
+    entvars_enum!(takedamage: TakeDamage, fn take_damage, fn set_take_damage);
+
+    entvars_value!(health: f32, fn health, fn set_health);
+    entvars_value!(max_health: f32, fn max_health, fn set_max_health);
+    entvars_value!(dmg: f32, fn damage, fn set_damage);
+
+    entvars_time!(dmgtime,
+        /// Returns the map time at which this entity last took damage.
+        fn damage_time,
+        fn set_damage_time,
+    );
+
+    entvars_time!(pain_finished, fn pain_finished, fn set_pain_finished);
+
+    entvars_enum!(deadflag: Dead, fn dead, fn set_dead);
+    entvars_enum!(movetype: MoveType, fn move_type, fn set_move_type);
+    entvars_enum!(solid: Solid, fn solid, fn set_solid);
+
+    entvars_value!(friction: f32, fn friction, fn set_friction);
+    entvars_value!(skin: i32, fn skin, fn set_skin);
+
+    entvars_vec3!(origin, fn origin, fn set_origin, fn origin_mut);
+    entvars_vec3!(view_ofs, fn view_ofs, fn set_view_ofs, fn view_ofs_mut);
+    entvars_vec3!(mins, fn min_size, fn set_min_size, fn min_size_mut);
+    entvars_vec3!(maxs, fn max_size, fn set_max_size, fn max_size_mut);
+    entvars_vec3!(absmin, fn abs_min, fn set_abs_min, fn abs_min_mut);
+    entvars_vec3!(absmax, fn abs_max, fn set_abs_max, fn abs_max_mut);
+
+    /// Returns an absolute center position in the world.
+    pub fn abs_center(&self) -> vec3_t {
+        (self.abs_min() + self.abs_max()) * 0.5
     }
 
-    pub fn set_damage_time(&mut self, time: MapTime) {
-        self.as_raw_mut().dmgtime = time.as_secs_f32();
+    pub fn bmodel_origin(&self) -> vec3_t {
+        self.abs_min() + self.size() * 0.5
     }
 
-    pub fn move_type(&self) -> MoveType {
-        MoveType::from_raw(self.as_raw().movetype).unwrap()
-    }
+    entvars_vec3!(angles, fn angles, fn set_angles, fn angles_mut);
+    entvars_vec3!(size, fn size, fn set_size, fn size_mut);
 
-    pub fn set_move_type(&mut self, move_type: MoveType) {
-        self.as_raw_mut().movetype = move_type.into_raw();
-    }
+    entvars_value!(scale: f32,
+        /// Returns this entity rendering scale. Applies to studio and sprite models.
+        fn scale,
+        fn set_scale,
+    );
 
-    pub fn friction(&self) -> f32 {
-        self.as_raw().friction
-    }
+    entvars_vec3!(velocity, fn velocity, fn set_velocity, fn velocity_mut);
+    entvars_vec3!(
+        basevelocity,
+        fn base_velocity,
+        fn set_base_velocity,
+        fn base_velocity_mut
+    );
 
-    pub fn set_friction(&mut self, friction: f32) {
-        self.as_raw_mut().friction = friction;
-    }
+    entvars_value!(speed: f32, fn speed, fn set_speed);
+    entvars_value!(maxspeed: f32, fn max_speed, fn set_max_speed);
 
-    pub fn solid(&self) -> Solid {
-        Solid::from_raw(self.as_raw().solid).unwrap()
-    }
-
-    pub fn set_solid(&mut self, solid: Solid) {
-        self.as_raw_mut().solid = solid.into_raw();
-    }
-
-    pub fn skin(&self) -> i32 {
-        self.as_raw().skin
-    }
-
-    pub fn set_skin(&mut self, skin: i32) {
-        self.as_raw_mut().skin = skin;
-    }
-
-    pub fn origin(&self) -> vec3_t {
-        self.as_raw().origin
-    }
-
-    pub fn set_origin(&mut self, origin: vec3_t) {
-        self.as_raw_mut().origin = origin;
-    }
-
-    pub fn origin_mut(&mut self) -> &mut vec3_t {
-        &mut self.as_raw_mut().origin
-    }
-
-    pub fn angles(&self) -> vec3_t {
-        self.as_raw().angles
-    }
-
-    pub fn set_angles(&mut self, angles: vec3_t) {
-        self.as_raw_mut().angles = angles;
-    }
-
-    pub fn angles_mut(&mut self) -> &mut vec3_t {
-        &mut self.as_raw_mut().angles
-    }
-
-    pub fn size(&self) -> vec3_t {
-        self.as_raw().size
-    }
-
-    pub fn set_size(&mut self, size: vec3_t) {
-        self.as_raw_mut().size = size;
-    }
-
-    /// Returns this entity rendering scale. Applies to studio and sprite models.
-    pub fn scale(&self) -> f32 {
-        self.as_raw().scale
-    }
-
-    pub fn set_scale(&mut self, scale: f32) {
-        debug_assert!((0.0..=255.0).contains(&scale));
-        self.as_raw_mut().scale = scale;
-    }
-
-    pub fn velocity(&self) -> vec3_t {
-        self.as_raw().velocity
-    }
-
-    pub fn set_velocity(&mut self, vel: vec3_t) {
-        self.as_raw_mut().velocity = vel;
-    }
-
-    pub fn velocity_mut(&mut self) -> &mut vec3_t {
-        &mut self.as_raw_mut().velocity
-    }
-
-    pub fn base_velocity(&self) -> vec3_t {
-        self.as_raw().basevelocity
-    }
-
-    pub fn set_base_velocity(&mut self, vel: vec3_t) {
-        self.as_raw_mut().basevelocity = vel;
-    }
-
-    pub fn base_velocity_mut(&mut self) -> &mut vec3_t {
-        &mut self.as_raw_mut().basevelocity
-    }
-
-    pub fn speed(&self) -> f32 {
-        self.as_raw().speed
-    }
-
-    pub fn set_speed(&mut self, speed: f32) {
-        self.as_raw_mut().speed = speed;
-    }
-
-    pub fn max_speed(&self) -> f32 {
-        self.as_raw().maxspeed
-    }
-
-    pub fn set_max_speed(&mut self, max_speed: f32) {
-        self.as_raw_mut().maxspeed = max_speed;
-    }
-
-    pub fn move_dir(&self) -> vec3_t {
-        self.as_raw().movedir
-    }
+    entvars_vec3!(movedir, fn move_dir);
 
     pub fn set_move_dir(&mut self) {
         let ev = self.as_raw_mut();
@@ -495,41 +573,21 @@ impl EntityVars {
         ev.angles = vec3_t::ZERO;
     }
 
-    pub fn frame(&self) -> f32 {
-        self.as_raw().frame
-    }
+    entvars_value!(frame: f32, fn frame, fn set_frame);
+    entvars_value!(framerate: f32, fn framerate, fn set_framerate);
 
-    pub fn set_frame(&mut self, frame: f32) {
-        self.as_raw_mut().frame = frame;
-    }
-
-    pub fn framerate(&self) -> f32 {
-        self.as_raw().framerate
-    }
-
-    pub fn set_framerate(&mut self, framerate: f32) {
-        self.as_raw_mut().framerate = framerate;
-    }
-
-    pub fn render_mode(&self) -> RenderMode {
-        RenderMode::from_raw(self.as_raw().rendermode).unwrap()
-    }
-
-    pub fn set_render_mode(&mut self, mode: RenderMode) {
-        self.as_raw_mut().rendermode = mode.into_raw();
-    }
-
-    pub fn render_amount(&self) -> f32 {
-        self.as_raw().renderamt
-    }
-
-    pub fn set_render_amount(&mut self, amount: f32) {
-        debug_assert!((0.0..=255.0).contains(&amount));
-        self.as_raw_mut().renderamt = amount;
-    }
+    entvars_enum!(rendermode: RenderMode, fn render_mode, fn set_render_mode);
+    entvars_value!(renderamt: f32, fn render_amount, fn set_render_amount);
 
     pub fn key_value(&mut self, data: &mut KeyValue) {
         let key_name = data.key_name();
+
+        if key_name == c"damage" {
+            self.set_damage(data.value_str().parse().unwrap_or(0.0));
+            data.set_handled(true);
+            return;
+        }
+
         let field = entvars_s::SAVE_FIELDS.iter().find(|i| {
             let name = unsafe { CStrThin::from_ptr(i.fieldName) };
             name.eq_ignore_case(key_name)
@@ -619,8 +677,9 @@ bitflags! {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
 pub enum UseType {
+    #[default]
     Off,
     On,
     Set,
@@ -634,6 +693,17 @@ impl UseType {
             (UseType::On, true) | (UseType::Off, false)
         )
     }
+}
+
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
+pub enum Gib {
+    /// Gib if entity was overkilled.
+    #[default]
+    Normal,
+    /// Never gib, no matter how much death damage is done (freezing, etc).
+    Never,
+    /// Always gib (Houndeye Shock, Barnacle Bite).
+    Always,
 }
 
 pub trait EntityCast: 'static {
@@ -742,6 +812,58 @@ define_entity_trait! {
             true
         }
 
+        #[allow(unused_variables)]
+        fn take_health(
+            &mut self,
+            health: f32,
+            damage_type: ::xash3d_server::entity::DamageFlags,
+        ) -> bool {
+            let v = self.vars_mut();
+            if v.take_damage() == TakeDamage::No {
+                return false;
+            }
+            if v.health() == v.max_health() {
+                return false;
+            }
+            v.set_health((v.health() + health).min(v.max_health()));
+            true
+        }
+
+        #[allow(unused_variables)]
+        fn take_damage(
+            &mut self,
+            damage: f32,
+            damage_type: ::xash3d_server::entity::DamageFlags,
+            inflictor: &mut ::xash3d_server::entity::EntityVars,
+            attacker: Option<&mut ::xash3d_server::entity::EntityVars>,
+        ) -> bool {
+            let classname = self.classname();
+            match (inflictor.classname(), attacker.and_then(|i| i.classname())) {
+                (Some(from), None) => {
+                    warn!("{classname}: take_damage from {from} is not implemented yet");
+                }
+                (Some(from), Some(from2)) => {
+                    warn!("{classname}: take_damage from {from}({from2}) is not implemented yet");
+                }
+                _ => {
+                    warn!("{classname}: take_damage is not implemented yet");
+                }
+            }
+            false
+        }
+
+        #[allow(unused_variables)]
+        fn killed(
+            &mut self,
+            attacker: &mut ::xash3d_server::entity::EntityVars,
+            gib: ::xash3d_server::entity::Gib,
+        ) {
+            let v = self.vars_mut();
+            v.set_take_damage(TakeDamage::No);
+            v.set_dead(Dead::Yes);
+            self.remove_from_world();
+        }
+
         fn override_reset(&mut self) {}
 
         fn set_object_collision_box(&mut self) {
@@ -800,10 +922,6 @@ impl dyn Entity {
 #[derive(Debug)]
 #[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct BaseEntity {
-    #[cfg_attr(feature = "save", save(skip))]
-    pub engine: ServerEngineRef,
-    #[cfg_attr(feature = "save", save(skip))]
-    pub global_state: GlobalStateRef,
     pub vars: EntityVars,
 }
 
@@ -834,11 +952,11 @@ impl Entity for BaseEntity {
     }
 
     fn engine(&self) -> ServerEngineRef {
-        self.engine
+        self.vars().engine()
     }
 
     fn global_state(&self) -> GlobalStateRef {
-        self.global_state
+        self.vars().global_state()
     }
 
     fn vars(&self) -> &EntityVars {
@@ -857,6 +975,9 @@ define_entity_trait! {
         fn pre_think(&mut self);
 
         fn post_think(&mut self);
+
+        #[allow(unused_variables)]
+        fn set_geiger_range(&mut self, range: f32) {}
     }
 }
 

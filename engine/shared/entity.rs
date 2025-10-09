@@ -313,3 +313,40 @@ impl EntityStateExt for entity_state_s {
         unsafe { mem::transmute(&self.effects) }
     }
 }
+
+bitflags! {
+    #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
+    #[repr(transparent)]
+    pub struct DamageFlags: u32 {
+        const GENERIC = 0;
+
+        const CRUSH = 1 << 0;
+        const BULLET = 1 << 1;
+        const SLASH = 1 << 2;
+        const BURN = 1 << 3;
+        const FREEZE = 1 << 4;
+        const FALL = 1 << 5;
+        const BLAST = 1 << 6;
+        const CLUB = 1 << 7;
+        const SHOCK = 1 << 8;
+        const SONIC = 1 << 9;
+        const ENERGYBEAM = 1 << 10;
+        const NEVERGIB = 1 << 12;
+        const ALWAYSGIB = 1 << 13;
+
+        const TIMEBASED = !0xff003fff;
+
+        const DROWN = 1 << 14;
+        const FIRSTTIMEBASED = Self::DROWN.bits();
+
+        const PARALYZE = 1 << 15;
+        const NERVEGAS = 1 << 16;
+        const POISON = 1 << 17;
+        const RADIATION = 1 << 18;
+        const DROWNRECOVER = 1 << 19;
+        const ACID = 1 << 20;
+        const SLOWBURN = 1 << 21;
+        const SLOWFREEZE = 1 << 22;
+        const MORTAR = 1 << 23;
+    }
+}

@@ -3,7 +3,7 @@ use core::ptr::{self, NonNull};
 use bitflags::bitflags;
 use csz::{cstr, CStrArray, CStrThin};
 use xash3d_shared::{
-    entity::{EdictFlags, Effects, MoveType},
+    entity::{DamageFlags, EdictFlags, Effects, MoveType},
     ffi::{
         common::vec3_t,
         server::{edict_s, FENTTABLE_GLOBAL, FENTTABLE_MOVEABLE, LEVELLIST},
@@ -15,8 +15,8 @@ use crate::save::{Restore, Save};
 use crate::{
     entities::subs::{DelayedUse, PointEntity},
     entity::{
-        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, EntityPlayer,
-        EntityVars, KeyValue, ObjectCaps, Solid, UseType,
+        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Dead, Entity, EntityPlayer,
+        EntityVars, KeyValue, ObjectCaps, Solid, TakeDamage, UseType,
     },
     global_state::EntityState,
     prelude::*,
@@ -31,8 +31,7 @@ const MAP_NAME_MAX: usize = 32;
 #[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct AutoTrigger {
     base: BaseEntity,
-    delay: f32,
-    kill_target: Option<MapString>,
+    delayed: DelayedUse,
     global_state: Option<MapString>,
     trigger_type: UseType,
 }
@@ -47,9 +46,8 @@ impl_entity_cast!(AutoTrigger);
 impl CreateEntity for AutoTrigger {
     fn create(base: BaseEntity) -> Self {
         Self {
+            delayed: DelayedUse::new(base.engine()),
             base,
-            delay: 0.0,
-            kill_target: None,
             global_state: None,
             trigger_type: UseType::Off,
         }
@@ -75,13 +73,12 @@ impl Entity for AutoTrigger {
                 b"2" => self.trigger_type = UseType::Toggle,
                 _ => self.trigger_type = UseType::On,
             },
-            b"delay" => {
-                self.delay = data.value_str().parse().unwrap_or(0.0);
+            _ => {
+                if !self.delayed.key_value(data) {
+                    self.base.key_value(data);
+                }
+                return;
             }
-            b"killtarget" => {
-                self.kill_target = Some(self.engine().new_map_string(data.value()));
-            }
-            _ => return self.base.key_value(data),
         }
         data.set_handled(true);
     }
@@ -101,18 +98,7 @@ impl Entity for AutoTrigger {
             return;
         }
 
-        if self.delay != 0.0 {
-            DelayedUse::create(
-                self.engine(),
-                self.delay,
-                self.vars().target(),
-                self.trigger_type,
-                self.kill_target,
-                Some(self),
-            );
-        } else {
-            utils::use_targets(self.kill_target, self.trigger_type, 0.0, None, self);
-        }
+        self.delayed.use_targets(self.trigger_type, self);
 
         if self.vars().spawn_flags() & Self::SF_FIREONCE != 0 {
             self.remove_from_world();
@@ -144,15 +130,29 @@ fn init_trigger(engine: &ServerEngine, v: &mut EntityVars) {
     }
 }
 
+fn toggle_use(ent: &mut impl Entity) {
+    let engine = ent.engine();
+    let v = ent.vars_mut();
+    match v.solid() {
+        Solid::Not => {
+            v.set_solid(Solid::Trigger);
+            engine.globals.force_retouch();
+        }
+        _ => {
+            v.set_solid(Solid::Not);
+        }
+    }
+    engine.set_origin(v.origin(), ent);
+}
+
 #[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct TriggerMultiple {
     base: BaseEntity,
-    delay: f32,
+    delayed: DelayedUse,
     /// Time in seconds before the trigger is ready to be re-triggered.
     wait: f32,
     /// The time when this trigger can be re-triggered.
     reset_time: MapTime,
-    kill_target: Option<MapString>,
     master: Option<MapString>,
 }
 
@@ -175,18 +175,7 @@ impl TriggerMultiple {
             engine.build_sound().channel_voice().emit(&noise, self);
         }
 
-        if self.delay != 0.0 {
-            DelayedUse::create(
-                self.engine(),
-                self.delay,
-                self.vars().target(),
-                UseType::Toggle,
-                self.kill_target,
-                Some(self),
-            );
-        } else {
-            utils::use_targets(self.kill_target, UseType::Toggle, 0.0, Some(other), self);
-        }
+        self.delayed.use_targets(UseType::Toggle, self);
 
         let v = self.base.vars_mut();
         if let Some(_message) = MapString::from_index(engine, v.as_raw().message) {
@@ -210,11 +199,10 @@ impl_entity_cast!(TriggerMultiple);
 impl CreateEntity for TriggerMultiple {
     fn create(base: BaseEntity) -> Self {
         Self {
+            delayed: DelayedUse::new(base.engine()),
             base,
-            delay: 0.0,
             wait: 0.2,
             reset_time: MapTime::ZERO,
-            kill_target: None,
             master: None,
         }
     }
@@ -237,13 +225,12 @@ impl Entity for TriggerMultiple {
             b"wait" => {
                 self.wait = data.value_str().parse().unwrap_or(0.0);
             }
-            b"delay" => {
-                self.delay = data.value_str().parse().unwrap_or(0.0);
+            _ => {
+                if !self.delayed.key_value(data) {
+                    self.base.key_value(data);
+                }
+                return;
             }
-            b"killtarget" => {
-                self.kill_target = Some(self.engine().new_map_string(data.value()));
-            }
-            _ => return self.base.key_value(data),
         }
         data.set_handled(true);
     }
@@ -353,18 +340,7 @@ impl Entity for TriggerPush {
     }
 
     fn used(&mut self, _: Option<&mut dyn Entity>, _: &mut dyn Entity, _: UseType, _: f32) {
-        let engine = self.engine();
-        let v = self.base.vars_mut();
-        match v.solid() {
-            Solid::Not => {
-                v.set_solid(Solid::Trigger);
-                engine.globals.force_retouch();
-            }
-            _ => {
-                v.set_solid(Solid::Not);
-            }
-        }
-        engine.set_origin(v.origin(), self);
+        toggle_use(self);
     }
 
     fn touched(&mut self, other: &mut dyn Entity) {
@@ -393,6 +369,178 @@ impl Entity for TriggerPush {
             other_v.flags_mut().insert(EdictFlags::BASEVELOCITY);
             other_v.set_base_velocity(push_vec);
         }
+    }
+}
+
+bitflags! {
+    #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
+    #[repr(transparent)]
+    pub struct TriggerHurtSpawnFlags: u32 {
+        /// Only fire hurt target once.
+        const TARGET_ONCE = 1 << 0;
+        /// Spawnflag that makes trigger_push spawn turned OFF.
+        const START_OFF = 1 << 1;
+        /// Players not allowed to fire this trigger.
+        const NO_CLIENTS = 1 << 3;
+        /// Trigger hurt will only fire its target if it is hurting a client.
+        const CLIENT_ONLY_FIRE = 1 << 4;
+        /// Only clients may touch this trigger.
+        const CLIENT_ONLY_TOUCH = 1 << 4;
+    }
+}
+
+#[cfg_attr(feature = "save", derive(Save, Restore))]
+pub struct TriggerHurt {
+    base: BaseEntity,
+    delayed: DelayedUse,
+    damage_type: DamageFlags,
+}
+
+impl TriggerHurt {
+    fn spawn_flags(&self) -> TriggerHurtSpawnFlags {
+        TriggerHurtSpawnFlags::from_bits_retain(self.vars().spawn_flags())
+    }
+}
+
+impl_entity_cast!(TriggerHurt);
+
+impl CreateEntity for TriggerHurt {
+    fn create(base: BaseEntity) -> Self {
+        Self {
+            delayed: DelayedUse::new(base.engine()),
+            base,
+            damage_type: DamageFlags::default(),
+        }
+    }
+}
+
+impl Entity for TriggerHurt {
+    delegate_entity!(base not { object_caps, key_value, spawn, used, touched, think });
+
+    fn object_caps(&self) -> ObjectCaps {
+        self.base
+            .object_caps()
+            .difference(ObjectCaps::ACROSS_TRANSITION)
+    }
+
+    fn key_value(&mut self, data: &mut KeyValue) {
+        match data.key_name().to_bytes() {
+            b"damagetype" => {
+                let bits = data.value_str().parse().unwrap_or(0);
+                self.damage_type = DamageFlags::from_bits_retain(bits);
+            }
+            _ => {
+                if !self.delayed.key_value(data) {
+                    self.base.key_value(data);
+                }
+                return;
+            }
+        }
+        data.set_handled(true);
+    }
+
+    fn spawn(&mut self) {
+        let spawn_flags = self.spawn_flags();
+        let engine = self.base.engine();
+        let v = self.base.vars_mut();
+        init_trigger(&engine, v);
+
+        if self.damage_type.intersects(DamageFlags::RADIATION) {
+            v.set_next_think_time(engine.random_float(0.0, 0.5));
+        }
+
+        if spawn_flags.intersects(TriggerHurtSpawnFlags::START_OFF) {
+            v.set_solid(Solid::Not);
+        }
+
+        engine.set_origin(v.origin(), self);
+    }
+
+    fn used(&mut self, _: Option<&mut dyn Entity>, _: &mut dyn Entity, _: UseType, _: f32) {
+        if self.vars().target_name().is_some() {
+            toggle_use(self);
+        }
+    }
+
+    fn touched(&mut self, other: &mut dyn Entity) {
+        if other.vars().take_damage() == TakeDamage::No {
+            return;
+        }
+
+        let engine = self.base.engine();
+        let global_state = self.base.global_state();
+        let spawn_flags = self.spawn_flags();
+
+        let is_player = other.downcast_ref::<dyn EntityPlayer>().is_some();
+        if spawn_flags.intersects(TriggerHurtSpawnFlags::NO_CLIENTS) && is_player {
+            return;
+        }
+
+        let v = self.base.vars_mut();
+        let now = engine.globals.map_time();
+        let is_multiplayer = global_state.game_rules().is_multiplayer();
+        if is_multiplayer {
+            warn!(
+                "{}: touched is not implemented in multiplayer",
+                self.classname()
+            );
+            return;
+        } else if now <= v.damage_time() && now != v.pain_finished() {
+            return;
+        }
+
+        let dmg = v.damage() * 0.5;
+        if dmg < 0.0 {
+            if !(is_multiplayer && is_player && other.vars().dead() != Dead::No) {
+                other.take_health(-dmg, self.damage_type);
+            }
+        } else {
+            other.take_damage(dmg, self.damage_type, v, None);
+        }
+
+        v.set_pain_finished(now);
+        v.set_damage_time(now + 0.5);
+
+        if v.target().is_some() {
+            if spawn_flags.intersects(TriggerHurtSpawnFlags::CLIENT_ONLY_FIRE) && !is_player {
+                return;
+            }
+            self.delayed.use_targets(UseType::Toggle, self);
+            if spawn_flags.intersects(TriggerHurtSpawnFlags::TARGET_ONCE) {
+                self.vars_mut().set_target(None);
+            }
+        }
+    }
+
+    fn think(&mut self) {
+        if !self.damage_type.intersects(DamageFlags::RADIATION) {
+            return;
+        }
+
+        let engine = self.base.engine();
+        let v = self.base.vars_mut();
+
+        // set origin to center of trigger so that this check works
+        let orig_origin = v.origin();
+        let orig_view_ofs = v.view_ofs();
+        v.set_origin(v.abs_center());
+        v.set_view_ofs(vec3_t::ZERO);
+
+        let player = engine
+            .find_client_in_pvs(v)
+            .and_then(|mut i| unsafe { i.as_mut() }.get_entity_mut());
+
+        v.set_origin(orig_origin);
+        v.set_view_ofs(orig_view_ofs);
+
+        if let Some(player) = player.and_then(|i| i.downcast_mut::<dyn EntityPlayer>()) {
+            let spot1 = v.abs_center();
+            let spot2 = player.vars_mut().abs_center();
+            let range = (spot1 - spot2).length();
+            player.set_geiger_range(range);
+        }
+
+        self.vars_mut().set_next_think_time(0.25);
     }
 }
 
@@ -493,7 +641,7 @@ impl ChangeLevel {
     const SF_USE_ONLY: u32 = 1 << 1;
 
     fn change_level_now(&mut self, _other: &mut dyn Entity) {
-        let engine = self.base.engine;
+        let engine = self.base.engine();
         if self.map_name.is_empty() {
             panic!("Detected problems with save/restore!!!");
         }
@@ -545,7 +693,7 @@ impl Entity for ChangeLevel {
     }
 
     fn key_value(&mut self, data: &mut KeyValue) {
-        let engine = self.base.engine;
+        let engine = self.base.engine();
         let value = data.value();
 
         match data.key_name().to_bytes() {
@@ -756,6 +904,7 @@ mod exports {
     export_entity!(trigger_auto, Private<super::AutoTrigger>);
     export_entity!(trigger_autosave, Private<super::TriggerSave>);
     export_entity!(trigger_changelevel, Private<super::ChangeLevel>);
+    export_entity!(trigger_hurt, Private<super::TriggerHurt>);
     export_entity!(trigger_multiple, Private<super::TriggerMultiple>);
     export_entity!(trigger_once, Private<super::TriggerOnce>);
     export_entity!(trigger_push, Private<super::TriggerPush>);
@@ -773,7 +922,6 @@ mod exports {
     export_entity!(trigger_counter, Private<StubEntity>);
     export_entity!(trigger_endsection, Private<StubEntity>);
     export_entity!(trigger_gravity, Private<StubEntity>);
-    export_entity!(trigger_hurt, Private<StubEntity>);
     export_entity!(trigger_monsterjump, Private<StubEntity>);
     export_entity!(trigger_relay, Private<StubEntity>);
     export_entity!(trigger_teleport, Private<StubEntity>);

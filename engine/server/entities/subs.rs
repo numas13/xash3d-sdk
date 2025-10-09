@@ -78,14 +78,14 @@ impl Entity for DeathMatchStart {
 }
 
 #[cfg_attr(feature = "save", derive(Save, Restore))]
-pub struct DelayedUse {
+struct DelayedUseEntity {
     base: BaseEntity,
     use_type: UseType,
     kill_target: Option<MapString>,
 }
 
-impl DelayedUse {
-    pub fn new(base: BaseEntity, use_type: UseType, kill_target: Option<MapString>) -> Self {
+impl DelayedUseEntity {
+    fn new(base: BaseEntity, use_type: UseType, kill_target: Option<MapString>) -> Self {
         Self {
             base,
             use_type,
@@ -93,7 +93,7 @@ impl DelayedUse {
         }
     }
 
-    pub fn create(
+    fn create(
         engine: ServerEngineRef,
         delay: f32,
         target: Option<MapString>,
@@ -106,8 +106,8 @@ impl DelayedUse {
         }
 
         let temp = engine
-            .new_entity_with::<Private<DelayedUse>>(|base| {
-                DelayedUse::new(base, use_type, kill_target)
+            .new_entity_with::<Private<DelayedUseEntity>>(|base| {
+                DelayedUseEntity::new(base, use_type, kill_target)
             })
             .class_name(c"DelayedUse")
             .vars(|e| {
@@ -126,9 +126,9 @@ impl DelayedUse {
     }
 }
 
-impl_entity_cast!(DelayedUse);
+impl_entity_cast!(DelayedUseEntity);
 
-impl Entity for DelayedUse {
+impl Entity for DelayedUseEntity {
     delegate_entity!(base not { think });
 
     fn think(&mut self) {
@@ -138,6 +138,70 @@ impl Entity for DelayedUse {
         }
         utils::use_targets(self.kill_target, self.use_type, 0.0, activator, self);
         self.remove_from_world();
+    }
+}
+
+#[cfg_attr(feature = "save", derive(Save, Restore))]
+#[derive(Copy, Clone)]
+pub struct DelayedUse {
+    #[cfg_attr(feature = "save", save(skip))]
+    engine: ServerEngineRef,
+    delay: f32,
+    kill_target: Option<MapString>,
+}
+
+impl DelayedUse {
+    pub fn new(engine: ServerEngineRef) -> Self {
+        Self {
+            engine,
+            delay: 0.0,
+            kill_target: None,
+        }
+    }
+
+    pub fn delay(&self) -> f32 {
+        self.delay
+    }
+
+    pub fn set_delay(&mut self, delay: f32) {
+        self.delay = delay;
+    }
+
+    pub fn kill_target(&self) -> Option<MapString> {
+        self.kill_target
+    }
+
+    pub fn set_kill_target(&mut self, kill_target: impl Into<Option<MapString>>) {
+        self.kill_target = kill_target.into();
+    }
+
+    pub fn key_value(&mut self, data: &mut KeyValue) -> bool {
+        if data.key_name() == c"delay" {
+            self.delay = data.value_str().parse().unwrap_or(0.0);
+            data.set_handled(true);
+            true
+        } else if data.key_name() == c"killtarget" {
+            self.kill_target = Some(self.engine.new_map_string(data.value()));
+            data.set_handled(true);
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn use_targets(self, use_type: UseType, caller: &mut dyn Entity) {
+        if self.delay != 0.0 {
+            DelayedUseEntity::create(
+                self.engine,
+                self.delay,
+                caller.vars().target(),
+                use_type,
+                self.kill_target,
+                Some(caller),
+            );
+        } else {
+            utils::use_targets(self.kill_target, use_type, 0.0, None, caller);
+        }
     }
 }
 

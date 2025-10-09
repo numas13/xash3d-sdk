@@ -213,7 +213,7 @@ macro_rules! define_enum_for_primitive {
 
         impl $name {
             /// Creates an enum if the given raw value is valid.
-            pub const fn from_raw(value: $ty) -> Option<Self> {
+            pub fn from_raw(value: $ty) -> Option<Self> {
                 match value $(as $cast)? {
                     $($($value)+ => Some(Self::$variant),)+
                     _ => None,
@@ -221,7 +221,7 @@ macro_rules! define_enum_for_primitive {
             }
 
             /// Converts this enum to a raw value.
-            pub const fn into_raw(self) -> $ty {
+            pub fn into_raw(self) -> $ty {
                 match self {
                     $(Self::$variant => $($value)+ as $ty,)+
                 }
