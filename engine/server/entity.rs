@@ -372,6 +372,14 @@ impl EntityVars {
         self.as_raw_mut().movetype = move_type.into_raw();
     }
 
+    pub fn friction(&self) -> f32 {
+        self.as_raw().friction
+    }
+
+    pub fn set_friction(&mut self, friction: f32) {
+        self.as_raw_mut().friction = friction;
+    }
+
     pub fn solid(&self) -> Solid {
         Solid::from_raw(self.as_raw().solid).unwrap()
     }
