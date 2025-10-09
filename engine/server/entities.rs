@@ -4,6 +4,7 @@ pub mod buttons;
 pub mod doors;
 pub mod effects;
 pub mod explode;
+pub mod func;
 pub mod items;
 pub mod lights;
 pub mod nodes;

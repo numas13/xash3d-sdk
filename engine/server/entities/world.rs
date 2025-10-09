@@ -63,7 +63,7 @@ impl Entity for Decal {
         if data.key_name() == c"texture" {
             let engine = self.engine();
             if let Some(skin) = engine.decal_index(data.value()) {
-                self.vars_mut().set_skin(skin);
+                self.vars_mut().set_skin(skin.into());
                 data.set_handled(true);
             } else {
                 warn!("failed to find decal {}", data.value());

@@ -19,6 +19,7 @@ use xash3d_shared::{
     },
     macros::{const_assert_size_of_field_eq, define_enum_for_primitive},
     math::{fabsf, ToAngleVectors},
+    render::RenderMode,
     str::ToEngineStr,
     utils::cstr_or_none,
 };
@@ -388,12 +389,12 @@ impl EntityVars {
         self.as_raw_mut().solid = solid.into_raw();
     }
 
-    pub fn skin(&self) -> u16 {
-        self.as_raw().skin.try_into().unwrap()
+    pub fn skin(&self) -> i32 {
+        self.as_raw().skin
     }
 
-    pub fn set_skin(&mut self, skin: u16) {
-        self.as_raw_mut().skin = skin as i32;
+    pub fn set_skin(&mut self, skin: i32) {
+        self.as_raw_mut().skin = skin;
     }
 
     pub fn origin(&self) -> vec3_t {
@@ -426,7 +427,7 @@ impl EntityVars {
     }
 
     pub fn set_scale(&mut self, scale: f32) {
-        debug_assert!((0.0..255.0).contains(&scale));
+        debug_assert!((0.0..=255.0).contains(&scale));
         self.as_raw_mut().scale = scale;
     }
 
@@ -484,6 +485,23 @@ impl EntityVars {
 
     pub fn set_framerate(&mut self, framerate: f32) {
         self.as_raw_mut().framerate = framerate;
+    }
+
+    pub fn render_mode(&self) -> RenderMode {
+        RenderMode::from_raw(self.as_raw().rendermode).unwrap()
+    }
+
+    pub fn set_render_mode(&mut self, mode: RenderMode) {
+        self.as_raw_mut().rendermode = mode.into_raw();
+    }
+
+    pub fn render_amount(&self) -> f32 {
+        self.as_raw().renderamt
+    }
+
+    pub fn set_render_amount(&mut self, amount: f32) {
+        debug_assert!((0.0..=255.0).contains(&amount));
+        self.as_raw_mut().renderamt = amount;
     }
 
     pub fn key_value(&mut self, data: &mut KeyValue) {

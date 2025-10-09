@@ -29,56 +29,6 @@ use crate::{
 const MAP_NAME_MAX: usize = 32;
 
 #[cfg_attr(feature = "save", derive(Save, Restore))]
-pub struct FrictionModifier {
-    base: BaseEntity,
-    friction: f32,
-}
-
-impl_entity_cast!(FrictionModifier);
-
-impl CreateEntity for FrictionModifier {
-    fn create(base: BaseEntity) -> Self {
-        Self {
-            base,
-            friction: 1.0,
-        }
-    }
-}
-
-impl Entity for FrictionModifier {
-    delegate_entity!(base not { object_caps, key_value, spawn, touched });
-
-    fn object_caps(&self) -> ObjectCaps {
-        self.base
-            .object_caps()
-            .difference(ObjectCaps::ACROSS_TRANSITION)
-    }
-
-    fn key_value(&mut self, data: &mut KeyValue) {
-        if data.key_name() == c"modifier" {
-            self.friction = data.value_str().parse().unwrap_or(0.0) / 100.0;
-            data.set_handled(true);
-        } else {
-            self.base.key_value(data);
-        }
-    }
-
-    fn spawn(&mut self) {
-        let v = self.base.vars_mut();
-        v.set_solid(Solid::Trigger);
-        v.set_move_type(MoveType::None);
-        v.reload_model();
-    }
-
-    fn touched(&mut self, other: &mut dyn Entity) {
-        match other.vars().move_type() {
-            MoveType::Bounce | MoveType::BounceMissile => {}
-            _ => other.vars_mut().set_friction(self.friction),
-        }
-    }
-}
-
-#[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct AutoTrigger {
     base: BaseEntity,
     delay: f32,
@@ -705,7 +655,6 @@ mod exports {
         export::export_entity,
     };
 
-    export_entity!(func_friction, Private<super::FrictionModifier>);
     export_entity!(trigger_auto, Private<super::AutoTrigger>);
     export_entity!(trigger_autosave, Private<super::TriggerSave>);
     export_entity!(trigger_multiple, Private<super::TriggerMultiple>);
@@ -715,7 +664,6 @@ mod exports {
 
     export_entity!(env_render, Private<StubEntity>);
     export_entity!(fireanddie, Private<StubEntity>);
-    export_entity!(func_ladder, Private<StubEntity>);
     export_entity!(info_teleport_destination, Private<StubEntity>);
     export_entity!(multi_manager, Private<StubEntity>);
     export_entity!(target_cdaudio, Private<StubEntity>);
