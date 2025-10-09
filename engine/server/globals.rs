@@ -70,4 +70,10 @@ impl ServerGlobals {
             (*self.raw).vecLandmarkOffset = landmark_offset;
         }
     }
+
+    pub fn force_retouch(&self) {
+        unsafe {
+            (*self.raw).force_retouch += 1.0;
+        }
+    }
 }

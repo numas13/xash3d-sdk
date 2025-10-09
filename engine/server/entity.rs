@@ -405,12 +405,20 @@ impl EntityVars {
         self.as_raw_mut().origin = origin;
     }
 
+    pub fn origin_mut(&mut self) -> &mut vec3_t {
+        &mut self.as_raw_mut().origin
+    }
+
     pub fn angles(&self) -> vec3_t {
         self.as_raw().angles
     }
 
     pub fn set_angles(&mut self, angles: vec3_t) {
         self.as_raw_mut().angles = angles;
+    }
+
+    pub fn angles_mut(&mut self) -> &mut vec3_t {
+        &mut self.as_raw_mut().angles
     }
 
     pub fn size(&self) -> vec3_t {
@@ -437,6 +445,22 @@ impl EntityVars {
 
     pub fn set_velocity(&mut self, vel: vec3_t) {
         self.as_raw_mut().velocity = vel;
+    }
+
+    pub fn velocity_mut(&mut self) -> &mut vec3_t {
+        &mut self.as_raw_mut().velocity
+    }
+
+    pub fn base_velocity(&self) -> vec3_t {
+        self.as_raw().basevelocity
+    }
+
+    pub fn set_base_velocity(&mut self, vel: vec3_t) {
+        self.as_raw_mut().basevelocity = vel;
+    }
+
+    pub fn base_velocity_mut(&mut self) -> &mut vec3_t {
+        &mut self.as_raw_mut().basevelocity
     }
 
     pub fn speed(&self) -> f32 {

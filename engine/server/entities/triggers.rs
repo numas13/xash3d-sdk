@@ -298,6 +298,104 @@ impl Entity for TriggerOnce {
     }
 }
 
+bitflags! {
+    #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
+    #[repr(transparent)]
+    pub struct TriggerPushSpawnFlags: u32 {
+        const PUSH_ONCE = 1 << 0;
+        // spawnflag that makes trigger_push spawn turned OFF
+        const START_OFF = 1 << 1;
+    }
+}
+
+#[cfg_attr(feature = "save", derive(Save, Restore))]
+pub struct TriggerPush {
+    base: BaseEntity,
+}
+
+impl_entity_cast!(TriggerPush);
+
+impl CreateEntity for TriggerPush {
+    fn create(base: BaseEntity) -> Self {
+        Self { base }
+    }
+}
+
+impl Entity for TriggerPush {
+    delegate_entity!(base not { object_caps, spawn, used, touched });
+
+    fn object_caps(&self) -> ObjectCaps {
+        self.base
+            .object_caps()
+            .difference(ObjectCaps::ACROSS_TRANSITION)
+    }
+
+    fn spawn(&mut self) {
+        let engine = self.base.engine();
+        let v = self.base.vars_mut();
+
+        if v.angles() == vec3_t::ZERO {
+            v.angles_mut().set_y(360.0);
+        }
+        init_trigger(&engine, v);
+
+        if v.speed() == 0.0 {
+            v.set_speed(100.0);
+        }
+
+        let spawn_flags = TriggerPushSpawnFlags::from_bits_retain(v.spawn_flags());
+        if spawn_flags.intersects(TriggerPushSpawnFlags::START_OFF) {
+            v.set_solid(Solid::Not);
+        }
+
+        // link into the list
+        engine.set_origin(v.origin(), self);
+    }
+
+    fn used(&mut self, _: Option<&mut dyn Entity>, _: &mut dyn Entity, _: UseType, _: f32) {
+        let engine = self.engine();
+        let v = self.base.vars_mut();
+        match v.solid() {
+            Solid::Not => {
+                v.set_solid(Solid::Trigger);
+                engine.globals.force_retouch();
+            }
+            _ => {
+                v.set_solid(Solid::Not);
+            }
+        }
+        engine.set_origin(v.origin(), self);
+    }
+
+    fn touched(&mut self, other: &mut dyn Entity) {
+        let other_v = other.vars_mut();
+        if let MoveType::None | MoveType::Push | MoveType::NoClip | MoveType::Follow =
+            other_v.move_type()
+        {
+            return;
+        }
+        if let Solid::Not | Solid::Bsp = other_v.solid() {
+            return;
+        }
+
+        let v = self.base.vars();
+        let push_vec = v.move_dir() * v.speed();
+        let spawn_flags = TriggerPushSpawnFlags::from_bits_retain(self.vars().spawn_flags());
+        if spawn_flags.intersects(TriggerPushSpawnFlags::PUSH_ONCE) {
+            *other_v.velocity_mut() += push_vec;
+            if other_v.velocity().z() > 0.0 {
+                other_v.flags_mut().remove(EdictFlags::ONGROUND);
+            }
+            self.remove_from_world();
+        } else if other_v.flags().intersects(EdictFlags::BASEVELOCITY) {
+            *other_v.base_velocity_mut() += push_vec;
+        } else {
+            other_v.flags_mut().insert(EdictFlags::BASEVELOCITY);
+            other_v.set_base_velocity(push_vec);
+        }
+    }
+}
+
 #[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct TriggerSave {
     base: BaseEntity,
@@ -657,10 +755,11 @@ mod exports {
 
     export_entity!(trigger_auto, Private<super::AutoTrigger>);
     export_entity!(trigger_autosave, Private<super::TriggerSave>);
+    export_entity!(trigger_changelevel, Private<super::ChangeLevel>);
     export_entity!(trigger_multiple, Private<super::TriggerMultiple>);
     export_entity!(trigger_once, Private<super::TriggerOnce>);
+    export_entity!(trigger_push, Private<super::TriggerPush>);
     export_entity!(trigger_transition, Private<super::TriggerVolume>);
-    export_entity!(trigger_changelevel, Private<super::ChangeLevel>);
 
     export_entity!(env_render, Private<StubEntity>);
     export_entity!(fireanddie, Private<StubEntity>);
@@ -676,7 +775,6 @@ mod exports {
     export_entity!(trigger_gravity, Private<StubEntity>);
     export_entity!(trigger_hurt, Private<StubEntity>);
     export_entity!(trigger_monsterjump, Private<StubEntity>);
-    export_entity!(trigger_push, Private<StubEntity>);
     export_entity!(trigger_relay, Private<StubEntity>);
     export_entity!(trigger_teleport, Private<StubEntity>);
 }

@@ -337,8 +337,7 @@ pub trait ServerDll: UnsyncGlobal {
 
         if global_entity {
             save_data.set_landmark_offset(old_offset);
-            let origin = entity.vars().as_raw().origin;
-            engine.set_origin(entity.as_edict_mut(), origin);
+            engine.set_origin(entity.vars().origin(), entity.as_edict_mut());
             entity.override_reset();
             return RestoreResult::Ok;
         } else if let Some(globalname) = entity.globalname() {

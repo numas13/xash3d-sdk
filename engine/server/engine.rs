@@ -542,8 +542,8 @@ impl ServerEngine {
     // pub pfnWalkMove:
     //     Option<unsafe extern "C" fn(ent: *mut edict_t, yaw: f32, dist: f32, iMode: c_int) -> c_int>,
 
-    pub fn set_origin(&self, ent: &mut edict_s, origin: vec3_t) {
-        unsafe { unwrap!(self, pfnSetOrigin)(ent, origin.as_ptr()) }
+    pub fn set_origin(&self, origin: vec3_t, ent: &mut impl AsEdict) {
+        unsafe { unwrap!(self, pfnSetOrigin)(ent.as_edict_mut(), origin.as_ptr()) }
     }
 
     pub fn build_sound<'a>(&'a self) -> SoundBuilder<'a> {
