@@ -13,6 +13,7 @@ use crate::{
     global_state::GlobalStateRef,
     prelude::*,
     str::MapString,
+    user_message,
 };
 
 #[cfg_attr(feature = "save", derive(Save, Restore))]
@@ -119,8 +120,30 @@ impl Entity for Decal {
             return;
         }
 
-        // TODO: decal trigger
-        warn!("{}: used is not implemented", self.classname());
+        let engine = self.engine();
+
+        let origin = self.vars().origin();
+        let start = origin - vec3_t::splat(5.0);
+        let end = origin + vec3_t::splat(5.0);
+        let trace = engine.trace_line(start, end, TraceIgnore::MONSTERS, Some(self));
+
+        let msg = user_message::BspDecal {
+            position: origin.into(),
+            texture_index: self.vars().skin() as u16,
+            entity: engine.ent_index(trace.hit_entity()),
+            model_index: trace.hit_entity().v.modelindex as u16,
+        };
+        engine.msg_broadcast(&msg);
+
+        // if log::log_enabled!(log::Level::Trace) {
+        //     let msg = user_message::Line {
+        //         start: start.into(),
+        //         end: end.into(),
+        //         duration: f32::MAX.into(),
+        //         color: crate::color::RGB::RED,
+        //     };
+        //     engine.msg_broadcast(&msg);
+        // }
 
         self.state = Self::STATE_REMOVE;
         self.vars_mut().set_next_think_time(0.1);
