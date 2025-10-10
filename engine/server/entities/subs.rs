@@ -5,6 +5,7 @@ use crate::{
         delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, EntityPlayer,
         KeyValue, ObjectCaps, Private, Solid, UseType,
     },
+    export::export_entity_default,
     prelude::*,
     str::MapString,
     utils,
@@ -205,14 +206,12 @@ impl DelayedUse {
     }
 }
 
-#[cfg(feature = "export-default-entities")]
-mod exports {
-    use super::PointEntity;
-    use crate::{entity::Private, export::export_entity};
-
-    export_entity!(info_player_deathmatch, Private<super::DeathMatchStart>);
-    export_entity!(info_player_start, Private<PointEntity>);
-    export_entity!(info_landmark, Private<PointEntity>);
-    // Lightning target, just alias landmark.
-    export_entity!(info_target, Private<PointEntity>);
-}
+export_entity_default!(
+    "export-info_player_deathmatch",
+    info_player_deathmatch,
+    DeathMatchStart
+);
+export_entity_default!("export-info_player_start", info_player_start, PointEntity);
+export_entity_default!("export-info_landmark", info_landmark, PointEntity);
+// Lightning target, just alias landmark.
+export_entity_default!("export-info_target", info_target, PointEntity);

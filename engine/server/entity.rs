@@ -1,5 +1,4 @@
 mod macros;
-
 mod private_data;
 
 use core::{

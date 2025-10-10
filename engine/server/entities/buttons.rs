@@ -11,6 +11,7 @@ use crate::{
         delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, EntityVars, KeyValue,
         UseType,
     },
+    export::{export_entity_default, export_entity_stub},
     prelude::*,
     user_message,
 };
@@ -180,21 +181,12 @@ fn do_spark(engine: ServerEngineRef, vars: &mut EntityVars, location: vec3_t) {
         .emit(SPARK_SOUNDS[index], vars.as_edict_mut());
 }
 
-#[cfg(feature = "export-default-entities")]
-mod exports {
-    use super::EnvSpark;
-    use crate::{
-        entity::{Private, StubEntity},
-        export::export_entity,
-    };
+export_entity_default!("export-env_spark", env_spark, EnvSpark);
+export_entity_default!("export-env_debris", env_debris, EnvSpark);
 
-    export_entity!(env_spark, Private<EnvSpark>);
-    export_entity!(env_debris, Private<EnvSpark>);
-
-    export_entity!(button_target, Private<StubEntity>);
-    export_entity!(env_global, Private<StubEntity>);
-    export_entity!(func_button, Private<StubEntity>);
-    export_entity!(func_rot_button, Private<StubEntity>);
-    export_entity!(momentary_rot_button, Private<StubEntity>);
-    export_entity!(multisource, Private<StubEntity>);
-}
+export_entity_stub!(button_target);
+export_entity_stub!(env_global);
+export_entity_stub!(func_button);
+export_entity_stub!(func_rot_button);
+export_entity_stub!(momentary_rot_button);
+export_entity_stub!(multisource);

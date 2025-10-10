@@ -1,10 +1,4 @@
-#[cfg(feature = "export-default-entities")]
-mod exports {
-    use crate::{
-        entity::{Private, StubEntity},
-        export::export_entity,
-    };
+use crate::export::export_entity_stub;
 
-    export_entity!(func_breakable, Private<StubEntity>);
-    export_entity!(func_pushable, Private<StubEntity>);
-}
+export_entity_stub!(func_breakable);
+export_entity_stub!(func_pushable);

@@ -1,11 +1,14 @@
 use xash3d_shared::entity::MoveType;
 
-use crate::entity::{
-    delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, KeyValue, ObjectCaps,
-    Solid,
-};
 #[cfg(feature = "save")]
 use crate::save::{Restore, Save};
+use crate::{
+    entity::{
+        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, KeyValue, ObjectCaps,
+        Solid,
+    },
+    export::export_entity_default,
+};
 
 #[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct NodeEntity {
@@ -61,11 +64,5 @@ impl Entity for NodeEntity {
 
 // TODO: add the world graph
 
-#[cfg(feature = "export-default-entities")]
-mod exports {
-    use super::NodeEntity;
-    use crate::{entity::Private, export::export_entity};
-
-    export_entity!(info_node, Private<NodeEntity>);
-    export_entity!(info_node_air, Private<NodeEntity>);
-}
+export_entity_default!("export-info_node", info_node, NodeEntity);
+export_entity_default!("export-info_node_air", info_node_air, NodeEntity);

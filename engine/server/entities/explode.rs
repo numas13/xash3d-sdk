@@ -1,10 +1,4 @@
-#[cfg(feature = "export-default-entities")]
-mod exports {
-    use crate::{
-        entity::{Private, StubEntity},
-        export::export_entity,
-    };
+use crate::export::export_entity_stub;
 
-    export_entity!(spark_shower, Private<StubEntity>);
-    export_entity!(env_explosion, Private<StubEntity>);
-}
+export_entity_stub!(spark_shower);
+export_entity_stub!(env_explosion);

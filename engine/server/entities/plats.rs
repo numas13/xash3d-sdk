@@ -1,16 +1,10 @@
-#[cfg(feature = "export-default-entities")]
-mod exports {
-    use crate::{
-        entity::{Private, StubEntity},
-        export::export_entity,
-    };
+use crate::export::export_entity_stub;
 
-    export_entity!(func_plat, Private<StubEntity>);
-    export_entity!(func_platrot, Private<StubEntity>);
-    export_entity!(func_train, Private<StubEntity>);
-    export_entity!(func_tracktrain, Private<StubEntity>);
-    export_entity!(func_traincontrols, Private<StubEntity>);
-    export_entity!(func_trackchange, Private<StubEntity>);
-    export_entity!(func_trackautochange, Private<StubEntity>);
-    export_entity!(func_guntarget, Private<StubEntity>);
-}
+export_entity_stub!(func_plat);
+export_entity_stub!(func_platrot);
+export_entity_stub!(func_train);
+export_entity_stub!(func_tracktrain);
+export_entity_stub!(func_traincontrols);
+export_entity_stub!(func_trackchange);
+export_entity_stub!(func_trackautochange);
+export_entity_stub!(func_guntarget);

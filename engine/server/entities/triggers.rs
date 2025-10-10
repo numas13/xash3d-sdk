@@ -22,6 +22,7 @@ use crate::{
         delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Dead, Entity, EntityPlayer,
         EntityVars, KeyValue, ObjectCaps, Private, Solid, TakeDamage, UseType,
     },
+    export::{export_entity_default, export_entity_stub},
     global_state::EntityState,
     prelude::*,
     save::SaveRestoreData,
@@ -1089,36 +1090,36 @@ impl Entity for MultiManager {
     }
 }
 
-#[cfg(feature = "export-default-entities")]
-mod exports {
-    use crate::{
-        entity::{Private, StubEntity},
-        export::export_entity,
-    };
+export_entity_default!("export-multi_manager", multi_manager, MultiManager);
 
-    export_entity!(multi_manager, Private<super::MultiManager>);
+export_entity_default!("export-trigger_auto", trigger_auto, AutoTrigger);
+export_entity_default!("export-trigger_autosave", trigger_autosave, TriggerSave);
+export_entity_default!(
+    "export-trigger_changelevel",
+    trigger_changelevel,
+    ChangeLevel
+);
+export_entity_default!("export-trigger_hurt", trigger_hurt, TriggerHurt);
+export_entity_default!("export-trigger_multiple", trigger_multiple, TriggerMultiple);
+export_entity_default!("export-trigger_once", trigger_once, TriggerOnce);
+export_entity_default!("export-trigger_push", trigger_push, TriggerPush);
+export_entity_default!(
+    "export-trigger_transition",
+    trigger_transition,
+    TriggerVolume
+);
 
-    export_entity!(trigger_auto, Private<super::AutoTrigger>);
-    export_entity!(trigger_autosave, Private<super::TriggerSave>);
-    export_entity!(trigger_changelevel, Private<super::ChangeLevel>);
-    export_entity!(trigger_hurt, Private<super::TriggerHurt>);
-    export_entity!(trigger_multiple, Private<super::TriggerMultiple>);
-    export_entity!(trigger_once, Private<super::TriggerOnce>);
-    export_entity!(trigger_push, Private<super::TriggerPush>);
-    export_entity!(trigger_transition, Private<super::TriggerVolume>);
-
-    export_entity!(env_render, Private<StubEntity>);
-    export_entity!(fireanddie, Private<StubEntity>);
-    export_entity!(info_teleport_destination, Private<StubEntity>);
-    export_entity!(target_cdaudio, Private<StubEntity>);
-    export_entity!(trigger, Private<StubEntity>);
-    export_entity!(trigger_camera, Private<StubEntity>);
-    export_entity!(trigger_cdaudio, Private<StubEntity>);
-    export_entity!(trigger_changetarget, Private<StubEntity>);
-    export_entity!(trigger_counter, Private<StubEntity>);
-    export_entity!(trigger_endsection, Private<StubEntity>);
-    export_entity!(trigger_gravity, Private<StubEntity>);
-    export_entity!(trigger_monsterjump, Private<StubEntity>);
-    export_entity!(trigger_relay, Private<StubEntity>);
-    export_entity!(trigger_teleport, Private<StubEntity>);
-}
+export_entity_stub!(env_render);
+export_entity_stub!(fireanddie);
+export_entity_stub!(info_teleport_destination);
+export_entity_stub!(target_cdaudio);
+export_entity_stub!(trigger);
+export_entity_stub!(trigger_camera);
+export_entity_stub!(trigger_cdaudio);
+export_entity_stub!(trigger_changetarget);
+export_entity_stub!(trigger_counter);
+export_entity_stub!(trigger_endsection);
+export_entity_stub!(trigger_gravity);
+export_entity_stub!(trigger_monsterjump);
+export_entity_stub!(trigger_relay);
+export_entity_stub!(trigger_teleport);

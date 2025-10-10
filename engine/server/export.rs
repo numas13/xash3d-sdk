@@ -1685,3 +1685,23 @@ macro_rules! export_entity {
 }
 #[doc(inline)]
 pub use export_entity;
+
+#[doc(hidden)]
+#[macro_export]
+macro_rules! export_entity_default {
+    ($feature:literal, $name:ident, $entity:ty $(, $init:expr)? $(,)?) => {
+        #[cfg(any(feature = "export-default-entities", feature = $feature))]
+        $crate::export::export_entity!($name, $crate::entity::Private<$entity> $(, $init)?);
+    };
+}
+pub use export_entity_default;
+
+#[doc(hidden)]
+#[macro_export]
+macro_rules! export_entity_stub {
+    ($name:ident $(,)?) => {
+        #[cfg(any(feature = "export-stubs"))]
+        $crate::export::export_entity!($name, $crate::entity::Private<$crate::entity::StubEntity>);
+    };
+}
+pub use export_entity_stub;

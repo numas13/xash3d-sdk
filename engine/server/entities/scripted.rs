@@ -1,12 +1,6 @@
-#[cfg(feature = "export-default-entities")]
-mod exports {
-    use crate::{
-        entity::{Private, StubEntity},
-        export::export_entity,
-    };
+use crate::export::export_entity_stub;
 
-    export_entity!(scripted_sequence, Private<StubEntity>);
-    export_entity!(aiscripted_sequence, Private<StubEntity>);
-    export_entity!(scripted_sentence, Private<StubEntity>);
-    export_entity!(monster_furniture, Private<StubEntity>);
-}
+export_entity_stub!(scripted_sequence);
+export_entity_stub!(aiscripted_sequence);
+export_entity_stub!(scripted_sentence);
+export_entity_stub!(monster_furniture);

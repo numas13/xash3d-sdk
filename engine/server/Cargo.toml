@@ -8,8 +8,92 @@ rust-version.workspace = true
 
 [features]
 default = ["save"]
-export-default-entities = []
+
+# enable save/restore
 save = ["dep:xash3d-server-derive"]
+
+#
+# Entities
+#
+
+# exports all default entities
+export-default-entities = []
+
+# exports stub for some unimplemented entities
+export-stubs = []
+
+#
+# Entities: world
+#
+
+export-infodecal = []
+
+#
+# Entities: func
+#
+
+export-func_friction = []
+export-func_ladder = []
+
+#
+# Entities: sound
+#
+
+export-ambient_generic = []
+
+#
+# Entities: lights
+#
+
+export-light = []
+export-light_spot = []
+
+#
+# Entities: effects
+#
+
+export-env_glow = []
+
+#
+# Entities: bmodels
+#
+
+export-func_wall = []
+
+#
+# Entities: buttons
+#
+
+export-env_spark = []
+export-env_debris = []
+
+#
+# Entities: triggers
+#
+
+export-multi_manager = []
+
+export-trigger_auto = []
+export-trigger_autosave = []
+export-trigger_changelevel = []
+export-trigger_hurt = []
+export-trigger_multiple = []
+export-trigger_once = []
+export-trigger_push = []
+export-trigger_transition = []
+
+#
+# Entities: subs
+#
+
+export-info_player_deathmatch = []
+export-info_player_start = []
+export-info_landmark = []
+export-info_target = []
+
+# Entities: nodes
+export-info_node = []
+export-info_node_air = []
 
 [lib]
 path = "lib.rs"

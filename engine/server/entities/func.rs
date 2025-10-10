@@ -4,12 +4,15 @@ use xash3d_shared::{
     render::RenderMode,
 };
 
-use crate::entity::{
-    delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, KeyValue, ObjectCaps,
-    Solid,
-};
 #[cfg(feature = "save")]
 use crate::save::{Restore, Save};
+use crate::{
+    entity::{
+        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, KeyValue, ObjectCaps,
+        Solid,
+    },
+    export::export_entity_default,
+};
 
 #[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct FrictionModifier {
@@ -95,10 +98,5 @@ impl Entity for Ladder {
     }
 }
 
-#[cfg(feature = "export-default-entities")]
-mod exports {
-    use crate::{entity::Private, export::export_entity};
-
-    export_entity!(func_friction, Private<super::FrictionModifier>);
-    export_entity!(func_ladder, Private<super::Ladder>);
-}
+export_entity_default!("export-func_friction", func_friction, FrictionModifier);
+export_entity_default!("export-func_ladder", func_ladder, Ladder);

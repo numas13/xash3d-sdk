@@ -1,14 +1,8 @@
-#[cfg(feature = "export-default-entities")]
-mod exports {
-    use crate::{
-        entity::{Private, StubEntity},
-        export::export_entity,
-    };
+use crate::export::export_entity_stub;
 
-    export_entity!(world_items, Private<StubEntity>);
-    export_entity!(item_suit, Private<StubEntity>);
-    export_entity!(item_battery, Private<StubEntity>);
-    export_entity!(item_antidote, Private<StubEntity>);
-    export_entity!(item_security, Private<StubEntity>);
-    export_entity!(item_longjump, Private<StubEntity>);
-}
+export_entity_stub!(world_items);
+export_entity_stub!(item_suit);
+export_entity_stub!(item_battery);
+export_entity_stub!(item_antidote);
+export_entity_stub!(item_security);
+export_entity_stub!(item_longjump);

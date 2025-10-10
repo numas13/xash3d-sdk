@@ -5,6 +5,7 @@ use crate::save::{Restore, Save};
 use crate::{
     entities::subs::PointEntity,
     entity::{delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, Solid},
+    export::{export_entity_default, export_entity_stub},
     time::MapTime,
 };
 
@@ -68,25 +69,17 @@ impl Entity for Glow {
     }
 }
 
-#[cfg(feature = "export-default-entities")]
-mod exports {
-    use crate::{
-        entity::{Private, StubEntity},
-        export::export_entity,
-    };
+export_entity_default!("export-env_glow", env_glow, Glow);
 
-    export_entity!(env_glow, Private<super::Glow>);
-
-    export_entity!(env_bubbles, Private<StubEntity>);
-    export_entity!(beam, Private<StubEntity>);
-    export_entity!(env_lightning, Private<StubEntity>);
-    export_entity!(env_beam, Private<StubEntity>);
-    export_entity!(env_laser, Private<StubEntity>);
-    export_entity!(env_sprite, Private<StubEntity>);
-    export_entity!(gibshooter, Private<StubEntity>);
-    export_entity!(env_shooter, Private<StubEntity>);
-    export_entity!(test_effect, Private<StubEntity>);
-    export_entity!(env_blood, Private<StubEntity>);
-    export_entity!(env_shake, Private<StubEntity>);
-    export_entity!(env_fade, Private<StubEntity>);
-}
+export_entity_stub!(env_bubbles);
+export_entity_stub!(beam);
+export_entity_stub!(env_lightning);
+export_entity_stub!(env_beam);
+export_entity_stub!(env_laser);
+export_entity_stub!(env_sprite);
+export_entity_stub!(gibshooter);
+export_entity_stub!(env_shooter);
+export_entity_stub!(test_effect);
+export_entity_stub!(env_blood);
+export_entity_stub!(env_shake);
+export_entity_stub!(env_fade);

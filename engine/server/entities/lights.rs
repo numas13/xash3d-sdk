@@ -5,6 +5,7 @@ use crate::{
     entity::{
         delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, KeyValue, UseType,
     },
+    export::export_entity_default,
     str::MapString,
 };
 
@@ -96,11 +97,5 @@ impl Entity for Light {
     }
 }
 
-#[cfg(feature = "export-default-entities")]
-mod exports {
-    use super::Light;
-    use crate::{entity::Private, export::export_entity};
-
-    export_entity!(light, Private<Light>);
-    export_entity!(light_spot, Private<Light>);
-}
+export_entity_default!("export-light", light, Light);
+export_entity_default!("export-light_spot", light_spot, Light);

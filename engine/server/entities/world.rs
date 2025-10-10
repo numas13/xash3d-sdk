@@ -429,9 +429,4 @@ pub fn client_precache(engine: ServerEngineRef) {
     engine.precache_model(res::valve::models::PLAYER);
 }
 
-#[cfg(feature = "export-default-entities")]
-mod exports {
-    use crate::{entity::Private, export::export_entity};
-
-    export_entity!(infodecal, Private<super::Decal>);
-}
+crate::export_entity_default!("export-infodecal", infodecal, Decal);

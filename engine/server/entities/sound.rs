@@ -14,6 +14,7 @@ use crate::{
         delegate_entity, impl_entity_cast, AsEdict, BaseEntity, CreateEntity, Entity, KeyValue,
         ObjectCaps, Solid, UseType,
     },
+    export::{export_entity_default, export_entity_stub},
     prelude::*,
     str::MapString,
 };
@@ -688,14 +689,7 @@ impl Entity for AmbientGeneric {
     }
 }
 
-#[cfg(feature = "export-default-entities")]
-mod exports {
-    use crate::{
-        entity::{Private, StubEntity},
-        export::export_entity,
-    };
+export_entity_default!("export-ambient_generic", ambient_generic, AmbientGeneric);
 
-    export_entity!(ambient_generic, Private<super::AmbientGeneric>);
-    export_entity!(env_sound, Private<StubEntity>);
-    export_entity!(speaker, Private<StubEntity>);
-}
+export_entity_stub!(env_sound);
+export_entity_stub!(speaker);
