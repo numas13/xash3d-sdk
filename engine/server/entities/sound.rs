@@ -321,6 +321,42 @@ impl AmbientGeneric {
     fn spawn_flags(&self) -> AmbientSound {
         AmbientSound::from_bits_retain(self.vars().spawn_flags())
     }
+
+    fn play_sound(&mut self, sound_file: MapString) {
+        let engine = self.engine();
+        let origin = self.vars().origin();
+
+        if self.looping {
+            self.active = true;
+        } else {
+            // stop old sound
+            engine
+                .build_sound()
+                .flags(SoundFlags::STOP)
+                .ambient_emit_dyn(&sound_file, origin, self);
+        }
+
+        engine
+            .build_sound()
+            .volume(self.dpv.vol as f32 * 0.01)
+            .attenuation(self.attenuation)
+            .pitch(self.dpv.pitch)
+            .ambient_emit_dyn(&sound_file, origin, self);
+
+        self.init_modulation_parms();
+        self.vars_mut().set_next_think_time(0.1);
+    }
+
+    fn change_pitch(&mut self, sound_file: MapString, value: f32) {
+        let fraction = value.clamp(0.0, 1.0);
+        self.dpv.pitch = (fraction * 255.0) as i32;
+        self.engine()
+            .build_sound()
+            .volume(0.0)
+            .flags(SoundFlags::CHANGE_PITCH)
+            .pitch(self.dpv.pitch)
+            .ambient_emit_dyn(&sound_file, self.vars().origin(), self);
+    }
 }
 
 impl_entity_cast!(AmbientGeneric);
@@ -590,7 +626,65 @@ impl Entity for AmbientGeneric {
         use_type: UseType,
         value: f32,
     ) {
-        warn!("AmbientGeneric::used is not implemented");
+        let Some(sound_file) = self.vars().message() else {
+            return;
+        };
+        if !use_type.should_toggle(self.active) {
+            return;
+        }
+        let engine = self.engine();
+
+        if !self.active {
+            self.play_sound(sound_file);
+            return;
+        }
+
+        // looping sound
+
+        if use_type == UseType::Set {
+            self.change_pitch(sound_file, value);
+            return;
+        }
+
+        if self.dpv.cspinup != 0 {
+            // each toggle causes incremental spinup to max pitch
+            if self.dpv.cspincount <= self.dpv.cspinup {
+                self.dpv.cspincount += 1;
+
+                let pitchinc = (255 - self.dpv.pitchstart) / self.dpv.cspinup;
+
+                self.dpv.spinup = self.dpv.spinupsav;
+                self.dpv.spindown = 0;
+
+                self.dpv.pitchrun = (self.dpv.pitchstart + pitchinc * self.dpv.cspincount).min(255);
+
+                self.vars_mut().set_next_think_time(0.1);
+            }
+            return;
+        }
+
+        self.active = false;
+
+        // HACK: this makes the code in precache work properly after a save/restore
+        *self.vars_mut().spawn_flags_mut() |= AmbientSound::START_SILENT.bits();
+
+        if self.dpv.spindownsav != 0 || self.dpv.fadeoutsav != 0 {
+            // spin in down (or fade it) before shutoff if spindown is set
+            self.dpv.spindown = self.dpv.spindownsav;
+            self.dpv.spinup = 0;
+
+            self.dpv.fadeout = self.dpv.fadeoutsav;
+            self.dpv.fadein = 0;
+
+            self.vars_mut().set_next_think_time(0.1);
+            return;
+        }
+
+        // stop sound
+        engine
+            .build_sound()
+            .flags(SoundFlags::STOP)
+            .ambient_emit_dyn(&sound_file, self.vars().origin(), self);
     }
 }
 
