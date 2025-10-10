@@ -1,9 +1,13 @@
-use core::ptr::{self, NonNull};
+use core::{
+    mem,
+    ptr::{self, NonNull},
+};
 
+use alloc::vec::Vec;
 use bitflags::bitflags;
 use csz::{cstr, CStrArray, CStrThin};
 use xash3d_shared::{
-    entity::{DamageFlags, EdictFlags, Effects, MoveType},
+    entity::{DamageFlags, EdictFlags, Effects, EntityIndex, MoveType},
     ffi::{
         common::vec3_t,
         server::{edict_s, FENTTABLE_GLOBAL, FENTTABLE_MOVEABLE, LEVELLIST},
@@ -16,7 +20,7 @@ use crate::{
     entities::subs::{DelayedUse, PointEntity},
     entity::{
         delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Dead, Entity, EntityPlayer,
-        EntityVars, KeyValue, ObjectCaps, Solid, TakeDamage, UseType,
+        EntityVars, KeyValue, ObjectCaps, Private, Solid, TakeDamage, UseType,
     },
     global_state::EntityState,
     prelude::*,
@@ -894,12 +898,205 @@ pub fn build_change_list(engine: ServerEngineRef, level_list: &mut [LEVELLIST]) 
     count
 }
 
+#[derive(Copy, Clone, Default)]
+#[cfg_attr(feature = "save", derive(Save, Restore))]
+struct MultiManagerTarget {
+    name: Option<MapString>,
+    delay: f32,
+}
+
+impl MultiManagerTarget {
+    fn new(name: MapString, delay: f32) -> Self {
+        Self {
+            name: Some(name),
+            delay,
+        }
+    }
+}
+
+bitflags! {
+    struct MultiManagerSpawnFlags: u32 {
+        /// Create clones when triggered.
+        const THREAD = 1 << 0;
+        /// This is a clone for a threaded execution.
+        const CLONE = 1 << 31;
+    }
+}
+
+#[cfg_attr(feature = "save", derive(Save, Restore))]
+pub struct MultiManager {
+    base: BaseEntity,
+    targets: Vec<MultiManagerTarget>,
+    wait: f32,
+    start_time: MapTime,
+    activator: EntityIndex,
+    index: u32,
+    enable_use: bool,
+    enable_think: bool,
+}
+
+impl MultiManager {
+    fn spawn_flags(&self) -> MultiManagerSpawnFlags {
+        MultiManagerSpawnFlags::from_bits_retain(self.vars().spawn_flags())
+    }
+
+    fn is_clone(&self) -> bool {
+        self.spawn_flags().intersects(MultiManagerSpawnFlags::CLONE)
+    }
+
+    fn should_clone(&self) -> bool {
+        !self.is_clone()
+            && self
+                .spawn_flags()
+                .intersects(MultiManagerSpawnFlags::THREAD)
+    }
+
+    fn clone(&mut self) -> *mut Self {
+        let engine = self.engine();
+        let multi = engine.new_entity::<Private<Self>>().build();
+        let edict = multi.as_edict_mut();
+        unsafe {
+            ptr::copy_nonoverlapping(self.vars().as_raw(), &mut edict.v, 1);
+        }
+        edict.v.pContainingEntity = edict;
+        edict.v.spawnflags |= MultiManagerSpawnFlags::CLONE.bits() as i32;
+        multi.targets = self.targets.clone();
+        multi
+    }
+}
+
+impl_entity_cast!(MultiManager);
+
+impl CreateEntity for MultiManager {
+    fn create(base: BaseEntity) -> Self {
+        Self {
+            base,
+            targets: Vec::default(),
+            wait: 0.0,
+            start_time: MapTime::ZERO,
+            activator: EntityIndex::ZERO,
+            index: 0,
+            enable_use: false,
+            enable_think: false,
+        }
+    }
+}
+
+impl Entity for MultiManager {
+    delegate_entity!(base not { object_caps, key_value, spawn, used, think });
+
+    fn object_caps(&self) -> ObjectCaps {
+        self.base
+            .object_caps()
+            .difference(ObjectCaps::ACROSS_TRANSITION)
+    }
+
+    fn key_value(&mut self, data: &mut KeyValue) {
+        let key = data.key_name();
+        if key == c"wait" {
+            self.wait = data.parse_or(0.0);
+            data.set_handled(true);
+        } else {
+            let mut tmp = CStrArray::<128>::new();
+            match utils::strip_token(key.into(), &mut tmp) {
+                Ok(()) => {
+                    let name = self.engine().new_map_string(&tmp);
+                    let delay = data.parse_or_default();
+                    self.targets.push(MultiManagerTarget::new(name, delay))
+                }
+                Err(_) => {
+                    error!("{}: failed to strip token {key:?}", self.classname());
+                }
+            }
+        }
+    }
+
+    fn spawn(&mut self) {
+        self.vars_mut().set_solid(Solid::Not);
+        self.targets
+            .sort_by(|a, b| a.delay.partial_cmp(&b.delay).unwrap());
+        self.enable_use = true;
+    }
+
+    fn used(
+        &mut self,
+        activator: Option<&mut dyn Entity>,
+        caller: &mut dyn Entity,
+        _use_type: UseType,
+        _value: f32,
+    ) {
+        if !self.enable_use {
+            return;
+        }
+
+        if self.should_clone() {
+            let clone = unsafe { &mut *self.clone() };
+            clone.used(activator, caller, _use_type, _value);
+            return;
+        }
+
+        let engine = self.engine();
+        self.activator = engine.ent_index(activator.unwrap_or(caller).as_edict_mut());
+        self.index = 0;
+        self.start_time = engine.globals.map_time();
+        self.enable_use = false;
+        self.enable_think = true;
+        self.vars_mut().set_next_think_time(0.0);
+    }
+
+    fn think(&mut self) {
+        if !self.enable_think {
+            return;
+        }
+
+        let engine = self.engine();
+        let time = (engine.globals.map_time() - self.start_time).as_secs_f32();
+        let mut activator = unsafe {
+            engine
+                .entity_of_ent_index(self.activator)
+                .as_mut()
+                .and_then(|i| i.get_entity_mut())
+        };
+
+        let targets = mem::take(&mut self.targets);
+        for target in targets.iter().skip(self.index as usize) {
+            if target.delay > time {
+                break;
+            }
+            if let Some(target_name) = target.name {
+                utils::fire_targets(
+                    &target_name,
+                    UseType::Toggle,
+                    0.0,
+                    activator.as_deref_mut(),
+                    self,
+                );
+            }
+            self.index += 1;
+        }
+        self.targets = targets;
+
+        if self.index as usize >= self.targets.len() {
+            self.enable_think = false;
+            if self.is_clone() {
+                self.remove_from_world();
+            }
+            self.enable_use = true;
+        } else if let Some(target) = self.targets.get(self.index as usize) {
+            let next_time = self.start_time + target.delay;
+            self.base.vars_mut().set_next_think_time_absolute(next_time);
+        }
+    }
+}
+
 #[cfg(feature = "export-default-entities")]
 mod exports {
     use crate::{
         entity::{Private, StubEntity},
         export::export_entity,
     };
+
+    export_entity!(multi_manager, Private<super::MultiManager>);
 
     export_entity!(trigger_auto, Private<super::AutoTrigger>);
     export_entity!(trigger_autosave, Private<super::TriggerSave>);
@@ -913,7 +1110,6 @@ mod exports {
     export_entity!(env_render, Private<StubEntity>);
     export_entity!(fireanddie, Private<StubEntity>);
     export_entity!(info_teleport_destination, Private<StubEntity>);
-    export_entity!(multi_manager, Private<StubEntity>);
     export_entity!(target_cdaudio, Private<StubEntity>);
     export_entity!(trigger, Private<StubEntity>);
     export_entity!(trigger_camera, Private<StubEntity>);

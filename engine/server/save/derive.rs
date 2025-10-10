@@ -1,5 +1,5 @@
 use alloc::{ffi::CString, string::String, vec::Vec};
-use xash3d_shared::sound::Attenuation;
+use xash3d_shared::{entity::EntityIndex, sound::Attenuation};
 
 use crate::{entity::UseType, str::MapString, time::MapTime};
 
@@ -317,3 +317,18 @@ macro_rules! impl_save_restore_for_bitflags {
 pub use impl_save_restore_for_bitflags;
 
 impl_save_restore_for_bitflags!(xash3d_shared::entity::DamageFlags);
+
+impl Save for EntityIndex {
+    fn save(&self, _: &mut SaveState, cur: &mut CursorMut) -> SaveResult<()> {
+        cur.write_u16_le(self.to_u16())?;
+        Ok(())
+    }
+}
+
+impl Restore for EntityIndex {
+    fn restore(&mut self, _: &RestoreState, cur: &mut Cursor) -> SaveResult<()> {
+        let index = cur.read_u16_le()?;
+        *self = EntityIndex::new(index).ok_or(SaveError::InvalidNumber)?;
+        Ok(())
+    }
+}

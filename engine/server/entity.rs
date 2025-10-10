@@ -7,6 +7,7 @@ use core::{
     mem,
     num::NonZeroI32,
     ptr::{self, NonNull},
+    str::FromStr,
 };
 
 use bitflags::bitflags;
@@ -157,6 +158,18 @@ impl KeyValue {
 
     pub fn value_str(&self) -> &str {
         self.value().to_str().unwrap_or("")
+    }
+
+    pub fn parse<T: FromStr>(&self) -> Result<T, T::Err> {
+        self.value_str().parse()
+    }
+
+    pub fn parse_or<T: FromStr>(&self, or: T) -> T {
+        self.parse().unwrap_or(or)
+    }
+
+    pub fn parse_or_default<T: FromStr + Default>(&self) -> T {
+        self.parse().unwrap_or_default()
     }
 
     /// Returns `true` if the server DLL knows the key name.
@@ -495,6 +508,10 @@ impl EntityVars {
     /// Sets the next think time relative to the last think time.
     pub fn set_next_think_time_from_last(&mut self, relative_time: f32) {
         self.as_raw_mut().nextthink = self.as_raw().ltime + relative_time;
+    }
+
+    pub fn set_next_think_time_absolute(&mut self, time: MapTime) {
+        self.as_raw_mut().nextthink = time.as_secs_f32();
     }
 
     pub fn stop_thinking(&mut self) {

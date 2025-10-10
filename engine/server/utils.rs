@@ -1,4 +1,6 @@
-use csz::CStrThin;
+use core::ffi::CStr;
+
+use csz::{CStrSlice, CStrThin};
 use xash3d_shared::entity::EdictFlags;
 pub use xash3d_shared::utils::*;
 
@@ -59,5 +61,14 @@ pub fn use_targets(
 
     if let Some(target) = caller.vars().target() {
         fire_targets(&target, use_type, value, activator, caller);
+    }
+}
+
+pub fn strip_token(key: &CStr, dest: &mut CStrSlice) -> Result<(), csz::CursorError> {
+    if let Some(head) = key.to_bytes().split(|i| *i == b'#').next() {
+        dest.cursor().write_bytes(head)
+    } else {
+        dest.clear();
+        Ok(())
     }
 }
