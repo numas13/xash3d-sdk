@@ -350,6 +350,16 @@ impl ServerEngine {
         &self.raw
     }
 
+    pub fn engine_ref(&self) -> ServerEngineRef {
+        // SAFETY: we are in the game thread
+        unsafe { ServerEngineRef::new() }
+    }
+
+    pub fn global_state_ref(&self) -> GlobalStateRef {
+        // SAFETY: we are in the game thread
+        unsafe { GlobalStateRef::new() }
+    }
+
     pub fn precache_model(&self, name: impl ToEngineStr) -> c_int {
         let name = name.to_engine_str();
         unsafe { unwrap!(self, pfnPrecacheModel)(name.as_ptr()) }
