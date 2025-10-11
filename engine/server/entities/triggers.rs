@@ -340,8 +340,7 @@ impl Entity for TriggerPush {
             v.set_solid(Solid::Not);
         }
 
-        // link into the list
-        engine.set_origin(v.origin(), self);
+        v.link();
     }
 
     fn used(&mut self, _: Option<&mut dyn Entity>, _: &mut dyn Entity, _: UseType, _: f32) {

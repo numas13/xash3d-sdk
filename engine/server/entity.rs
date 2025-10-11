@@ -349,8 +349,8 @@ macro_rules! entvars_vec3 {
 
         $(
             $(#[$set_attr])*
-            pub fn $set(&mut self, $get: vec3_t) {
-                self.as_raw_mut().$field = $get;
+            pub fn $set(&mut self, $get: impl Into<vec3_t>) {
+                self.as_raw_mut().$field = $get.into();
             }
 
             $(
@@ -539,7 +539,27 @@ impl EntityVars {
     entvars_value!(friction: f32, fn friction, fn set_friction);
     entvars_value!(skin: i32, fn skin, fn set_skin);
 
-    entvars_vec3!(origin, fn origin, fn set_origin, fn origin_mut);
+    entvars_vec3!(origin,
+        fn origin,
+        /// Sets a new world position of this entity.
+        ///
+        /// Call [EntityVars::link] to link the entity to the list.
+        fn set_origin,
+        fn origin_mut,
+    );
+
+    /// Links this entity into the list.
+    pub fn link(&mut self) {
+        let engine = self.engine();
+        engine.set_origin(self.origin(), self);
+    }
+
+    /// Sets a new world position of this entity and links it into the list.
+    pub fn set_origin_and_link(&mut self, origin: impl Into<vec3_t>) {
+        self.set_origin(origin);
+        self.link();
+    }
+
     entvars_vec3!(view_ofs, fn view_ofs, fn set_view_ofs, fn view_ofs_mut);
     entvars_vec3!(mins, fn min_size, fn set_min_size, fn min_size_mut);
     entvars_vec3!(maxs, fn max_size, fn set_max_size, fn max_size_mut);
