@@ -3,6 +3,7 @@ use core::{
     fmt, iter,
     mem::MaybeUninit,
     ptr::{self, NonNull},
+    slice,
 };
 
 use bitflags::bitflags;
@@ -317,6 +318,42 @@ impl TraceResult {
     /// Returns `0` for generic group and non-zero for a specific body part.
     pub fn hit_group(&self) -> u32 {
         self.raw.iHitgroup as u32
+    }
+}
+
+pub struct LoadFileError(());
+
+impl fmt::Debug for LoadFileError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_struct("FileError").finish()
+    }
+}
+
+impl fmt::Display for LoadFileError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.write_str("failed to load a file")
+    }
+}
+
+pub struct File {
+    engine: ServerEngineRef,
+    data: *mut u8,
+    len: i32,
+}
+
+impl File {
+    pub fn as_bytes(&self) -> &[u8] {
+        unsafe { slice::from_raw_parts(self.data, self.len as usize) }
+    }
+
+    pub fn as_bytes_mut(&mut self) -> &mut [u8] {
+        unsafe { slice::from_raw_parts_mut(self.data, self.len as usize) }
+    }
+}
+
+impl Drop for File {
+    fn drop(&mut self) {
+        unsafe { self.engine.free_file(self.data) }
     }
 }
 
@@ -1039,9 +1076,26 @@ impl ServerEngine {
     // pub pfnSetView: Option<unsafe extern "C" fn(pClient: *const edict_t, pViewent: *const edict_t)>,
     // pub pfnCrosshairAngle:
     //     Option<unsafe extern "C" fn(pClient: *const edict_t, pitch: f32, yaw: f32)>,
-    // pub pfnLoadFileForMe:
-    //     Option<unsafe extern "C" fn(filename: *const c_char, pLength: *mut c_int) -> *mut byte>,
-    // pub pfnFreeFile: Option<unsafe extern "C" fn(buffer: *mut c_void)>,
+
+    pub fn load_file(&self, filename: impl ToEngineStr) -> Result<File, LoadFileError> {
+        let filename = filename.to_engine_str();
+        let mut len = 0;
+        let data = unsafe { unwrap!(self, pfnLoadFileForMe)(filename.as_ptr(), &mut len) };
+        if !data.is_null() {
+            Ok(File {
+                engine: self.engine_ref(),
+                data,
+                len,
+            })
+        } else {
+            Err(LoadFileError(()))
+        }
+    }
+
+    unsafe fn free_file(&self, buffer: *mut u8) {
+        unsafe { unwrap!(self, pfnFreeFile)(buffer.cast()) }
+    }
+
     // pub pfnEndSection: Option<unsafe extern "C" fn(pszSectionName: *const c_char)>,
     // pub pfnCompareFileTime: Option<
     //     unsafe extern "C" fn(
