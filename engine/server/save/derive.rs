@@ -77,20 +77,20 @@ impl_save_restore_for_num! {
     usize = write_leb_usize, read_leb_usize;
     isize = write_leb_isize, read_leb_isize;
 
-    f32 = write_f32_le, read_f32_le;
+    f32 = write_f32, read_f32;
     f64 = write_f64_le, read_f64_le;
 }
 
 impl Save for MapTime {
     fn save(&self, state: &mut SaveState, cur: &mut CursorMut) -> SaveResult<()> {
-        cur.write_f32_le(self.as_secs_f32() - state.time())?;
+        cur.write_f32(self.as_secs_f32() - state.time())?;
         Ok(())
     }
 }
 
 impl Restore for MapTime {
     fn restore(&mut self, state: &RestoreState, cur: &mut Cursor) -> SaveResult<()> {
-        *self = MapTime::from_secs_f32(cur.read_f32_le()? + state.time());
+        *self = MapTime::from_secs_f32(cur.read_f32()? + state.time());
         Ok(())
     }
 }
@@ -259,14 +259,14 @@ impl<T: Restore + Default> Restore for Vec<T> {
 
 impl Save for Attenuation {
     fn save(&self, _: &mut SaveState, cur: &mut CursorMut) -> SaveResult<()> {
-        cur.write_f32_le((*self).into())?;
+        cur.write_f32((*self).into())?;
         Ok(())
     }
 }
 
 impl Restore for Attenuation {
     fn restore(&mut self, _: &RestoreState, cur: &mut Cursor) -> SaveResult<()> {
-        *self = cur.read_f32_le()?.into();
+        *self = cur.read_f32()?.into();
         Ok(())
     }
 }
@@ -338,18 +338,18 @@ impl Restore for EntityIndex {
 
 impl Save for vec3_t {
     fn save(&self, _: &mut SaveState, cur: &mut CursorMut) -> SaveResult<()> {
-        cur.write_f32_le(self.x())?;
-        cur.write_f32_le(self.y())?;
-        cur.write_f32_le(self.z())?;
+        cur.write_f32(self.x())?;
+        cur.write_f32(self.y())?;
+        cur.write_f32(self.z())?;
         Ok(())
     }
 }
 
 impl Restore for vec3_t {
     fn restore(&mut self, _: &RestoreState, cur: &mut Cursor) -> SaveResult<()> {
-        self.set_x(cur.read_f32_le()?);
-        self.set_y(cur.read_f32_le()?);
-        self.set_z(cur.read_f32_le()?);
+        self.set_x(cur.read_f32()?);
+        self.set_y(cur.read_f32()?);
+        self.set_z(cur.read_f32()?);
         Ok(())
     }
 }

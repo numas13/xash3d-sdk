@@ -10,6 +10,43 @@ const PREFIX_SIZE_W: u8 = 0xfd;
 const PREFIX_SIZE_D: u8 = 0xfe;
 const PREFIX_SIZE_Q: u8 = 0xff;
 
+// TODO: fill the array with the most frequently used f32 values
+const F32_MAP: &[(u8, f32)] = &[
+    (0xfe, 0.0),
+    (0xfd, 1.0),
+    (0xfc, -0.0),
+    (0xfb, -1.0),
+    (0xfa, 10.0),
+    (0xf9, 32.0),
+    (0xf8, 34.0),
+    // (0xf7, ),
+    // (0xf6, ),
+    // (0xf5, ),
+    // (0xf4, ),
+    // (0xf3, ),
+    // (0xf2, ),
+    // (0xf1, ),
+    // (0xf0, ),
+    (0x7e, 6.0),
+    (0x7d, 50.0),
+    (0x7c, 64.0),
+    (0x7b, -32.0),
+    (0x7a, 3.0),
+    (0x79, 18.0),
+    (0x78, 150.0),
+    // (0x77, ),
+    // (0x76, ),
+    // (0x75, ),
+    // (0x74, ),
+    // (0x73, ),
+    // (0x72, ),
+    // (0x71, ),
+    // (0x70, ),
+];
+
+// next four bytes is f32_be
+const F32_ESCAPE_BYTE: u8 = 0xff;
+
 #[derive(Copy, Clone, Default, Debug, PartialEq, Eq)]
 pub struct Header {
     size: u16,
@@ -315,6 +352,22 @@ impl<'a> Cursor<'a> {
         self.read_leb_i64().map(|value| value as isize)
     }
 
+    pub fn read_f32(&mut self) -> SaveResult<f32> {
+        let b0 = self.read_u8()?;
+        if b0 == F32_ESCAPE_BYTE {
+            return self.read_f32_be();
+        }
+
+        for &(byte, fixed) in F32_MAP {
+            if b0 == byte {
+                return Ok(fixed);
+            }
+        }
+
+        let [b1, b2, b3] = self.read_array()?;
+        Ok(f32::from_be_bytes([b0, b1, b2, b3]))
+    }
+
     pub fn read_header(&mut self) -> SaveResult<Header> {
         let size = self.read_u16_le()?;
         let token = Token::new(self.read_u16_le()?);
@@ -609,6 +662,25 @@ impl<'a> CursorMut<'a> {
     #[cfg(target_pointer_width = "64")]
     pub fn write_leb_isize(&mut self, value: isize) -> SaveResult<()> {
         self.write_leb_i64(value as i64)
+    }
+
+    pub fn write_f32(&mut self, value: f32) -> SaveResult<()> {
+        let bytes = value.to_be_bytes();
+        let mut matched = false;
+        for &(byte, fixed) in F32_MAP {
+            if byte == bytes[0] {
+                matched = true;
+            }
+            if value == fixed {
+                self.write_u8(byte)?;
+                return Ok(());
+            }
+        }
+        if matched {
+            self.write_u8(F32_ESCAPE_BYTE)?;
+        }
+        self.write(&bytes)?;
+        Ok(())
     }
 
     pub fn write_token(&mut self, token: Token) -> SaveResult<usize> {
@@ -1106,6 +1178,27 @@ mod tests {
         for i in numbers {
             assert_eq!(cur.read_leb_i128(), Ok(i));
         }
+        assert_eq!(cur.read_u8(), Ok(0xaa));
+    }
+
+    #[test]
+    fn cursor_leb_f32() {
+        let mut buf = [0xaa; 1024];
+        let mut cur = CursorMut::new(&mut buf);
+        cur.write_f32(-1.123456).unwrap();
+        for &(_, fixed) in F32_MAP {
+            cur.write_f32(fixed).unwrap();
+        }
+        cur.write_f32(2.34567).unwrap();
+        cur.write_f32(f32::NAN).unwrap();
+
+        let mut cur = Cursor::new(&buf);
+        assert_eq!(cur.read_f32(), Ok(-1.123456));
+        for &(_, fixed) in F32_MAP {
+            assert_eq!(cur.read_f32(), Ok(fixed));
+        }
+        assert_eq!(cur.read_f32(), Ok(2.34567));
+        assert_eq!(cur.read_f32().map(|f| f.is_nan()), Ok(true));
         assert_eq!(cur.read_u8(), Ok(0xaa));
     }
 }

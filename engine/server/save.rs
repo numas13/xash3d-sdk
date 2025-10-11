@@ -574,28 +574,28 @@ pub unsafe fn read_fields_raw(
                 }
                 FieldType::FLOAT => {
                     for _ in 0..count {
-                        dst.write_f32_ne(src.read_f32_le()?)?;
+                        dst.write_f32_ne(src.read_f32()?)?;
                     }
                 }
                 FieldType::TIME => {
                     let time = state.time();
                     for _ in 0..count {
-                        dst.write_f32_ne(src.read_f32_le()? + time)?;
+                        dst.write_f32_ne(src.read_f32()? + time)?;
                     }
                 }
                 FieldType::VECTOR => {
                     for _ in 0..count {
-                        dst.write_f32_ne(src.read_f32_le()?)?;
-                        dst.write_f32_ne(src.read_f32_le()?)?;
-                        dst.write_f32_ne(src.read_f32_le()?)?;
+                        dst.write_f32_ne(src.read_f32()?)?;
+                        dst.write_f32_ne(src.read_f32()?)?;
+                        dst.write_f32_ne(src.read_f32()?)?;
                     }
                 }
                 FieldType::POSITION_VECTOR => {
                     let offset = state.use_landmark_offset().unwrap_or_default();
                     for _ in 0..count {
-                        dst.write_f32_ne(src.read_f32_le()? + offset[0])?;
-                        dst.write_f32_ne(src.read_f32_le()? + offset[1])?;
-                        dst.write_f32_ne(src.read_f32_le()? + offset[2])?;
+                        dst.write_f32_ne(src.read_f32()? + offset[0])?;
+                        dst.write_f32_ne(src.read_f32()? + offset[1])?;
+                        dst.write_f32_ne(src.read_f32()? + offset[2])?;
                     }
                 }
                 FieldType::EDICT => {
@@ -701,28 +701,28 @@ pub unsafe fn write_fields_raw(
             }
             FieldType::FLOAT => {
                 for _ in 0..count {
-                    dst.write_f32_le(src.read_f32_ne()?)?;
+                    dst.write_f32(src.read_f32_ne()?)?;
                 }
             }
             FieldType::TIME => {
                 let time = state.time();
                 for _ in 0..count {
-                    dst.write_f32_le(src.read_f32_ne()? - time)?;
+                    dst.write_f32(src.read_f32_ne()? - time)?;
                 }
             }
             FieldType::VECTOR => {
                 for _ in 0..count {
-                    dst.write_f32_le(src.read_f32_ne()?)?;
-                    dst.write_f32_le(src.read_f32_ne()?)?;
-                    dst.write_f32_le(src.read_f32_ne()?)?;
+                    dst.write_f32(src.read_f32_ne()?)?;
+                    dst.write_f32(src.read_f32_ne()?)?;
+                    dst.write_f32(src.read_f32_ne()?)?;
                 }
             }
             FieldType::POSITION_VECTOR => {
                 let offset = state.use_landmark_offset().unwrap_or_default();
                 for _ in 0..count {
-                    dst.write_f32_le(src.read_f32_ne()? - offset[0])?;
-                    dst.write_f32_le(src.read_f32_ne()? - offset[1])?;
-                    dst.write_f32_le(src.read_f32_ne()? - offset[2])?;
+                    dst.write_f32(src.read_f32_ne()? - offset[0])?;
+                    dst.write_f32(src.read_f32_ne()? - offset[1])?;
+                    dst.write_f32(src.read_f32_ne()? - offset[2])?;
                 }
             }
             FieldType::EDICT => {
