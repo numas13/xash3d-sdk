@@ -332,3 +332,40 @@ impl Restore for EntityIndex {
         Ok(())
     }
 }
+
+impl Save for vec3_t {
+    fn save(&self, _: &mut SaveState, cur: &mut CursorMut) -> SaveResult<()> {
+        cur.write_f32_le(self.x())?;
+        cur.write_f32_le(self.y())?;
+        cur.write_f32_le(self.z())?;
+        Ok(())
+    }
+}
+
+impl Restore for vec3_t {
+    fn restore(&mut self, _: &RestoreState, cur: &mut Cursor) -> SaveResult<()> {
+        self.set_x(cur.read_f32_le()?);
+        self.set_y(cur.read_f32_le()?);
+        self.set_z(cur.read_f32_le()?);
+        Ok(())
+    }
+}
+
+impl Save for PositionVector {
+    fn save(&self, state: &mut SaveState, cur: &mut CursorMut) -> SaveResult<()> {
+        match state.use_landmark_offset() {
+            Some(offset) => (self.0 - offset).save(state, cur),
+            None => self.0.save(state, cur),
+        }
+    }
+}
+
+impl Restore for PositionVector {
+    fn restore(&mut self, state: &RestoreState, cur: &mut Cursor) -> SaveResult<()> {
+        self.0.restore(state, cur)?;
+        if let Some(offset) = state.use_landmark_offset() {
+            self.0 += offset;
+        }
+        Ok(())
+    }
+}

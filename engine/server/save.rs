@@ -90,6 +90,38 @@ impl<const N: usize> TypeDescription for CStrArray<N> {
 #[derive(Copy, Clone, Debug, Default, PartialEq)]
 pub struct PositionVector(pub vec3_t);
 
+impl PositionVector {
+    pub const ZERO: Self = Self(vec3_t::ZERO);
+
+    pub fn to_vec(&self) -> vec3_t {
+        self.0
+    }
+}
+
+impl From<vec3_t> for PositionVector {
+    fn from(value: vec3_t) -> Self {
+        Self(value)
+    }
+}
+
+impl From<PositionVector> for vec3_t {
+    fn from(value: PositionVector) -> Self {
+        value.0
+    }
+}
+
+impl PartialEq<vec3_t> for PositionVector {
+    fn eq(&self, other: &vec3_t) -> bool {
+        self.0.eq(other)
+    }
+}
+
+impl PartialEq<PositionVector> for vec3_t {
+    fn eq(&self, other: &PositionVector) -> bool {
+        self.eq(&other.0)
+    }
+}
+
 #[derive(Copy, Clone, Default, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Token(u16);
 
