@@ -216,7 +216,9 @@ impl Entity for World {
 
         // TODO: spawn sound entity
         // TODO: init bodyque
-        // TODO: sentence init
+
+        self.global_state().sentence_init();
+
         // TODO: precache weapons
 
         client_precache(engine);

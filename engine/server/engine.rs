@@ -7,7 +7,7 @@ use core::{
 };
 
 use bitflags::bitflags;
-use csz::{CStrSlice, CStrThin};
+use csz::{CStrArray, CStrSlice, CStrThin};
 use xash3d_shared::{
     entity::EntityIndex,
     export::impl_unsync_global,
@@ -170,11 +170,21 @@ impl<'a> SoundBuilder<'a> {
     pub fn emit_dyn(self, sample: impl ToEngineStr, ent: &mut impl AsEdict) {
         let sample = sample.to_engine_str();
         let sample = sample.as_ref();
-        if let Some(b'!') = sample.to_bytes().first() {
-            warn!("SoundBuilder::emit_dyn: find sound sample in sentences.txt is not implemented");
+        if let Some(b'!') = sample.bytes().next() {
+            let global_state = self.engine.global_state_ref();
+            let sentences = global_state.sentences();
+            if let Some(name) = sentences.find_sentence(sample) {
+                self.emit(&name, ent);
+            } else {
+                warn!("Unable to find {sample} in sentences.txt");
+            }
         } else {
             self.emit(sample, ent);
         }
+    }
+
+    pub fn stop(self, sample: impl ToEngineStr, ent: &mut impl AsEdict) {
+        self.flags(SoundFlags::STOP).emit_dyn(sample, ent)
     }
 
     pub fn ambient_emit(self, sample: impl ToEngineStr, pos: vec3_t, ent: &mut impl AsEdict) {
@@ -192,10 +202,34 @@ impl<'a> SoundBuilder<'a> {
     pub fn ambient_emit_dyn(self, sample: impl ToEngineStr, pos: vec3_t, ent: &mut impl AsEdict) {
         let sample = sample.to_engine_str();
         let sample = sample.as_ref();
-        if let Some(b'!') = sample.to_bytes().first() {
-            warn!("SoundBuilder::ambient_emit_dyn: find sound sample in sentences.txt is not implemented");
+        if let Some(b'!') = sample.bytes().next() {
+            let global_state = self.engine.global_state_ref();
+            let sentences = global_state.sentences();
+            if let Some(name) = sentences.find_sentence(sample) {
+                self.ambient_emit(&name, pos, ent);
+            } else {
+                warn!("Unable to find {sample} in sentences.txt");
+            }
         } else {
             self.ambient_emit(sample, pos, ent);
+        }
+    }
+
+    pub fn emit_sequential(
+        self,
+        group: &CStrThin,
+        pick: u16,
+        reset: bool,
+        ent: &mut impl AsEdict,
+    ) -> Option<u16> {
+        let global_state = self.engine.global_state_ref();
+        let sentences = global_state.sentences();
+        let mut buffer = CStrArray::<256>::new();
+        if let Some((next, name)) = sentences.pick_sequential(group, pick, reset, &mut buffer) {
+            self.channel_voice().emit_dyn(name, ent);
+            Some(next)
+        } else {
+            None
         }
     }
 }

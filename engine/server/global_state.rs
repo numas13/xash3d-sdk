@@ -18,6 +18,7 @@ use crate::{
     engine::ServerEngineRef,
     game_rules::{GameRules, StubGameRules},
     save::{FieldType, SaveFields, SaveReader, SaveRestoreData, SaveResult, SaveWriter},
+    sound::Sentences,
     str::MapString,
 };
 
@@ -169,6 +170,7 @@ pub struct GlobalState {
     game_rules: RefCell<Box<dyn GameRules>>,
     last_spawn: Cell<*mut edict_s>,
     init_hud: Cell<bool>,
+    sentences: RefCell<Option<Sentences>>,
 }
 
 impl_unsync_global!(GlobalState);
@@ -181,6 +183,7 @@ impl GlobalState {
             game_rules: RefCell::new(Box::new(StubGameRules::new(engine))),
             last_spawn: Cell::new(ptr::null_mut()),
             init_hud: Cell::new(true),
+            sentences: RefCell::new(None),
         }
     }
 
@@ -271,6 +274,22 @@ impl GlobalState {
     /// Call with `false` after initializing the client HUD.
     pub fn set_init_hud(&self, value: bool) {
         self.init_hud.set(value);
+    }
+
+    /// Initialize sentences.
+    ///
+    /// Must be called by world spawn.
+    pub fn sentence_init(&self) {
+        let mut sentences = self.sentences.borrow_mut();
+        if sentences.is_none() {
+            *sentences = Some(Sentences::new(self.engine));
+        }
+    }
+
+    pub fn sentences(&self) -> Ref<'_, Sentences> {
+        Ref::filter_map(self.sentences.borrow(), |i| i.as_ref())
+            .ok()
+            .expect("sentences must be initialized by world spawn")
     }
 }
 
