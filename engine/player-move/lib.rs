@@ -133,7 +133,7 @@ fn map_texture_type_step_type(texture_type: c_char) -> c_int {
 fn clip_velocity(input: vec3_t, normal: vec3_t, overbounce: f32) -> (c_int, vec3_t) {
     const STOP_EPSILON: f32 = 0.1;
 
-    let backoff = input.dot_product(normal) * overbounce;
+    let backoff = input.dot(normal) * overbounce;
     let mut output = input - normal * backoff;
 
     for i in 0..3 {
@@ -168,7 +168,7 @@ struct WishMove {
 
 impl WishMove {
     fn new(mut vel: vec3_t, max_speed: f32) -> Self {
-        let (dir, mut speed) = vel.normalize_length();
+        let (dir, mut speed) = vel.normalize_and_length();
         if speed > max_speed {
             vel *= max_speed / speed;
             speed = max_speed;
@@ -318,7 +318,7 @@ impl<'a> PlayerMove<'a> {
     }
 
     fn drop_punch_angle(&mut self) {
-        let (punch_angle, mut len) = self.raw.punchangle.normalize_length();
+        let (punch_angle, mut len) = self.raw.punchangle.normalize_and_length();
         len -= (10.0 + len * 0.5) * self.raw.frametime;
         len = fmaxf(len, 0.0);
         self.raw.punchangle = punch_angle * len;
@@ -424,9 +424,9 @@ impl<'a> PlayerMove<'a> {
 
     fn check_velocity(&mut self) {
         fn fix_nan(v: &mut vec3_t, name: &str) {
-            if v.iter().any(|i| i.is_nan()) {
+            if v.is_nan() {
                 debug!("PM  Got a NaN {name} {v:?}");
-                for i in v.iter_mut().filter(|i| i.is_nan()) {
+                for i in v.as_mut().iter_mut().filter(|i| i.is_nan()) {
                     *i = 0.0;
                 }
             }
@@ -438,16 +438,18 @@ impl<'a> PlayerMove<'a> {
         let max = self.movevars().maxvelocity;
         let min = -max;
 
-        if self.raw.velocity.iter().any(|&i| i < min || i > max) {
+        if self
+            .raw
+            .velocity
+            .as_ref()
+            .iter()
+            .any(|&i| i < min || i > max)
+        {
             debug!("PM  Got a velocity too high/low {:?}", self.raw.velocity);
-            for i in self
+            self.raw.velocity = self
                 .raw
                 .velocity
-                .iter_mut()
-                .filter(|i| **i < min || **i > max)
-            {
-                *i = i.clamp(min, max);
-            }
+                .clamp(vec3_t::splat(min), vec3_t::splat(max));
         }
     }
 
@@ -539,10 +541,10 @@ impl<'a> PlayerMove<'a> {
                 let current_table = [
                     vec3_t::X,
                     vec3_t::Y,
-                    vec3_t::NX,
-                    vec3_t::NY,
+                    vec3_t::NEG_X,
+                    vec3_t::NEG_Y,
                     vec3_t::Z,
-                    vec3_t::NZ,
+                    vec3_t::NEG_Z,
                 ];
 
                 let index = (CONTENTS_CURRENT_0 - truecont) as usize;
@@ -564,16 +566,16 @@ impl<'a> PlayerMove<'a> {
             return;
         }
 
-        let (flat_velocity, curspeed) = self.raw.velocity.copy_with_z(0.0).normalize_length();
-        let flat_forward = self.raw.forward.copy_with_z(0.0).normalize();
+        let (flat_velocity, curspeed) = self.raw.velocity.with_z(0.0).normalize_and_length();
+        let flat_forward = self.raw.forward.with_z(0.0).normalize();
 
-        if curspeed != 0.0 && flat_velocity.dot_product(flat_forward) < 0.0 {
+        if curspeed != 0.0 && flat_velocity.dot(flat_forward) < 0.0 {
             return;
         }
 
         let savehull = self.usehull();
         self.raw.usehull = 2;
-        let mut start = self.raw.origin.copy_with_z(self.raw.origin[2] + WJ_HEIGHT);
+        let mut start = self.raw.origin.with_z(self.raw.origin[2] + WJ_HEIGHT);
         let end = start + flat_forward * 24.0;
         let trace = self.player_trace(start, end, PM_NORMAL, -1);
         if trace.fraction < 1.0 && fabsf(trace.plane.normal[2]) < 0.1 {
@@ -712,7 +714,7 @@ impl<'a> PlayerMove<'a> {
             return;
         }
 
-        let current_speed = self.raw.velocity.dot_product(*wishdir);
+        let current_speed = self.raw.velocity.dot(*wishdir);
         let add_speed = wishspeed - current_speed;
         if add_speed > 0.0 {
             let accel_speed = accel * self.raw.frametime * wishspeed * self.raw.friction;
@@ -725,7 +727,7 @@ impl<'a> PlayerMove<'a> {
             return;
         }
         let wishspd = fminf(wishspeed, 30.0);
-        let current_speed = self.raw.velocity.dot_product(*wishdir);
+        let current_speed = self.raw.velocity.dot(*wishdir);
         let add_speed = wishspd - current_speed;
         if add_speed <= 0.0 {
             return;
@@ -1109,7 +1111,7 @@ impl<'a> PlayerMove<'a> {
             self.normalize_angle_vectors();
             let wish = WishMove::new(self.wish_vel(), self.movevars().spectatormaxspeed);
 
-            let currentspeed = self.raw.velocity.dot_product(wish.dir);
+            let currentspeed = self.raw.velocity.dot(wish.dir);
             let addspeed = wish.speed - currentspeed;
             if addspeed <= 0.0 {
                 return;
@@ -1263,10 +1265,10 @@ impl<'a> PlayerMove<'a> {
         if forward != 0.0 || side != 0.0 {
             let av = self.raw.angles.angle_vectors();
             let velocity = av.forward() * forward + av.right() * side;
-            let perp = vec3_t::Z.cross_product(trace.plane.normal).normalize();
-            let normal = velocity.dot_product(trace.plane.normal);
+            let perp = vec3_t::Z.cross(trace.plane.normal).normalize();
+            let normal = velocity.dot(trace.plane.normal);
             let lateral = velocity - trace.plane.normal * normal;
-            self.raw.velocity = lateral + trace.plane.normal.cross_product(perp) * -normal;
+            self.raw.velocity = lateral + trace.plane.normal.cross(perp) * -normal;
 
             let mut floor = self.raw.origin;
             floor[2] += self.raw.player_mins[self.usehull()][2] - 1.0;
@@ -1336,7 +1338,7 @@ impl<'a> PlayerMove<'a> {
                 self.raw.velocity[2] = 0.0;
             }
 
-            let vel = self.raw.velocity.dot_product(self.raw.velocity);
+            let vel = self.raw.velocity.dot(self.raw.velocity);
             if vel < (30.0 * 30.0)
                 || (self.raw.movetype != MoveType::Bounce as c_int
                     && self.raw.movetype != MoveType::BounceMissile as c_int)
@@ -1419,7 +1421,7 @@ impl<'a> PlayerMove<'a> {
                     self.raw.velocity = clip_velocity(original_velocity, planes[i], 1.0).1;
                     let mut j = 0;
                     while j < numplanes {
-                        if j != i && self.raw.velocity.dot_product(planes[j]) < 0.0 {
+                        if j != i && self.raw.velocity.dot(planes[j]) < 0.0 {
                             break;
                         }
                         j += 1;
@@ -1436,12 +1438,12 @@ impl<'a> PlayerMove<'a> {
                         break;
                     }
 
-                    let dir = planes[0].cross_product(planes[1]);
-                    let d = dir.dot_product(self.raw.velocity);
+                    let dir = planes[0].cross(planes[1]);
+                    let d = dir.dot(self.raw.velocity);
                     self.raw.velocity = dir * d;
                 }
 
-                if self.raw.velocity.dot_product(primal_velocity) <= 0.0 {
+                if self.raw.velocity.dot(primal_velocity) <= 0.0 {
                     self.raw.velocity = vec3_t::ZERO;
                     break;
                 }
@@ -1582,7 +1584,7 @@ impl<'a> PlayerMove<'a> {
 
     fn walk_move(&mut self) {
         self.normalize_angle_vectors_no_z();
-        let wish = self.wish_move(self.wish_vel().copy_with_z(0.0));
+        let wish = self.wish_move(self.wish_vel().with_z(0.0));
 
         self.raw.velocity[2] = 0.0;
         self.accelerate(&wish.dir, wish.speed, self.movevars().accelerate);
@@ -1657,7 +1659,7 @@ impl<'a> PlayerMove<'a> {
 
     fn air_move(&mut self) {
         self.normalize_angle_vectors_no_z();
-        let wish = self.wish_move(self.wish_vel().copy_with_z(0.0));
+        let wish = self.wish_move(self.wish_vel().with_z(0.0));
         self.air_accelerate(&wish.dir, wish.speed, self.movevars().airaccelerate);
         self.raw.velocity += self.raw.basevelocity;
         self.fly_move();

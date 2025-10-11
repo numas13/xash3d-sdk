@@ -16,7 +16,7 @@ const PARTICLE_LIFETIME: f32 = 1.0 / (FRAMERATE as f32) * 1.5;
 impl super::PlayerMove<'_> {
     fn draw_particle_line(&self, start: vec3_t, end: vec3_t, color: i32) {
         let linestep = 2.0;
-        let (diff, len) = (end - start).normalize_length();
+        let (diff, len) = (end - start).normalize_and_length();
         let mut curdist = 0.0;
         while curdist <= len {
             let curpos = start + diff * curdist;
@@ -68,11 +68,8 @@ impl super::PlayerMove<'_> {
             if pe.angles != vec3_t::ZERO {
                 let av = pe.angles.angle_vectors().transpose_all();
                 for point in &mut points {
-                    *point = vec3_t::new(
-                        point.dot_product(av.forward),
-                        point.dot_product(av.right),
-                        point.dot_product(av.up),
-                    );
+                    *point =
+                        vec3_t::new(point.dot(av.forward), point.dot(av.right), point.dot(av.up));
                 }
             }
 
@@ -113,7 +110,7 @@ impl super::PlayerMove<'_> {
         let raydist = 256.0;
         let forward = self.raw.angles.angle_vectors().forward();
         let start = self.raw.origin;
-        let start = start.copy_with_z(self.raw.origin[2] + self.raw.view_ofs[2]);
+        let start = start.with_z(self.raw.origin[2] + self.raw.view_ofs[2]);
         let end = start + forward * raydist;
         let trace = self.player_trace(start, end, PM_STUDIO_BOX, -1);
         if trace.ent > 0 {

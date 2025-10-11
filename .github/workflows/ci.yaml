@@ -24,7 +24,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions-rust-lang/setup-rust-toolchain@v1
-      - run: cargo check --no-default-features -p xash3d-server
+      - run: cargo check --no-default-features --features libm -p xash3d-server
 
   check_style:
     name: Check style

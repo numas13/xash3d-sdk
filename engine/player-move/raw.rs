@@ -190,8 +190,8 @@ impl PlayerMove<'_> {
             // FIXME: ffi: why start and end are mutable?
             let p = pm_unwrap!(self, PM_TraceTexture)(
                 ground.into(),
-                start.as_mut_ptr(),
-                end.as_mut_ptr(),
+                start.as_mut().as_mut_ptr(),
+                end.as_mut().as_mut_ptr(),
             );
             if !p.is_null() {
                 Some(CStr::from_ptr(p))
@@ -206,8 +206,10 @@ impl PlayerMove<'_> {
         unsafe {
             let mut truecont = MaybeUninit::uninit();
             // FIXME: ffi: why point is mutable?
-            let cont =
-                pm_unwrap!(self, PM_PointContents)(point.as_mut_ptr(), truecont.as_mut_ptr());
+            let cont = pm_unwrap!(self, PM_PointContents)(
+                point.as_mut().as_mut_ptr(),
+                truecont.as_mut_ptr(),
+            );
             (cont, truecont.assume_init())
         }
     }
@@ -216,7 +218,9 @@ impl PlayerMove<'_> {
         let mut hull = *hull;
         let mut test = test;
         // FIXME: ffi: why hull and test are mutable?
-        unsafe { pm_unwrap!(self, PM_HullPointContents)(&mut hull, num, test.as_mut_ptr()) }
+        unsafe {
+            pm_unwrap!(self, PM_HullPointContents)(&mut hull, num, test.as_mut().as_mut_ptr())
+        }
     }
 
     pub fn file_size(&self, path: &CStr) -> c_int {
@@ -250,7 +254,12 @@ impl PlayerMove<'_> {
         let mut end = end;
         // FIXME: ffi: why start and end are mutable?
         unsafe {
-            pm_unwrap!(self, PM_PlayerTrace)(start.as_mut_ptr(), end.as_mut_ptr(), flags, ignore_pe)
+            pm_unwrap!(self, PM_PlayerTrace)(
+                start.as_mut().as_mut_ptr(),
+                end.as_mut().as_mut_ptr(),
+                flags,
+                ignore_pe,
+            )
         }
     }
 
@@ -259,8 +268,10 @@ impl PlayerMove<'_> {
         // FIXME: ffi: why point is mutable?
         unsafe {
             let mut trace = MaybeUninit::uninit();
-            let hitent =
-                pm_unwrap!(self, PM_TestPlayerPosition)(point.as_mut_ptr(), trace.as_mut_ptr());
+            let hitent = pm_unwrap!(self, PM_TestPlayerPosition)(
+                point.as_mut().as_mut_ptr(),
+                trace.as_mut_ptr(),
+            );
             (hitent, trace.assume_init())
         }
     }
@@ -306,8 +317,8 @@ impl PlayerMove<'_> {
             let mut trace = MaybeUninit::uninit();
             let ret = pm_unwrap!(self, PM_TraceModel)(
                 pe.cast_mut(),
-                start.as_mut_ptr(),
-                end.as_mut_ptr(),
+                start.as_mut().as_mut_ptr(),
+                end.as_mut().as_mut_ptr(),
                 trace.as_mut_ptr(),
             );
             (trace.assume_init(), ret)
@@ -342,7 +353,7 @@ impl PlayerMove<'_> {
 
     pub fn particle(&self, origin: vec3_t, color: c_int, life: f32, zpos: c_int, zvel: c_int) {
         unsafe {
-            pm_unwrap!(self, PM_Particle)(origin.as_ptr(), color, life, zpos, zvel);
+            pm_unwrap!(self, PM_Particle)(origin.as_ref().as_ptr(), color, life, zpos, zvel);
         }
     }
 }

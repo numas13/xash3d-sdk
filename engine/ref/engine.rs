@@ -358,7 +358,7 @@ impl RefEngine {
         }
         let bytes = unsafe {
             unwrap!(self, R_FatPVS)(
-                org.as_ptr(),
+                org.as_ref().as_ptr(),
                 radius,
                 buffer.as_mut_ptr(),
                 merge.into(),

@@ -338,18 +338,18 @@ impl Restore for EntityIndex {
 
 impl Save for vec3_t {
     fn save(&self, _: &mut SaveState, cur: &mut CursorMut) -> SaveResult<()> {
-        cur.write_f32(self.x())?;
-        cur.write_f32(self.y())?;
-        cur.write_f32(self.z())?;
+        cur.write_f32(self.x)?;
+        cur.write_f32(self.y)?;
+        cur.write_f32(self.z)?;
         Ok(())
     }
 }
 
 impl Restore for vec3_t {
     fn restore(&mut self, _: &RestoreState, cur: &mut Cursor) -> SaveResult<()> {
-        self.set_x(cur.read_f32()?);
-        self.set_y(cur.read_f32()?);
-        self.set_z(cur.read_f32()?);
+        self.x = cur.read_f32()?;
+        self.y = cur.read_f32()?;
+        self.z = cur.read_f32()?;
         Ok(())
     }
 }

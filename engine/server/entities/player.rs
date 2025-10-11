@@ -31,7 +31,7 @@ impl crate::save::OnRestore for Player {
         // TODO:
 
         let ev = self.vars_mut().as_raw_mut();
-        ev.v_angle.set_z(0.0);
+        ev.v_angle.z = 0.0;
         ev.angles = ev.v_angle;
         ev.fixangle = 1;
 

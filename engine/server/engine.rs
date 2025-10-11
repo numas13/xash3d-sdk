@@ -456,7 +456,13 @@ impl ServerEngine {
     }
 
     pub fn set_size(&self, ent: &mut impl AsEdict, min: vec3_t, max: vec3_t) {
-        unsafe { unwrap!(self, pfnSetSize)(ent.as_edict_mut(), min.as_ptr(), max.as_ptr()) }
+        unsafe {
+            unwrap!(self, pfnSetSize)(
+                ent.as_edict_mut(),
+                min.as_ref().as_ptr(),
+                max.as_ref().as_ptr(),
+            )
+        }
     }
 
     pub fn change_level(&self, map: impl ToEngineStr, spot: impl ToEngineStr) {
@@ -586,7 +592,7 @@ impl ServerEngine {
 
     /// Write results to globals().{v_forward, v_right, v_up}
     pub fn make_vectors(&self, angles: vec3_t) {
-        unsafe { unwrap!(self, pfnMakeVectors)(angles.as_ptr()) }
+        unsafe { unwrap!(self, pfnMakeVectors)(angles.as_ref().as_ptr()) }
     }
 
     // pub pfnAngleVectors: Option<
@@ -628,7 +634,7 @@ impl ServerEngine {
     //     Option<unsafe extern "C" fn(ent: *mut edict_t, yaw: f32, dist: f32, iMode: c_int) -> c_int>,
 
     pub fn set_origin(&self, origin: vec3_t, ent: &mut impl AsEdict) {
-        unsafe { unwrap!(self, pfnSetOrigin)(ent.as_edict_mut(), origin.as_ptr()) }
+        unsafe { unwrap!(self, pfnSetOrigin)(ent.as_edict_mut(), origin.as_ref().as_ptr()) }
     }
 
     pub fn build_sound<'a>(&'a self) -> SoundBuilder<'a> {
@@ -683,7 +689,7 @@ impl ServerEngine {
         unsafe {
             unwrap!(self, pfnEmitAmbientSound)(
                 entity,
-                pos.as_mut_ptr(),
+                pos.as_mut().as_mut_ptr(),
                 sample.as_ptr(),
                 volume,
                 attenuation.into(),
@@ -703,8 +709,8 @@ impl ServerEngine {
         let mut trace = MaybeUninit::uninit();
         unsafe {
             unwrap!(self, pfnTraceLine)(
-                start.as_ptr(),
-                end.as_ptr(),
+                start.as_ref().as_ptr(),
+                end.as_ref().as_ptr(),
                 ignore.bits() as c_int,
                 ignore_ent.map_or(ptr::null_mut(), |e| e.as_edict_mut()),
                 trace.as_mut_ptr(),
@@ -741,8 +747,8 @@ impl ServerEngine {
         let result = unsafe {
             unwrap!(self, pfnTraceMonsterHull)(
                 ent.as_edict_mut(),
-                start.as_ptr(),
-                end.as_ptr(),
+                start.as_ref().as_ptr(),
+                end.as_ref().as_ptr(),
                 ignore.bits() as c_int,
                 ignore_ent.map_or(ptr::null_mut(), |e| e.as_edict_mut()),
                 trace.as_mut_ptr(),
@@ -766,8 +772,8 @@ impl ServerEngine {
         let mut trace = MaybeUninit::uninit();
         unsafe {
             unwrap!(self, pfnTraceHull)(
-                start.as_ptr(),
-                end.as_ptr(),
+                start.as_ref().as_ptr(),
+                end.as_ref().as_ptr(),
                 ignore.bits() as c_int,
                 hull_number,
                 ignore_ent.map_or(ptr::null_mut(), |e| e.as_edict_mut()),
@@ -787,8 +793,8 @@ impl ServerEngine {
         let mut trace = MaybeUninit::uninit();
         unsafe {
             unwrap!(self, pfnTraceModel)(
-                start.as_ptr(),
-                end.as_ptr(),
+                start.as_ref().as_ptr(),
+                end.as_ref().as_ptr(),
                 hull_number,
                 ent.as_edict_mut(),
                 trace.as_mut_ptr(),
@@ -804,7 +810,11 @@ impl ServerEngine {
         ent: &mut impl AsEdict,
     ) -> Option<&CStrThin> {
         let result = unsafe {
-            unwrap!(self, pfnTraceTexture)(ent.as_edict_mut(), start.as_ptr(), end.as_ptr())
+            unwrap!(self, pfnTraceTexture)(
+                ent.as_edict_mut(),
+                start.as_ref().as_ptr(),
+                end.as_ref().as_ptr(),
+            )
         };
         if !result.is_null() {
             Some(unsafe { CStrThin::from_ptr(result) })
@@ -922,7 +932,7 @@ impl ServerEngine {
             unwrap!(self, pfnMessageBegin)(
                 dest.into(),
                 msg_type,
-                origin.as_ref().map_or(ptr::null(), |v| v.as_ptr()),
+                origin.as_ref().map_or(ptr::null(), |v| v.as_ref().as_ptr()),
                 ent.map_or(ptr::null_mut(), |e| e as *mut edict_s),
             )
         }
@@ -965,9 +975,9 @@ impl ServerEngine {
     }
 
     pub fn msg_write_coord_vec3(&self, v: vec3_t) {
-        self.msg_write_coord(v.x());
-        self.msg_write_coord(v.y());
-        self.msg_write_coord(v.z());
+        self.msg_write_coord(v.x);
+        self.msg_write_coord(v.y);
+        self.msg_write_coord(v.z);
     }
 
     pub fn msg_write_string(&self, value: impl ToEngineStr) {
@@ -1194,7 +1204,7 @@ impl ServerEngine {
     ) {
         unsafe {
             unwrap!(self, pfnStaticDecal)(
-                origin.as_ptr(),
+                origin.as_ref().as_ptr(),
                 decal_index as c_int,
                 entity.to_i32(),
                 model_index as c_int,
@@ -1277,11 +1287,11 @@ impl ServerEngine {
     // >,
 
     pub fn set_pvs(&self, org: vec3_t) -> *mut c_uchar {
-        unsafe { unwrap!(self, pfnSetFatPVS)(org.as_ptr()) }
+        unsafe { unwrap!(self, pfnSetFatPVS)(org.as_ref().as_ptr()) }
     }
 
     pub fn set_pas(&self, org: vec3_t) -> *mut c_uchar {
-        unsafe { unwrap!(self, pfnSetFatPAS)(org.as_ptr()) }
+        unsafe { unwrap!(self, pfnSetFatPAS)(org.as_ref().as_ptr()) }
     }
 
     pub fn check_visibility(&self, entity: &edict_s, set: *mut c_uchar) -> bool {

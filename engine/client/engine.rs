@@ -350,15 +350,15 @@ impl ClientEngine {
 
     pub fn get_view_angles(&self) -> vec3_t {
         unsafe {
-            let mut ret = MaybeUninit::<vec3_t>::uninit();
+            let mut ret = MaybeUninit::<[f32; 3]>::uninit();
             unwrap!(self, GetViewAngles)(ret.as_mut_ptr().cast());
-            ret.assume_init()
+            ret.assume_init().into()
         }
     }
 
     pub fn set_view_angles(&self, mut angles: vec3_t) {
         // FIXME: ffi: why arg1 is mutable?
-        unsafe { unwrap!(self, SetViewAngles)(angles.as_mut_ptr()) }
+        unsafe { unwrap!(self, SetViewAngles)(angles.as_mut().as_mut_ptr()) }
     }
 
     pub fn get_max_clients(&self) -> c_int {
@@ -437,21 +437,22 @@ impl ClientEngine {
     }
 
     pub fn apply_shake(&self, origin: &mut vec3_t, angles: &mut vec3_t, factor: f32) {
-        let origin = origin.as_mut_ptr().cast();
-        let angles = angles.as_mut_ptr().cast();
+        let origin = origin.as_mut().as_mut_ptr();
+        let angles = angles.as_mut().as_mut_ptr();
         unsafe { unwrap!(self, V_ApplyShake)(origin, angles, factor) }
     }
 
     pub fn pm_point_contents(&self, point: vec3_t) -> (c_int, c_int) {
         unsafe {
             let mut truecont = MaybeUninit::uninit();
-            let cont = unwrap!(self, PM_PointContents)(point.as_ptr(), truecont.as_mut_ptr());
+            let cont =
+                unwrap!(self, PM_PointContents)(point.as_ref().as_ptr(), truecont.as_mut_ptr());
             (cont, truecont.assume_init())
         }
     }
 
     pub fn pm_water_entity(&self, point: vec3_t) -> c_int {
-        unsafe { unwrap!(self, PM_WaterEntity)(point.as_ptr()) }
+        unsafe { unwrap!(self, PM_WaterEntity)(point.as_ref().as_ptr()) }
     }
 
     // pub PM_TraceLine: Option<

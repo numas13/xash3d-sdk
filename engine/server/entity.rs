@@ -909,12 +909,12 @@ define_entity_trait! {
         fn intersects(&self, other: &dyn ::xash3d_server::entity::Entity) -> bool {
             let a = self.vars().as_raw();
             let b = other.vars().as_raw();
-            !(b.absmin.x() > a.absmax.x()
-                || b.absmin.y() > a.absmax.y()
-                || b.absmin.z() > a.absmax.z()
-                || b.absmax.x() < a.absmin.x()
-                || b.absmax.y() < a.absmin.y()
-                || b.absmax.z() < a.absmin.z())
+            !(b.absmin.x > a.absmax.x
+                || b.absmin.y > a.absmax.y
+                || b.absmin.z > a.absmax.z
+                || b.absmax.x < a.absmin.x
+                || b.absmax.y < a.absmin.y
+                || b.absmax.z < a.absmin.z)
         }
 
         /// Removes this entity from the world.

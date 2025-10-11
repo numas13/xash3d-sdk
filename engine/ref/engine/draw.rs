@@ -46,7 +46,7 @@ impl Draw<'_> {
     pub fn gl_ortho_bounds(&self, mins: vec2_t, maxs: vec2_t) -> Option<()> {
         self.raw
             .GL_OrthoBounds
-            .map(|f| unsafe { f(mins.as_ptr(), maxs.as_ptr()) })
+            .map(|f| unsafe { f(mins.as_ref().as_ptr(), maxs.as_ref().as_ptr()) })
     }
 
     pub fn r_create_studio_decal_list(&self, list: &mut [decallist_s]) -> Option<usize> {

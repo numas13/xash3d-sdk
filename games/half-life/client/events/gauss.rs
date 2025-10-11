@@ -149,7 +149,7 @@ impl super::Events {
             };
 
             if entity.solid == SOLID_BSP {
-                let n = -tr.plane.normal.dot_product(forward);
+                let n = -tr.plane.normal.dot(forward);
                 if n < 0.5 {
                     forward += tr.plane.normal * (n * 2.0);
 

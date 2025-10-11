@@ -99,7 +99,11 @@ pub struct AngleVectors {
 
 impl AngleVectors {
     pub fn new(angles: vec3_t) -> Self {
-        let r = angles.to_radians();
+        let r = [
+            angles.x.to_radians(),
+            angles.y.to_radians(),
+            angles.z.to_radians(),
+        ];
         Self {
             sp: sinf(r[PITCH]),
             cp: cosf(r[PITCH]),
@@ -180,7 +184,7 @@ impl ToAngleVectors for vec3_t {
 
 pub fn calc_roll(angles: vec3_t, velocity: vec3_t, roll_angle: f32, roll_speed: f32) -> f32 {
     let right = angles.angle_vectors().right();
-    let side = velocity.dot_product(right);
+    let side = velocity.dot(right);
     let sign = copysignf(1.0, side);
     let side = fabsf(side);
     let side = if side < roll_speed {
@@ -193,14 +197,4 @@ pub fn calc_roll(angles: vec3_t, velocity: vec3_t, roll_angle: f32, roll_speed: 
 
 pub fn angle_mod(a: f32) -> f32 {
     (360.0 / 65536.0) * ((a * (65536.0 / 360.0)) as i32 & 65535) as f32
-}
-
-pub trait Vec3Ext {
-    fn abs(&self) -> vec3_t;
-}
-
-impl Vec3Ext for vec3_t {
-    fn abs(&self) -> vec3_t {
-        vec3_t::new(fabsf(self.x()), fabsf(self.y()), fabsf(self.z()))
-    }
 }

@@ -42,7 +42,7 @@ impl Entity for Light {
             }
             b"pitch" => {
                 let ev = self.vars_mut().as_raw_mut();
-                ev.angles.set_x(data.value_str().parse().unwrap_or(0.0));
+                ev.angles.x = data.value_str().parse().unwrap_or(0.0);
             }
             b"pattern" => {
                 let engine = self.engine();

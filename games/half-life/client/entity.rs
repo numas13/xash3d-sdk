@@ -378,7 +378,7 @@ impl Entities {
                         temp.die = client_time;
                     } else {
                         if damp != 0.0 {
-                            let proj = temp.entity.baseline.origin.dot_product(trace_normal);
+                            let proj = temp.entity.baseline.origin.dot(trace_normal);
                             temp.entity.baseline.origin += trace_normal * (-proj * 2.0);
                             temp.entity.angles[YAW] = -temp.entity.angles[YAW];
                         }

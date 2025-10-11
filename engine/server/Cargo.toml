@@ -9,6 +9,9 @@ rust-version.workspace = true
 [features]
 default = ["save"]
 
+std = ["xash3d-shared/std"]
+libm = ["xash3d-shared/libm"]
+
 # enable save/restore
 save = ["dep:xash3d-server-derive"]
 

@@ -6,6 +6,11 @@ authors.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 
+[features]
+default = []
+std = ["xash3d-shared/std"]
+libm = ["xash3d-shared/libm"]
+
 [lib]
 path = "lib.rs"
 

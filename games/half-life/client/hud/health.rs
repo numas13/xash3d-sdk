@@ -237,8 +237,8 @@ impl Health {
         } else {
             let av = state.angles.angle_vectors();
             let from = from.normalize();
-            let front = from.dot_product(av.right());
-            let side = from.dot_product(av.forward());
+            let front = from.dot(av.right());
+            let side = from.dot(av.forward());
 
             let mut attack = |i, f| {
                 if f > 0.3 && self.attack[i] < f {

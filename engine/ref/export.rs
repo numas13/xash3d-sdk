@@ -441,7 +441,7 @@ pub trait RefDll: UnsyncGlobal {
     fn tex_coord2f(&self, u: f32, v: f32) {}
 
     fn vertex3fv(&self, point: &vec3_t) {
-        self.vertex3f(point.x(), point.y(), point.z());
+        self.vertex3f(point.x, point.y, point.z);
     }
 
     fn vertex3f(&self, x: f32, y: f32, z: f32) {}

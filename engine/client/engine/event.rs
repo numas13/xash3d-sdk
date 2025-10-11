@@ -241,7 +241,7 @@ impl EventApi {
             // FIXME: ffi: why origin is mutable?
             unwrap!(self, EV_PlaySound)(
                 ent.map_or(-1, |i| i.to_i32()),
-                origin.as_mut_ptr(),
+                origin.as_mut().as_mut_ptr(),
                 channel.into(),
                 sample.as_ptr(),
                 volume,
@@ -331,8 +331,8 @@ impl EventApi {
             let mut pm = MaybeUninit::uninit();
             // FIXME: ffi why start and ent are mutable?
             unwrap!(self, EV_PlayerTrace)(
-                start.as_mut_ptr(),
-                end.as_mut_ptr(),
+                start.as_mut().as_mut_ptr(),
+                end.as_mut().as_mut_ptr(),
                 trace_flags,
                 ignore_pe,
                 pm.as_mut_ptr(),
@@ -372,7 +372,11 @@ impl EventApi {
     ) -> Option<&CStrThin> {
         unsafe {
             // FIXME: ffi: why start and end are mutable?
-            let ptr = unwrap!(self, EV_TraceTexture)(ground, start.as_mut_ptr(), end.as_mut_ptr());
+            let ptr = unwrap!(self, EV_TraceTexture)(
+                ground,
+                start.as_mut().as_mut_ptr(),
+                end.as_mut().as_mut_ptr(),
+            );
             if !ptr.is_null() {
                 Some(CStrThin::from_ptr(ptr))
             } else {

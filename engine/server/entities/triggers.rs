@@ -327,7 +327,7 @@ impl Entity for TriggerPush {
         let v = self.base.vars_mut();
 
         if v.angles() == vec3_t::ZERO {
-            v.angles_mut().set_y(360.0);
+            v.angles_mut().y = 360.0;
         }
         init_trigger(&engine, v);
 
@@ -363,7 +363,7 @@ impl Entity for TriggerPush {
         let spawn_flags = TriggerPushSpawnFlags::from_bits_retain(self.vars().spawn_flags());
         if spawn_flags.intersects(TriggerPushSpawnFlags::PUSH_ONCE) {
             *other_v.velocity_mut() += push_vec;
-            if other_v.velocity().z() > 0.0 {
+            if other_v.velocity().z > 0.0 {
                 other_v.flags_mut().remove(EdictFlags::ONGROUND);
             }
             self.remove_from_world();

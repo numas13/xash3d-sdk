@@ -238,15 +238,15 @@ pub trait UserMessageWrite {
     fn write_str(&mut self, str: impl ToEngineStr);
 
     fn write_vec3(&mut self, v: vec3_t) {
-        self.write_f32(v.x());
-        self.write_f32(v.y());
-        self.write_f32(v.z());
+        self.write_f32(v.x);
+        self.write_f32(v.y);
+        self.write_f32(v.z);
     }
 
     fn write_coord_vec3(&mut self, coord: Coord<vec3_t>) {
-        self.write_coord(Coord(coord.0.x()));
-        self.write_coord(Coord(coord.0.y()));
-        self.write_coord(Coord(coord.0.z()));
+        self.write_coord(Coord(coord.0.x));
+        self.write_coord(Coord(coord.0.y));
+        self.write_coord(Coord(coord.0.z));
     }
 }
 

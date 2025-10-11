@@ -10,8 +10,9 @@ rust-version.workspace = true
 workspace = true
 
 [features]
-default = ["client-weapons"]
-std = []
+default = ["client-weapons", "libm"]
+std = ["xash3d-client/std"]
+libm = ["xash3d-client/libm"]
 client-weapons = []
 
 [lib]

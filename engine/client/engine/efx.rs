@@ -87,7 +87,7 @@ impl EfxApi {
     // >,
 
     pub fn bullet_impact_particles(&self, pos: vec3_t) {
-        unsafe { unwrap!(self, R_BulletImpactParticles)(pos.as_ptr()) }
+        unsafe { unwrap!(self, R_BulletImpactParticles)(pos.as_ref().as_ptr()) }
     }
 
     // pub R_EntityParticles: Option<unsafe extern "C" fn(ent: *mut cl_entity_s)>,
@@ -168,8 +168,8 @@ impl EfxApi {
     // pub R_RocketFlare: Option<unsafe extern "C" fn(pos: *const f32)>,
 
     pub fn rocket_trail(&self, mut start: vec3_t, mut end: vec3_t, type_: c_int) {
-        let start = start.as_mut_ptr().cast();
-        let end = end.as_mut_ptr().cast();
+        let start = start.as_mut().as_mut_ptr().cast();
+        let end = end.as_mut().as_mut_ptr().cast();
         // FIXME: ffi: why start and end are mutable?
         unsafe { unwrap!(self, R_RocketTrail)(start, end, type_) }
     }
@@ -185,11 +185,13 @@ impl EfxApi {
         velocity_min: c_int,
         velocity_max: c_int,
     ) {
-        unsafe { unwrap!(self, R_SparkEffect)(pos.as_ptr(), count, velocity_min, velocity_max) }
+        unsafe {
+            unwrap!(self, R_SparkEffect)(pos.as_ref().as_ptr(), count, velocity_min, velocity_max)
+        }
     }
 
     pub fn spark_shower(&self, pos: vec3_t) {
-        unsafe { unwrap!(self, R_SparkShower)(pos.as_ptr()) }
+        unsafe { unwrap!(self, R_SparkShower)(pos.as_ref().as_ptr()) }
     }
 
     // pub R_SparkStreaks: Option<
@@ -238,8 +240,8 @@ impl EfxApi {
             // FIXME: ffi: why start and end are mutable?
             unwrap!(self, R_Sprite_Trail)(
                 type_,
-                start.as_mut_ptr(),
-                end.as_mut_ptr(),
+                start.as_mut().as_mut_ptr(),
+                end.as_mut().as_mut_ptr(),
                 model_index,
                 count,
                 life,
@@ -265,7 +267,7 @@ impl EfxApi {
     // >,
 
     pub fn create_tracer(&self, start: vec3_t, end: vec3_t) {
-        unsafe { unwrap!(self, R_TracerEffect)(start.as_ptr(), end.as_ptr()) }
+        unsafe { unwrap!(self, R_TracerEffect)(start.as_ref().as_ptr(), end.as_ref().as_ptr()) }
     }
 
     // pub R_UserTracerParticle: Option<
@@ -303,9 +305,9 @@ impl EfxApi {
     ) -> *mut TEMPENTITY {
         unsafe {
             unwrap!(self, R_TempModel)(
-                pos.as_ptr(),
-                dir.as_ptr(),
-                angles.as_ptr(),
+                pos.as_ref().as_ptr(),
+                dir.as_ref().as_ptr(),
+                angles.as_ref().as_ptr(),
                 life,
                 model,
                 soundtype,
@@ -337,8 +339,8 @@ impl EfxApi {
         unsafe {
             // FIXME: ffi: why pos is mutable?
             unwrap!(self, R_TempSprite)(
-                pos.as_mut_ptr(),
-                dir.as_ptr(),
+                pos.as_mut().as_mut_ptr(),
+                dir.as_ref().as_ptr(),
                 scale,
                 model_index,
                 rendermode as c_int,
@@ -373,7 +375,7 @@ impl EfxApi {
                 texture_index,
                 entity,
                 model_index,
-                position.as_mut_ptr().cast(),
+                position.as_mut().as_mut_ptr(),
                 flags,
             )
         }
@@ -420,7 +422,7 @@ impl EfxApi {
             // FIXME: ffi: why end is mutable?
             unwrap!(self, R_BeamEntPoint)(
                 start_ent.bits().into(),
-                end.as_mut_ptr(),
+                end.as_mut().as_mut_ptr(),
                 model_index,
                 life,
                 width,
@@ -497,8 +499,8 @@ impl EfxApi {
         unsafe {
             // FIXME: ffi: why start and end are mutable?
             unwrap!(self, R_BeamPoints)(
-                start.as_mut_ptr(),
-                end.as_mut_ptr(),
+                start.as_mut().as_mut_ptr(),
+                end.as_mut().as_mut_ptr(),
                 model_ndex,
                 life,
                 width,

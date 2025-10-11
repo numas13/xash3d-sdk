@@ -70,7 +70,7 @@ impl Bob {
                     / (1.0 - cvar::cl_bobup.value());
         }
 
-        let vel = params.simvel.copy_with_z(0.0);
+        let vel = params.simvel.with_z(0.0);
 
         self.bob = sqrtf(vel[0] * vel[0] + vel[1] * vel[1]) * cvar::cl_bob.value();
         self.bob = self.bob * 0.3 + self.bob * 0.7 * sinf(cycle);
@@ -524,7 +524,7 @@ impl View {
 }
 
 fn drop_punch_angle(frametime: f32, punchangle: vec3_t) -> vec3_t {
-    let (punchangle, mut len) = punchangle.normalize_length();
+    let (punchangle, mut len) = punchangle.normalize_and_length();
     len -= (10.0 + len * 0.5) * frametime;
     len = fmaxf(len, 0.0);
     punchangle * len
