@@ -59,20 +59,23 @@ macro_rules! impl_save_restore_for_num {
 impl_save_restore_for_num! {
     bool = write_bool, read_bool;
 
-    u8 = write_u8, read_u8;
-    i8 = write_i8, read_i8;
+    u8 = write_leb_u8, read_leb_u8;
+    i8 = write_leb_i8, read_leb_i8;
 
-    u16 = write_u16_le, read_u16_le;
-    i16 = write_i16_le, read_i16_le;
+    u16 = write_leb_u16, read_leb_u16;
+    i16 = write_leb_i16, read_leb_i16;
 
-    u32 = write_u32_le, read_u32_le;
-    i32 = write_i32_le, read_i32_le;
+    u32 = write_leb_u32, read_leb_u32;
+    i32 = write_leb_i32, read_leb_i32;
 
-    u64 = write_u64_le, read_u64_le;
-    i64 = write_i64_le, read_i64_le;
+    u64 = write_leb_u64, read_leb_u64;
+    i64 = write_leb_i64, read_leb_i64;
 
-    u128 = write_u128_le, read_u128_le;
-    i128 = write_i128_le, read_i128_le;
+    u128 = write_leb_u128, read_leb_u128;
+    i128 = write_leb_i128, read_leb_i128;
+
+    usize = write_leb_usize, read_leb_usize;
+    isize = write_leb_isize, read_leb_isize;
 
     f32 = write_f32_le, read_f32_le;
     f64 = write_f64_le, read_f64_le;
@@ -320,14 +323,14 @@ impl_save_restore_for_bitflags!(xash3d_shared::entity::DamageFlags);
 
 impl Save for EntityIndex {
     fn save(&self, _: &mut SaveState, cur: &mut CursorMut) -> SaveResult<()> {
-        cur.write_u16_le(self.to_u16())?;
+        cur.write_leb_u16(self.to_u16())?;
         Ok(())
     }
 }
 
 impl Restore for EntityIndex {
     fn restore(&mut self, _: &RestoreState, cur: &mut Cursor) -> SaveResult<()> {
-        let index = cur.read_u16_le()?;
+        let index = cur.read_leb_u16()?;
         *self = EntityIndex::new(index).ok_or(SaveError::InvalidNumber)?;
         Ok(())
     }

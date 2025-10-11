@@ -4,6 +4,12 @@ use core::{cmp, mem};
 use crate::save::{Save, SaveState};
 use crate::save::{SaveError, SaveResult, Token};
 
+const PREFIX_SIZE_B: u8 = 0xfb;
+const PREFIX_SIZE_H: u8 = 0xfc;
+const PREFIX_SIZE_W: u8 = 0xfd;
+const PREFIX_SIZE_D: u8 = 0xfe;
+const PREFIX_SIZE_Q: u8 = 0xff;
+
 #[derive(Copy, Clone, Default, Debug, PartialEq, Eq)]
 pub struct Header {
     size: u16,
@@ -217,6 +223,98 @@ impl<'a> Cursor<'a> {
         }
     }
 
+    pub fn read_leb_u8(&mut self) -> SaveResult<u8> {
+        self.read_leb_u128()
+            .and_then(|value| value.try_into().map_err(|_| SaveError::InvalidNumber))
+    }
+
+    pub fn read_leb_u16(&mut self) -> SaveResult<u16> {
+        self.read_leb_u128()
+            .and_then(|value| value.try_into().map_err(|_| SaveError::InvalidNumber))
+    }
+
+    pub fn read_leb_u32(&mut self) -> SaveResult<u32> {
+        self.read_leb_u128()
+            .and_then(|value| value.try_into().map_err(|_| SaveError::InvalidNumber))
+    }
+
+    pub fn read_leb_u64(&mut self) -> SaveResult<u64> {
+        self.read_leb_u128()
+            .and_then(|value| value.try_into().map_err(|_| SaveError::InvalidNumber))
+    }
+
+    pub fn read_leb_u128(&mut self) -> SaveResult<u128> {
+        match self.read_u8()? {
+            PREFIX_SIZE_Q => self.read_u128_le(),
+            PREFIX_SIZE_D => self.read_u64_le().map(|value| value.into()),
+            PREFIX_SIZE_W => self.read_u32_le().map(|value| value.into()),
+            PREFIX_SIZE_H => self.read_u16_le().map(|value| value.into()),
+            PREFIX_SIZE_B => self.read_u8().map(|value| value.into()),
+            value => Ok(value.into()),
+        }
+    }
+
+    #[cfg(target_pointer_width = "16")]
+    pub fn read_leb_usize(&mut self) -> SaveResult<usize> {
+        self.read_leb_u16().map(|value| value as usize)
+    }
+
+    #[cfg(target_pointer_width = "32")]
+    pub fn read_leb_usize(&mut self) -> SaveResult<usize> {
+        self.read_leb_u32().map(|value| value as usize)
+    }
+
+    #[cfg(target_pointer_width = "64")]
+    pub fn read_leb_usize(&mut self) -> SaveResult<usize> {
+        self.read_leb_u64().map(|value| value as usize)
+    }
+
+    pub fn read_leb_i8(&mut self) -> SaveResult<i8> {
+        self.read_leb_i128()
+            .and_then(|value| value.try_into().map_err(|_| SaveError::InvalidNumber))
+    }
+
+    pub fn read_leb_i16(&mut self) -> SaveResult<i16> {
+        self.read_leb_i128()
+            .and_then(|value| value.try_into().map_err(|_| SaveError::InvalidNumber))
+    }
+
+    pub fn read_leb_i32(&mut self) -> SaveResult<i32> {
+        self.read_leb_i128()
+            .and_then(|value| value.try_into().map_err(|_| SaveError::InvalidNumber))
+    }
+
+    pub fn read_leb_i64(&mut self) -> SaveResult<i64> {
+        self.read_leb_i128()
+            .and_then(|value| value.try_into().map_err(|_| SaveError::InvalidNumber))
+    }
+
+    pub fn read_leb_i128(&mut self) -> SaveResult<i128> {
+        match self.read_u8()? {
+            PREFIX_SIZE_Q => self.read_i128_le(),
+            PREFIX_SIZE_D => self.read_i64_le().map(|value| value.into()),
+            PREFIX_SIZE_W => self.read_i32_le().map(|value| value.into()),
+            PREFIX_SIZE_H => self.read_i16_le().map(|value| value.into()),
+            PREFIX_SIZE_B => self.read_i8().map(|value| value.into()),
+            value => Ok(value.into()),
+        }
+    }
+
+    #[cfg(target_pointer_width = "16")]
+    pub fn read_leb_isize(&mut self) -> SaveResult<isize> {
+        self.read_leb_i16().map(|value| value as isize)
+    }
+
+    #[cfg(target_pointer_width = "32")]
+    pub fn read_leb_isize(&mut self) -> SaveResult<isize> {
+        self.read_leb_i32().map(|value| value as isize)
+    }
+
+    #[cfg(target_pointer_width = "64")]
+    pub fn read_leb_isize(&mut self) -> SaveResult<isize> {
+        self.read_leb_i64().map(|value| value as isize)
+    }
+
     pub fn read_header(&mut self) -> SaveResult<Header> {
         let size = self.read_u16_le()?;
         let token = Token::new(self.read_u16_le()?);
@@ -393,6 +491,124 @@ impl<'a> CursorMut<'a> {
             fn write_f32_be(f32),
             fn write_f64_be(f64),
         }
+    }
+
+    pub fn write_leb_u8(&mut self, value: u8) -> SaveResult<()> {
+        if value >= PREFIX_SIZE_B {
+            self.write_u8(PREFIX_SIZE_B)?;
+        }
+        self.write_u8(value)?;
+        Ok(())
+    }
+
+    pub fn write_leb_u16(&mut self, value: u16) -> SaveResult<()> {
+        if let Ok(value) = value.try_into() {
+            return self.write_leb_u8(value);
+        }
+        self.write_u8(PREFIX_SIZE_H)?;
+        self.write_u16_le(value)?;
+        Ok(())
+    }
+
+    pub fn write_leb_u32(&mut self, value: u32) -> SaveResult<()> {
+        if let Ok(value) = value.try_into() {
+            return self.write_leb_u16(value);
+        }
+        self.write_u8(PREFIX_SIZE_W)?;
+        self.write_u32_le(value)?;
+        Ok(())
+    }
+
+    pub fn write_leb_u64(&mut self, value: u64) -> SaveResult<()> {
+        if let Ok(value) = value.try_into() {
+            return self.write_leb_u32(value);
+        }
+        self.write_u8(PREFIX_SIZE_D)?;
+        self.write_u64_le(value)?;
+        Ok(())
+    }
+
+    pub fn write_leb_u128(&mut self, value: u128) -> SaveResult<()> {
+        if let Ok(value) = value.try_into() {
+            return self.write_leb_u64(value);
+        }
+        self.write_u8(PREFIX_SIZE_Q)?;
+        self.write_u128_le(value)?;
+        Ok(())
+    }
+
+    #[cfg(target_pointer_width = "16")]
+    pub fn write_leb_usize(&mut self, value: usize) -> SaveResult<()> {
+        self.write_leb_u16(value as u16)
+    }
+
+    #[cfg(target_pointer_width = "32")]
+    pub fn write_leb_usize(&mut self, value: usize) -> SaveResult<()> {
+        self.write_leb_u32(value as u32)
+    }
+
+    #[cfg(target_pointer_width = "64")]
+    pub fn write_leb_usize(&mut self, value: usize) -> SaveResult<()> {
+        self.write_leb_u64(value as u64)
+    }
+
+    pub fn write_leb_i8(&mut self, value: i8) -> SaveResult<()> {
+        if value <= (PREFIX_SIZE_B - 127) as i8 {
+            self.write_u8(PREFIX_SIZE_B)?;
+        }
+        self.write_i8(value)?;
+        Ok(())
+    }
+
+    pub fn write_leb_i16(&mut self, value: i16) -> SaveResult<()> {
+        if let Ok(value) = value.try_into() {
+            return self.write_leb_i8(value);
+        }
+        self.write_u8(PREFIX_SIZE_H)?;
+        self.write_i16_le(value)?;
+        Ok(())
+    }
+
+    pub fn write_leb_i32(&mut self, value: i32) -> SaveResult<()> {
+        if let Ok(value) = value.try_into() {
+            return self.write_leb_i16(value);
+        }
+        self.write_u8(PREFIX_SIZE_W)?;
+        self.write_i32_le(value)?;
+        Ok(())
+    }
+
+    pub fn write_leb_i64(&mut self, value: i64) -> SaveResult<()> {
+        if let Ok(value) = value.try_into() {
+            return self.write_leb_i32(value);
+        }
+        self.write_u8(PREFIX_SIZE_D)?;
+        self.write_i64_le(value)?;
+        Ok(())
+    }
+
+    pub fn write_leb_i128(&mut self, value: i128) -> SaveResult<()> {
+        if let Ok(value) = value.try_into() {
+            return self.write_leb_i64(value);
+        }
+        self.write_u8(PREFIX_SIZE_Q)?;
+        self.write_i128_le(value)?;
+        Ok(())
+    }
+
+    #[cfg(target_pointer_width = "16")]
+    pub fn write_leb_isize(&mut self, value: isize) -> SaveResult<()> {
+        self.write_leb_i16(value as i16)
+    }
+
+    #[cfg(target_pointer_width = "32")]
+    pub fn write_leb_isize(&mut self, value: isize) -> SaveResult<()> {
+        self.write_leb_i32(value as i32)
+    }
+
+    #[cfg(target_pointer_width = "64")]
+    pub fn write_leb_isize(&mut self, value: isize) -> SaveResult<()> {
+        self.write_leb_i64(value as i64)
     }
 
     pub fn write_token(&mut self, token: Token) -> SaveResult<usize> {
@@ -653,5 +869,243 @@ mod tests {
 
         cur.write(b"Z").unwrap();
         assert_eq!(cur.as_slice(), b"BARFOOYZ");
+    }
+
+    #[test]
+    fn crusor_leb_u8() {
+        let mut buf = [0xaa; 1024];
+        let mut cur = CursorMut::new(&mut buf);
+        for i in 0..=255 {
+            cur.write_leb_u8(i).unwrap();
+        }
+        let mut cur = Cursor::new(&buf);
+        for i in 0..=255 {
+            assert_eq!(cur.read_leb_u8(), Ok(i));
+        }
+        assert_eq!(cur.read_u8(), Ok(0xaa));
+    }
+
+    #[test]
+    fn crusor_leb_u16() {
+        let numbers = [0, 250, u8::MAX as u16, u8::MAX as u16 + 1, u16::MAX];
+        let mut buf = [0xaa; 1024];
+        let mut cur = CursorMut::new(&mut buf);
+        for i in numbers {
+            cur.write_leb_u16(i).unwrap();
+        }
+        let mut cur = Cursor::new(&buf);
+        for i in numbers {
+            assert_eq!(cur.read_leb_u16(), Ok(i));
+        }
+        assert_eq!(cur.read_u8(), Ok(0xaa));
+    }
+
+    #[test]
+    fn crusor_leb_u32() {
+        let numbers = [
+            0,
+            250,
+            u8::MAX as u32,
+            u8::MAX as u32 + 1,
+            u16::MAX as u32,
+            u16::MAX as u32 + 1,
+            u32::MAX,
+        ];
+        let mut buf = [0xaa; 1024];
+        let mut cur = CursorMut::new(&mut buf);
+        for i in numbers {
+            cur.write_leb_u32(i).unwrap();
+        }
+        let mut cur = Cursor::new(&buf);
+        for i in numbers {
+            assert_eq!(cur.read_leb_u32(), Ok(i));
+        }
+        assert_eq!(cur.read_u8(), Ok(0xaa));
+    }
+
+    #[test]
+    fn crusor_leb_u64() {
+        let numbers = [
+            0,
+            250,
+            u8::MAX as u64,
+            u8::MAX as u64 + 1,
+            u16::MAX as u64,
+            u16::MAX as u64 + 1,
+            u32::MAX as u64,
+            u32::MAX as u64 + 1,
+            u64::MAX,
+        ];
+        let mut buf = [0xaa; 1024];
+        let mut cur = CursorMut::new(&mut buf);
+        for i in numbers {
+            cur.write_leb_u64(i).unwrap();
+        }
+        let mut cur = Cursor::new(&buf);
+        for i in numbers {
+            assert_eq!(cur.read_leb_u64(), Ok(i));
+        }
+        assert_eq!(cur.read_u8(), Ok(0xaa));
+    }
+
+    #[test]
+    fn crusor_leb_u128() {
+        let numbers = [
+            0,
+            250,
+            u8::MAX as u128,
+            u8::MAX as u128 + 1,
+            u16::MAX as u128,
+            u16::MAX as u128 + 1,
+            u32::MAX as u128,
+            u32::MAX as u128 + 1,
+            u64::MAX as u128,
+            u64::MAX as u128 + 1,
+            u128::MAX,
+        ];
+        let mut buf = [0xaa; 1024];
+        let mut cur = CursorMut::new(&mut buf);
+        for i in numbers {
+            cur.write_leb_u128(i).unwrap();
+        }
+        let mut cur = Cursor::new(&buf);
+        for i in numbers {
+            assert_eq!(cur.read_leb_u128(), Ok(i));
+        }
+        assert_eq!(cur.read_u8(), Ok(0xaa));
+    }
+
+    #[test]
+    fn crusor_leb_i8() {
+        let mut buf = [0xaa; 1024];
+        let mut cur = CursorMut::new(&mut buf);
+        for i in 0..=255 {
+            cur.write_leb_i8(i as i8).unwrap();
+        }
+        let mut cur = Cursor::new(&buf);
+        for i in 0..=255 {
+            assert_eq!(cur.read_leb_i8(), Ok(i as i8));
+        }
+        assert_eq!(cur.read_u8(), Ok(0xaa));
+    }
+
+    #[test]
+    fn crusor_leb_i16() {
+        let numbers = [
+            0,
+            122,
+            i8::MIN as i16,
+            i8::MAX as i16,
+            i8::MIN as i16 - 1,
+            i8::MAX as i16 + 1,
+            i16::MIN,
+            i16::MAX,
+        ];
+        let mut buf = [0xaa; 1024];
+        let mut cur = CursorMut::new(&mut buf);
+        for i in numbers {
+            cur.write_leb_i16(i).unwrap();
+        }
+        let mut cur = Cursor::new(&buf);
+        for i in numbers {
+            assert_eq!(cur.read_leb_i16(), Ok(i));
+        }
+        assert_eq!(cur.read_u8(), Ok(0xaa));
+    }
+
+    #[test]
+    fn crusor_leb_i32() {
+        let numbers = [
+            0,
+            122,
+            i8::MIN as i32,
+            i8::MAX as i32,
+            i8::MIN as i32 - 1,
+            i8::MAX as i32 + 1,
+            i16::MIN as i32,
+            i16::MAX as i32,
+            i16::MIN as i32 - 1,
+            i16::MAX as i32 + 1,
+            i32::MIN,
+            i32::MAX,
+        ];
+        let mut buf = [0xaa; 1024];
+        let mut cur = CursorMut::new(&mut buf);
+        for i in numbers {
+            cur.write_leb_i32(i).unwrap();
+        }
+        let mut cur = Cursor::new(&buf);
+        for i in numbers {
+            assert_eq!(cur.read_leb_i32(), Ok(i));
+        }
+        assert_eq!(cur.read_u8(), Ok(0xaa));
+    }
+
+    #[test]
+    fn crusor_leb_i64() {
+        let numbers = [
+            0,
+            122,
+            i8::MIN as i64,
+            i8::MAX as i64,
+            i8::MIN as i64 - 1,
+            i8::MAX as i64 + 1,
+            i16::MIN as i64,
+            i16::MAX as i64,
+            i16::MIN as i64 - 1,
+            i16::MAX as i64 + 1,
+            i32::MIN as i64,
+            i32::MAX as i64,
+            i32::MIN as i64 - 1,
+            i32::MAX as i64 + 1,
+            i64::MIN,
+            i64::MAX,
+        ];
+        let mut buf = [0xaa; 1024];
+        let mut cur = CursorMut::new(&mut buf);
+        for i in numbers {
+            cur.write_leb_i64(i).unwrap();
+        }
+        let mut cur = Cursor::new(&buf);
+        for i in numbers {
+            assert_eq!(cur.read_leb_i64(), Ok(i));
+        }
+        assert_eq!(cur.read_u8(), Ok(0xaa));
+    }
+
+    #[test]
+    fn crusor_leb_i128() {
+        let numbers = [
+            0,
+            122,
+            i8::MIN as i128,
+            i8::MAX as i128,
+            i8::MIN as i128 - 1,
+            i8::MAX as i128 + 1,
+            i16::MIN as i128,
+            i16::MAX as i128,
+            i16::MIN as i128 - 1,
+            i16::MAX as i128 + 1,
+            i32::MIN as i128,
+            i32::MAX as i128,
+            i32::MIN as i128 - 1,
+            i32::MAX as i128 + 1,
+            i64::MIN as i128,
+            i64::MAX as i128,
+            i64::MIN as i128 - 1,
+            i64::MAX as i128 + 1,
+            i128::MIN,
+            i128::MAX,
+        ];
+        let mut buf = [0xaa; 1024];
+        let mut cur = CursorMut::new(&mut buf);
+        for i in numbers {
+            cur.write_leb_i128(i).unwrap();
+        }
+        let mut cur = Cursor::new(&buf);
+        for i in numbers {
+            assert_eq!(cur.read_leb_i128(), Ok(i));
+        }
+        assert_eq!(cur.read_u8(), Ok(0xaa));
     }
 }

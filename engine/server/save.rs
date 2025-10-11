@@ -564,12 +564,12 @@ pub unsafe fn read_fields_raw(
                 }
                 FieldType::SHORT => {
                     for _ in 0..count {
-                        dst.write_u16_ne(src.read_u16_le()?)?;
+                        dst.write_i16_ne(src.read_leb_i16()?)?;
                     }
                 }
                 FieldType::INTEGER => {
                     for _ in 0..count {
-                        dst.write_u32_ne(src.read_u32_le()?)?;
+                        dst.write_i32_ne(src.read_leb_i32()?)?;
                     }
                 }
                 FieldType::FLOAT => {
@@ -600,7 +600,7 @@ pub unsafe fn read_fields_raw(
                 }
                 FieldType::EDICT => {
                     for _ in 0..count {
-                        let index = src.read_i32_le()?;
+                        let index = src.read_leb_i32()?;
                         let ent = state.entity_from_index(index);
                         dst.write_usize_ne(ent as usize)?;
                     }
@@ -691,12 +691,12 @@ pub unsafe fn write_fields_raw(
             }
             FieldType::SHORT => {
                 for _ in 0..count {
-                    dst.write_u16_le(src.read_u16_ne()?)?;
+                    dst.write_leb_i16(src.read_i16_ne()?)?;
                 }
             }
             FieldType::INTEGER => {
                 for _ in 0..count {
-                    dst.write_u32_le(src.read_u32_ne()?)?;
+                    dst.write_leb_i32(src.read_i32_ne()?)?;
                 }
             }
             FieldType::FLOAT => {
@@ -729,7 +729,7 @@ pub unsafe fn write_fields_raw(
                 for _ in 0..count {
                     let ent = src.read_usize_ne()? as *mut edict_s;
                     let index = state.entity_index(ent).map_or(-1, |i| i as i32);
-                    dst.write_i32_le(index)?;
+                    dst.write_leb_i32(index)?;
                 }
             }
             FieldType::MODELNAME | FieldType::SOUNDNAME | FieldType::STRING => {
