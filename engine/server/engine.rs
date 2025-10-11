@@ -827,8 +827,12 @@ impl ServerEngine {
         unsafe { unwrap!(self, pfnServerExecute)() }
     }
 
-    // pub pfnClientCommand:
-    //     Option<unsafe extern "C" fn(pEdict: *mut edict_t, szFmt: *mut c_char, ...)>,
+    pub fn client_command(&self, ent: &mut impl AsEdict, cmd: impl ToEngineStr) {
+        let cmd = cmd.to_engine_str();
+        // FIXME: ffi: why szFmt is mutable?
+        unsafe { unwrap!(self, pfnClientCommand)(ent.as_edict_mut(), cmd.as_ptr().cast_mut()) }
+    }
+
     // pub pfnParticleEffect:
     //     Option<unsafe extern "C" fn(org: *const f32, dir: *const f32, color: f32, count: f32)>,
 
