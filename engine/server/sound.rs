@@ -4,7 +4,7 @@ use alloc::vec::Vec;
 use csz::{CStrArray, CStrSlice, CStrThin};
 use xash3d_shared::str::ByteSliceExt;
 
-use crate::engine::ServerEngineRef;
+use crate::{engine::ServerEngineRef, entity::EntityVars, str::MapString, time::MapTime};
 
 pub use xash3d_shared::sound::*;
 
@@ -166,5 +166,105 @@ impl Sentences {
         };
 
         Some((next, buffer.as_thin()))
+    }
+}
+
+#[derive(Copy, Clone, Debug, Default)]
+pub struct LockSounds {
+    pub locked_sound: Option<MapString>,
+    pub locked_sentence: Option<MapString>,
+    pub unlocked_sound: Option<MapString>,
+    pub unlocked_sentence: Option<MapString>,
+
+    pub locked_sentence_index: u16,
+    pub unlocked_sentence_index: u16,
+
+    pub wait_sound: MapTime,
+    pub wait_sentence: MapTime,
+    pub eof_locked: bool,
+    pub eof_unlocked: bool,
+}
+
+impl LockSounds {
+    const DOOR_SENTENCE_WAIT: f32 = 6.0;
+    const DOOR_SOUND_WAIT: f32 = 3.0;
+    const BUTTON_SOUND_WAIT: f32 = 0.5;
+
+    fn play_lock(&mut self, v: &mut EntityVars, sound_wait: f32) {
+        let engine = v.engine();
+        let now = engine.globals.map_time();
+
+        let play_sentence =
+            self.locked_sentence.is_some() && !self.eof_locked && self.wait_sentence < now;
+
+        if let (true, Some(locked_sound)) = (self.wait_sound < now, self.locked_sound) {
+            engine
+                .build_sound()
+                .channel_item()
+                .volume(if play_sentence { 0.25 } else { 1.0 })
+                .emit_dyn(&locked_sound, v);
+            self.wait_sound = now + sound_wait;
+        }
+
+        if let (true, Some(locked_sentence)) = (play_sentence, self.locked_sentence) {
+            let prev = self.locked_sentence_index;
+
+            self.locked_sentence_index = engine
+                .build_sound()
+                .volume(0.85)
+                .emit_sequential(&locked_sentence, self.locked_sentence_index, false, v)
+                .unwrap_or(0);
+            self.unlocked_sentence_index = 0;
+
+            self.eof_locked = prev == self.locked_sentence_index;
+            self.wait_sentence = now + Self::DOOR_SENTENCE_WAIT;
+        }
+    }
+
+    fn play_unlock(&mut self, v: &mut EntityVars, sound_wait: f32) {
+        let engine = v.engine();
+        let now = engine.globals.map_time();
+
+        let play_sentence =
+            self.unlocked_sentence.is_some() && !self.eof_unlocked && self.wait_sentence < now;
+
+        if let (true, Some(unlocked_sound)) = (self.wait_sound < now, self.unlocked_sound) {
+            engine
+                .build_sound()
+                .channel_item()
+                .volume(if play_sentence { 0.25 } else { 1.0 })
+                .emit_dyn(&unlocked_sound, v);
+            self.wait_sound = now + sound_wait;
+        }
+
+        if let (true, Some(unlocked_sentence)) = (play_sentence, self.unlocked_sentence) {
+            let prev = self.unlocked_sentence_index;
+
+            self.unlocked_sentence_index = engine
+                .build_sound()
+                .volume(0.85)
+                .emit_sequential(&unlocked_sentence, self.unlocked_sentence_index, false, v)
+                .unwrap_or(0);
+            self.locked_sentence_index = 0;
+
+            self.eof_unlocked = prev == self.unlocked_sentence_index;
+            self.wait_sentence = now + Self::DOOR_SENTENCE_WAIT;
+        }
+    }
+
+    pub fn play_door(&mut self, locked: bool, v: &mut EntityVars) {
+        if locked {
+            self.play_lock(v, Self::DOOR_SOUND_WAIT);
+        } else {
+            self.play_unlock(v, Self::DOOR_SOUND_WAIT);
+        }
+    }
+
+    pub fn play_button(&mut self, locked: bool, v: &mut EntityVars) {
+        if locked {
+            self.play_lock(v, Self::BUTTON_SOUND_WAIT);
+        } else {
+            self.play_unlock(v, Self::BUTTON_SOUND_WAIT);
+        }
     }
 }
