@@ -157,22 +157,73 @@ impl<'a> ToEngineStr for fmt::Arguments<'a> {
     }
 }
 
+pub trait ByteSliceExt {
+    fn bytes_take_while(&self, pat: impl FnMut(u8) -> bool) -> (&Self, &Self);
+
+    fn bytes_take_while_rev(&self, pat: impl FnMut(u8) -> bool) -> (&Self, &Self);
+
+    fn bytes_trim_prefix(&self, pat: impl FnMut(u8) -> bool) -> &Self {
+        self.bytes_take_while(pat).1
+    }
+
+    fn bytes_trim_suffix(&self, pat: impl FnMut(u8) -> bool) -> &Self {
+        self.bytes_take_while_rev(pat).0
+    }
+
+    fn bytes_trim_ascii_start(&self) -> &Self {
+        self.bytes_trim_prefix(|i| i.is_ascii_whitespace())
+    }
+
+    fn bytes_trim_ascii_end(&self) -> &Self {
+        self.bytes_trim_suffix(|i| i.is_ascii_whitespace())
+    }
+}
+
+impl ByteSliceExt for [u8] {
+    fn bytes_take_while(&self, mut pat: impl FnMut(u8) -> bool) -> (&[u8], &[u8]) {
+        let offset = self.iter().position(|&i| !pat(i)).unwrap_or(self.len());
+        self.split_at(offset)
+    }
+
+    fn bytes_take_while_rev(&self, mut pat: impl FnMut(u8) -> bool) -> (&[u8], &[u8]) {
+        let offset = self.iter().rev().position(|&i| !pat(i)).unwrap_or(0);
+        self.split_at(self.len() - offset)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     use core::ffi::CStr;
 
-    fn test<const N: usize>(src: &CStr, stack: bool) {
-        let s = CStrTemp::<N>::new(src.to_str().unwrap());
-        assert_eq!(s.is_stack(), stack);
-        assert_eq!(s.as_bytes_with_null(), src.to_bytes_with_nul());
-        assert_eq!(s.as_c_str(), src);
+    #[test]
+    fn compat_str() {
+        fn test<const N: usize>(src: &CStr, stack: bool) {
+            let s = CStrTemp::<N>::new(src.to_str().unwrap());
+            assert_eq!(s.is_stack(), stack);
+            assert_eq!(s.as_bytes_with_null(), src.to_bytes_with_nul());
+            assert_eq!(s.as_c_str(), src);
+        }
+        test::<8>(c"0123456", true);
+        test::<7>(c"0123456", false);
     }
 
     #[test]
-    fn compat_str() {
-        test::<8>(c"0123456", true);
-        test::<7>(c"0123456", false);
+    fn bytes_ext() {
+        use super::ByteSliceExt;
+
+        let s = b" \t 123".bytes_take_while(|i| i.is_ascii_whitespace());
+        assert_eq!(s, (&b" \t "[..], &b"123"[..]));
+        let s = b"123abc".bytes_take_while_rev(|i| i.is_ascii_alphabetic());
+        assert_eq!(s, (&b"123"[..], &b"abc"[..]));
+        assert_eq!(
+            b"123abc".bytes_trim_prefix(|i| i.is_ascii_digit()),
+            &b"abc"[..]
+        );
+        assert_eq!(
+            b"abc123".bytes_trim_suffix(|i| i.is_ascii_digit()),
+            &b"abc"[..]
+        );
     }
 }
