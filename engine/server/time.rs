@@ -80,3 +80,15 @@ impl PartialOrd<f32> for MapTime {
         self.0.partial_cmp(other)
     }
 }
+
+impl PartialEq<MapTime> for f32 {
+    fn eq(&self, other: &MapTime) -> bool {
+        self.eq(&other.0)
+    }
+}
+
+impl PartialOrd<MapTime> for f32 {
+    fn partial_cmp(&self, other: &MapTime) -> Option<cmp::Ordering> {
+        self.partial_cmp(&other.0)
+    }
+}
