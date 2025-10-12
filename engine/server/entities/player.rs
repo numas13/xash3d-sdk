@@ -6,15 +6,12 @@ use xash3d_shared::{
     ffi::server::edict_s,
 };
 
+use crate::entity::{
+    delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, EntityPlayer, ObjectCaps,
+};
+
 #[cfg(feature = "save")]
 use crate::save::{Restore, Save};
-use crate::{
-    entity::{
-        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, EntityPlayer,
-        ObjectCaps,
-    },
-    prelude::*,
-};
 
 #[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct Player {
@@ -35,7 +32,7 @@ impl crate::save::OnRestore for Player {
         ev.angles = ev.v_angle;
         ev.fixangle = 1;
 
-        engine.set_physics_key_value(self.as_edict_mut(), c"hl", c"1");
+        engine.set_physics_key_value(self, c"hl", c"1");
     }
 }
 
@@ -83,12 +80,12 @@ impl Entity for Player {
         ev.fov = 0.0;
         ev.view_ofs = xash3d_player_move::VEC_VIEW;
 
-        engine.set_physics_key_value(self.as_edict_mut(), c"slj", c"0");
-        engine.set_physics_key_value(self.as_edict_mut(), c"hl", c"1");
+        engine.set_physics_key_value(self, c"slj", c"0");
+        engine.set_physics_key_value(self, c"hl", c"1");
 
         self.global_state().game_rules().get_player_spawn_spot(self);
 
-        engine.set_model(self.as_edict_mut(), res::valve::models::PLAYER);
+        engine.set_model(self, res::valve::models::PLAYER);
     }
 }
 

@@ -4,8 +4,8 @@ use xash3d_hl_shared::user_message;
 use xash3d_server::{
     entities::player::Player as BasePlayer,
     entity::{
-        delegate_entity, delegate_player, impl_entity_cast, AsEdict, BaseEntity, CreateEntity,
-        Effects, Entity, EntityPlayer, EntityVars, UseType::Toggle,
+        delegate_entity, delegate_player, impl_entity_cast, BaseEntity, CreateEntity, Effects,
+        Entity, EntityPlayer, EntityVars, UseType::Toggle,
     },
     prelude::*,
     save::{Restore, Save},
@@ -105,7 +105,7 @@ impl TestPlayer {
         engine
             .build_sound()
             .channel_weapon()
-            .emit_dyn(SOUND_FLASHLIGHT_ON, self.as_edict_mut());
+            .emit_dyn(SOUND_FLASHLIGHT_ON, self);
         self.vars_mut().effects_mut().insert(Effects::DIMLIGHT);
         let msg = user_message::Flashlight::new(true, self.flashlight_battery);
         engine.msg_one(self, &msg);
@@ -117,7 +117,7 @@ impl TestPlayer {
         engine
             .build_sound()
             .channel_weapon()
-            .emit_dyn(SOUND_FLASHLIGHT_OFF, self.as_edict_mut());
+            .emit_dyn(SOUND_FLASHLIGHT_OFF, self);
         self.vars_mut().effects_mut().remove(Effects::DIMLIGHT);
         let msg = user_message::Flashlight::new(false, self.flashlight_battery);
         engine.msg_one(self, &msg);
@@ -196,7 +196,7 @@ impl TestPlayer {
 
             trace!("send flashlight battery {}%", self.flashlight_battery);
             let msg = user_message::FlashBat::new(self.flashlight_battery);
-            self.engine().msg_one(self.as_edict_mut(), &msg);
+            self.engine().msg_one(self, &msg);
         }
     }
 }

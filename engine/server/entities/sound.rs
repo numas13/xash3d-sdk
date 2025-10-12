@@ -11,8 +11,8 @@ use xash3d_shared::{
 use crate::save::{Restore, Save};
 use crate::{
     entity::{
-        delegate_entity, impl_entity_cast, AsEdict, BaseEntity, CreateEntity, Entity, KeyValue,
-        ObjectCaps, Solid, UseType,
+        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, KeyValue, ObjectCaps,
+        Solid, UseType,
     },
     export::{export_entity_default, export_entity_stub},
     prelude::*,
@@ -418,7 +418,7 @@ impl Entity for AmbientGeneric {
                     .attenuation(self.attenuation)
                     .flags(SoundFlags::SPAWNING)
                     .pitch(self.dpv.pitch)
-                    .ambient_emit_dyn(sample, v.origin(), self.as_edict_mut());
+                    .ambient_emit_dyn(sample, v.origin(), self);
                 self.vars_mut()
                     .set_next_think_time(engine.globals.map_time_f32() + 0.1);
             }
@@ -535,7 +535,7 @@ impl Entity for AmbientGeneric {
                 engine
                     .build_sound()
                     .flags(SoundFlags::STOP)
-                    .ambient_emit_dyn(sample, self.vars().as_raw().origin, self.as_edict_mut());
+                    .ambient_emit_dyn(sample, self.vars().as_raw().origin, self);
 
                 return;
             }
@@ -612,7 +612,7 @@ impl Entity for AmbientGeneric {
                 .volume(vol as f32 * 0.01)
                 .attenuation(self.attenuation)
                 .pitch(Pitch::from(pitch))
-                .ambient_emit_dyn(sample, self.vars().origin(), self.as_edict_mut());
+                .ambient_emit_dyn(sample, self.vars().origin(), self);
         }
 
         self.vars_mut()

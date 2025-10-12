@@ -178,7 +178,7 @@ fn do_spark(engine: ServerEngineRef, vars: &mut EntityVars, location: vec3_t) {
         .build_sound()
         .channel_voice()
         .volume(volume)
-        .emit(SPARK_SOUNDS[index], vars.as_edict_mut());
+        .emit(SPARK_SOUNDS[index], vars);
 }
 
 export_entity_default!("export-env_spark", env_spark, EnvSpark);

@@ -21,7 +21,7 @@ use xash3d_shared::{
 
 use crate::{
     engine::ServerEngineRef,
-    entity::{AsEdict, KeyValue},
+    entity::{AsEntityHandle, KeyValue},
     global_state::GlobalStateRef,
     save::{FieldType, SaveFields},
     str::MapString,
@@ -260,8 +260,8 @@ impl EntityVars {
         NonNull::new(self.as_raw().owner)
     }
 
-    pub fn set_owner<T: ?Sized + AsEdict>(&mut self, owner: &mut T) {
-        self.as_raw_mut().owner = owner.as_edict_mut();
+    pub fn set_owner<T: ?Sized + AsEntityHandle>(&mut self, owner: &mut T) {
+        self.as_raw_mut().owner = owner.as_entity_handle();
     }
 
     entvars_str!(classname, fn classname, fn set_classname);

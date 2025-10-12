@@ -10,7 +10,7 @@ use xash3d_shared::ffi::server::{edict_s, entvars_s};
 
 use crate::{
     engine::ServerEngineRef,
-    entity::{AsEdict, BaseEntity, CreateEntity, Entity, EntityCast, EntityVars},
+    entity::{AsEntityHandle, BaseEntity, CreateEntity, Entity, EntityCast, EntityVars},
     global_state::GlobalStateRef,
 };
 
@@ -275,15 +275,17 @@ impl<T: Entity> PrivateEntity for Private<T> {
 }
 
 /// Used to get a reference to a private data of entity.
-pub trait GetPrivateData: AsEdict {
+pub trait GetPrivateData: AsEntityHandle {
     /// Returns a shared reference to a private data of this entity.
     fn get_private(&self) -> Option<&PrivateData> {
-        PrivateData::from_edict(self.as_edict())
+        let edict = unsafe { &*self.as_entity_handle() };
+        PrivateData::from_edict(edict)
     }
 
     /// Returns a mutable reference to a private data of this entity.
     fn get_private_mut(&mut self) -> Option<&mut PrivateData> {
-        PrivateData::from_edict_mut(self.as_edict_mut())
+        let edict = unsafe { &mut *self.as_entity_handle() };
+        PrivateData::from_edict_mut(edict)
     }
 
     /// Returns a shared dyn reference if the entity has a private data.
@@ -305,4 +307,4 @@ pub trait GetPrivateData: AsEdict {
     }
 }
 
-impl<T: AsEdict> GetPrivateData for T {}
+impl<T: AsEntityHandle> GetPrivateData for T {}

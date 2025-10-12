@@ -75,15 +75,52 @@ impl EntityOffset {
     }
 }
 
+pub(crate) trait AsEntityHandleSealed {
+    fn as_entity_handle(&self) -> *mut edict_s;
+}
+
+impl AsEntityHandleSealed for edict_s {
+    fn as_entity_handle(&self) -> *mut edict_s {
+        (self as *const edict_s).cast_mut()
+    }
+}
+
+impl AsEntityHandleSealed for entvars_s {
+    fn as_entity_handle(&self) -> *mut edict_s {
+        self.pContainingEntity
+    }
+}
+
+impl AsEntityHandleSealed for EntityVars {
+    fn as_entity_handle(&self) -> *mut edict_s {
+        self.as_raw().pContainingEntity
+    }
+}
+
+impl<T: Entity> AsEntityHandleSealed for T {
+    fn as_entity_handle(&self) -> *mut edict_s {
+        self.vars().as_raw().pContainingEntity
+    }
+}
+
+#[allow(private_bounds)]
+pub trait AsEntityHandle: AsEntityHandleSealed {}
+
+impl<T: AsEntityHandleSealed> AsEntityHandle for T {}
+
 /// Used to get a reference to [edict_s].
+#[deprecated]
 pub trait AsEdict {
     /// Converts this type into a shared reference to [edict_s].
+    #[deprecated]
     fn as_edict(&self) -> &edict_s;
 
     /// Converts this type into a mutable reference to [edict_s].
+    #[deprecated]
     fn as_edict_mut(&mut self) -> &mut edict_s;
 }
 
+#[allow(deprecated)]
 impl AsEdict for edict_s {
     fn as_edict(&self) -> &edict_s {
         self
@@ -94,6 +131,7 @@ impl AsEdict for edict_s {
     }
 }
 
+#[allow(deprecated)]
 impl AsEdict for entvars_s {
     fn as_edict(&self) -> &edict_s {
         unsafe { &*self.pContainingEntity }
@@ -104,6 +142,7 @@ impl AsEdict for entvars_s {
     }
 }
 
+#[allow(deprecated)]
 impl<T: Entity> AsEdict for T {
     fn as_edict(&self) -> &edict_s {
         self.vars().as_edict()
@@ -114,6 +153,7 @@ impl<T: Entity> AsEdict for T {
     }
 }
 
+#[allow(deprecated)]
 impl AsEdict for EntityVars {
     fn as_edict(&self) -> &edict_s {
         self.as_raw().as_edict()
@@ -249,7 +289,7 @@ impl<T> EntitySaveRestore for T {}
 
 define_entity_trait! {
     /// The base trait for all entities.
-    pub trait Entity(delegate_entity): (EntitySaveRestore + EntityCast + AsEdict) {
+    pub trait Entity(delegate_entity): (EntitySaveRestore + EntityCast + AsEntityHandle) {
         fn private(&self) -> &::xash3d_server::entity::PrivateData;
 
         fn private_mut(&mut self) -> &mut ::xash3d_server::entity::PrivateData;
@@ -468,11 +508,13 @@ impl_entity_cast!(BaseEntity);
 
 impl Entity for BaseEntity {
     fn private(&self) -> &PrivateData {
-        PrivateData::from_edict(self.as_edict()).unwrap()
+        let edict = unsafe { &*self.as_entity_handle() };
+        PrivateData::from_edict(edict).unwrap()
     }
 
     fn private_mut(&mut self) -> &mut PrivateData {
-        PrivateData::from_edict_mut(self.as_edict_mut()).unwrap()
+        let edict = unsafe { &mut *self.as_entity_handle() };
+        PrivateData::from_edict_mut(edict).unwrap()
     }
 
     fn engine(&self) -> ServerEngineRef {

@@ -874,7 +874,7 @@ pub fn build_change_list(engine: ServerEngineRef, level_list: &mut [LEVELLIST]) 
                                 flags |= FENTTABLE_GLOBAL;
                             }
                             if flags != 0 {
-                                ent_list[ent_count] = entity.as_edict_mut();
+                                ent_list[ent_count] = entity.as_entity_handle();
                                 ent_flags[ent_count] = flags;
                                 ent_count += 1;
                             }
@@ -955,12 +955,13 @@ impl MultiManager {
     fn clone(&mut self) -> *mut Self {
         let engine = self.engine();
         let multi = engine.new_entity::<Private<Self>>().build();
-        let edict = multi.as_edict_mut();
+        let edict = multi.vars().as_raw().pContainingEntity;
         unsafe {
-            ptr::copy_nonoverlapping(self.vars().as_raw(), &mut edict.v, 1);
+            ptr::copy_nonoverlapping(self.vars().as_raw(), multi.vars_mut().as_raw_mut(), 1);
         }
-        edict.v.pContainingEntity = edict;
-        edict.v.spawnflags |= MultiManagerSpawnFlags::CLONE.bits() as i32;
+        let v = multi.vars_mut().as_raw_mut();
+        v.pContainingEntity = edict;
+        v.spawnflags |= MultiManagerSpawnFlags::CLONE.bits() as i32;
         multi.targets = self.targets.clone();
         multi
     }
@@ -1037,7 +1038,7 @@ impl Entity for MultiManager {
         }
 
         let engine = self.engine();
-        self.activator = engine.ent_index(activator.unwrap_or(caller).as_edict_mut());
+        self.activator = engine.ent_index(activator.unwrap_or(caller));
         self.index = 0;
         self.start_time = engine.globals.map_time();
         self.enable_use = false;

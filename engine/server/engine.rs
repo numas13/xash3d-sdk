@@ -24,7 +24,7 @@ use xash3d_shared::{
 use crate::{
     cvar::CVarPtr,
     entity::{
-        AsEdict, BaseEntity, CreateEntity, Entity, EntityOffset, EntityVars, GetPrivateData,
+        AsEntityHandle, BaseEntity, CreateEntity, Entity, EntityOffset, EntityVars, GetPrivateData,
         KeyValue, PrivateData, PrivateEntity,
     },
     global_state::GlobalStateRef,
@@ -155,9 +155,9 @@ impl<'a> SoundBuilder<'a> {
         self
     }
 
-    pub fn emit(self, sample: impl ToEngineStr, ent: &mut impl AsEdict) {
+    pub fn emit(self, sample: impl ToEngineStr, ent: &impl AsEntityHandle) {
         self.engine.emit_sound(
-            ent.as_edict_mut(),
+            ent,
             self.channel,
             sample,
             self.volume,
@@ -167,7 +167,7 @@ impl<'a> SoundBuilder<'a> {
         );
     }
 
-    pub fn emit_dyn(self, sample: impl ToEngineStr, ent: &mut impl AsEdict) {
+    pub fn emit_dyn(self, sample: impl ToEngineStr, ent: &impl AsEntityHandle) {
         let sample = sample.to_engine_str();
         let sample = sample.as_ref();
         if let Some(b'!') = sample.bytes().next() {
@@ -183,13 +183,13 @@ impl<'a> SoundBuilder<'a> {
         }
     }
 
-    pub fn stop(self, sample: impl ToEngineStr, ent: &mut impl AsEdict) {
+    pub fn stop(self, sample: impl ToEngineStr, ent: &impl AsEntityHandle) {
         self.flags(SoundFlags::STOP).emit_dyn(sample, ent)
     }
 
-    pub fn ambient_emit(self, sample: impl ToEngineStr, pos: vec3_t, ent: &mut impl AsEdict) {
+    pub fn ambient_emit(self, sample: impl ToEngineStr, pos: vec3_t, ent: &impl AsEntityHandle) {
         self.engine.emit_ambient_sound(
-            ent.as_edict_mut(),
+            ent,
             pos,
             sample,
             self.volume,
@@ -199,7 +199,12 @@ impl<'a> SoundBuilder<'a> {
         );
     }
 
-    pub fn ambient_emit_dyn(self, sample: impl ToEngineStr, pos: vec3_t, ent: &mut impl AsEdict) {
+    pub fn ambient_emit_dyn(
+        self,
+        sample: impl ToEngineStr,
+        pos: vec3_t,
+        ent: &impl AsEntityHandle,
+    ) {
         let sample = sample.to_engine_str();
         let sample = sample.as_ref();
         if let Some(b'!') = sample.bytes().next() {
@@ -220,7 +225,7 @@ impl<'a> SoundBuilder<'a> {
         group: &CStrThin,
         pick: u16,
         reset: bool,
-        ent: &mut impl AsEdict,
+        ent: &impl AsEntityHandle,
     ) -> Option<u16> {
         let global_state = self.engine.global_state_ref();
         let sentences = global_state.sentences();
@@ -441,18 +446,18 @@ impl ServerEngine {
         unsafe { unwrap!(self, pfnPrecacheSound)(name.as_ptr()) }
     }
 
-    pub fn set_model(&self, ent: &mut impl AsEdict, model: impl ToEngineStr) {
+    pub fn set_model(&self, ent: &impl AsEntityHandle, model: impl ToEngineStr) {
         let model = model.to_engine_str();
-        unsafe { unwrap!(self, pfnSetModel)(ent.as_edict_mut(), model.as_ptr()) }
+        unsafe { unwrap!(self, pfnSetModel)(ent.as_entity_handle(), model.as_ptr()) }
     }
 
-    pub fn set_model_with_precache(&self, model: impl ToEngineStr, ent: &mut impl AsEdict) {
+    pub fn set_model_with_precache(&self, model: impl ToEngineStr, ent: &impl AsEntityHandle) {
         let model = model.to_engine_str();
         self.precache_model(model.as_ref());
-        self.set_model(ent.as_edict_mut(), model.as_ref());
+        self.set_model(ent, model.as_ref());
     }
 
-    pub fn reload_model<T>(&self, model: Option<T>, ent: &mut impl AsEdict)
+    pub fn reload_model<T>(&self, model: Option<T>, ent: &impl AsEntityHandle)
     where
         T: ToEngineStr,
     {
@@ -461,7 +466,7 @@ impl ServerEngine {
         }
     }
 
-    pub fn reload_model_with_precache<T>(&self, model: Option<T>, ent: &mut impl AsEdict)
+    pub fn reload_model_with_precache<T>(&self, model: Option<T>, ent: &impl AsEntityHandle)
     where
         T: ToEngineStr,
     {
@@ -479,10 +484,10 @@ impl ServerEngine {
         unsafe { unwrap!(self, pfnModelFrames)(model_index) }
     }
 
-    pub fn set_size(&self, ent: &mut impl AsEdict, min: vec3_t, max: vec3_t) {
+    pub fn set_size(&self, ent: &impl AsEntityHandle, min: vec3_t, max: vec3_t) {
         unsafe {
             unwrap!(self, pfnSetSize)(
-                ent.as_edict_mut(),
+                ent.as_entity_handle(),
                 min.as_ref().as_ptr(),
                 max.as_ref().as_ptr(),
             )
@@ -605,8 +610,8 @@ impl ServerEngine {
     //     ) -> *mut edict_t,
     // >,
 
-    pub fn find_client_in_pvs(&self, ent: &mut impl AsEdict) -> Option<NonNull<edict_s>> {
-        let ret = unsafe { unwrap!(self, pfnFindClientInPVS)(ent.as_edict_mut()) };
+    pub fn find_client_in_pvs(&self, ent: &impl AsEntityHandle) -> Option<NonNull<edict_s>> {
+        let ret = unsafe { unwrap!(self, pfnFindClientInPVS)(ent.as_entity_handle()) };
         NonNull::new(ret)
     }
 
@@ -646,8 +651,8 @@ impl ServerEngine {
     /// private data after this function will result in an undefined behaviour.
     ///
     /// </div>
-    pub unsafe fn remove_entity_now(&self, ent: &mut impl AsEdict) {
-        unsafe { unwrap!(self, pfnRemoveEntity)(ent.as_edict_mut()) }
+    pub unsafe fn remove_entity_now(&self, ent: &impl AsEntityHandle) {
+        unsafe { unwrap!(self, pfnRemoveEntity)(ent.as_entity_handle()) }
     }
 
     // pub pfnCreateNamedEntity: Option<unsafe extern "C" fn(className: c_int) -> *mut edict_t>,
@@ -658,13 +663,13 @@ impl ServerEngine {
     //     Option<unsafe extern "C" fn(ent: *mut edict_t, yaw: f32, dist: f32, iMode: c_int) -> c_int>,
 
     #[deprecated(note = "use set_origin_and_link")]
-    pub fn set_origin(&self, origin: vec3_t, ent: &mut impl AsEdict) {
+    pub fn set_origin(&self, origin: vec3_t, ent: &impl AsEntityHandle) {
         self.set_origin_and_link(origin, ent);
     }
 
     /// Links the entity to the world at specified position.
-    pub fn set_origin_and_link(&self, origin: vec3_t, ent: &mut impl AsEdict) {
-        unsafe { unwrap!(self, pfnSetOrigin)(ent.as_edict_mut(), origin.as_ref().as_ptr()) }
+    pub fn set_origin_and_link(&self, origin: vec3_t, ent: &impl AsEntityHandle) {
+        unsafe { unwrap!(self, pfnSetOrigin)(ent.as_entity_handle(), origin.as_ref().as_ptr()) }
     }
 
     pub fn build_sound<'a>(&'a self) -> SoundBuilder<'a> {
@@ -681,7 +686,7 @@ impl ServerEngine {
     #[allow(clippy::too_many_arguments)]
     pub fn emit_sound(
         &self,
-        entity: &mut edict_s,
+        entity: &impl AsEntityHandle,
         channel: Channel,
         sample: impl ToEngineStr,
         volume: f32,
@@ -692,7 +697,7 @@ impl ServerEngine {
         let sample = sample.to_engine_str();
         unsafe {
             unwrap!(self, pfnEmitSound)(
-                entity,
+                entity.as_entity_handle(),
                 channel.into(),
                 sample.as_ptr(),
                 volume,
@@ -706,7 +711,7 @@ impl ServerEngine {
     #[allow(clippy::too_many_arguments)]
     pub fn emit_ambient_sound(
         &self,
-        entity: &mut edict_s,
+        entity: &impl AsEntityHandle,
         mut pos: vec3_t,
         sample: impl ToEngineStr,
         volume: f32,
@@ -718,7 +723,7 @@ impl ServerEngine {
         // FIXME: ffi: why pos is mutable?
         unsafe {
             unwrap!(self, pfnEmitAmbientSound)(
-                entity,
+                entity.as_entity_handle(),
                 pos.as_mut().as_mut_ptr(),
                 sample.as_ptr(),
                 volume,
@@ -734,7 +739,7 @@ impl ServerEngine {
         start: vec3_t,
         end: vec3_t,
         ignore: TraceIgnore,
-        ignore_ent: Option<&mut impl AsEdict>,
+        ignore_ent: Option<&impl AsEntityHandle>,
     ) -> TraceResult {
         let mut trace = MaybeUninit::uninit();
         unsafe {
@@ -742,7 +747,7 @@ impl ServerEngine {
                 start.as_ref().as_ptr(),
                 end.as_ref().as_ptr(),
                 ignore.bits() as c_int,
-                ignore_ent.map_or(ptr::null_mut(), |e| e.as_edict_mut()),
+                ignore_ent.map_or(ptr::null_mut(), |e| e.as_entity_handle()),
                 trace.as_mut_ptr(),
             );
         }
@@ -751,14 +756,14 @@ impl ServerEngine {
 
     pub fn trace_toss(
         &self,
-        ent: &mut impl AsEdict,
-        ignore_ent: Option<&mut impl AsEdict>,
+        ent: &impl AsEntityHandle,
+        ignore_ent: Option<&impl AsEntityHandle>,
     ) -> TraceResult {
         let mut trace = MaybeUninit::uninit();
         unsafe {
             unwrap!(self, pfnTraceToss)(
-                ent.as_edict_mut(),
-                ignore_ent.map_or(ptr::null_mut(), |e| e.as_edict_mut()),
+                ent.as_entity_handle(),
+                ignore_ent.map_or(ptr::null_mut(), |e| e.as_entity_handle()),
                 trace.as_mut_ptr(),
             );
         }
@@ -769,18 +774,18 @@ impl ServerEngine {
         &self,
         start: vec3_t,
         end: vec3_t,
-        ent: &mut impl AsEdict,
+        ent: &impl AsEntityHandle,
         ignore: TraceIgnore,
-        ignore_ent: Option<&mut impl AsEdict>,
+        ignore_ent: Option<&impl AsEntityHandle>,
     ) -> Option<TraceResult> {
         let mut trace = MaybeUninit::uninit();
         let result = unsafe {
             unwrap!(self, pfnTraceMonsterHull)(
-                ent.as_edict_mut(),
+                ent.as_entity_handle(),
                 start.as_ref().as_ptr(),
                 end.as_ref().as_ptr(),
                 ignore.bits() as c_int,
-                ignore_ent.map_or(ptr::null_mut(), |e| e.as_edict_mut()),
+                ignore_ent.map_or(ptr::null_mut(), |e| e.as_entity_handle()),
                 trace.as_mut_ptr(),
             )
         };
@@ -797,7 +802,7 @@ impl ServerEngine {
         end: vec3_t,
         hull_number: i32,
         ignore: TraceIgnore,
-        ignore_ent: Option<&mut impl AsEdict>,
+        ignore_ent: Option<&impl AsEntityHandle>,
     ) -> TraceResult {
         let mut trace = MaybeUninit::uninit();
         unsafe {
@@ -806,7 +811,7 @@ impl ServerEngine {
                 end.as_ref().as_ptr(),
                 ignore.bits() as c_int,
                 hull_number,
-                ignore_ent.map_or(ptr::null_mut(), |e| e.as_edict_mut()),
+                ignore_ent.map_or(ptr::null_mut(), |e| e.as_entity_handle()),
                 trace.as_mut_ptr(),
             );
         }
@@ -818,7 +823,7 @@ impl ServerEngine {
         start: vec3_t,
         end: vec3_t,
         hull_number: i32,
-        ent: &mut impl AsEdict,
+        ent: &impl AsEntityHandle,
     ) -> TraceResult {
         let mut trace = MaybeUninit::uninit();
         unsafe {
@@ -826,7 +831,7 @@ impl ServerEngine {
                 start.as_ref().as_ptr(),
                 end.as_ref().as_ptr(),
                 hull_number,
-                ent.as_edict_mut(),
+                ent.as_entity_handle(),
                 trace.as_mut_ptr(),
             );
         }
@@ -837,11 +842,11 @@ impl ServerEngine {
         &self,
         start: vec3_t,
         end: vec3_t,
-        ent: &mut impl AsEdict,
+        ent: &impl AsEntityHandle,
     ) -> Option<&CStrThin> {
         let result = unsafe {
             unwrap!(self, pfnTraceTexture)(
-                ent.as_edict_mut(),
+                ent.as_entity_handle(),
                 start.as_ref().as_ptr(),
                 end.as_ref().as_ptr(),
             )
@@ -867,10 +872,10 @@ impl ServerEngine {
         unsafe { unwrap!(self, pfnServerExecute)() }
     }
 
-    pub fn client_command(&self, ent: &mut impl AsEdict, cmd: impl ToEngineStr) {
+    pub fn client_command(&self, ent: &impl AsEntityHandle, cmd: impl ToEngineStr) {
         let cmd = cmd.to_engine_str();
         // FIXME: ffi: why szFmt is mutable?
-        unsafe { unwrap!(self, pfnClientCommand)(ent.as_edict_mut(), cmd.as_ptr().cast_mut()) }
+        unsafe { unwrap!(self, pfnClientCommand)(ent.as_entity_handle(), cmd.as_ptr().cast_mut()) }
     }
 
     // pub pfnParticleEffect:
@@ -898,7 +903,7 @@ impl ServerEngine {
         &self,
         dest: MessageDest,
         position: Option<vec3_t>,
-        ent: Option<&mut edict_s>,
+        ent: Option<*mut edict_s>,
         msg: &T,
     ) {
         self.msg_begin(dest, T::msg_type(None), position, ent);
@@ -914,15 +919,15 @@ impl ServerEngine {
         self.msg_send(MessageDest::All, None, None, msg);
     }
 
-    pub fn msg_one<T: ServerMessage>(&self, ent: &mut impl AsEdict, msg: &T) {
-        self.msg_send(MessageDest::One, None, Some(ent.as_edict_mut()), msg);
+    pub fn msg_one<T: ServerMessage>(&self, ent: &impl AsEntityHandle, msg: &T) {
+        self.msg_send(MessageDest::One, None, Some(ent.as_entity_handle()), msg);
     }
 
-    pub fn msg_one_reliable<T: ServerMessage>(&self, ent: &mut impl AsEdict, msg: &T) {
+    pub fn msg_one_reliable<T: ServerMessage>(&self, ent: &impl AsEntityHandle, msg: &T) {
         self.msg_send(
             MessageDest::OneReliable,
             None,
-            Some(ent.as_edict_mut()),
+            Some(ent.as_entity_handle()),
             msg,
         );
     }
@@ -956,14 +961,14 @@ impl ServerEngine {
         dest: MessageDest,
         msg_type: c_int,
         origin: Option<vec3_t>,
-        ent: Option<&mut edict_s>,
+        ent: Option<*mut edict_s>,
     ) {
         unsafe {
             unwrap!(self, pfnMessageBegin)(
                 dest.into(),
                 msg_type,
                 origin.as_ref().map_or(ptr::null(), |v| v.as_ref().as_ptr()),
-                ent.map_or(ptr::null_mut(), |e| e as *mut edict_s),
+                ent.unwrap_or(ptr::null_mut()),
             )
         }
     }
@@ -1077,13 +1082,13 @@ impl ServerEngine {
         unsafe { unwrap!(self, pfnPEntityOfEntOffset)(offset) }
     }
 
-    pub fn ent_offset_of_entity(&self, edict: &edict_s) -> EntityOffset {
-        let offset = unsafe { unwrap!(self, pfnEntOffsetOfPEntity)(edict) };
+    pub fn ent_offset_of_entity(&self, ent: &impl AsEntityHandle) -> EntityOffset {
+        let offset = unsafe { unwrap!(self, pfnEntOffsetOfPEntity)(ent.as_entity_handle()) };
         unsafe { EntityOffset::new_unchecked(offset.try_into().unwrap()) }
     }
 
-    pub fn ent_index(&self, edict: &edict_s) -> EntityIndex {
-        let index = unsafe { unwrap!(self, pfnIndexOfEdict)(edict) };
+    pub fn ent_index(&self, edict: &(impl AsEntityHandle + ?Sized)) -> EntityIndex {
+        let index = unsafe { unwrap!(self, pfnIndexOfEdict)(edict.as_entity_handle()) };
         unsafe { EntityIndex::new_unchecked(index.try_into().unwrap()) }
     }
 
@@ -1273,26 +1278,33 @@ impl ServerEngine {
     // pub pfnGetPlayerWONId: Option<unsafe extern "C" fn(e: *mut edict_t) -> c_uint>,
     // pub pfnInfo_RemoveKey: Option<unsafe extern "C" fn(s: *mut c_char, key: *const c_char)>,
 
-    pub fn get_physics_key_value(&self, client: &edict_s, key: impl ToEngineStr) -> &CStr {
+    pub fn get_physics_key_value(
+        &self,
+        client: &impl AsEntityHandle,
+        key: impl ToEngineStr,
+    ) -> &CStr {
+        let ent = client.as_entity_handle();
         let key = key.to_engine_str();
-        let ptr = unsafe { unwrap!(self, pfnGetPhysicsKeyValue)(client, key.as_ptr()) };
+        let ptr = unsafe { unwrap!(self, pfnGetPhysicsKeyValue)(ent, key.as_ptr()) };
         assert!(!ptr.is_null());
         unsafe { CStr::from_ptr(ptr) }
     }
 
     pub fn set_physics_key_value(
         &self,
-        client: *mut edict_s,
+        client: &impl AsEntityHandle,
         key: impl ToEngineStr,
         value: impl ToEngineStr,
     ) {
+        let ent = client.as_entity_handle();
         let key = key.to_engine_str();
         let value = value.to_engine_str();
-        unsafe { unwrap!(self, pfnSetPhysicsKeyValue)(client, key.as_ptr(), value.as_ptr()) }
+        unsafe { unwrap!(self, pfnSetPhysicsKeyValue)(ent, key.as_ptr(), value.as_ptr()) }
     }
 
-    pub fn get_physics_info_string(&self, client: &edict_s) -> &CStr {
-        let info = unsafe { unwrap!(self, pfnGetPhysicsInfoString)(client) };
+    pub fn get_physics_info_string(&self, client: &impl AsEntityHandle) -> &CStr {
+        let ent = client.as_entity_handle();
+        let info = unsafe { unwrap!(self, pfnGetPhysicsInfoString)(ent) };
         assert!(!info.is_null());
         unsafe { CStr::from_ptr(info) }
     }
@@ -1324,8 +1336,9 @@ impl ServerEngine {
         unsafe { unwrap!(self, pfnSetFatPAS)(org.as_ref().as_ptr()) }
     }
 
-    pub fn check_visibility(&self, entity: &edict_s, set: *mut c_uchar) -> bool {
-        unsafe { unwrap!(self, pfnCheckVisibility)(entity, set) != 0 }
+    pub fn check_visibility(&self, ent: &impl AsEntityHandle, set: *mut c_uchar) -> bool {
+        let ent = ent.as_entity_handle();
+        unsafe { unwrap!(self, pfnCheckVisibility)(ent, set) != 0 }
     }
 
     // pub pfnDeltaSetField:
