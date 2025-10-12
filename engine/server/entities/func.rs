@@ -50,10 +50,11 @@ impl Entity for FrictionModifier {
     }
 
     fn spawn(&mut self) {
-        let v = self.base.vars_mut();
+        let engine = self.engine();
+        let v = self.vars_mut();
         v.set_solid(Solid::Trigger);
         v.set_move_type(MoveType::None);
-        v.reload_model();
+        engine.reload_model(v.model_name(), v);
     }
 
     fn touched(&mut self, other: &mut dyn Entity) {
@@ -87,6 +88,7 @@ impl Entity for Ladder {
     }
 
     fn spawn(&mut self) {
+        let engine = self.engine();
         let v = self.base.vars_mut();
         v.set_skin(ffi::common::CONTENTS_LADDER);
         v.set_solid(Solid::Not);
@@ -94,7 +96,7 @@ impl Entity for Ladder {
         v.set_render_mode(RenderMode::TransTexture);
         v.set_render_amount(0.0);
         v.effects_mut().remove(Effects::NODRAW);
-        v.reload_model();
+        engine.reload_model(v.model_name(), v);
     }
 }
 

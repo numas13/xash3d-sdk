@@ -446,6 +446,30 @@ impl ServerEngine {
         unsafe { unwrap!(self, pfnSetModel)(ent.as_edict_mut(), model.as_ptr()) }
     }
 
+    pub fn set_model_with_precache(&self, model: impl ToEngineStr, ent: &mut impl AsEdict) {
+        let model = model.to_engine_str();
+        self.precache_model(model.as_ref());
+        self.set_model(ent.as_edict_mut(), model.as_ref());
+    }
+
+    pub fn reload_model<T>(&self, model: Option<T>, ent: &mut impl AsEdict)
+    where
+        T: ToEngineStr,
+    {
+        if let Some(model) = model {
+            self.set_model(ent, model);
+        }
+    }
+
+    pub fn reload_model_with_precache<T>(&self, model: Option<T>, ent: &mut impl AsEdict)
+    where
+        T: ToEngineStr,
+    {
+        if let Some(model) = model {
+            self.set_model_with_precache(model, ent);
+        }
+    }
+
     pub fn model_index(&self, m: impl ToEngineStr) -> c_int {
         let m = m.to_engine_str();
         unsafe { unwrap!(self, pfnModelIndex)(m.as_ptr()) }

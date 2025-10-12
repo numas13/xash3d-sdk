@@ -62,7 +62,7 @@ impl Entity for Light {
             if ev.spawnflags & Self::SF_START_OFF != 0 {
                 engine.light_style(self.style, c"a");
             } else if let Some(pattern) = self.pattern {
-                engine.light_style(self.style, &pattern);
+                engine.light_style(self.style, pattern);
             } else {
                 engine.light_style(self.style, c"m");
             }
@@ -83,7 +83,7 @@ impl Entity for Light {
 
         if is_start_off {
             if let Some(pattern) = self.pattern {
-                engine.light_style(self.style, &pattern);
+                engine.light_style(self.style, pattern);
             } else {
                 engine.light_style(self.style, c"m");
             }

@@ -334,7 +334,7 @@ impl AmbientGeneric {
             engine
                 .build_sound()
                 .flags(SoundFlags::STOP)
-                .ambient_emit_dyn(&sound_file, origin, self);
+                .ambient_emit_dyn(sound_file, origin, self);
         }
 
         engine
@@ -342,7 +342,7 @@ impl AmbientGeneric {
             .volume(self.dpv.vol as f32 * 0.01)
             .attenuation(self.attenuation)
             .pitch(self.dpv.pitch)
-            .ambient_emit_dyn(&sound_file, origin, self);
+            .ambient_emit_dyn(sound_file, origin, self);
 
         self.init_modulation_parms();
         self.vars_mut().set_next_think_time(0.1);
@@ -356,7 +356,7 @@ impl AmbientGeneric {
             .volume(0.0)
             .flags(SoundFlags::CHANGE_PITCH)
             .pitch(self.dpv.pitch)
-            .ambient_emit_dyn(&sound_file, self.vars().origin(), self);
+            .ambient_emit_dyn(sound_file, self.vars().origin(), self);
     }
 }
 
@@ -418,7 +418,7 @@ impl Entity for AmbientGeneric {
                     .attenuation(self.attenuation)
                     .flags(SoundFlags::SPAWNING)
                     .pitch(self.dpv.pitch)
-                    .ambient_emit_dyn(&sample, v.origin(), self.as_edict_mut());
+                    .ambient_emit_dyn(sample, v.origin(), self.as_edict_mut());
                 self.vars_mut()
                     .set_next_think_time(engine.globals.map_time_f32() + 0.1);
             }
@@ -500,7 +500,7 @@ impl Entity for AmbientGeneric {
                 engine
                     .build_sound()
                     .flags(SoundFlags::STOP)
-                    .ambient_emit_dyn(&sample, self.vars().origin(), self);
+                    .ambient_emit_dyn(sample, self.vars().origin(), self);
 
                 return;
             }
@@ -535,7 +535,7 @@ impl Entity for AmbientGeneric {
                 engine
                     .build_sound()
                     .flags(SoundFlags::STOP)
-                    .ambient_emit_dyn(&sample, self.vars().as_raw().origin, self.as_edict_mut());
+                    .ambient_emit_dyn(sample, self.vars().as_raw().origin, self.as_edict_mut());
 
                 return;
             }
@@ -612,7 +612,7 @@ impl Entity for AmbientGeneric {
                 .volume(vol as f32 * 0.01)
                 .attenuation(self.attenuation)
                 .pitch(Pitch::from(pitch))
-                .ambient_emit_dyn(&sample, self.vars().as_raw().origin, self.as_edict_mut());
+                .ambient_emit_dyn(sample, self.vars().origin(), self.as_edict_mut());
         }
 
         self.vars_mut()
@@ -685,7 +685,7 @@ impl Entity for AmbientGeneric {
         engine
             .build_sound()
             .flags(SoundFlags::STOP)
-            .ambient_emit_dyn(&sound_file, self.vars().origin(), self);
+            .ambient_emit_dyn(sound_file, self.vars().origin(), self);
     }
 }
 

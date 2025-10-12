@@ -129,7 +129,7 @@ fn init_trigger(engine: &ServerEngine, v: &mut EntityVars) {
     }
     v.set_solid(Solid::Trigger);
     v.set_move_type(MoveType::None);
-    v.reload_model();
+    engine.reload_model(v.model_name(), v);
     if !engine.get_cvar::<bool>(c"showtriggers") {
         v.effects_mut().insert(Effects::NODRAW);
     }
@@ -177,7 +177,7 @@ impl TriggerMultiple {
 
         let v = self.base.vars_mut();
         if let Some(noise) = MapString::from_index(engine, v.as_raw().noise) {
-            engine.build_sound().channel_voice().emit(&noise, self);
+            engine.build_sound().channel_voice().emit(noise, self);
         }
 
         self.delayed.use_targets(UseType::Toggle, self);
@@ -624,10 +624,11 @@ impl Entity for TriggerVolume {
     delegate_entity!(base not { spawn });
 
     fn spawn(&mut self) {
+        let engine = self.engine();
         let v = self.vars_mut();
         v.set_solid(Solid::Not);
         v.set_move_type(MoveType::None);
-        v.reload_model();
+        engine.reload_model(v.model_name(), v);
         v.remove_model();
     }
 }

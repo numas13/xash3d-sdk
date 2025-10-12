@@ -457,8 +457,8 @@ impl save::OnRestore for BaseEntity {
             let mins = ev.mins;
             let maxs = ev.maxs;
             let engine = self.engine();
-            engine.precache_model(&model);
-            engine.set_model(self, &model);
+            engine.precache_model(model);
+            engine.set_model(self, model);
             engine.set_size(self, mins, maxs);
         }
     }
@@ -698,11 +698,12 @@ impl Entity for StubEntity {
         let target = self.vars().target();
         trace!("spawn {classname}({name:?}), target={target:?}");
 
+        let engine = self.engine();
         let v = self.vars_mut();
         v.set_move_dir();
         v.set_solid(Solid::Trigger);
         v.set_move_type(MoveType::Push);
-        v.reload_model();
+        engine.reload_model(v.model_name(), v);
     }
 
     fn touched(&mut self, other: &mut dyn Entity) {

@@ -36,12 +36,13 @@ impl Entity for FuncWall {
     }
 
     fn spawn(&mut self) {
+        let engine = self.engine();
         let v = self.vars_mut();
         v.set_angles(vec3_t::ZERO);
         v.set_solid(Solid::Bsp);
         v.set_move_type(MoveType::Push);
         v.flags_mut().insert(EdictFlags::WORLDBRUSH);
-        v.reload_model();
+        engine.reload_model(v.model_name(), v);
     }
 
     fn used(&mut self, _: Option<&mut dyn Entity>, _: &mut dyn Entity, use_type: UseType, _: f32) {

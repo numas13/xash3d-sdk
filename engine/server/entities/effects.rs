@@ -48,7 +48,7 @@ impl Entity for Glow {
         v.set_move_type(MoveType::None);
         v.remove_effects();
         v.set_frame(0.0);
-        v.reload_model_with_precache();
+        engine.reload_model_with_precache(v.model_name(), v);
 
         let v = self.base.vars_mut();
         self.max_frame = (engine.model_frames(v.model_index_raw()) - 1) as f32;

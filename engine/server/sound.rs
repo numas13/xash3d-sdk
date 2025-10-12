@@ -202,7 +202,7 @@ impl LockSounds {
                 .build_sound()
                 .channel_item()
                 .volume(if play_sentence { 0.25 } else { 1.0 })
-                .emit_dyn(&locked_sound, v);
+                .emit_dyn(locked_sound, v);
             self.wait_sound = now + sound_wait;
         }
 
@@ -233,7 +233,7 @@ impl LockSounds {
                 .build_sound()
                 .channel_item()
                 .volume(if play_sentence { 0.25 } else { 1.0 })
-                .emit_dyn(&unlocked_sound, v);
+                .emit_dyn(unlocked_sound, v);
             self.wait_sound = now + sound_wait;
         }
 

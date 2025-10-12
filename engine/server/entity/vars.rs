@@ -279,11 +279,13 @@ impl EntityVars {
         NonZeroI32::new(self.model_index_raw())
     }
 
+    #[deprecated(note = "use ServerEngine::set_model instead")]
     pub fn set_model(&mut self, name: impl ToEngineStr) {
         let engine = self.engine;
         engine.set_model(self, name)
     }
 
+    #[deprecated(note = "use ServerEngine::set_model_with_precache instead")]
     pub fn set_model_with_precache(&mut self, name: impl ToEngineStr) {
         let engine = self.engine;
         let name = name.to_engine_str();
@@ -291,15 +293,19 @@ impl EntityVars {
         engine.set_model(self, name.as_ref())
     }
 
+    #[deprecated(note = "use ServerEngine::reload_model instead")]
+    #[allow(deprecated)]
     pub fn reload_model(&mut self) {
         if let Some(name) = self.model_name() {
-            self.set_model(&name);
+            self.set_model(name);
         }
     }
 
+    #[deprecated(note = "use ServerEngine::reload_model_with_precache instead")]
+    #[allow(deprecated)]
     pub fn reload_model_with_precache(&mut self) {
         if let Some(name) = self.model_name() {
-            self.set_model_with_precache(&name);
+            self.set_model_with_precache(name);
         }
     }
 

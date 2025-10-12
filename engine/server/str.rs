@@ -77,6 +77,14 @@ impl fmt::Display for MapString {
     }
 }
 
+impl ToEngineStr for MapString {
+    type Output = MapString;
+
+    fn to_engine_str(&self) -> Self::Output {
+        *self
+    }
+}
+
 impl<'a> ToEngineStr for &'a MapString {
     type Output = &'a CStrThin;
 
