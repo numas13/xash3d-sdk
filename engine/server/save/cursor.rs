@@ -381,8 +381,8 @@ impl<'a> Cursor<'a> {
     }
 
     pub fn read_bytes_with_size(&mut self) -> SaveResult<&'a [u8]> {
-        let len = self.read_u16_le()?;
-        self.read(len.into())
+        let len = self.read_leb_usize()?;
+        self.read(len)
     }
 }
 
@@ -706,17 +706,10 @@ impl<'a> CursorMut<'a> {
     }
 
     pub fn write_bytes_with_size(&mut self, bytes: &[u8]) -> SaveResult<usize> {
-        if bytes.len() + 2 < self.avaiable() {
-            let len = bytes
-                .len()
-                .try_into()
-                .map_err(|_| SaveError::SizeOverflow)?;
-            self.write_u16_le(len)?;
-            self.write(bytes)?;
-            Ok(2 + bytes.len())
-        } else {
-            Err(SaveError::Overflow)
-        }
+        let offset = self.offset();
+        self.write_leb_usize(bytes.len())?;
+        self.write(bytes)?;
+        Ok(self.offset() - offset)
     }
 }
 

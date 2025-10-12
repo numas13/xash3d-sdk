@@ -230,27 +230,29 @@ impl Restore for String {
 
 impl<T: Save> Save for Vec<T> {
     fn save(&self, state: &mut SaveState, cur: &mut CursorMut) -> SaveResult<()> {
-        let len_offset = cur.skip(mem::size_of::<u16>())?;
+        cur.write_leb_usize(self.len())?;
         for i in self {
+            let size_offset = cur.skip(2)?;
             i.save(state, cur)?;
+            let size = (cur.offset() - size_offset - 2)
+                .try_into()
+                .map_err(|_| SaveError::SizeOverflow)?;
+            cur.write_at(size_offset, |cur| cur.write_u16_le(size))?;
         }
-        let size = cur.offset() - len_offset - mem::size_of::<u16>();
-        let size = size.try_into().map_err(|_| SaveError::SizeOverflow)?;
-        cur.write_at(len_offset, |cur| {
-            cur.write_u16_le(size)?;
-            Ok(())
-        })
+        Ok(())
     }
 }
 
 impl<T: Restore + Default> Restore for Vec<T> {
     fn restore(&mut self, state: &RestoreState, cur: &mut Cursor) -> SaveResult<()> {
         self.clear();
-        let len = cur.read_u16_le()?.into();
+        let len = cur.read_leb_usize()?;
         self.reserve(len);
         for _ in 0..len {
+            let size = cur.read_u16_le()? as usize;
+            let bytes = cur.read(size)?;
             let mut value = T::default();
-            value.restore(state, cur)?;
+            value.restore(state, &mut Cursor::new(bytes))?;
             self.push(value);
         }
         Ok(())
