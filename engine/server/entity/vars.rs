@@ -396,7 +396,7 @@ impl EntityVars {
 
     entvars_vec3!(origin,
         fn origin,
-        /// Sets a new world position of this entity.
+        /// Sets a new world position of this entity without linking to the world.
         ///
         /// Call [EntityVars::link] to link the entity to the list.
         fn set_origin,
@@ -404,12 +404,15 @@ impl EntityVars {
     );
 
     /// Links this entity into the list.
+    #[deprecated(note = "use engine.set_origin_and_link(v.origin(), v) instead")]
     pub fn link(&mut self) {
         let engine = self.engine();
-        engine.set_origin(self.origin(), self);
+        engine.set_origin_and_link(self.origin(), self);
     }
 
     /// Sets a new world position of this entity and links it into the list.
+    #[deprecated(note = "use ServerEngine::set_origin_and_link instead")]
+    #[allow(deprecated)]
     pub fn set_origin_and_link(&mut self, origin: impl Into<vec3_t>) {
         self.set_origin(origin);
         self.link();

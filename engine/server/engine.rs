@@ -657,7 +657,13 @@ impl ServerEngine {
     // pub pfnWalkMove:
     //     Option<unsafe extern "C" fn(ent: *mut edict_t, yaw: f32, dist: f32, iMode: c_int) -> c_int>,
 
+    #[deprecated(note = "use set_origin_and_link")]
     pub fn set_origin(&self, origin: vec3_t, ent: &mut impl AsEdict) {
+        self.set_origin_and_link(origin, ent);
+    }
+
+    /// Links the entity to the world at specified position.
+    pub fn set_origin_and_link(&self, origin: vec3_t, ent: &mut impl AsEdict) {
         unsafe { unwrap!(self, pfnSetOrigin)(ent.as_edict_mut(), origin.as_ref().as_ptr()) }
     }
 

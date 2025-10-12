@@ -147,7 +147,7 @@ fn toggle_use(ent: &mut impl Entity) {
             v.set_solid(Solid::Not);
         }
     }
-    engine.set_origin(v.origin(), ent);
+    engine.set_origin_and_link(v.origin(), ent);
 }
 
 #[cfg_attr(feature = "save", derive(Save, Restore))]
@@ -340,7 +340,7 @@ impl Entity for TriggerPush {
             v.set_solid(Solid::Not);
         }
 
-        v.link();
+        engine.set_origin_and_link(v.origin(), v);
     }
 
     fn used(&mut self, _: Option<&mut dyn Entity>, _: &mut dyn Entity, _: UseType, _: f32) {
@@ -457,7 +457,7 @@ impl Entity for TriggerHurt {
             v.set_solid(Solid::Not);
         }
 
-        engine.set_origin(v.origin(), self);
+        engine.set_origin_and_link(v.origin(), v);
     }
 
     fn used(&mut self, _: Option<&mut dyn Entity>, _: &mut dyn Entity, _: UseType, _: f32) {
