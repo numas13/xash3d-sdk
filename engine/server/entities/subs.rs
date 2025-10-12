@@ -5,7 +5,7 @@ use crate::{
         delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, EntityPlayer,
         KeyValue, ObjectCaps, Private, Solid, UseType,
     },
-    export::export_entity_default,
+    export::{export_entity, export_entity_default},
     prelude::*,
     str::MapString,
     utils,
@@ -94,7 +94,7 @@ impl DelayedUseEntity {
         }
     }
 
-    fn create(
+    fn spawn_new(
         engine: ServerEngineRef,
         delay: f32,
         target: Option<MapString>,
@@ -128,6 +128,16 @@ impl DelayedUseEntity {
 }
 
 impl_entity_cast!(DelayedUseEntity);
+
+impl CreateEntity for DelayedUseEntity {
+    fn create(base: BaseEntity) -> Self {
+        Self {
+            base,
+            use_type: UseType::Off,
+            kill_target: None,
+        }
+    }
+}
 
 impl Entity for DelayedUseEntity {
     delegate_entity!(base not { think });
@@ -192,7 +202,7 @@ impl DelayedUse {
 
     pub fn use_targets(self, use_type: UseType, caller: &mut dyn Entity) {
         if self.delay != 0.0 {
-            DelayedUseEntity::create(
+            DelayedUseEntity::spawn_new(
                 self.engine,
                 self.delay,
                 caller.vars().target(),
@@ -205,6 +215,8 @@ impl DelayedUse {
         }
     }
 }
+
+export_entity!(DelayedUse, Private<DelayedUseEntity>);
 
 export_entity_default!(
     "export-info_player_deathmatch",
