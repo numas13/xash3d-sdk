@@ -71,7 +71,7 @@ impl EnvSpark {
     fn set_next_think_time(&mut self) {
         let engine = self.engine();
         let delay = engine.random_float(0.0, self.delay);
-        self.vars_mut().set_next_think_time(0.1 + delay);
+        self.vars_mut().set_next_think_time_from_now(0.1 + delay);
     }
 }
 

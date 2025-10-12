@@ -53,7 +53,7 @@ impl Entity for Glow {
         let v = self.base.vars_mut();
         self.max_frame = (engine.model_frames(v.model_index_raw()) - 1) as f32;
         if self.max_frame > 1.0 && v.framerate() != 0.0 {
-            v.set_next_think_time(0.1);
+            v.set_next_think_time_from_now(0.1);
         }
         self.last_time = engine.globals.map_time();
     }
@@ -64,7 +64,7 @@ impl Entity for Glow {
         let now = engine.globals.map_time();
         self.animate(v.framerate() * now.duration_since(self.last_time).as_secs_f32());
 
-        self.vars_mut().set_next_think_time(0.1);
+        self.vars_mut().set_next_think_time_from_now(0.1);
         self.last_time = engine.globals.map_time();
     }
 }

@@ -89,7 +89,7 @@ impl Entity for AutoTrigger {
     }
 
     fn precache(&mut self) {
-        self.vars_mut().set_next_think_time(0.1);
+        self.vars_mut().set_next_think_time_from_now(0.1);
     }
 
     fn spawn(&mut self) {
@@ -125,7 +125,7 @@ bitflags! {
 
 fn init_trigger(engine: &ServerEngine, v: &mut EntityVars) {
     if v.angles() != vec3_t::ZERO {
-        v.set_move_dir();
+        v.set_move_dir_from_angles();
     }
     v.set_solid(Solid::Trigger);
     v.set_move_type(MoveType::None);
@@ -450,7 +450,7 @@ impl Entity for TriggerHurt {
         init_trigger(&engine, v);
 
         if self.damage_type.intersects(DamageFlags::RADIATION) {
-            v.set_next_think_time(engine.random_float(0.0, 0.5));
+            v.set_next_think_time_from_now(engine.random_float(0.0, 0.5));
         }
 
         if spawn_flags.intersects(TriggerHurtSpawnFlags::START_OFF) {
@@ -489,7 +489,7 @@ impl Entity for TriggerHurt {
                 self.classname()
             );
             return;
-        } else if now <= v.damage_time() && now != v.pain_finished() {
+        } else if now <= v.damage_time() && now != v.pain_finished_time() {
             return;
         }
 
@@ -502,7 +502,7 @@ impl Entity for TriggerHurt {
             other.take_damage(dmg, self.damage_type, v, None);
         }
 
-        v.set_pain_finished(now);
+        v.set_pain_finished_time(now);
         v.set_damage_time(now + 0.5);
 
         if v.target().is_some() {
@@ -544,7 +544,7 @@ impl Entity for TriggerHurt {
             player.set_geiger_range(range);
         }
 
-        self.vars_mut().set_next_think_time(0.25);
+        self.vars_mut().set_next_think_time_from_now(0.25);
     }
 }
 
@@ -1043,7 +1043,7 @@ impl Entity for MultiManager {
         self.start_time = engine.globals.map_time();
         self.enable_use = false;
         self.enable_think = true;
-        self.vars_mut().set_next_think_time(0.0);
+        self.vars_mut().set_next_think_time_from_now(0.0);
     }
 
     fn think(&mut self) {

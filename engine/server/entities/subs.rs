@@ -112,7 +112,7 @@ impl DelayedUseEntity {
             })
             .class_name(c"DelayedUse")
             .vars(|e| {
-                e.set_next_think_time(delay);
+                e.set_next_think_time_from_now(delay);
                 if let Some(target) = target {
                     e.set_target(target);
                 }
@@ -121,7 +121,7 @@ impl DelayedUseEntity {
 
         if let Some(activator) = activator {
             if activator.downcast_ref::<dyn EntityPlayer>().is_some() {
-                temp.vars_mut().set_owner(activator);
+                temp.vars_mut().set_owner(&activator);
             }
         }
     }

@@ -350,3 +350,29 @@ bitflags! {
         const MORTAR = 1 << 23;
     }
 }
+
+bitflags! {
+    /// Buttons the player is currently pressing.
+    #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
+    #[repr(transparent)]
+    pub struct Buttons: i32 {
+        const NONE          = 0;
+        const ATTACK        = ffi::common::IN_ATTACK;
+        const JUMP          = ffi::common::IN_JUMP;
+        const DUCK          = ffi::common::IN_DUCK;
+        const FORWARD       = ffi::common::IN_FORWARD;
+        const BACK          = ffi::common::IN_BACK;
+        const USE           = ffi::common::IN_USE;
+        const CANCEL        = ffi::common::IN_CANCEL;
+        const LEFT          = ffi::common::IN_LEFT;
+        const RIGHT         = ffi::common::IN_RIGHT;
+        const MOVELEFT      = ffi::common::IN_MOVELEFT;
+        const MOVERIGHT     = ffi::common::IN_MOVERIGHT;
+        const ATTACK2       = ffi::common::IN_ATTACK2;
+        const RUN           = ffi::common::IN_RUN;
+        const RELOAD        = ffi::common::IN_RELOAD;
+        const ALT1          = ffi::common::IN_ALT1;
+        // Used by client for when scoreboard is held down.
+        const SCORE         = ffi::common::IN_SCORE;
+    }
+}

@@ -87,7 +87,7 @@ impl Entity for Decal {
         if MapString::is_null_or_empty(engine, ev.targetname) {
             self.state = Self::STATE_STATIC;
             // spawn the decal as soon as the world is done spawning
-            self.vars_mut().set_next_think_time(0.0);
+            self.vars_mut().set_next_think_time_from_now(0.0);
         } else {
             self.state = Self::STATE_TRIGGER;
         }
@@ -146,7 +146,7 @@ impl Entity for Decal {
         // }
 
         self.state = Self::STATE_REMOVE;
-        self.vars_mut().set_next_think_time(0.1);
+        self.vars_mut().set_next_think_time_from_now(0.1);
     }
 }
 

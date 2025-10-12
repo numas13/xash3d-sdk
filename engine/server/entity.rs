@@ -103,6 +103,18 @@ impl<T: Entity> AsEntityHandleSealed for T {
     }
 }
 
+impl AsEntityHandleSealed for &'_ dyn Entity {
+    fn as_entity_handle(&self) -> *mut edict_s {
+        self.vars().as_raw().pContainingEntity
+    }
+}
+
+impl AsEntityHandleSealed for &'_ mut dyn Entity {
+    fn as_entity_handle(&self) -> *mut edict_s {
+        self.vars().as_raw().pContainingEntity
+    }
+}
+
 #[allow(private_bounds)]
 pub trait AsEntityHandle: AsEntityHandleSealed {}
 
@@ -742,7 +754,7 @@ impl Entity for StubEntity {
 
         let engine = self.engine();
         let v = self.vars_mut();
-        v.set_move_dir();
+        v.set_move_dir_from_angles();
         v.set_solid(Solid::Trigger);
         v.set_move_type(MoveType::Push);
         engine.reload_model(v.model_name(), v);

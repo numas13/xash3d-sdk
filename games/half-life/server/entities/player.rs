@@ -253,7 +253,7 @@ impl Entity for TestPlayer {
 
         self.precache();
 
-        self.vars_mut().set_next_think_time(0.1);
+        self.vars_mut().set_next_think_time_from_now(0.1);
 
         self.init_hud = true;
     }
@@ -283,7 +283,7 @@ impl Entity for TestPlayer {
             self.battery = 0;
         }
 
-        self.vars_mut().set_next_think_time(0.1);
+        self.vars_mut().set_next_think_time_from_now(0.1);
     }
 }
 
