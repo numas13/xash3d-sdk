@@ -2,20 +2,58 @@ use core::{ffi::c_int, ptr};
 
 use xash3d_shared::{
     consts::{DAMAGE_AIM, DEAD_NO, SOLID_SLIDEBOX},
-    entity::{EdictFlags, Effects, EntityIndex, MoveType},
+    entity::{Buttons, EdictFlags, Effects, EntityIndex, MoveType},
     ffi::server::edict_s,
 };
 
 use crate::entity::{
-    delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, EntityPlayer, ObjectCaps,
+    delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, EntityPlayer, EntityVars,
+    ObjectCaps,
 };
 
 #[cfg(feature = "save")]
 use crate::save::{Restore, Save};
 
+#[derive(Copy, Clone, Debug, Default)]
+#[cfg_attr(feature = "save", derive(Save, Restore))]
+pub struct Input {
+    buttons_last: Buttons,
+    buttons_pressed: Buttons,
+    buttons_released: Buttons,
+}
+
+impl Input {
+    pub fn is_changed(&self, buttons: Buttons) -> bool {
+        self.buttons_pressed
+            .union(self.buttons_released)
+            .contains(buttons)
+    }
+
+    pub fn is_pressed(&self, buttons: Buttons) -> bool {
+        self.buttons_pressed.contains(buttons)
+    }
+
+    pub fn is_released(&self, buttons: Buttons) -> bool {
+        self.buttons_released.contains(buttons)
+    }
+
+    pub fn pre_think(&mut self, vars: &EntityVars) {
+        let buttons = vars.buttons();
+        let buttons_changed = self.buttons_last.symmetric_difference(buttons);
+        self.buttons_pressed = buttons_changed.intersection(buttons);
+        self.buttons_released = buttons_changed.difference(buttons);
+    }
+
+    pub fn post_think(&mut self, vars: &EntityVars) {
+        self.buttons_last = vars.buttons();
+    }
+}
+
 #[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct Player {
     base: BaseEntity,
+
+    pub input: Input,
 }
 
 impl_entity_cast!(Player);
@@ -44,7 +82,11 @@ impl Player {
 
 impl CreateEntity for Player {
     fn create(base: BaseEntity) -> Self {
-        Self { base }
+        Self {
+            base,
+
+            input: Input::default(),
+        }
     }
 }
 
@@ -117,9 +159,13 @@ impl EntityPlayer for Player {
         }
     }
 
-    fn pre_think(&mut self) {}
+    fn pre_think(&mut self) {
+        self.input.pre_think(self.base.vars());
+    }
 
-    fn post_think(&mut self) {}
+    fn post_think(&mut self) {
+        self.input.post_think(self.base.vars());
+    }
 }
 
 impl Drop for Player {

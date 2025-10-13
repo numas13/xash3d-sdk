@@ -322,6 +322,7 @@ macro_rules! impl_save_restore_for_bitflags {
 pub use impl_save_restore_for_bitflags;
 
 impl_save_restore_for_bitflags!(xash3d_shared::entity::DamageFlags);
+impl_save_restore_for_bitflags!(xash3d_shared::entity::Buttons);
 
 impl Save for EntityIndex {
     fn save(&self, _: &mut SaveState, cur: &mut CursorMut) -> SaveResult<()> {

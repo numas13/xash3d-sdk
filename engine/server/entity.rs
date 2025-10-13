@@ -253,6 +253,12 @@ bitflags! {
     }
 }
 
+impl ObjectCaps {
+    pub fn is_player_use(&self) -> bool {
+        self.intersects(Self::IMPULSE_USE | Self::CONTINUOUS_USE | Self::ONOFF_USE)
+    }
+}
+
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
 pub enum UseType {
     #[default]

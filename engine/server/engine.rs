@@ -601,14 +601,53 @@ impl ServerEngine {
         })
     }
 
-    // pub pfnGetEntityIllum: Option<unsafe extern "C" fn(pEnt: *mut edict_t) -> c_int>,
-    // pub pfnFindEntityInSphere: Option<
-    //     unsafe extern "C" fn(
-    //         pEdictStartSearchAfter: *mut edict_t,
-    //         org: *const f32,
-    //         rad: f32,
-    //     ) -> *mut edict_t,
-    // >,
+    pub fn get_entity_illum(&self, ent: &impl AsEntityHandle) -> c_int {
+        unsafe { unwrap!(self, pfnGetEntityIllum)(ent.as_entity_handle()) }
+    }
+
+    fn find_entity_in_sphere_impl(
+        &self,
+        start_search_after: *mut edict_s,
+        origin: vec3_t,
+        radius: f32,
+    ) -> Option<NonNull<edict_s>> {
+        let result = unsafe {
+            unwrap!(self, pfnFindEntityInSphere)(
+                start_search_after,
+                origin.as_ref().as_ptr(),
+                radius,
+            )
+        };
+        if !self.is_null_ent(result) {
+            Some(unsafe { NonNull::new_unchecked(result) })
+        } else {
+            None
+        }
+    }
+
+    pub fn find_entity_in_sphere(
+        &self,
+        start_search_after: Option<&impl AsEntityHandle>,
+        origin: vec3_t,
+        radius: f32,
+    ) -> Option<NonNull<edict_s>> {
+        let start = start_search_after.map_or(ptr::null_mut(), |e| e.as_entity_handle());
+        self.find_entity_in_sphere_impl(start, origin, radius)
+    }
+
+    pub fn find_entity_in_sphere_iter<'a>(
+        &'a self,
+        start_search_after: Option<&impl AsEntityHandle>,
+        origin: vec3_t,
+        radius: f32,
+    ) -> impl 'a + Iterator<Item = NonNull<edict_s>> {
+        let mut start = start_search_after.map_or(ptr::null_mut(), |i| i.as_entity_handle());
+        iter::from_fn(move || {
+            let ret = self.find_entity_in_sphere_impl(start, origin, radius);
+            start = ret.map_or(ptr::null_mut(), |i| i.as_ptr());
+            ret
+        })
+    }
 
     pub fn find_client_in_pvs(&self, ent: &impl AsEntityHandle) -> Option<NonNull<edict_s>> {
         let ret = unsafe { unwrap!(self, pfnFindClientInPVS)(ent.as_entity_handle()) };

@@ -4,9 +4,10 @@ use xash3d_hl_shared::user_message;
 use xash3d_server::{
     entities::player::Player as BasePlayer,
     entity::{
-        delegate_entity, delegate_player, impl_entity_cast, BaseEntity, CreateEntity, Effects,
-        Entity, EntityPlayer, EntityVars, UseType::Toggle,
+        delegate_entity, delegate_player, impl_entity_cast, BaseEntity, Buttons, CreateEntity,
+        Effects, Entity, EntityPlayer, EntityVars, UseType::Toggle,
     },
+    ffi::server::edict_s,
     prelude::*,
     save::{Restore, Save},
     time::MapTime,
@@ -20,6 +21,8 @@ const SOUND_FLASHLIGHT_OFF: &CStr = res::valve::sound::items::FLASHLIGHT1;
 
 const FLASH_DRAIN_TIME: f32 = 1.2; // 100 units/3 minutes
 const FLASH_CHARGE_TIME: f32 = 0.2; // 100 units/20 seconds (seconds per unit)
+
+const PLAYER_SEARCH_RADIUS: f32 = 64.0;
 
 #[derive(Copy, Clone, Default)]
 struct Geiger {
@@ -209,6 +212,7 @@ impl CreateEntity for TestPlayer {
             base: BasePlayer::create(base),
             init_hud: true,
             game_hud_initialized: false,
+
             health: 100,
             battery: 0,
 
@@ -291,6 +295,33 @@ impl EntityPlayer for TestPlayer {
     delegate_player!(base not { pre_think, post_think, set_geiger_range });
 
     fn pre_think(&mut self) {
+        let engine = self.engine();
+        self.base.pre_think();
+
+        if self.base.input.is_pressed(Buttons::USE) {
+            trace!("USE PRESSED:");
+
+            let entities = engine.find_entity_in_sphere_iter(
+                None::<&edict_s>,
+                self.vars().origin(),
+                PLAYER_SEARCH_RADIUS,
+            );
+
+            for ent in entities {
+                let Some(ent) = unsafe { ent.as_ref() }.get_entity() else {
+                    continue;
+                };
+                // if !ent.object_caps().is_player_use() {
+                //     continue;
+                // }
+                trace!("  {}({})", ent.classname(), ent.name());
+            }
+        }
+
+        if self.base.input.is_released(Buttons::USE) {
+            trace!("USE RELEASED");
+        }
+
         self.client_update_data();
 
         self.check_suit_update();
@@ -298,6 +329,8 @@ impl EntityPlayer for TestPlayer {
 
     fn post_think(&mut self) {
         self.impulse_commands();
+
+        self.base.post_think();
     }
 
     fn set_geiger_range(&mut self, range: f32) {
