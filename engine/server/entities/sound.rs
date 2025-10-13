@@ -316,7 +316,7 @@ pub struct AmbientGeneric {
 
 impl AmbientGeneric {
     fn init_modulation_parms(&mut self) {
-        self.dpv.init(self.vars().as_raw().health);
+        self.dpv.init(self.vars().health());
     }
 
     fn spawn_flags(&self) -> AmbientSound {
@@ -468,7 +468,7 @@ impl Entity for AmbientGeneric {
         }
 
         let engine = self.engine();
-        let Some(sample) = MapString::from_index(engine, self.vars().as_raw().message) else {
+        let Some(sample) = self.vars().message() else {
             return;
         };
         let mut pitch = self.dpv.pitch;
@@ -535,7 +535,7 @@ impl Entity for AmbientGeneric {
                 engine
                     .build_sound()
                     .flags(SoundFlags::STOP)
-                    .ambient_emit_dyn(sample, self.vars().as_raw().origin, self);
+                    .ambient_emit_dyn(sample, self.vars().origin(), self);
 
                 return;
             }

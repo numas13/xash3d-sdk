@@ -14,7 +14,7 @@ use xash3d_server::{
     utils,
 };
 
-const WEAPON_SUIT: i32 = (1_u32 << 31) as i32;
+const WEAPON_SUIT: u32 = 1_u32 << 31;
 
 const SOUND_FLASHLIGHT_ON: &CStr = res::valve::sound::items::FLASHLIGHT1;
 const SOUND_FLASHLIGHT_OFF: &CStr = res::valve::sound::items::FLASHLIGHT1;
@@ -91,7 +91,7 @@ pub struct TestPlayer {
 
 impl TestPlayer {
     fn has_suit(&self) -> bool {
-        self.vars().as_raw().weapons & WEAPON_SUIT != 0
+        self.vars().weapons() & WEAPON_SUIT != 0
     }
 
     fn is_flashlight_on(&self) -> bool {
@@ -128,7 +128,7 @@ impl TestPlayer {
     }
 
     fn impulse_commands(&mut self) {
-        match mem::take(&mut self.vars_mut().as_raw_mut().impulse) {
+        match mem::take(self.vars_mut().impulse_mut()) {
             0 => {}
             100 => {
                 if !self.is_flashlight_on() {
@@ -253,7 +253,7 @@ impl Entity for TestPlayer {
 
         // enable suit
         // TODO: move Weapons type to shared crate
-        self.vars_mut().as_raw_mut().weapons |= WEAPON_SUIT;
+        *self.vars_mut().weapons_mut() |= WEAPON_SUIT;
 
         self.precache();
 

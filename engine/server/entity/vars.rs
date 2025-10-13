@@ -122,14 +122,14 @@ macro_rules! field {
         $( #[$attr] )*
         pub fn $meth(&mut self) -> &mut $ty {
             const_assert_size_of_field_eq!($ty, entvars_s, $field);
-            unsafe { mem::transmute(&mut self.as_raw_mut().$field) }
+            unsafe { mem::transmute(&mut self.borrow_mut().$field) }
         }
     };
     // get mutable reference
     (get $field:ident, $( #[$attr:meta] )* fn $meth:ident() -> &mut $ty:ty) => {
         $( #[$attr] )*
         pub fn $meth(&mut self) -> &mut $ty {
-            &mut self.as_raw_mut().$field
+            &mut self.borrow_mut().$field
         }
     };
 
@@ -137,14 +137,14 @@ macro_rules! field {
     (get enum $field:ident, $( #[$attr:meta] )* fn $meth:ident() -> $ty:ty) => {
         $( #[$attr] )*
         pub fn $meth(&self) -> $ty {
-            <$ty>::from_raw(self.as_raw().$field).unwrap()
+            <$ty>::from_raw(self.borrow().$field).unwrap()
         }
     };
     // get bitflags with cast
     (get bitflags $field:ident, $( #[$attr:meta] )* fn $meth:ident() -> $ty:ty, $from:ty as $to:ty) => {
         $( #[$attr] )*
         pub fn $meth(&self) -> $ty {
-            let bits: $from = self.as_raw().$field;
+            let bits: $from = self.borrow().$field;
             <$ty>::from_bits_retain(bits as $to)
         }
     };
@@ -152,35 +152,35 @@ macro_rules! field {
     (get bitflags $field:ident, $( #[$attr:meta] )* fn $meth:ident() -> $ty:ty) => {
         $( #[$attr] )*
         pub fn $meth(&self) -> $ty {
-            <$ty>::from_bits_retain(self.as_raw().$field)
+            <$ty>::from_bits_retain(self.borrow().$field)
         }
     };
     // get optional map string
     (get $field:ident, $( #[$attr:meta] )* fn $meth:ident() -> Option<MapString>) => {
         $( #[$attr] )*
         pub fn $meth(&self) -> Option<MapString> {
-            MapString::from_index(self.engine, self.as_raw().$field)
+            MapString::from_index(self.engine, self.borrow().$field)
         }
     };
     // get map time
     (get $field:ident, $( #[$attr:meta] )* fn $meth:ident() -> MapTime) => {
         $( #[$attr] )*
         pub fn $meth(&self) -> MapTime {
-            MapTime::from_secs_f32(self.as_raw().$field)
+            MapTime::from_secs_f32(self.borrow().$field)
         }
     };
     // get optional non-null pointer
     (get $field:ident, $( #[$attr:meta] )* fn $meth:ident() -> Option<NonNull<$ty:ty>>) => {
         $( #[$attr] )*
         pub fn $meth(&self) -> Option<NonNull<$ty>> {
-            NonNull::new(self.as_raw().$field)
+            NonNull::new(self.borrow().$field)
         }
     };
     // get type with cast to other type
     (get $field:ident, $( #[$attr:meta] )* fn $meth:ident() -> $ty:ty as $to:ty) => {
         $( #[$attr] )*
         pub fn $meth(&self) -> $to {
-            let value: $ty = self.as_raw().$field;
+            let value: $ty = self.borrow().$field;
             value as $to
         }
     };
@@ -188,7 +188,7 @@ macro_rules! field {
     (get $field:ident, $( #[$attr:meta] )* fn $meth:ident() -> $ty:ty) => {
         $( #[$attr] )*
         pub fn $meth(&self) -> $ty {
-            self.as_raw().$field
+            self.borrow().$field
         }
     };
 
@@ -199,49 +199,49 @@ macro_rules! field {
         where T: Into<Option<&'a U>>,
               U: 'a + ?Sized + AsEntityHandle,
         {
-            self.as_raw_mut().$field = $arg.into().map_or(ptr::null_mut(), |v| v.as_entity_handle());
+            self.borrow_mut().$field = $arg.into().map_or(ptr::null_mut(), |v| v.as_entity_handle());
         }
     };
     // set enum
     (set enum $field:ident, $( #[$attr:meta] )* fn $meth:ident($arg:ident: $ty:ty)) => {
         $( #[$attr] )*
         pub fn $meth(&mut self, $arg: $ty) {
-            self.as_raw_mut().$field = $arg.into_raw();
+            self.borrow_mut().$field = $arg.into_raw();
         }
     };
     // set bitflags
     (set bitflags $field:ident, $( #[$attr:meta] )* fn $meth:ident($arg:ident: $ty:ty $( as $to:ty)?)) => {
         $( #[$attr] )*
         pub fn $meth(&mut self, $arg: $ty) {
-            self.as_raw_mut().$field = $arg.bits() $( as $to)?;
+            self.borrow_mut().$field = $arg.bits() $( as $to)?;
         }
     };
     // set optional map string
     (set $field:ident, $( #[$attr:meta] )* fn $meth:ident($arg:ident: Option<MapString>)) => {
         $( #[$attr] )*
         pub fn $meth(&mut self, $arg: impl Into<Option<MapString>>) {
-            self.as_raw_mut().$field = $arg.into().map_or(0, |s| s.index());
+            self.borrow_mut().$field = $arg.into().map_or(0, |s| s.index());
         }
     };
     // set map time
     (set $field:ident, $( #[$attr:meta] )* fn $meth:ident($arg:ident: MapTime)) => {
         $( #[$attr] )*
         pub fn $meth(&mut self, $arg: MapTime) {
-            self.as_raw_mut().$field = $arg.as_secs_f32();
+            self.borrow_mut().$field = $arg.as_secs_f32();
         }
     };
     // set vector
     (set $field:ident, $( #[$attr:meta] )* fn $meth:ident($arg:ident: vec3_t)) => {
         $( #[$attr] )*
         pub fn $meth(&mut self, $arg: impl Into<vec3_t>) {
-            self.as_raw_mut().$field = $arg.into();
+            self.borrow_mut().$field = $arg.into();
         }
     };
     // set field as is
     (set $field:ident, $( #[$attr:meta] )* fn $meth:ident($arg:ident: $ty:ty)) => {
         $( #[$attr] )*
         pub fn $meth(&mut self, $arg: $ty) {
-            self.as_raw_mut().$field = $arg;
+            self.borrow_mut().$field = $arg;
         }
     };
 
@@ -249,7 +249,7 @@ macro_rules! field {
     (set $field:ident, $( #[$attr:meta] )* unsafe fn $meth:ident($arg:ident: $ty:ty)) => {
         $( #[$attr] )*
         pub unsafe fn $meth(&mut self, $arg: $ty) {
-            self.as_raw_mut().$field = $arg;
+            self.borrow_mut().$field = $arg;
         }
     };
 }
@@ -281,11 +281,29 @@ impl EntityVars {
         }
     }
 
+    #[deprecated]
     pub fn as_raw(&self) -> &entvars_s {
         unsafe { &*self.raw }
     }
 
+    #[deprecated]
     pub fn as_raw_mut(&mut self) -> &mut entvars_s {
+        unsafe { &mut *self.raw }
+    }
+
+    pub fn as_ptr(&self) -> *const entvars_s {
+        self.raw
+    }
+
+    pub fn as_mut_ptr(&mut self) -> *mut entvars_s {
+        self.raw
+    }
+
+    fn borrow(&self) -> &entvars_s {
+        unsafe { &*self.raw }
+    }
+
+    fn borrow_mut(&mut self) -> &mut entvars_s {
         unsafe { &mut *self.raw }
     }
 
@@ -352,7 +370,7 @@ impl EntityVars {
     }
 
     pub fn set_move_dir_from_angles(&mut self) {
-        let ev = self.as_raw_mut();
+        let ev = self.borrow_mut();
         if ev.angles == vec3_t::new(0.0, -1.0, 0.0) {
             ev.movedir = vec3_t::new(0.0, 0.0, 1.0);
         } else if ev.angles == vec3_t::new(0.0, -2.0, 0.0) {
@@ -515,28 +533,28 @@ impl EntityVars {
     // field!(set nextthink, fn set_next_think_time(time: MapTime));
 
     pub fn set_next_think_time_absolute(&mut self, time: MapTime) {
-        self.as_raw_mut().nextthink = time.as_secs_f32();
+        self.borrow_mut().nextthink = time.as_secs_f32();
     }
 
     /// Sets the next think time relative to the map time.
     #[deprecated(note = "use set_next_think_time_from_now instead")]
     pub fn set_next_think_time(&mut self, relative_time: f32) {
-        self.as_raw_mut().nextthink = self.engine.globals.map_time_f32() + relative_time;
+        self.borrow_mut().nextthink = self.engine.globals.map_time_f32() + relative_time;
     }
 
     /// Sets the next think time relative to the map time.
     pub fn set_next_think_time_from_now(&mut self, relative: f32) {
-        self.as_raw_mut().nextthink = self.engine.globals.map_time_f32() + relative;
+        self.borrow_mut().nextthink = self.engine.globals.map_time_f32() + relative;
     }
 
     /// Sets the next think time relative to the last think time.
     pub fn set_next_think_time_from_last(&mut self, relative: f32) {
-        self.as_raw_mut().nextthink = self.as_raw().ltime + relative;
+        self.set_next_think_time_absolute(self.last_think_time() + relative);
     }
 
     pub fn stop_thinking(&mut self) {
         // numas13: is there any difference between -1.0 and 0.0???
-        self.as_raw_mut().nextthink = -1.0;
+        self.borrow_mut().nextthink = -1.0;
     }
 
     field!(get enum movetype, fn move_type() -> MoveType);
@@ -750,6 +768,9 @@ impl EntityVars {
     field!(get radsuit_finished, fn radsuit_finished_time() -> MapTime);
     field!(set radsuit_finished, fn set_radsuit_finished_time(v: MapTime));
 
+    field!(get pContainingEntity, fn containing_entity_raw() -> *mut edict_s);
+    field!(set pContainingEntity, fn set_containing_entity_raw(v: *mut edict_s));
+
     field!(get pContainingEntity, fn containing_entity() -> Option<NonNull<edict_s>>);
     field!(set entity pContainingEntity, fn set_containing_entity(owner));
 
@@ -941,14 +962,14 @@ impl EntityVars {
 #[cfg(feature = "save")]
 impl save::Save for EntityVars {
     fn save(&self, state: &mut save::SaveState, cur: &mut save::CursorMut) -> SaveResult<()> {
-        save::write_fields(state, cur, self.as_raw())
+        save::write_fields(state, cur, self.borrow())
     }
 }
 
 #[cfg(feature = "save")]
 impl save::Restore for EntityVars {
     fn restore(&mut self, state: &save::RestoreState, cur: &mut save::Cursor) -> SaveResult<()> {
-        save::read_fields(state, cur, self.as_raw_mut())
+        save::read_fields(state, cur, self.borrow_mut())
     }
 }
 

@@ -140,8 +140,9 @@ impl Entity for EnvSpark {
         if matches!(self.state, EnvSparkState::On | EnvSparkState::AlwaysOn) {
             self.set_next_think_time();
             let engine = self.engine();
-            let location = self.vars().as_raw().origin;
-            do_spark(engine, self.vars_mut(), location);
+            let v = self.vars_mut();
+            let location = v.origin();
+            do_spark(engine, v, location);
         }
     }
 
@@ -169,8 +170,7 @@ const SPARK_SOUNDS: &[&CStr] = &[
 ];
 
 fn do_spark(engine: ServerEngineRef, vars: &mut EntityVars, location: vec3_t) {
-    let ev = vars.as_raw();
-    let pos = location + ev.size * 0.5;
+    let pos = location + vars.size() * 0.5;
     engine.msg_pvs(pos, &user_message::Sparks::new(pos));
     let volume = engine.random_float(0.25, 0.75) * 0.4;
     let index = (engine.random_float(0.0, 1.0) * SPARK_SOUNDS.len() as f32) as usize;

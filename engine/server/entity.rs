@@ -93,25 +93,25 @@ impl AsEntityHandleSealed for entvars_s {
 
 impl AsEntityHandleSealed for EntityVars {
     fn as_entity_handle(&self) -> *mut edict_s {
-        self.as_raw().pContainingEntity
+        self.containing_entity_raw()
     }
 }
 
 impl<T: Entity> AsEntityHandleSealed for T {
     fn as_entity_handle(&self) -> *mut edict_s {
-        self.vars().as_raw().pContainingEntity
+        self.vars().as_entity_handle()
     }
 }
 
 impl AsEntityHandleSealed for &'_ dyn Entity {
     fn as_entity_handle(&self) -> *mut edict_s {
-        self.vars().as_raw().pContainingEntity
+        self.vars().as_entity_handle()
     }
 }
 
 impl AsEntityHandleSealed for &'_ mut dyn Entity {
     fn as_entity_handle(&self) -> *mut edict_s {
-        self.vars().as_raw().pContainingEntity
+        self.vars().as_entity_handle()
     }
 }
 
@@ -449,18 +449,23 @@ define_entity_trait! {
         fn override_reset(&mut self) {}
 
         fn set_object_collision_box(&mut self) {
-            set_object_collision_box(self.vars_mut().as_raw_mut());
+            let v = self.vars_mut();
+            set_object_collision_box(unsafe { &mut *v.as_mut_ptr() });
         }
 
         fn intersects(&self, other: &dyn ::xash3d_server::entity::Entity) -> bool {
-            let a = self.vars().as_raw();
-            let b = other.vars().as_raw();
-            !(b.absmin.x > a.absmax.x
-                || b.absmin.y > a.absmax.y
-                || b.absmin.z > a.absmax.z
-                || b.absmax.x < a.absmin.x
-                || b.absmax.y < a.absmin.y
-                || b.absmax.z < a.absmin.z)
+            let a = self.vars();
+            let a_min = a.abs_min();
+            let a_max = a.abs_max();
+            let b = other.vars();
+            let b_min = b.abs_min();
+            let b_max = b.abs_max();
+            !(     b_min.x > a_max.x
+                || b_min.y > a_max.y
+                || b_min.z > a_max.z
+                || b_max.x < a_min.x
+                || b_max.y < a_min.y
+                || b_max.z < a_min.z)
         }
 
         /// Removes this entity from the world.
@@ -479,9 +484,9 @@ define_entity_trait! {
                 self.global_state().set_entity_state(globalname, EntityState::Dead);
             }
 
-            let ev = self.vars_mut().as_raw_mut();
-            if ev.health > 0.0 {
-                ev.health = 0.0;
+            let v = self.vars_mut();
+            if v.health() > 0.0 {
+                v.set_health(0.0);
                 warn!("Entity::remove_from_world(): called with health > 0");
             }
 
@@ -510,10 +515,10 @@ pub struct BaseEntity {
 #[cfg(feature = "save")]
 impl save::OnRestore for BaseEntity {
     fn on_restore(&mut self) {
-        let ev = self.vars.as_raw();
-        if let (true, Some(model)) = (ev.modelindex != 0, ev.model()) {
-            let mins = ev.mins;
-            let maxs = ev.maxs;
+        let v = self.vars();
+        if let (true, Some(model)) = (v.model_index().is_some(), v.model_name()) {
+            let mins = v.min_size();
+            let maxs = v.max_size();
             let engine = self.engine();
             engine.precache_model(model);
             engine.set_model(self, model);

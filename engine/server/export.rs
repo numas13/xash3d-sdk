@@ -88,9 +88,9 @@ pub trait ServerDll: UnsyncGlobal {
             return SpawnResult::Delete;
         };
 
-        let ev = ent.vars_mut().as_raw_mut();
-        ev.absmin = ev.origin - vec3_t::splat(1.0);
-        ev.absmax = ev.origin + vec3_t::splat(1.0);
+        let v = ent.vars_mut();
+        v.set_abs_min(v.origin() - vec3_t::splat(1.0));
+        v.set_abs_max(v.origin() + vec3_t::splat(1.0));
 
         ent.spawn();
 
@@ -223,11 +223,11 @@ pub trait ServerDll: UnsyncGlobal {
             return;
         }
 
-        let ev = entity.vars_mut().as_raw_mut();
-        if ev.movetype == MoveType::Push.into() {
-            let delta = ev.nextthink - ev.ltime;
-            ev.ltime = engine.globals.map_time_f32();
-            ev.nextthink = ev.ltime + delta;
+        let v = entity.vars_mut();
+        if v.move_type() == MoveType::Push {
+            let delta = v.next_think_time() - v.last_think_time();
+            v.set_last_think_time_from_now(0.0);
+            v.set_next_think_time_from_last(delta);
         }
 
         let location = save_data.offset();
@@ -245,7 +245,7 @@ pub trait ServerDll: UnsyncGlobal {
         }
 
         let table = &mut save_data.table_mut()[current_index];
-        table.classname = entity.vars().as_raw().classname;
+        table.classname = entity.vars().classname().map_or(0, |s| s.index());
         table.location = location as i32;
         table.size = size as i32;
     }

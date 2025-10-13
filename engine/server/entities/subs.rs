@@ -70,7 +70,7 @@ impl Entity for DeathMatchStart {
 
     fn is_triggered(&self, activator: &dyn Entity) -> bool {
         let engine = self.engine();
-        if let Some(master) = MapString::from_index(engine, self.vars().as_raw().netname) {
+        if let Some(master) = self.vars().net_name() {
             utils::is_master_triggered(&engine, master, activator)
         } else {
             true
@@ -144,7 +144,7 @@ impl Entity for DelayedUseEntity {
 
     fn think(&mut self) {
         let mut activator = None;
-        if let Some(owner) = unsafe { self.vars().as_raw().owner.as_mut() } {
+        if let Some(owner) = self.vars().owner().map(|mut e| unsafe { e.as_mut() }) {
             activator = owner.get_entity_mut();
         }
         utils::use_targets(self.kill_target, self.use_type, 0.0, activator, self);

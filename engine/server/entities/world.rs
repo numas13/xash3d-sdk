@@ -12,7 +12,6 @@ use crate::{
     },
     global_state::GlobalStateRef,
     prelude::*,
-    str::MapString,
     user_message,
 };
 
@@ -23,7 +22,7 @@ pub struct Decal {
 }
 
 impl Decal {
-    const SF_NOTINDEATHMATCH: i32 = 1 << 11;
+    const SF_NOTINDEATHMATCH: u32 = 1 << 11;
 
     const STATE_STATIC: u8 = 1;
     const STATE_TRIGGER: u8 = 2;
@@ -31,10 +30,10 @@ impl Decal {
 
     fn static_decal(&mut self) {
         let engine = self.engine();
-        let ev = self.base.vars().as_raw();
+        let v = self.base.vars();
         let mut trace = engine.trace_line(
-            ev.origin - vec3_t::splat(5.0),
-            ev.origin + vec3_t::splat(5.0),
+            v.origin() - vec3_t::splat(5.0),
+            v.origin() + vec3_t::splat(5.0),
             TraceIgnore::MONSTERS,
             Some(self),
         );
@@ -44,8 +43,7 @@ impl Decal {
         } else {
             0
         };
-        let ev = self.base.vars().as_raw();
-        engine.static_decal(ev.origin, ev.skin as u16, entity, model_index as u16);
+        engine.static_decal(v.origin(), v.skin() as u16, entity, model_index as u16);
     }
 }
 
@@ -76,18 +74,18 @@ impl Entity for Decal {
 
     fn spawn(&mut self) {
         let engine = self.engine();
-        let ev = self.vars().as_raw();
-        if ev.skin < 0
-            || (engine.globals.is_deathmatch() && ev.spawnflags & Self::SF_NOTINDEATHMATCH != 0)
+        let v = self.base.vars_mut();
+        if v.skin() < 0
+            || (engine.globals.is_deathmatch() && v.spawn_flags() & Self::SF_NOTINDEATHMATCH != 0)
         {
-            self.vars_mut().delayed_remove();
+            v.delayed_remove();
             return;
         }
 
-        if MapString::is_null_or_empty(engine, ev.targetname) {
+        if v.target_name().map_or(true, |s| s.is_empty()) {
             self.state = Self::STATE_STATIC;
             // spawn the decal as soon as the world is done spawning
-            self.vars_mut().set_next_think_time_from_now(0.0);
+            v.set_next_think_time_from_now(0.0);
         } else {
             self.state = Self::STATE_TRIGGER;
         }

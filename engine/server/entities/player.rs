@@ -1,14 +1,13 @@
 use core::{ffi::c_int, ptr};
 
 use xash3d_shared::{
-    consts::{DAMAGE_AIM, DEAD_NO, SOLID_SLIDEBOX},
-    entity::{Buttons, EdictFlags, Effects, EntityIndex, MoveType},
+    entity::{Buttons, EdictFlags, EntityIndex, MoveType},
     ffi::server::edict_s,
 };
 
 use crate::entity::{
-    delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, EntityPlayer, EntityVars,
-    ObjectCaps,
+    delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Dead, Entity, EntityPlayer,
+    EntityVars, ObjectCaps, Solid, TakeDamage,
 };
 
 #[cfg(feature = "save")]
@@ -65,10 +64,10 @@ impl crate::save::OnRestore for Player {
 
         // TODO:
 
-        let ev = self.vars_mut().as_raw_mut();
-        ev.v_angle.z = 0.0;
-        ev.angles = ev.v_angle;
-        ev.fixangle = 1;
+        let v = self.vars_mut();
+        v.view_angle_mut().z = 0.0;
+        v.set_angles(v.view_angle());
+        v.set_fix_angle(1);
 
         engine.set_physics_key_value(self, c"hl", c"1");
     }
@@ -101,26 +100,26 @@ impl Entity for Player {
 
     fn spawn(&mut self) {
         let engine = self.base.engine();
-        let ev = self.vars_mut().as_raw_mut();
-        ev.classname = engine.try_alloc_map_string(c"player").unwrap().index();
-        ev.health = 100.0;
-        ev.armorvalue = 0.0;
-        ev.takedamage = DAMAGE_AIM as f32;
-        ev.solid = SOLID_SLIDEBOX as c_int;
-        ev.movetype = MoveType::Walk.into();
-        ev.max_health = ev.health;
-        ev.flags &= EdictFlags::PROXY.bits();
-        ev.flags |= EdictFlags::CLIENT.bits();
-        ev.air_finished = engine.globals.map_time_f32() + 12.0;
-        ev.dmg = 2.0;
-        ev.effects = Effects::NONE.bits();
-        ev.deadflag = DEAD_NO;
-        ev.dmg_take = 0.0;
-        ev.dmg_save = 0.0;
-        ev.friction = 1.0;
-        ev.gravity = 1.0;
-        ev.fov = 0.0;
-        ev.view_ofs = xash3d_player_move::VEC_VIEW;
+        let v = self.vars_mut();
+        v.set_classname(engine.try_alloc_map_string(c"player").unwrap());
+        v.set_health(100.0);
+        v.set_armor_value(0.0);
+        v.set_take_damage(TakeDamage::Aim);
+        v.set_solid(Solid::SlideBox);
+        v.set_move_type(MoveType::Walk);
+        v.set_max_health(v.health());
+        *v.flags_mut() &= EdictFlags::PROXY;
+        *v.flags_mut() |= EdictFlags::CLIENT;
+        v.set_air_finished_time(engine.globals.map_time() + 12.0);
+        v.set_damage(2.0);
+        v.remove_effects();
+        v.set_dead(Dead::No);
+        v.set_damage_take(0.0);
+        v.set_damage_save(0.0);
+        v.set_friction(1.0);
+        v.set_gravity(1.0);
+        v.set_fov(0.0);
+        v.set_view_ofs(xash3d_player_move::VEC_VIEW);
 
         engine.set_physics_key_value(self, c"slj", c"0");
         engine.set_physics_key_value(self, c"hl", c"1");

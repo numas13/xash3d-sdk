@@ -39,13 +39,13 @@ pub trait GameRules: Any {
     fn get_player_spawn_spot(&self, player: &mut dyn EntityPlayer) -> *mut edict_s {
         let spawn_spot = player.select_spawn_point();
         let sev = unsafe { &(*spawn_spot).v };
-        let pev = player.vars_mut().as_raw_mut();
-        pev.origin = sev.origin + vec3_t::new(0.0, 0.0, 1.0);
-        pev.v_angle = vec3_t::ZERO;
-        pev.velocity = vec3_t::ZERO;
-        pev.angles = sev.angles;
-        pev.punchangle = vec3_t::ZERO;
-        pev.fixangle = 1;
+        let pv = player.vars_mut();
+        pv.set_origin(sev.origin + vec3_t::new(0.0, 0.0, 1.0));
+        pv.set_view_angle(vec3_t::ZERO);
+        pv.set_velocity(vec3_t::ZERO);
+        pv.set_angles(sev.angles);
+        pv.set_punch_angle(vec3_t::ZERO);
+        pv.set_fix_angle(1);
         spawn_spot
     }
 

@@ -176,14 +176,14 @@ impl TriggerMultiple {
         }
 
         let v = self.base.vars_mut();
-        if let Some(noise) = MapString::from_index(engine, v.as_raw().noise) {
+        if let Some(noise) = v.noise() {
             engine.build_sound().channel_voice().emit(noise, self);
         }
 
         self.delayed.use_targets(UseType::Toggle, self);
 
         let v = self.base.vars_mut();
-        if let Some(_message) = MapString::from_index(engine, v.as_raw().message) {
+        if let Some(_message) = v.message() {
             // TODO: need HudText user message defined in xash3d-hl-shared =\
             warn!(
                 "{}: show a hud message is not implemented",
@@ -797,15 +797,12 @@ fn in_transition_volume(
     ent: *mut edict_s,
     volume_name: &CStrThin,
 ) -> bool {
-    let mut ent = unsafe { &mut *ent }.get_private().unwrap().as_entity();
+    let mut ent = unsafe { &mut *ent }.get_entity().unwrap();
     if ent.object_caps().intersects(ObjectCaps::FORCE_TRANSITION) {
         return true;
     }
-    if ent.vars().as_raw().movetype == MoveType::Follow.into()
-        && !ent.vars().as_raw().aiment.is_null()
-    {
-        let aiment = unsafe { &mut *ent.vars().as_raw().aiment };
-        ent = aiment.get_private().unwrap().as_entity();
+    if let (MoveType::Follow, Some(mut aim)) = (ent.vars().move_type(), ent.vars().aim_entity()) {
+        ent = unsafe { aim.as_mut() }.get_entity().unwrap();
     }
 
     let mut ent_volume = engine.find_ent_by_target_name(ptr::null_mut(), volume_name);
@@ -955,13 +952,13 @@ impl MultiManager {
     fn clone(&mut self) -> *mut Self {
         let engine = self.engine();
         let multi = engine.new_entity::<Private<Self>>().build();
-        let edict = multi.vars().as_raw().pContainingEntity;
+        let edict = multi.vars().containing_entity();
         unsafe {
-            ptr::copy_nonoverlapping(self.vars().as_raw(), multi.vars_mut().as_raw_mut(), 1);
+            ptr::copy_nonoverlapping(self.vars().as_ptr(), multi.vars_mut().as_mut_ptr(), 1);
         }
-        let v = multi.vars_mut().as_raw_mut();
-        v.pContainingEntity = edict;
-        v.spawnflags |= MultiManagerSpawnFlags::CLONE.bits() as i32;
+        let v = multi.vars_mut();
+        v.set_containing_entity(edict.map(|e| unsafe { e.as_ref() }));
+        *v.spawn_flags_mut() |= MultiManagerSpawnFlags::CLONE.bits();
         multi.targets = self.targets.clone();
         multi
     }
@@ -1052,7 +1049,7 @@ impl Entity for MultiManager {
         }
 
         let engine = self.engine();
-        let time = (engine.globals.map_time() - self.start_time).as_secs_f32();
+        let time = engine.globals.map_time() - self.start_time;
         let mut activator = unsafe {
             engine
                 .entity_of_ent_index(self.activator)

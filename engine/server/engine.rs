@@ -256,20 +256,20 @@ impl<'a, T: Entity> EntityBuilder<'a, T> {
 
     pub fn class_name(mut self, class_name: impl ToEngineStr) -> Self {
         let s = self.engine.new_map_string(class_name);
-        self.entity.vars_mut().as_raw_mut().classname = s.index();
+        self.entity.vars_mut().set_classname(s);
         self.class_name = Some(s);
         self
     }
 
     pub fn target_name(self, target_name: impl ToEngineStr) -> Self {
         let s = self.engine.new_map_string(target_name);
-        self.entity.vars_mut().as_raw_mut().targetname = s.index();
+        self.entity.vars_mut().set_target_name(s);
         self
     }
 
     pub fn target(self, target: impl ToEngineStr) -> Self {
         let s = self.engine.new_map_string(target);
-        self.entity.vars_mut().as_raw_mut().target = s.index();
+        self.entity.vars_mut().set_target(s);
         self
     }
 

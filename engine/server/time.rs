@@ -34,10 +34,10 @@ impl From<MapTime> for f32 {
 macro_rules! impl_arith_ops {
     ($trait:ident::$meth:ident, $trait_assign:ident::$meth_assign:ident) => {
         impl ops::$trait for MapTime {
-            type Output = Self;
+            type Output = f32;
 
             fn $meth(self, rhs: Self) -> Self::Output {
-                Self(self.0.$meth(rhs.0))
+                self.0.$meth(rhs.0)
             }
         }
 

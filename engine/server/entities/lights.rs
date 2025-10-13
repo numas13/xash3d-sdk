@@ -17,7 +17,7 @@ pub struct Light {
 }
 
 impl Light {
-    pub const SF_START_OFF: i32 = 1;
+    pub const SF_START_OFF: u32 = 1;
 }
 
 impl_entity_cast!(Light);
@@ -41,8 +41,8 @@ impl Entity for Light {
                 self.style = data.value_str().parse().unwrap_or(0);
             }
             b"pitch" => {
-                let ev = self.vars_mut().as_raw_mut();
-                ev.angles.x = data.value_str().parse().unwrap_or(0.0);
+                let v = self.vars_mut();
+                v.angles_mut().x = data.value_str().parse().unwrap_or(0.0);
             }
             b"pattern" => {
                 let engine = self.engine();
@@ -55,11 +55,10 @@ impl Entity for Light {
 
     fn spawn(&mut self) {
         let engine = self.engine();
-        if MapString::from_index(engine, self.vars().as_raw().targetname).is_none() {
+        if self.vars().target_name().is_none() {
             self.vars_mut().delayed_remove();
         } else if self.style >= 32 {
-            let ev = self.vars_mut().as_raw_mut();
-            if ev.spawnflags & Self::SF_START_OFF != 0 {
+            if self.vars().spawn_flags() & Self::SF_START_OFF != 0 {
                 engine.light_style(self.style, c"a");
             } else if let Some(pattern) = self.pattern {
                 engine.light_style(self.style, pattern);
@@ -75,8 +74,8 @@ impl Entity for Light {
         }
 
         let engine = self.engine();
-        let ev = self.vars_mut().as_raw_mut();
-        let is_start_off = ev.spawnflags & Self::SF_START_OFF != 0;
+        let v = self.base.vars_mut();
+        let is_start_off = v.spawn_flags() & Self::SF_START_OFF != 0;
         if !use_type.should_toggle(!is_start_off) {
             return;
         }
@@ -87,12 +86,10 @@ impl Entity for Light {
             } else {
                 engine.light_style(self.style, c"m");
             }
-            let ev = self.vars_mut().as_raw_mut();
-            ev.spawnflags &= !Self::SF_START_OFF;
+            *v.spawn_flags_mut() &= !Self::SF_START_OFF;
         } else {
             engine.light_style(self.style, c"a");
-            let ev = self.vars_mut().as_raw_mut();
-            ev.spawnflags |= Self::SF_START_OFF;
+            *v.spawn_flags_mut() |= Self::SF_START_OFF;
         }
     }
 }
