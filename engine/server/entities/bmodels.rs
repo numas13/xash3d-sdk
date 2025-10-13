@@ -41,7 +41,7 @@ impl Entity for FuncWall {
         v.set_angles(vec3_t::ZERO);
         v.set_solid(Solid::Bsp);
         v.set_move_type(MoveType::Push);
-        v.flags_mut().insert(EdictFlags::WORLDBRUSH);
+        v.with_flags(|f| f | EdictFlags::WORLDBRUSH);
         engine.reload_model(v.model_name(), v);
     }
 

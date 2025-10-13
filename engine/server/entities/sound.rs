@@ -667,7 +667,8 @@ impl Entity for AmbientGeneric {
         self.active = false;
 
         // HACK: this makes the code in precache work properly after a save/restore
-        *self.vars_mut().spawn_flags_mut() |= AmbientSound::START_SILENT.bits();
+        self.vars_mut()
+            .with_spawn_flags(|f| f | AmbientSound::START_SILENT.bits());
 
         if self.dpv.spindownsav != 0 || self.dpv.fadeoutsav != 0 {
             // spin in down (or fade it) before shutoff if spindown is set

@@ -65,7 +65,7 @@ impl crate::save::OnRestore for Player {
         // TODO:
 
         let v = self.vars_mut();
-        v.view_angle_mut().z = 0.0;
+        v.with_view_angle(|v| v.with_z(0.0));
         v.set_angles(v.view_angle());
         v.set_fix_angle(1);
 
@@ -108,8 +108,8 @@ impl Entity for Player {
         v.set_solid(Solid::SlideBox);
         v.set_move_type(MoveType::Walk);
         v.set_max_health(v.health());
-        *v.flags_mut() &= EdictFlags::PROXY;
-        *v.flags_mut() |= EdictFlags::CLIENT;
+        v.with_flags(|f| f & EdictFlags::PROXY);
+        v.with_flags(|f| f | EdictFlags::CLIENT);
         v.set_air_finished_time(engine.globals.map_time() + 12.0);
         v.set_damage(2.0);
         v.remove_effects();

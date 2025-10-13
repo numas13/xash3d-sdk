@@ -42,7 +42,7 @@ impl Entity for Light {
             }
             b"pitch" => {
                 let v = self.vars_mut();
-                v.angles_mut().x = data.value_str().parse().unwrap_or(0.0);
+                v.with_angles(|v| v.with_x(data.value_str().parse().unwrap_or(0.0)));
             }
             b"pattern" => {
                 let engine = self.engine();
@@ -86,10 +86,10 @@ impl Entity for Light {
             } else {
                 engine.light_style(self.style, c"m");
             }
-            *v.spawn_flags_mut() &= !Self::SF_START_OFF;
+            v.with_spawn_flags(|f| f & !Self::SF_START_OFF);
         } else {
             engine.light_style(self.style, c"a");
-            *v.spawn_flags_mut() |= Self::SF_START_OFF;
+            v.with_spawn_flags(|f| f | Self::SF_START_OFF);
         }
     }
 }

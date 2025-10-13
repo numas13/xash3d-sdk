@@ -1,4 +1,4 @@
-use core::{ffi::CStr, mem};
+use core::ffi::CStr;
 
 use xash3d_hl_shared::user_message;
 use xash3d_server::{
@@ -109,7 +109,7 @@ impl TestPlayer {
             .build_sound()
             .channel_weapon()
             .emit_dyn(SOUND_FLASHLIGHT_ON, self);
-        self.vars_mut().effects_mut().insert(Effects::DIMLIGHT);
+        self.vars_mut().with_effects(|f| f | Effects::DIMLIGHT);
         let msg = user_message::Flashlight::new(true, self.flashlight_battery);
         engine.msg_one(self, &msg);
         self.flashlight_time = engine.globals.map_time() + FLASH_DRAIN_TIME;
@@ -121,14 +121,18 @@ impl TestPlayer {
             .build_sound()
             .channel_weapon()
             .emit_dyn(SOUND_FLASHLIGHT_OFF, self);
-        self.vars_mut().effects_mut().remove(Effects::DIMLIGHT);
+        self.vars_mut()
+            .with_effects(|f| f.difference(Effects::DIMLIGHT));
         let msg = user_message::Flashlight::new(false, self.flashlight_battery);
         engine.msg_one(self, &msg);
         self.flashlight_time = engine.globals.map_time() + FLASH_CHARGE_TIME;
     }
 
     fn impulse_commands(&mut self) {
-        match mem::take(self.vars_mut().impulse_mut()) {
+        let v = self.vars_mut();
+        let impulse = v.impulse();
+        v.set_impulse(0);
+        match impulse {
             0 => {}
             100 => {
                 if !self.is_flashlight_on() {
@@ -253,7 +257,7 @@ impl Entity for TestPlayer {
 
         // enable suit
         // TODO: move Weapons type to shared crate
-        *self.vars_mut().weapons_mut() |= WEAPON_SUIT;
+        self.vars_mut().with_weapons(|f| f | WEAPON_SUIT);
 
         self.precache();
 

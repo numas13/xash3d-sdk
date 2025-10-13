@@ -95,7 +95,7 @@ impl Entity for Ladder {
         v.set_move_type(MoveType::Push);
         v.set_render_mode(RenderMode::TransTexture);
         v.set_render_amount(0.0);
-        v.effects_mut().remove(Effects::NODRAW);
+        v.with_effects(|f| f.difference(Effects::NODRAW));
         engine.reload_model(v.model_name(), v);
     }
 }

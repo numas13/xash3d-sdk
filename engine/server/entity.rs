@@ -353,10 +353,10 @@ define_entity_trait! {
 
         fn make_dormant(&mut self) {
             let v = self.vars_mut();
-            v.flags_mut().insert(EdictFlags::DORMANT);
+            v.with_flags(|f| f | EdictFlags::DORMANT);
             v.set_solid(Solid::Not);
             v.set_move_type(MoveType::None);
-            v.effects_mut().insert(Effects::NODRAW);
+            v.with_effects(|f| f | Effects::NODRAW);
             v.stop_thinking();
         }
 

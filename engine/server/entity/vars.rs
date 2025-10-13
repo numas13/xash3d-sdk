@@ -120,6 +120,7 @@ macro_rules! field {
     // get mutable reference to bitflags
     (get bitflags $field:ident, $( #[$attr:meta] )* fn $meth:ident() -> &mut $ty:ty) => {
         $( #[$attr] )*
+        #[deprecated(note = "use with_* instead")]
         pub fn $meth(&mut self) -> &mut $ty {
             const_assert_size_of_field_eq!($ty, entvars_s, $field);
             unsafe { mem::transmute(&mut self.borrow_mut().$field) }
@@ -128,6 +129,7 @@ macro_rules! field {
     // get mutable reference
     (get $field:ident, $( #[$attr:meta] )* fn $meth:ident() -> &mut $ty:ty) => {
         $( #[$attr] )*
+        #[deprecated(note = "use with_* instead")]
         pub fn $meth(&mut self) -> &mut $ty {
             &mut self.borrow_mut().$field
         }
@@ -252,6 +254,25 @@ macro_rules! field {
             self.borrow_mut().$field = $arg;
         }
     };
+
+    // modify bitflags
+    (mut bitflags $field:ident, $( #[$attr:meta] )* fn $meth:ident($ty:ty $(, $from:ty as $to:ty)?)) => {
+        $( #[$attr] )*
+        pub fn $meth(&mut self, mut f: impl FnMut($ty) -> $ty) {
+            let bits = self.borrow().$field;
+            $( let bits: $from = bits; )?
+            $( let bits: $to = bits as $to; )?
+            let result = f(<$ty>::from_bits_retain(bits));
+            self.borrow_mut().$field = result.bits();
+        }
+    };
+    // modify field
+    (mut $field:ident, $( #[$attr:meta] )* fn $meth:ident($ty:ty)) => {
+        $( #[$attr] )*
+        pub fn $meth(&mut self, mut f: impl FnMut($ty) -> $ty) {
+            self.borrow_mut().$field = f(self.borrow_mut().$field);
+        }
+    };
 }
 
 /// A safe wrapper for [entvars_s].
@@ -328,6 +349,7 @@ impl EntityVars {
         ///
         /// Call [EntityVars::link] to link the entity to the list.
         fn set_origin(v: vec3_t));
+    field!(mut origin, fn with_origin(vec3_t));
 
     /// Links this entity into the list.
     #[deprecated(note = "use engine.set_origin_and_link(v.origin(), v) instead")]
@@ -347,22 +369,27 @@ impl EntityVars {
     field!(get oldorigin, fn old_origin() -> vec3_t);
     field!(get oldorigin, fn old_origin_mut() -> &mut vec3_t);
     field!(set oldorigin, fn set_old_origin(v: vec3_t));
+    field!(mut oldorigin, fn with_old_origin(vec3_t));
 
     field!(get velocity, fn velocity() -> vec3_t);
     field!(get velocity, fn velocity_mut() -> &mut vec3_t);
     field!(set velocity, fn set_velocity(v: vec3_t));
+    field!(mut velocity, fn with_velocity(vec3_t));
 
     field!(get basevelocity, fn base_velocity() -> vec3_t);
     field!(get basevelocity, fn base_velocity_mut() -> &mut vec3_t);
     field!(set basevelocity, fn set_base_velocity(v: vec3_t));
+    field!(mut basevelocity, fn with_base_velocity(vec3_t));
 
     field!(get clbasevelocity, fn client_base_velocity() -> vec3_t);
     field!(get clbasevelocity, fn client_base_velocity_mut() -> &mut vec3_t);
     field!(set clbasevelocity, fn set_client_base_velocity(v: vec3_t));
+    field!(mut clbasevelocity, fn with_client_base_velocity(vec3_t));
 
     field!(get movedir, fn move_dir() -> vec3_t);
     field!(get movedir, fn move_dir_mut() -> &mut vec3_t);
     // field!(set movedir, fn set_move_dir(v: vec3_t));
+    field!(mut movedir, fn with_move_dir(vec3_t));
 
     #[deprecated(note = "use set_move_dir_from_angles instead")]
     pub fn set_move_dir(&mut self) {
@@ -384,26 +411,32 @@ impl EntityVars {
     field!(get angles, fn angles() -> vec3_t);
     field!(get angles, fn angles_mut() -> &mut vec3_t);
     field!(set angles, fn set_angles(v: vec3_t));
+    field!(mut angles, fn with_angles(vec3_t));
 
     field!(get avelocity, fn angular_velocity() -> vec3_t);
     field!(get avelocity, fn angular_velocity_mut() -> &mut vec3_t);
     field!(set avelocity, fn set_angular_velocity(v: vec3_t));
+    field!(mut avelocity, fn with_angular_velocity(vec3_t));
 
     field!(get punchangle, fn punch_angle() -> vec3_t);
     field!(get punchangle, fn punch_angle_mut() -> &mut vec3_t);
     field!(set punchangle, fn set_punch_angle(v: vec3_t));
+    field!(mut punchangle, fn with_punch_angle(vec3_t));
 
     field!(get v_angle, fn view_angle() -> vec3_t);
     field!(get v_angle, fn view_angle_mut() -> &mut vec3_t);
     field!(set v_angle, fn set_view_angle(v: vec3_t));
+    field!(mut v_angle, fn with_view_angle(vec3_t));
 
     field!(get endpos, fn end_pos() -> vec3_t);
     field!(get endpos, fn end_pos_mut() -> &mut vec3_t);
     field!(set endpos, fn set_end_pos(v: vec3_t));
+    field!(mut endpos, fn with_end_pos(vec3_t));
 
     field!(get startpos, fn start_pos() -> vec3_t);
     field!(get startpos, fn start_pos_mut() -> &mut vec3_t);
     field!(set startpos, fn set_start_pos(v: vec3_t));
+    field!(mut startpos, fn with_start_pos(vec3_t));
 
     field!(get impacttime, fn impact_time() -> f32);
     field!(set impacttime, fn set_impact_time(v: f32));
@@ -494,10 +527,12 @@ impl EntityVars {
     field!(get absmin, fn abs_min() -> vec3_t);
     field!(get absmin, fn abs_min_mut() -> &mut vec3_t);
     field!(set absmin, fn set_abs_min(v: vec3_t));
+    field!(mut absmin, fn with_abs_min(vec3_t));
 
     field!(get absmax, fn abs_max() -> vec3_t);
     field!(get absmax, fn abs_max_mut() -> &mut vec3_t);
     field!(set absmax, fn set_abs_max(v: vec3_t));
+    field!(mut absmax, fn with_abs_max(vec3_t));
 
     /// Returns an absolute center position in the world.
     pub fn abs_center(&self) -> vec3_t {
@@ -507,14 +542,17 @@ impl EntityVars {
     field!(get mins, fn min_size() -> vec3_t);
     field!(get mins, fn min_size_mut() -> &mut vec3_t);
     field!(set mins, fn set_min_size(v: vec3_t));
+    field!(mut mins, fn with_min_size(vec3_t));
 
     field!(get maxs, fn max_size() -> vec3_t);
     field!(get maxs, fn max_size_mut() -> &mut vec3_t);
     field!(set maxs, fn set_max_size(v: vec3_t));
+    field!(mut maxs, fn with_max_size(vec3_t));
 
     field!(get size, fn size() -> vec3_t);
     field!(get size, fn size_mut() -> &mut vec3_t);
     field!(set size, fn set_size(v: vec3_t));
+    field!(mut size, fn with_size(vec3_t));
 
     pub fn bmodel_origin(&self) -> vec3_t {
         self.abs_min() + self.size() * 0.5
@@ -572,6 +610,7 @@ impl EntityVars {
     field!(get bitflags effects, fn effects() -> Effects);
     field!(get bitflags effects, fn effects_mut() -> &mut Effects);
     field!(set bitflags effects, fn set_effects(v: Effects));
+    field!(mut bitflags effects, fn with_effects(Effects));
 
     pub fn remove_effects(&mut self) {
         self.set_effects(Effects::NONE);
@@ -634,6 +673,7 @@ impl EntityVars {
     field!(get bitflags weapons, fn weapons() -> u32);
     field!(get bitflags weapons, fn weapons_mut() -> &mut u32);
     field!(set bitflags weapons, fn set_weapons(v: u32));
+    field!(mut bitflags weapons, fn with_weapons(u32));
 
     pub fn has_suit(&self) -> bool {
         Weapons::from_bits_retain(self.weapons()).intersects(Weapons::SUIT)
@@ -648,14 +688,17 @@ impl EntityVars {
     field!(get view_ofs, fn view_ofs() -> vec3_t);
     field!(get view_ofs, fn view_ofs_mut() -> &mut vec3_t);
     field!(set view_ofs, fn set_view_ofs(v: vec3_t));
+    field!(mut view_ofs, fn with_view_ofs(vec3_t));
 
     field!(get bitflags button, fn buttons() -> Buttons);
     field!(get bitflags button, fn buttons_mut() -> &mut Buttons);
     field!(set bitflags button, fn set_buttons(v: Buttons));
+    field!(mut bitflags button, fn with_buttons(Buttons));
 
     field!(get bitflags impulse, fn impulse() -> u32);
     field!(get bitflags impulse, fn impulse_mut() -> &mut u32);
     field!(set bitflags impulse, fn set_impulse(v: u32));
+    field!(mut bitflags impulse, fn with_impulse(u32));
 
     field!(get chain, fn chain() -> Option<NonNull<edict_s>>);
     field!(set entity chain, fn set_chain(chain));
@@ -678,10 +721,12 @@ impl EntityVars {
     field!(get bitflags spawnflags, fn spawn_flags() -> u32);
     field!(get bitflags spawnflags, fn spawn_flags_mut() -> &mut u32);
     field!(set bitflags spawnflags, fn set_spawn_flags(v: u32));
+    field!(mut bitflags spawnflags, fn with_spawn_flags(u32));
 
     field!(get bitflags flags, fn flags() -> EdictFlags);
     field!(get bitflags flags, fn flags_mut() -> &mut EdictFlags);
     field!(set bitflags flags, fn set_flags(v: EdictFlags));
+    field!(mut bitflags flags, fn with_flags(EdictFlags));
 
     field!(get colormap, fn color_map() -> i32);
     field!(set colormap, fn set_color_map(v: i32));
@@ -821,6 +866,7 @@ impl EntityVars {
     field!(get bitflags oldbuttons, fn old_buttons() -> Buttons);
     field!(get bitflags oldbuttons, fn old_buttons_mut() -> &mut Buttons);
     field!(set bitflags oldbuttons, fn set_old_buttons(v: Buttons));
+    field!(mut bitflags oldbuttons, fn with_old_buttons(Buttons));
 
     field!(get groupinfo, fn group_info() -> i32);
     field!(set groupinfo, fn set_group_info(v: i32));
@@ -828,21 +874,26 @@ impl EntityVars {
     field!(get iuser1, fn iuser1() -> i32);
     field!(get iuser1, fn iuser1_mut() -> &mut i32);
     field!(set iuser1, fn set_iuser1(v: i32));
+    field!(mut iuser1, fn with_iuser1(i32));
 
     field!(get iuser2, fn iuser2() -> i32);
     field!(get iuser2, fn iuser2_mut() -> &mut i32);
     field!(set iuser2, fn set_iuser2(v: i32));
+    field!(mut iuser2, fn with_iuser2(i32));
 
     field!(get iuser3, fn iuser3() -> i32);
     field!(get iuser3, fn iuser3_mut() -> &mut i32);
     field!(set iuser3, fn set_iuser3(v: i32));
+    field!(mut iuser3, fn with_iuser3(i32));
 
     field!(get iuser4, fn iuser4() -> i32);
     field!(get iuser4, fn iuser4_mut() -> &mut i32);
     field!(set iuser4, fn set_iuser4(v: i32));
+    field!(mut iuser4, fn with_iuser4(i32));
 
     field!(get fuser1, fn fuser1() -> f32);
     field!(set fuser1, fn set_fuser1(v: f32));
+    field!(mut fuser1, fn with_fuser1(f32));
 
     field!(get fuser2, fn fuser2() -> f32);
     field!(set fuser2, fn set_fuser2(v: f32));
@@ -856,18 +907,22 @@ impl EntityVars {
     field!(get vuser1, fn vuser1() -> vec3_t);
     field!(get vuser1, fn vuser1_mut() -> &mut vec3_t);
     field!(set vuser1, fn set_vuser1(v: vec3_t));
+    field!(mut vuser1, fn with_vuser1(vec3_t));
 
     field!(get vuser2, fn vuser2() -> vec3_t);
     field!(get vuser2, fn vuser2_mut() -> &mut vec3_t);
     field!(set vuser2, fn set_vuser2(v: vec3_t));
+    field!(mut vuser2, fn with_vuser2(vec3_t));
 
     field!(get vuser3, fn vuser3() -> vec3_t);
     field!(get vuser3, fn vuser3_mut() -> &mut vec3_t);
     field!(set vuser3, fn set_vuser3(v: vec3_t));
+    field!(mut vuser3, fn with_vuser3(vec3_t));
 
     field!(get vuser4, fn vuser4() -> vec3_t);
     field!(get vuser4, fn vuser4_mut() -> &mut vec3_t);
     field!(set vuser4, fn set_vuser4(v: vec3_t));
+    field!(mut vuser4, fn with_vuser4(vec3_t));
 
     field!(get euser1, fn euser1_raw() -> *mut edict_s);
     field!(set euser1, fn set_euser1_raw(ent: *mut edict_s));
@@ -895,7 +950,7 @@ impl EntityVars {
 
     /// Ask the engine to remove this entity at the appropriate time.
     pub fn delayed_remove(&mut self) {
-        self.flags_mut().insert(EdictFlags::KILLME);
+        self.with_flags(|f| f | EdictFlags::KILLME);
         self.set_target_name(None);
     }
 

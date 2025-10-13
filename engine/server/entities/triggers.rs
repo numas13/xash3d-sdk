@@ -131,7 +131,7 @@ fn init_trigger(engine: &ServerEngine, v: &mut EntityVars) {
     v.set_move_type(MoveType::None);
     engine.reload_model(v.model_name(), v);
     if !engine.get_cvar::<bool>(c"showtriggers") {
-        v.effects_mut().insert(Effects::NODRAW);
+        v.with_effects(|f| f | Effects::NODRAW);
     }
 }
 
@@ -327,7 +327,7 @@ impl Entity for TriggerPush {
         let v = self.base.vars_mut();
 
         if v.angles() == vec3_t::ZERO {
-            v.angles_mut().y = 360.0;
+            v.with_angles(|v| v.with_y(360.0));
         }
         init_trigger(&engine, v);
 
@@ -362,15 +362,15 @@ impl Entity for TriggerPush {
         let push_vec = v.move_dir() * v.speed();
         let spawn_flags = TriggerPushSpawnFlags::from_bits_retain(self.vars().spawn_flags());
         if spawn_flags.intersects(TriggerPushSpawnFlags::PUSH_ONCE) {
-            *other_v.velocity_mut() += push_vec;
+            other_v.with_velocity(|v| v + push_vec);
             if other_v.velocity().z > 0.0 {
-                other_v.flags_mut().remove(EdictFlags::ONGROUND);
+                other_v.with_flags(|f| f.difference(EdictFlags::ONGROUND));
             }
             self.remove_from_world();
         } else if other_v.flags().intersects(EdictFlags::BASEVELOCITY) {
-            *other_v.base_velocity_mut() += push_vec;
+            other_v.with_base_velocity(|v| v + push_vec);
         } else {
-            other_v.flags_mut().insert(EdictFlags::BASEVELOCITY);
+            other_v.with_flags(|f| f | EdictFlags::BASEVELOCITY);
             other_v.set_base_velocity(push_vec);
         }
     }
@@ -958,7 +958,7 @@ impl MultiManager {
         }
         let v = multi.vars_mut();
         v.set_containing_entity(edict.map(|e| unsafe { e.as_ref() }));
-        *v.spawn_flags_mut() |= MultiManagerSpawnFlags::CLONE.bits();
+        v.with_spawn_flags(|f| f | MultiManagerSpawnFlags::CLONE.bits());
         multi.targets = self.targets.clone();
         multi
     }
