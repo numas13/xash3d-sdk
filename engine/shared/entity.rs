@@ -376,3 +376,37 @@ bitflags! {
         const SCORE         = ffi::common::IN_SCORE;
     }
 }
+
+macro_rules! impl_buttons_is {
+    ($( fn $meth:ident = $name:ident ),* $(,)?) => {
+        $(
+            /// Returns true if
+            #[doc = concat!("[", stringify!($name), "](Self::", stringify!($name), ")")]
+            /// is pressed.
+            pub fn $meth(&self) -> bool {
+                self.intersects(Self::$name)
+            }
+        )*
+    };
+}
+
+impl Buttons {
+    impl_buttons_is! {
+        fn is_attack        = ATTACK,
+        fn is_jump          = JUMP,
+        fn is_duck          = DUCK,
+        fn is_forward       = FORWARD,
+        fn is_back          = BACK,
+        fn is_use           = USE,
+        fn is_cancel        = CANCEL,
+        fn is_left          = LEFT,
+        fn is_right         = RIGHT,
+        fn is_move_left     = MOVELEFT,
+        fn is_move_right    = MOVERIGHT,
+        fn is_attack2       = ATTACK2,
+        fn is_run           = RUN,
+        fn is_reload        = RELOAD,
+        fn is_alt1          = ALT1,
+        fn is_score         = SCORE,
+    }
+}
