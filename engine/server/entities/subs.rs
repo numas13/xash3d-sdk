@@ -147,7 +147,7 @@ impl Entity for DelayedUseEntity {
         if let Some(owner) = self.vars().owner().map(|mut e| unsafe { e.as_mut() }) {
             activator = owner.get_entity_mut();
         }
-        utils::use_targets(self.kill_target, self.use_type, 0.0, activator, self);
+        utils::use_targets(self.kill_target, self.use_type, activator, self);
         self.remove_from_world();
     }
 }
@@ -211,7 +211,7 @@ impl DelayedUse {
                 Some(caller),
             );
         } else {
-            utils::use_targets(self.kill_target, use_type, 0.0, None, caller);
+            utils::use_targets(self.kill_target, use_type, None, caller);
         }
     }
 }

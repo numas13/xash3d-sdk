@@ -45,7 +45,7 @@ impl Entity for FuncWall {
         engine.reload_model(v.model_name(), v);
     }
 
-    fn used(&mut self, _: Option<&mut dyn Entity>, _: &mut dyn Entity, use_type: UseType, _: f32) {
+    fn used(&mut self, use_type: UseType, _: Option<&mut dyn Entity>, _: &mut dyn Entity) {
         let v = self.base.vars_mut();
         if use_type.should_toggle(v.frame() != 0.0) {
             v.set_frame(1.0 - v.frame());

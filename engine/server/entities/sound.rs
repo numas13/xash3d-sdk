@@ -622,10 +622,9 @@ impl Entity for AmbientGeneric {
     #[allow(unused_variables)]
     fn used(
         &mut self,
+        use_type: UseType,
         activator: Option<&mut dyn Entity>,
         caller: &mut dyn Entity,
-        use_type: UseType,
-        value: f32,
     ) {
         let Some(sound_file) = self.vars().message() else {
             return;
@@ -642,7 +641,7 @@ impl Entity for AmbientGeneric {
 
         // looping sound
 
-        if use_type == UseType::Set {
+        if let UseType::Set(value) = use_type {
             self.change_pitch(sound_file, value);
             return;
         }

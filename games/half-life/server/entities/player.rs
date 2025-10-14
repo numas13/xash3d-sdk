@@ -5,7 +5,7 @@ use xash3d_server::{
     entities::player::Player as BasePlayer,
     entity::{
         delegate_entity, delegate_player, impl_entity_cast, BaseEntity, Buttons, CreateEntity,
-        Effects, Entity, EntityPlayer, EntityVars, UseType::Toggle,
+        Effects, Entity, EntityPlayer, EntityVars, UseType,
     },
     ffi::server::edict_s,
     prelude::*,
@@ -175,7 +175,7 @@ impl TestPlayer {
                 engine.msg_one(self, &user_message::InitHUD::default());
             }
 
-            utils::fire_targets(c"game_playerspawn".into(), Toggle, 0.0, None, self);
+            utils::fire_targets(c"game_playerspawn".into(), UseType::Toggle, None, self);
 
             let msg =
                 user_message::Flashlight::new(self.is_flashlight_on(), self.flashlight_battery);

@@ -343,7 +343,7 @@ impl Entity for TriggerPush {
         engine.set_origin_and_link(v.origin(), v);
     }
 
-    fn used(&mut self, _: Option<&mut dyn Entity>, _: &mut dyn Entity, _: UseType, _: f32) {
+    fn used(&mut self, _: UseType, _: Option<&mut dyn Entity>, _: &mut dyn Entity) {
         toggle_use(self);
     }
 
@@ -460,7 +460,7 @@ impl Entity for TriggerHurt {
         engine.set_origin_and_link(v.origin(), v);
     }
 
-    fn used(&mut self, _: Option<&mut dyn Entity>, _: &mut dyn Entity, _: UseType, _: f32) {
+    fn used(&mut self, _: UseType, _: Option<&mut dyn Entity>, _: &mut dyn Entity) {
         if self.vars().target_name().is_some() {
             toggle_use(self);
         }
@@ -1019,10 +1019,9 @@ impl Entity for MultiManager {
 
     fn used(
         &mut self,
+        _use_type: UseType,
         activator: Option<&mut dyn Entity>,
         caller: &mut dyn Entity,
-        _use_type: UseType,
-        _value: f32,
     ) {
         if !self.enable_use {
             return;
@@ -1030,7 +1029,7 @@ impl Entity for MultiManager {
 
         if self.should_clone() {
             let clone = unsafe { &mut *self.clone() };
-            clone.used(activator, caller, _use_type, _value);
+            clone.used(_use_type, activator, caller);
             return;
         }
 
@@ -1066,7 +1065,6 @@ impl Entity for MultiManager {
                 utils::fire_targets(
                     &target_name,
                     UseType::Toggle,
-                    0.0,
                     activator.as_deref_mut(),
                     self,
                 );

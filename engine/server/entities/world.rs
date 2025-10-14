@@ -109,10 +109,9 @@ impl Entity for Decal {
     #[allow(unused_variables)]
     fn used(
         &mut self,
+        use_type: UseType,
         activator: Option<&mut dyn Entity>,
         caller: &mut dyn Entity,
-        use_type: UseType,
-        value: f32,
     ) {
         if self.state != Self::STATE_TRIGGER {
             return;

@@ -25,7 +25,6 @@ pub fn is_master_triggered(
 pub fn fire_targets(
     target_name: &CStrThin,
     use_type: UseType,
-    value: f32,
     mut activator: Option<&mut dyn Entity>,
     caller: &mut dyn Entity,
 ) {
@@ -35,7 +34,7 @@ pub fn fire_targets(
         if let Some(target) = unsafe { target.as_mut() }.get_entity_mut() {
             if !target.vars().flags().intersects(EdictFlags::KILLME) {
                 trace!("Found: {}, firing ({target_name})", target.classname());
-                target.used(activator.as_deref_mut(), caller, use_type, value);
+                target.used(use_type, activator.as_deref_mut(), caller);
             }
         }
     }
@@ -44,7 +43,6 @@ pub fn fire_targets(
 pub fn use_targets(
     kill_target: Option<MapString>,
     use_type: UseType,
-    value: f32,
     activator: Option<&mut dyn Entity>,
     caller: &mut dyn Entity,
 ) {
@@ -60,7 +58,7 @@ pub fn use_targets(
     }
 
     if let Some(target) = caller.vars().target() {
-        fire_targets(&target, use_type, value, activator, caller);
+        fire_targets(&target, use_type, activator, caller);
     }
 }
 

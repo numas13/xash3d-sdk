@@ -259,12 +259,12 @@ impl ObjectCaps {
     }
 }
 
-#[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, Default, PartialEq)]
 pub enum UseType {
     #[default]
     Off,
     On,
-    Set,
+    Set(f32),
     Toggle,
 }
 
@@ -380,10 +380,9 @@ define_entity_trait! {
         #[allow(unused_variables)]
         fn used(
             &mut self,
+            use_type: ::xash3d_server::entity::UseType,
             activator: Option<&mut dyn ::xash3d_server::entity::Entity>,
             caller: &mut dyn ::xash3d_server::entity::Entity,
-            use_type: ::xash3d_server::entity::UseType,
-            value: f32,
         ) {}
 
         #[allow(unused_variables)]
@@ -782,22 +781,18 @@ impl Entity for StubEntity {
 
     fn used(
         &mut self,
+        use_type: UseType,
         _activator: Option<&mut dyn Entity>,
         caller: &mut dyn Entity,
-        use_type: UseType,
-        value: f32,
     ) {
         let classname = self.classname();
         if let Some(name) = self.vars().target_name() {
             trace!(
-                "{classname}({name}) used({use_type:?}, {value}) by {}",
+                "{classname}({name}) used({use_type:?}) by {}",
                 caller.name()
             );
         } else {
-            trace!(
-                "{classname} used({use_type:?}, {value}) by {}",
-                caller.name()
-            );
+            trace!("{classname} used({use_type:?} by {}", caller.name());
         }
     }
 

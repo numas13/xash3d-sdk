@@ -276,10 +276,19 @@ impl Restore for Attenuation {
 impl Save for UseType {
     fn save(&self, _: &mut SaveState, cur: &mut CursorMut) -> SaveResult<()> {
         match self {
-            Self::Off => cur.write_u8(0)?,
-            Self::On => cur.write_u8(1)?,
-            Self::Set => cur.write_u8(2)?,
-            Self::Toggle => cur.write_u8(3)?,
+            Self::Off => {
+                cur.write_u8(0)?;
+            }
+            Self::On => {
+                cur.write_u8(1)?;
+            }
+            Self::Set(value) => {
+                cur.write_u8(2)?;
+                cur.write_f32(*value)?;
+            }
+            Self::Toggle => {
+                cur.write_u8(3)?;
+            }
         };
         Ok(())
     }
@@ -290,7 +299,7 @@ impl Restore for UseType {
         *self = match cur.read_u8()? {
             0 => Self::Off,
             1 => Self::On,
-            2 => Self::Set,
+            2 => Self::Set(cur.read_f32()?),
             3 => Self::Toggle,
             _ => return Err(SaveError::InvalidEnum),
         };

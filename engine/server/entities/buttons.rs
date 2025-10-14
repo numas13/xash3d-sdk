@@ -146,7 +146,7 @@ impl Entity for EnvSpark {
         }
     }
 
-    fn used(&mut self, _: Option<&mut dyn Entity>, _: &mut dyn Entity, _: UseType, _: f32) {
+    fn used(&mut self, _: UseType, _: Option<&mut dyn Entity>, _: &mut dyn Entity) {
         match self.state {
             EnvSparkState::Off => {
                 self.set_next_think_time();
