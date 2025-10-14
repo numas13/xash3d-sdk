@@ -2,6 +2,8 @@ use xash3d_ffi::common::vec3_t;
 
 use crate::consts::{PITCH, ROLL, YAW};
 
+// TODO: float trait and libstd support
+
 macro_rules! define {
     ($(fn $name:ident($($a:ident: $t:ty),* $(,)?) $(-> $r:ty)?;)*) => (
         $(

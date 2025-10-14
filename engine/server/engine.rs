@@ -344,6 +344,7 @@ impl TraceResult {
         self.raw.vecPlaneNormal
     }
 
+    // TODO: return Option if fraction is 1.0?
     pub fn hit_entity(&self) -> &edict_s {
         // SAFETY: the engine returns non-null pointer
         unsafe { &*self.raw.pHit }

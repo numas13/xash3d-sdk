@@ -1,14 +1,40 @@
 use core::ffi::CStr;
 
 use csz::{CStrSlice, CStrThin};
-use xash3d_shared::entity::EdictFlags;
 pub use xash3d_shared::utils::*;
+use xash3d_shared::{entity::EdictFlags, ffi::common::vec3_t};
 
 use crate::{
     engine::ServerEngine,
     entity::{Entity, GetPrivateData, ObjectCaps, UseType},
     str::MapString,
 };
+
+/// Used for view cone checking.
+#[derive(Copy, Clone, PartialEq)]
+pub struct ViewField(f32);
+
+impl ViewField {
+    /// +-180 degrees
+    pub const FULL: Self = Self(-1.0);
+    /// +-135 degrees
+    pub const WIDE: Self = Self(-0.7);
+    /// +-85 degrees
+    pub const FOV: Self = Self(0.09);
+    /// +-45 degrees
+    pub const NARROW: Self = Self(0.7);
+    /// +-25 degrees
+    pub const ULTRA_NARROW: Self = Self(0.9);
+
+    pub fn from_degress(degrees: f32) -> Self {
+        use xash3d_shared::math::cosf;
+        Self(cosf(degrees.to_radians()))
+    }
+
+    pub fn to_dot(self) -> f32 {
+        self.0
+    }
+}
 
 pub fn is_master_triggered(
     engine: &ServerEngine,
@@ -69,4 +95,32 @@ pub fn strip_token(key: &CStr, dest: &mut CStrSlice) -> Result<(), csz::CursorEr
         dest.clear();
         Ok(())
     }
+}
+
+pub fn clamp_vector_to_box(mut v: vec3_t, clamp_size: vec3_t) -> vec3_t {
+    if v.x > clamp_size.x {
+        v.x -= clamp_size.x;
+    } else if v.x < -clamp_size.x {
+        v.x += clamp_size.x;
+    } else {
+        v.x = 0.0;
+    }
+
+    if v.y > clamp_size.y {
+        v.y -= clamp_size.y;
+    } else if v.y < -clamp_size.y {
+        v.y += clamp_size.y;
+    } else {
+        v.y = 0.0;
+    }
+
+    if v.z > clamp_size.z {
+        v.z -= clamp_size.z;
+    } else if v.z < -clamp_size.z {
+        v.z += clamp_size.z;
+    } else {
+        v.z = 0.0;
+    }
+
+    v.normalize()
 }

@@ -254,6 +254,18 @@ bitflags! {
 }
 
 impl ObjectCaps {
+    pub fn is_continuous_use(&self) -> bool {
+        self.intersects(Self::CONTINUOUS_USE)
+    }
+
+    pub fn is_impulse_use(&self) -> bool {
+        self.intersects(Self::IMPULSE_USE)
+    }
+
+    pub fn is_on_off_use(&self) -> bool {
+        self.intersects(Self::ONOFF_USE)
+    }
+
     pub fn is_player_use(&self) -> bool {
         self.intersects(Self::IMPULSE_USE | Self::CONTINUOUS_USE | Self::ONOFF_USE)
     }
@@ -566,6 +578,10 @@ define_entity_trait! {
 
         #[allow(unused_variables)]
         fn set_geiger_range(&mut self, range: f32) {}
+
+        fn is_observer(&self) -> bool {
+            self.vars().iuser1() != 0
+        }
     }
 }
 
