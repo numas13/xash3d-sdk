@@ -1,4 +1,4 @@
-use core::{ffi::CStr, ptr};
+use core::{cell::Cell, ffi::CStr, ptr};
 
 use bitflags::bitflags;
 use xash3d_shared::ffi::common::vec3_t;
@@ -18,7 +18,7 @@ use crate::{
 #[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct Decal {
     base: BaseEntity,
-    state: u8,
+    state: Cell<u8>,
 }
 
 impl Decal {
@@ -28,7 +28,7 @@ impl Decal {
     const STATE_TRIGGER: u8 = 2;
     const STATE_REMOVE: u8 = 3;
 
-    fn static_decal(&mut self) {
+    fn static_decal(&self) {
         let engine = self.engine();
         let v = self.base.vars();
         let mut trace = engine.trace_line(
@@ -51,14 +51,17 @@ impl_entity_cast!(Decal);
 
 impl CreateEntity for Decal {
     fn create(base: BaseEntity) -> Self {
-        Self { base, state: 0 }
+        Self {
+            base,
+            state: Cell::new(0),
+        }
     }
 }
 
 impl Entity for Decal {
     delegate_entity!(base not { key_value, spawn, think, used });
 
-    fn key_value(&mut self, data: &mut KeyValue) {
+    fn key_value(&self, data: &mut KeyValue) {
         if data.key_name() == c"texture" {
             let engine = self.engine();
             if let Some(skin) = engine.decal_index(data.value()) {
@@ -72,7 +75,7 @@ impl Entity for Decal {
         }
     }
 
-    fn spawn(&mut self) {
+    fn spawn(&self) {
         let engine = self.engine();
         let v = self.base.vars();
         if v.skin() < 0
@@ -83,23 +86,23 @@ impl Entity for Decal {
         }
 
         if v.target_name().map_or(true, |s| s.is_empty()) {
-            self.state = Self::STATE_STATIC;
+            self.state.set(Self::STATE_STATIC);
             // spawn the decal as soon as the world is done spawning
             v.set_next_think_time_from_now(0.0);
         } else {
-            self.state = Self::STATE_TRIGGER;
+            self.state.set(Self::STATE_TRIGGER);
         }
     }
 
-    fn think(&mut self) {
-        match self.state {
+    fn think(&self) {
+        match self.state.get() {
             Self::STATE_STATIC => {
-                self.state = 0;
+                self.state.set(0);
                 self.static_decal();
                 self.remove_from_world();
             }
             Self::STATE_REMOVE => {
-                self.state = 0;
+                self.state.set(0);
                 self.remove_from_world();
             }
             _ => {}
@@ -107,13 +110,8 @@ impl Entity for Decal {
     }
 
     #[allow(unused_variables)]
-    fn used(
-        &mut self,
-        use_type: UseType,
-        activator: Option<&mut dyn Entity>,
-        caller: &mut dyn Entity,
-    ) {
-        if self.state != Self::STATE_TRIGGER {
+    fn used(&self, use_type: UseType, activator: Option<&dyn Entity>, caller: &dyn Entity) {
+        if self.state.get() != Self::STATE_TRIGGER {
             return;
         }
 
@@ -142,7 +140,7 @@ impl Entity for Decal {
         //     engine.msg_broadcast(&msg);
         // }
 
-        self.state = Self::STATE_REMOVE;
+        self.state.set(Self::STATE_REMOVE);
         self.vars().set_next_think_time_from_now(0.1);
     }
 }
@@ -190,7 +188,7 @@ impl_entity_cast!(World);
 impl Entity for World {
     delegate_entity!(base not { key_value, precache, spawn });
 
-    fn key_value(&mut self, data: &mut KeyValue) {
+    fn key_value(&self, data: &mut KeyValue) {
         let class_name = data.class_name();
         let key_name = data.key_name();
         let value = data.value();
@@ -199,7 +197,7 @@ impl Entity for World {
         data.set_handled(true);
     }
 
-    fn precache(&mut self) {
+    fn precache(&self) {
         let engine = self.engine();
         let global_state = self.global_state();
 
@@ -313,7 +311,7 @@ impl Entity for World {
         v.set_spawn_flags(spawn_flags.bits());
     }
 
-    fn spawn(&mut self) {
+    fn spawn(&self) {
         // TODO: global_game_over = false;
         self.precache();
     }

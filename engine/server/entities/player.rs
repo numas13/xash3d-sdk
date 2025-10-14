@@ -1,4 +1,4 @@
-use core::{ffi::c_int, ptr};
+use core::{cell::Cell, ffi::c_int, ptr};
 
 use xash3d_shared::{
     entity::{Buttons, EdictFlags, EntityIndex, MoveType},
@@ -18,58 +18,58 @@ use crate::{
 #[cfg(feature = "save")]
 use crate::save::{Restore, Save};
 
-#[derive(Copy, Clone, Debug, Default)]
+#[derive(Default)]
 #[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct Input {
-    buttons_last: Buttons,
-    buttons_pressed: Buttons,
-    buttons_released: Buttons,
+    buttons_last: Cell<Buttons>,
+    buttons_pressed: Cell<Buttons>,
+    buttons_released: Cell<Buttons>,
 }
 
 impl Input {
     pub fn is_changed(&self, buttons: Buttons) -> bool {
-        self.buttons_pressed
-            .union(self.buttons_released)
-            .contains(buttons)
+        self.pressed().union(self.released()).contains(buttons)
     }
 
     pub fn is_pressed(&self, buttons: Buttons) -> bool {
-        self.buttons_pressed.contains(buttons)
+        self.pressed().contains(buttons)
     }
 
     pub fn is_released(&self, buttons: Buttons) -> bool {
-        self.buttons_released.contains(buttons)
+        self.released().contains(buttons)
     }
 
     pub fn pressed(&self) -> Buttons {
-        self.buttons_pressed
+        self.buttons_pressed.get()
     }
 
     pub fn released(&self) -> Buttons {
-        self.buttons_released
+        self.buttons_released.get()
     }
 
-    pub fn pre_think(&mut self, vars: &EntityVars) {
+    pub fn pre_think(&self, vars: &EntityVars) {
         let buttons = vars.buttons();
-        let buttons_changed = self.buttons_last.symmetric_difference(buttons);
-        self.buttons_pressed = buttons_changed.intersection(buttons);
-        self.buttons_released = buttons_changed.difference(buttons);
+        let buttons_changed = self.buttons_last.get().symmetric_difference(buttons);
+        self.buttons_pressed
+            .set(buttons_changed.intersection(buttons));
+        self.buttons_released
+            .set(buttons_changed.difference(buttons));
     }
 
-    pub fn post_think(&mut self, vars: &EntityVars) {
-        self.buttons_last = vars.buttons();
+    pub fn post_think(&self, vars: &EntityVars) {
+        self.buttons_last.set(vars.buttons());
     }
 }
 
 struct UseTarget<'a> {
-    entity: &'a mut dyn Entity,
+    entity: &'a dyn Entity,
     use_type: UseType,
     // TODO: physics flags
     dot: f32,
 }
 
 impl<'a> UseTarget<'a> {
-    fn new(entity: &'a mut dyn Entity, use_type: UseType, dot: f32) -> Self {
+    fn new(entity: &'a dyn Entity, use_type: UseType, dot: f32) -> Self {
         Self {
             entity,
             use_type,
@@ -103,7 +103,7 @@ impl Player {
 
     fn new_use_target<'a>(
         &self,
-        target: &'a mut dyn Entity,
+        target: &'a dyn Entity,
         view_origin: vec3_t,
         forward: vec3_t,
     ) -> Option<UseTarget<'a>> {
@@ -135,7 +135,7 @@ impl Player {
         })
     }
 
-    fn player_use_target(&mut self, mut target: Option<UseTarget>) {
+    fn player_use_target(&self, mut target: Option<UseTarget>) {
         let engine = self.engine();
         let pv = self.base.vars();
 
@@ -187,14 +187,14 @@ impl Player {
         }
     }
 
-    pub fn player_use_with(&mut self, search_radius: f32, view_field: ViewField) {
+    pub fn player_use_with(&self, search_radius: f32, view_field: ViewField) {
         let engine = self.engine();
         let pv = self.base.vars();
         let view_origin = pv.origin() + pv.view_ofs();
         let forward = pv.view_angle().angle_vectors().forward();
         let closest = engine
             .find_entity_in_sphere_iter(None::<&edict_s>, pv.origin(), search_radius)
-            .filter_map(|mut i| unsafe { i.as_mut() }.get_entity_mut())
+            .filter_map(|i| unsafe { i.as_ref() }.get_entity())
             .filter_map(|i| self.new_use_target(i, view_origin, forward))
             .reduce(|a, b| if a.dot <= b.dot { b } else { a });
 
@@ -212,7 +212,7 @@ impl Player {
         }
     }
 
-    pub fn player_use(&mut self) {
+    pub fn player_use(&self) {
         self.player_use_with(Self::USE_SEARCH_RADIUS, Self::USE_VIEW_FIELD);
     }
 }
@@ -221,7 +221,7 @@ impl_entity_cast!(Player);
 
 #[cfg(feature = "save")]
 impl crate::save::OnRestore for Player {
-    fn on_restore(&mut self) {
+    fn on_restore(&self) {
         let engine = self.base.engine();
 
         // TODO:
@@ -260,7 +260,7 @@ impl Entity for Player {
             .difference(ObjectCaps::ACROSS_TRANSITION)
     }
 
-    fn spawn(&mut self) {
+    fn spawn(&self) {
         let engine = self.base.engine();
         let v = self.vars();
         v.set_classname(engine.try_alloc_map_string(c"player").unwrap());
@@ -321,11 +321,11 @@ impl EntityPlayer for Player {
         }
     }
 
-    fn pre_think(&mut self) {
+    fn pre_think(&self) {
         self.input.pre_think(self.base.vars());
     }
 
-    fn post_think(&mut self) {
+    fn post_think(&self) {
         self.input.post_think(self.base.vars());
     }
 }

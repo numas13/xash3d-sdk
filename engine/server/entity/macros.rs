@@ -50,10 +50,7 @@ pub use static_trait_cast;
 ///
 /// trait MyCast: EntityCast {
 ///     fn as_my_toggle(&self) -> Option<&dyn MyToggle>;
-///     fn as_my_toggle_mut(&mut self) -> Option<&mut dyn MyToggle>;
-///
 ///     fn as_my_monster(&self) -> Option<&dyn MyMonster>;
-///     fn as_my_monster_mut(&mut self) -> Option<&mut dyn MyMonster>;
 /// }
 ///
 /// macro_rules! impl_my_cast {
@@ -61,8 +58,8 @@ pub use static_trait_cast;
 ///         impl MyCast for $ty {
 ///             xash3d_server::entity::impl_cast!{
 ///                 $ty {
-///                     as_my_toggle, as_my_toggle_mut -> MyToggle;
-///                     as_my_monster, as_my_monster_mut -> MyMonster;
+///                     as_my_toggle -> MyToggle;
+///                     as_my_monster -> MyMonster;
 ///                 }
 ///             }
 ///         }
@@ -91,17 +88,12 @@ pub use static_trait_cast;
 #[macro_export]
 macro_rules! impl_cast {
     ($ty:ty {
-        $( $(#[$attr:meta])* $as_ref:ident, $as_mut:ident -> $to:path;)*
+        $( $(#[$attr:meta])* $as_ref:ident -> $to:path;)*
     }) => {
         $(
             $(#[$attr])*
             fn $as_ref(&self) -> Option<&dyn $to> {
                 $crate::entity::static_trait_cast!($ty, $to, self)
-            }
-
-            $(#[$attr])*
-            fn $as_mut(&mut self) -> Option<&mut dyn $to> {
-                $crate::entity::static_trait_cast!($ty, $to, self, mut)
             }
         )*
     };
@@ -131,7 +123,7 @@ macro_rules! impl_entity_cast {
     (cast $ty:ty) => {
         $crate::entity::impl_cast! {
             $ty {
-                as_player, as_player_mut -> $crate::entity::EntityPlayer;
+                as_player -> $crate::entity::EntityPlayer;
             }
         }
     };

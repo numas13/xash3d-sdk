@@ -1,4 +1,7 @@
-use core::cmp::min;
+use core::{
+    cell::{Cell, RefCell},
+    cmp::min,
+};
 
 use bitflags::bitflags;
 use xash3d_shared::{
@@ -307,28 +310,28 @@ bitflags! {
 pub struct AmbientGeneric {
     base: BaseEntity,
 
-    attenuation: Attenuation,
-    active: bool,
-    looping: bool,
-    remove_me: bool,
-    dpv: DynamicPitchVolume,
+    attenuation: Cell<Attenuation>,
+    active: Cell<bool>,
+    looping: Cell<bool>,
+    remove_me: Cell<bool>,
+    dpv: RefCell<DynamicPitchVolume>,
 }
 
 impl AmbientGeneric {
-    fn init_modulation_parms(&mut self) {
-        self.dpv.init(self.vars().health());
+    fn init_modulation_parms(&self) {
+        self.dpv.borrow_mut().init(self.vars().health());
     }
 
     fn spawn_flags(&self) -> AmbientSound {
         AmbientSound::from_bits_retain(self.vars().spawn_flags())
     }
 
-    fn play_sound(&mut self, sound_file: MapString) {
+    fn play_sound(&self, sound_file: MapString) {
         let engine = self.engine();
         let origin = self.vars().origin();
 
-        if self.looping {
-            self.active = true;
+        if self.looping.get() {
+            self.active.set(true);
         } else {
             // stop old sound
             engine
@@ -339,23 +342,24 @@ impl AmbientGeneric {
 
         engine
             .build_sound()
-            .volume(self.dpv.vol as f32 * 0.01)
-            .attenuation(self.attenuation)
-            .pitch(self.dpv.pitch)
+            .volume(self.dpv.borrow().vol as f32 * 0.01)
+            .attenuation(self.attenuation.get())
+            .pitch(self.dpv.borrow().pitch)
             .ambient_emit_dyn(sound_file, origin, self);
 
         self.init_modulation_parms();
         self.vars().set_next_think_time_from_now(0.1);
     }
 
-    fn change_pitch(&mut self, sound_file: MapString, value: f32) {
+    fn change_pitch(&self, sound_file: MapString, value: f32) {
+        let mut dpv = self.dpv.borrow_mut();
         let fraction = value.clamp(0.0, 1.0);
-        self.dpv.pitch = (fraction * 255.0) as i32;
+        dpv.pitch = (fraction * 255.0) as i32;
         self.engine()
             .build_sound()
             .volume(0.0)
             .flags(SoundFlags::CHANGE_PITCH)
-            .pitch(self.dpv.pitch)
+            .pitch(dpv.pitch)
             .ambient_emit_dyn(sound_file, self.vars().origin(), self);
     }
 }
@@ -367,11 +371,11 @@ impl CreateEntity for AmbientGeneric {
         Self {
             base,
 
-            attenuation: Attenuation::default(),
-            active: false,
-            looping: false,
-            remove_me: false,
-            dpv: DynamicPitchVolume::default(),
+            attenuation: Cell::new(Attenuation::default()),
+            active: Cell::new(false),
+            looping: Cell::new(false),
+            remove_me: Cell::new(false),
+            dpv: Default::default(),
         }
     }
 }
@@ -385,14 +389,14 @@ impl Entity for AmbientGeneric {
             .difference(ObjectCaps::ACROSS_TRANSITION)
     }
 
-    fn key_value(&mut self, data: &mut KeyValue) {
-        self.dpv.key_value(data);
+    fn key_value(&self, data: &mut KeyValue) {
+        self.dpv.borrow_mut().key_value(data);
         if !data.handled() {
             self.base.key_value(data);
         }
     }
 
-    fn precache(&mut self) {
+    fn precache(&self) {
         let engine = self.engine();
 
         if let Some(sample) = self.vars().message() {
@@ -405,19 +409,20 @@ impl Entity for AmbientGeneric {
         self.init_modulation_parms();
 
         let spawn_flags = self.spawn_flags();
-        if !spawn_flags.intersects(AmbientSound::START_SILENT) && self.looping {
-            self.active = true;
+        if !spawn_flags.intersects(AmbientSound::START_SILENT) && self.looping.get() {
+            self.active.set(true);
         }
 
         let v = self.base.vars();
-        if self.active {
+        let dpv = self.dpv.borrow();
+        if self.active.get() {
             if let Some(sample) = v.message() {
                 engine
                     .build_sound()
-                    .volume(self.dpv.vol as f32 * 0.01)
-                    .attenuation(self.attenuation)
+                    .volume(dpv.vol as f32 * 0.01)
+                    .attenuation(self.attenuation.get())
                     .flags(SoundFlags::SPAWNING)
-                    .pitch(self.dpv.pitch)
+                    .pitch(dpv.pitch)
                     .ambient_emit_dyn(sample, v.origin(), self);
                 self.vars()
                     .set_next_think_time_from_now(engine.globals.map_time_f32() + 0.1);
@@ -425,25 +430,26 @@ impl Entity for AmbientGeneric {
         }
     }
 
-    fn spawn(&mut self) {
+    fn spawn(&self) {
         let spawn_flags = self.spawn_flags();
-        if spawn_flags.intersects(AmbientSound::EVERYWHERE) {
-            self.attenuation = Attenuation::NONE;
+        let attn = if spawn_flags.intersects(AmbientSound::EVERYWHERE) {
+            Attenuation::NONE
         } else if spawn_flags.intersects(AmbientSound::SMALL_RADIUS) {
-            self.attenuation = Attenuation::IDLE;
+            Attenuation::IDLE
         } else if spawn_flags.intersects(AmbientSound::MEDIUM_RADIUS) {
-            self.attenuation = Attenuation::STATIC;
+            Attenuation::STATIC
         } else if spawn_flags.intersects(AmbientSound::LARGE_RADIUS) {
-            self.attenuation = Attenuation::NORM;
+            Attenuation::NORM
         } else {
-            self.attenuation = Attenuation::STATIC;
-        }
+            Attenuation::STATIC
+        };
+        self.attenuation.set(attn);
 
         let v = self.base.vars();
         if MapString::is_none_or_empty(v.message()) {
             let [x, y, z] = v.origin().into();
             error!("Empty ambient at {x}, {y}, {z}");
-            self.remove_me = true;
+            self.remove_me.set(true);
             v.set_next_think_time_from_now(0.1);
             return;
         };
@@ -452,18 +458,20 @@ impl Entity for AmbientGeneric {
         v.set_move_type(MoveType::None);
         v.stop_thinking();
 
-        self.active = false;
-        self.looping = !spawn_flags.intersects(AmbientSound::NOT_LOOPING);
+        self.active.set(false);
+        self.looping
+            .set(!spawn_flags.intersects(AmbientSound::NOT_LOOPING));
         self.precache();
     }
 
-    fn think(&mut self) {
-        if self.remove_me {
+    fn think(&self) {
+        if self.remove_me.get() {
             self.remove_from_world();
             return;
         }
 
-        if !self.dpv.is_active() {
+        let mut dpv = self.dpv.borrow_mut();
+        if !dpv.is_active() {
             return;
         }
 
@@ -471,31 +479,31 @@ impl Entity for AmbientGeneric {
         let Some(sample) = self.vars().message() else {
             return;
         };
-        let mut pitch = self.dpv.pitch;
-        let mut vol = self.dpv.vol;
+        let mut pitch = dpv.pitch;
+        let mut vol = dpv.vol;
         let mut flags = SoundFlags::NONE;
         let mut changed = false;
 
         // pitch envelope
-        if self.dpv.spinup != 0 || self.dpv.spindown != 0 {
-            let prev = self.dpv.pitchfrac >> 8;
+        if dpv.spinup != 0 || dpv.spindown != 0 {
+            let prev = dpv.pitchfrac >> 8;
 
-            if self.dpv.spinup > 0 {
-                self.dpv.pitchfrac += self.dpv.spinup;
-            } else if self.dpv.spindown > 0 {
-                self.dpv.pitchfrac -= self.dpv.spindown;
+            if dpv.spinup > 0 {
+                dpv.pitchfrac += dpv.spinup;
+            } else if dpv.spindown > 0 {
+                dpv.pitchfrac -= dpv.spindown;
             }
 
-            pitch = self.dpv.pitchfrac >> 8;
-            if pitch > self.dpv.pitchrun {
-                pitch = self.dpv.pitchrun;
+            pitch = dpv.pitchfrac >> 8;
+            if pitch > dpv.pitchrun {
+                pitch = dpv.pitchrun;
                 // done with ramp up
-                self.dpv.spinup = 0;
+                dpv.spinup = 0;
             }
 
-            if pitch < self.dpv.pitchstart {
+            if pitch < dpv.pitchstart {
                 // done with ramp down
-                self.dpv.spindown = 0;
+                dpv.spindown = 0;
 
                 engine
                     .build_sound()
@@ -506,31 +514,31 @@ impl Entity for AmbientGeneric {
             }
 
             pitch = pitch.clamp(1, 255);
-            self.dpv.pitch = pitch;
+            dpv.pitch = pitch;
 
             changed |= prev != pitch;
             flags.insert(SoundFlags::CHANGE_PITCH);
         }
 
         // amplitude envelope
-        if self.dpv.fadein != 0 || self.dpv.fadeout != 0 {
-            let prev = self.dpv.volfrac >> 8;
+        if dpv.fadein != 0 || dpv.fadeout != 0 {
+            let prev = dpv.volfrac >> 8;
 
-            if self.dpv.fadein > 0 {
-                self.dpv.volfrac += self.dpv.fadein;
-            } else if self.dpv.fadeout > 0 {
-                self.dpv.volfrac -= self.dpv.fadeout;
+            if dpv.fadein > 0 {
+                dpv.volfrac += dpv.fadein;
+            } else if dpv.fadeout > 0 {
+                dpv.volfrac -= dpv.fadeout;
             }
 
-            vol = self.dpv.volfrac >> 8;
+            vol = dpv.volfrac >> 8;
 
-            if vol > self.dpv.volrun {
-                vol = self.dpv.volrun;
-                self.dpv.fadein = 0; // done with ramp up
+            if vol > dpv.volrun {
+                vol = dpv.volrun;
+                dpv.fadein = 0; // done with ramp up
             }
 
-            if vol < self.dpv.volstart {
-                self.dpv.fadeout = 0; // done with ramp down
+            if vol < dpv.volstart {
+                dpv.fadeout = 0; // done with ramp down
 
                 engine
                     .build_sound()
@@ -541,61 +549,61 @@ impl Entity for AmbientGeneric {
             }
 
             vol = vol.clamp(1, 100);
-            self.dpv.vol = vol;
+            dpv.vol = vol;
 
             changed |= prev != vol;
             flags |= SoundFlags::CHANGE_VOL;
         }
 
         // pitch/amplitude LFO
-        if self.dpv.lfotype != 0 {
-            if self.dpv.lfofrac > 0x6fffffff {
-                self.dpv.lfofrac = 0;
+        if dpv.lfotype != 0 {
+            if dpv.lfofrac > 0x6fffffff {
+                dpv.lfofrac = 0;
             }
 
             // update lfo, lfofrac/255 makes a triangle wave 0-255
-            self.dpv.lfofrac += self.dpv.lforate;
-            let mut pos = self.dpv.lfofrac >> 8;
+            dpv.lfofrac += dpv.lforate;
+            let mut pos = dpv.lfofrac >> 8;
 
-            if self.dpv.lfofrac < 0 {
-                self.dpv.lfofrac = 0;
-                self.dpv.lforate = self.dpv.lforate.abs();
+            if dpv.lfofrac < 0 {
+                dpv.lfofrac = 0;
+                dpv.lforate = dpv.lforate.abs();
                 pos = 0;
             } else if pos > 255 {
                 pos = 255;
-                self.dpv.lfofrac = 255 << 8;
-                self.dpv.lforate = -self.dpv.lforate.abs();
+                dpv.lfofrac = 255 << 8;
+                dpv.lforate = -dpv.lforate.abs();
             }
 
-            match self.dpv.lfotype {
+            match dpv.lfotype {
                 LFO_SQUARE => {
                     if pos < 128 {
-                        self.dpv.lfomult = 255;
+                        dpv.lfomult = 255;
                     } else {
-                        self.dpv.lfomult = 0;
+                        dpv.lfomult = 0;
                     }
                 }
                 LFO_RANDOM => {
                     if pos == 255 {
-                        self.dpv.lfomult = engine.random_int(0, 255);
+                        dpv.lfomult = engine.random_int(0, 255);
                     }
                 }
                 _ => {
-                    self.dpv.lfomult = pos;
+                    dpv.lfomult = pos;
                 }
             }
 
-            if self.dpv.lfomodpitch != 0 {
+            if dpv.lfomodpitch != 0 {
                 let prev = pitch;
-                pitch += ((self.dpv.lfomult - 128) * self.dpv.lfomodpitch) / 100;
+                pitch += ((dpv.lfomult - 128) * dpv.lfomodpitch) / 100;
                 pitch = pitch.clamp(1, 255);
                 changed |= prev != pitch;
                 flags |= SoundFlags::CHANGE_PITCH;
             }
 
-            if self.dpv.lfomodvol != 0 {
+            if dpv.lfomodvol != 0 {
                 let prev = vol;
-                vol += ((self.dpv.lfomult - 128) * self.dpv.lfomodvol) / 100;
+                vol += ((dpv.lfomult - 128) * dpv.lfomodvol) / 100;
                 vol = vol.clamp(0, 100);
                 changed |= prev != vol;
                 flags |= SoundFlags::CHANGE_VOL;
@@ -610,7 +618,7 @@ impl Entity for AmbientGeneric {
             engine
                 .build_sound()
                 .volume(vol as f32 * 0.01)
-                .attenuation(self.attenuation)
+                .attenuation(self.attenuation.get())
                 .pitch(Pitch::from(pitch))
                 .ambient_emit_dyn(sample, self.vars().origin(), self);
         }
@@ -620,21 +628,16 @@ impl Entity for AmbientGeneric {
     }
 
     #[allow(unused_variables)]
-    fn used(
-        &mut self,
-        use_type: UseType,
-        activator: Option<&mut dyn Entity>,
-        caller: &mut dyn Entity,
-    ) {
+    fn used(&self, use_type: UseType, activator: Option<&dyn Entity>, caller: &dyn Entity) {
         let Some(sound_file) = self.vars().message() else {
             return;
         };
-        if !use_type.should_toggle(self.active) {
+        if !use_type.should_toggle(self.active.get()) {
             return;
         }
         let engine = self.engine();
 
-        if !self.active {
+        if !self.active.get() {
             self.play_sound(sound_file);
             return;
         }
@@ -646,36 +649,37 @@ impl Entity for AmbientGeneric {
             return;
         }
 
-        if self.dpv.cspinup != 0 {
+        let mut dpv = self.dpv.borrow_mut();
+        if dpv.cspinup != 0 {
             // each toggle causes incremental spinup to max pitch
-            if self.dpv.cspincount <= self.dpv.cspinup {
-                self.dpv.cspincount += 1;
+            if dpv.cspincount <= dpv.cspinup {
+                dpv.cspincount += 1;
 
-                let pitchinc = (255 - self.dpv.pitchstart) / self.dpv.cspinup;
+                let pitchinc = (255 - dpv.pitchstart) / dpv.cspinup;
 
-                self.dpv.spinup = self.dpv.spinupsav;
-                self.dpv.spindown = 0;
+                dpv.spinup = dpv.spinupsav;
+                dpv.spindown = 0;
 
-                self.dpv.pitchrun = (self.dpv.pitchstart + pitchinc * self.dpv.cspincount).min(255);
+                dpv.pitchrun = (dpv.pitchstart + pitchinc * dpv.cspincount).min(255);
 
                 self.vars().set_next_think_time_from_now(0.1);
             }
             return;
         }
 
-        self.active = false;
+        self.active.set(false);
 
         // HACK: this makes the code in precache work properly after a save/restore
         self.vars()
             .with_spawn_flags(|f| f | AmbientSound::START_SILENT.bits());
 
-        if self.dpv.spindownsav != 0 || self.dpv.fadeoutsav != 0 {
+        if dpv.spindownsav != 0 || dpv.fadeoutsav != 0 {
             // spin in down (or fade it) before shutoff if spindown is set
-            self.dpv.spindown = self.dpv.spindownsav;
-            self.dpv.spinup = 0;
+            dpv.spindown = dpv.spindownsav;
+            dpv.spinup = 0;
 
-            self.dpv.fadeout = self.dpv.fadeoutsav;
-            self.dpv.fadein = 0;
+            dpv.fadeout = dpv.fadeoutsav;
+            dpv.fadein = 0;
 
             self.vars().set_next_think_time_from_now(0.1);
             return;

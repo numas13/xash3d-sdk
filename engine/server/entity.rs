@@ -246,7 +246,6 @@ pub enum Gib {
 
 pub trait EntityCast: 'static {
     fn as_player(&self) -> Option<&dyn EntityPlayer>;
-    fn as_player_mut(&mut self) -> Option<&mut dyn EntityPlayer>;
 }
 
 #[cfg(feature = "save")]
@@ -265,8 +264,6 @@ define_entity_trait! {
     /// The base trait for all entities.
     pub trait Entity(delegate_entity): (EntitySaveRestore + EntityCast + AsEntityHandle) {
         fn private(&self) -> &::xash3d_server::entity::PrivateData;
-
-        fn private_mut(&mut self) -> &mut ::xash3d_server::entity::PrivateData;
 
         /// Returns a reference to the server engine.
         fn engine(&self) -> ::xash3d_server::engine::ServerEngineRef;
@@ -304,7 +301,7 @@ define_entity_trait! {
             ObjectCaps::ACROSS_TRANSITION
         }
 
-        fn make_dormant(&mut self) {
+        fn make_dormant(&self) {
             let v = self.vars();
             v.with_flags(|f| f | EdictFlags::DORMANT);
             v.set_solid(Solid::Not);
@@ -317,29 +314,29 @@ define_entity_trait! {
             self.vars().flags().intersects(EdictFlags::DORMANT)
         }
 
-        fn key_value(&mut self, data: &mut ::xash3d_server::entity::KeyValue) {
+        fn key_value(&self, data: &mut ::xash3d_server::entity::KeyValue) {
             data.set_handled(false);
         }
 
-        fn precache(&mut self) {}
+        fn precache(&self) {}
 
-        fn spawn(&mut self) {}
+        fn spawn(&self) {}
 
-        fn think(&mut self) {}
+        fn think(&self) {}
 
         #[allow(unused_variables)]
-        fn touched(&mut self, other: &mut dyn ::xash3d_server::entity::Entity) {}
+        fn touched(&self, other: &dyn ::xash3d_server::entity::Entity) {}
 
         #[allow(unused_variables)]
         fn used(
-            &mut self,
+            &self,
             use_type: ::xash3d_server::entity::UseType,
-            activator: Option<&mut dyn ::xash3d_server::entity::Entity>,
-            caller: &mut dyn ::xash3d_server::entity::Entity,
+            activator: Option<&dyn ::xash3d_server::entity::Entity>,
+            caller: &dyn ::xash3d_server::entity::Entity,
         ) {}
 
         #[allow(unused_variables)]
-        fn blocked(&mut self, other: &mut dyn ::xash3d_server::entity::Entity) {}
+        fn blocked(&self, other: &dyn ::xash3d_server::entity::Entity) {}
 
         #[allow(unused_variables)]
         fn is_triggered(&self, activator: &dyn ::xash3d_server::entity::Entity) -> bool {
@@ -348,7 +345,7 @@ define_entity_trait! {
 
         #[allow(unused_variables)]
         fn take_health(
-            &mut self,
+            &self,
             health: f32,
             damage_type: ::xash3d_server::entity::DamageFlags,
         ) -> bool {
@@ -365,7 +362,7 @@ define_entity_trait! {
 
         #[allow(unused_variables)]
         fn take_damage(
-            &mut self,
+            &self,
             damage: f32,
             damage_type: ::xash3d_server::entity::DamageFlags,
             inflictor: &::xash3d_server::entity::EntityVars,
@@ -388,8 +385,8 @@ define_entity_trait! {
 
         #[allow(unused_variables)]
         fn killed(
-            &mut self,
-            attacker: &mut ::xash3d_server::entity::EntityVars,
+            &self,
+            attacker: &::xash3d_server::entity::EntityVars,
             gib: ::xash3d_server::entity::Gib,
         ) {
             let v = self.vars();
@@ -398,11 +395,10 @@ define_entity_trait! {
             self.remove_from_world();
         }
 
-        fn override_reset(&mut self) {}
+        fn override_reset(&self) {}
 
-        fn set_object_collision_box(&mut self) {
-            let v = self.vars();
-            set_object_collision_box(unsafe { &mut *v.as_mut_ptr() });
+        fn set_object_collision_box(&self) {
+            set_object_collision_box(unsafe { &mut *self.vars().as_mut_ptr() });
         }
 
         fn intersects(&self, other: &dyn ::xash3d_server::entity::Entity) -> bool {
@@ -421,7 +417,7 @@ define_entity_trait! {
         }
 
         /// Removes this entity from the world.
-        fn remove_from_world(&mut self) {
+        fn remove_from_world(&self) {
             let v = self.vars();
 
             if v.flags().intersects(EdictFlags::KILLME) {
@@ -452,10 +448,6 @@ impl dyn Entity {
     pub fn downcast_ref<U: Entity + ?Sized + 'static>(&self) -> Option<&U> {
         self.private().downcast_ref::<U>()
     }
-
-    pub fn downcast_mut<U: Entity + ?Sized + 'static>(&mut self) -> Option<&mut U> {
-        self.private_mut().downcast_mut::<U>()
-    }
 }
 
 /// Base type for all entities.
@@ -467,7 +459,7 @@ pub struct BaseEntity {
 
 #[cfg(feature = "save")]
 impl save::OnRestore for BaseEntity {
-    fn on_restore(&mut self) {
+    fn on_restore(&self) {
         let v = self.vars();
         if let (true, Some(model)) = (v.model_index().is_some(), v.model_name()) {
             let mins = v.min_size();
@@ -488,11 +480,6 @@ impl Entity for BaseEntity {
         PrivateData::from_edict(edict).unwrap()
     }
 
-    fn private_mut(&mut self) -> &mut PrivateData {
-        let edict = unsafe { &mut *self.as_entity_handle() };
-        PrivateData::from_edict_mut(edict).unwrap()
-    }
-
     fn engine(&self) -> ServerEngineRef {
         self.vars().engine()
     }
@@ -510,12 +497,12 @@ define_entity_trait! {
     pub trait EntityPlayer(delegate_player): (Entity) {
         fn select_spawn_point(&self) -> *mut ::xash3d_server::ffi::server::edict_s;
 
-        fn pre_think(&mut self);
+        fn pre_think(&self);
 
-        fn post_think(&mut self);
+        fn post_think(&self);
 
         #[allow(unused_variables)]
-        fn set_geiger_range(&mut self, range: f32) {}
+        fn set_geiger_range(&self, range: f32) {}
 
         fn is_observer(&self) -> bool {
             self.vars().iuser1() != 0
@@ -699,7 +686,7 @@ impl Entity for StubEntity {
             .difference(ObjectCaps::ACROSS_TRANSITION)
     }
 
-    fn key_value(&mut self, data: &mut KeyValue) {
+    fn key_value(&self, data: &mut KeyValue) {
         self.base.key_value(data);
 
         if self.dump_key_value && !data.handled() {
@@ -710,7 +697,7 @@ impl Entity for StubEntity {
         }
     }
 
-    fn spawn(&mut self) {
+    fn spawn(&self) {
         let classname = self.classname();
         let name = self.vars().target_name();
         let target = self.vars().target();
@@ -723,7 +710,7 @@ impl Entity for StubEntity {
         v.reload_model();
     }
 
-    fn touched(&mut self, other: &mut dyn Entity) {
+    fn touched(&self, other: &dyn Entity) {
         let classname = self.classname();
         if let Some(name) = self.vars().target_name() {
             trace!("{classname}({name}) touched by {}", other.name());
@@ -732,12 +719,7 @@ impl Entity for StubEntity {
         }
     }
 
-    fn used(
-        &mut self,
-        use_type: UseType,
-        _activator: Option<&mut dyn Entity>,
-        caller: &mut dyn Entity,
-    ) {
+    fn used(&self, use_type: UseType, _activator: Option<&dyn Entity>, caller: &dyn Entity) {
         let classname = self.classname();
         if let Some(name) = self.vars().target_name() {
             trace!(
@@ -749,7 +731,7 @@ impl Entity for StubEntity {
         }
     }
 
-    fn blocked(&mut self, other: &mut dyn Entity) {
+    fn blocked(&self, other: &dyn Entity) {
         let classname = self.classname();
         if let Some(name) = self.vars().target_name() {
             trace!("{classname}({name}) blocked by {}", other.name());

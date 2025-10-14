@@ -36,7 +36,7 @@ pub trait GameRules: Any {
         true
     }
 
-    fn get_player_spawn_spot(&self, player: &mut dyn EntityPlayer) -> *mut edict_s {
+    fn get_player_spawn_spot(&self, player: &dyn EntityPlayer) -> *mut edict_s {
         let spawn_spot = player.select_spawn_point();
         let sev = unsafe { &(*spawn_spot).v };
         let pv = player.vars();

@@ -12,14 +12,13 @@ use xash3d_shared::ffi::server::edict_s;
 
 // A custom interface to entities.
 trait EntityCustom: Entity {
-    fn custom(&mut self);
+    fn custom(&self);
 }
 
 // A trait to cast entities to custom interfaces.
 #[allow(dead_code)]
 trait CustomEntityCast: EntityCast {
     fn as_custom(&self) -> Option<&dyn EntityCustom>;
-    fn as_custom_mut(&mut self) -> Option<&mut dyn EntityCustom>;
 }
 
 // A helper macro to auto-implement CustomEntityCast for an entity
@@ -28,7 +27,7 @@ macro_rules! impl_custom_entity_cast {
         impl $crate::CustomEntityCast for $ty {
             xash3d_server::entity::impl_cast! {
                 $ty {
-                    as_custom, as_custom_mut -> $crate::EntityCustom;
+                    as_custom -> $crate::EntityCustom;
                 }
             }
         }
@@ -52,7 +51,7 @@ impl_custom_entity_cast!(Player);
 
 // Implement EntityCustom for the Player type
 impl EntityCustom for Player {
-    fn custom(&mut self) {
+    fn custom(&self) {
         log::warn!("Player: custom method");
     }
 }
@@ -93,8 +92,8 @@ impl ServerDll for Dll {
 
     fn dispatch_touch(&self, touched: &mut edict_s, _other: &mut edict_s) {
         // call the custom method for player on touch
-        if let Some(touched) = touched.get_entity_mut() {
-            if let Some(touched) = touched.downcast_mut::<dyn EntityCustom>() {
+        if let Some(touched) = touched.get_entity() {
+            if let Some(touched) = touched.downcast_ref::<dyn EntityCustom>() {
                 touched.custom();
             }
         }

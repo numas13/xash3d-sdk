@@ -43,7 +43,7 @@ pub fn is_master_triggered(
 ) -> bool {
     engine
         .find_ent_by_targetname_iter(&master)
-        .filter_map(|mut ent| unsafe { ent.as_mut() }.get_entity_mut())
+        .filter_map(|ent| unsafe { ent.as_ref() }.get_entity())
         .find(|ent| ent.object_caps().intersects(ObjectCaps::MASTER))
         .map_or(true, |ent| ent.is_triggered(activator))
 }
@@ -51,16 +51,16 @@ pub fn is_master_triggered(
 pub fn fire_targets(
     target_name: &CStrThin,
     use_type: UseType,
-    mut activator: Option<&mut dyn Entity>,
-    caller: &mut dyn Entity,
+    activator: Option<&dyn Entity>,
+    caller: &dyn Entity,
 ) {
     let engine = caller.engine();
     trace!("Firing: ({target_name})");
-    for mut target in engine.find_ent_by_targetname_iter(target_name) {
-        if let Some(target) = unsafe { target.as_mut() }.get_entity_mut() {
+    for target in engine.find_ent_by_targetname_iter(target_name) {
+        if let Some(target) = unsafe { target.as_ref() }.get_entity() {
             if !target.vars().flags().intersects(EdictFlags::KILLME) {
                 trace!("Found: {}, firing ({target_name})", target.classname());
-                target.used(use_type, activator.as_deref_mut(), caller);
+                target.used(use_type, activator, caller);
             }
         }
     }
@@ -69,14 +69,14 @@ pub fn fire_targets(
 pub fn use_targets(
     kill_target: Option<MapString>,
     use_type: UseType,
-    activator: Option<&mut dyn Entity>,
-    caller: &mut dyn Entity,
+    activator: Option<&dyn Entity>,
+    caller: &dyn Entity,
 ) {
     if let Some(kill_target) = kill_target {
         let engine = caller.engine();
         trace!("KillTarget: {kill_target}");
-        for mut target in engine.find_ent_by_targetname_iter(&kill_target) {
-            if let Some(target) = unsafe { target.as_mut() }.get_entity_mut() {
+        for target in engine.find_ent_by_targetname_iter(&kill_target) {
+            if let Some(target) = unsafe { target.as_ref() }.get_entity() {
                 trace!("killing {}", target.classname());
                 target.remove_from_world();
             }

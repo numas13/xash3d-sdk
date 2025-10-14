@@ -1,4 +1,7 @@
-use core::ffi::CStr;
+use core::{
+    cell::{Cell, RefCell},
+    ffi::CStr,
+};
 
 use xash3d_hl_shared::user_message;
 use xash3d_server::{
@@ -68,22 +71,24 @@ impl Geiger {
     }
 }
 
+#[derive(Default, Save, Restore)]
+struct Flashlight {
+    /// Time until next battery draw/Recharge.
+    time: MapTime,
+    /// Flashlight battery draw.
+    battery: u8,
+}
+
 #[derive(Save, Restore)]
 pub struct TestPlayer {
     base: BasePlayer,
-    init_hud: bool,
-    game_hud_initialized: bool,
+    init_hud: Cell<bool>,
+    game_hud_initialized: Cell<bool>,
 
-    health: u8,
-    battery: i16,
-
-    /// Time until next battery draw/Recharge.
-    flashlight_time: MapTime,
-    /// Flashlight battery draw.
-    flashlight_battery: u8,
+    flashlight: RefCell<Flashlight>,
 
     #[save(skip)]
-    geiger: Geiger,
+    geiger: RefCell<Geiger>,
 }
 
 impl TestPlayer {
@@ -95,7 +100,7 @@ impl TestPlayer {
         self.vars().effects().intersects(Effects::DIMLIGHT)
     }
 
-    fn flashlight_turn_on(&mut self) {
+    fn flashlight_turn_on(&self) {
         let engine = self.engine();
         let global_state = self.global_state();
         if !global_state.game_rules().allow_flashlight() || !self.has_suit() {
@@ -107,12 +112,13 @@ impl TestPlayer {
             .channel_weapon()
             .emit_dyn(SOUND_FLASHLIGHT_ON, self);
         self.vars().with_effects(|f| f | Effects::DIMLIGHT);
-        let msg = user_message::Flashlight::new(true, self.flashlight_battery);
+        let mut flashlight = self.flashlight.borrow_mut();
+        let msg = user_message::Flashlight::new(true, flashlight.battery);
         engine.msg_one(self, &msg);
-        self.flashlight_time = engine.globals.map_time() + FLASH_DRAIN_TIME;
+        flashlight.time = engine.globals.map_time() + FLASH_DRAIN_TIME;
     }
 
-    fn flashlight_turn_off(&mut self) {
+    fn flashlight_turn_off(&self) {
         let engine = self.engine();
         engine
             .build_sound()
@@ -120,12 +126,13 @@ impl TestPlayer {
             .emit_dyn(SOUND_FLASHLIGHT_OFF, self);
         self.vars()
             .with_effects(|f| f.difference(Effects::DIMLIGHT));
-        let msg = user_message::Flashlight::new(false, self.flashlight_battery);
+        let mut flashlight = self.flashlight.borrow_mut();
+        let msg = user_message::Flashlight::new(false, flashlight.battery);
         engine.msg_one(self, &msg);
-        self.flashlight_time = engine.globals.map_time() + FLASH_CHARGE_TIME;
+        flashlight.time = engine.globals.map_time() + FLASH_CHARGE_TIME;
     }
 
-    fn impulse_commands(&mut self) {
+    fn impulse_commands(&self) {
         let v = self.vars();
         let impulse = v.impulse();
         v.set_impulse(0);
@@ -144,62 +151,63 @@ impl TestPlayer {
         }
     }
 
-    fn check_suit_update(&mut self) {
+    fn check_suit_update(&self) {
         if !self.has_suit() {
             return;
         }
 
-        self.geiger.update(self.base.vars());
+        self.geiger.borrow_mut().update(self.base.vars());
 
         // if self.global_state().game_rules().is_multiplayer() {
         //     return;
         // }
     }
 
-    fn client_update_data(&mut self) {
+    fn client_update_data(&self) {
         let engine = self.engine();
         let global_state = self.global_state();
         let time = engine.globals.map_time();
 
-        if self.init_hud {
-            self.init_hud = false;
+        if self.init_hud.get() {
+            self.init_hud.set(false);
             global_state.set_init_hud(false);
 
             engine.msg_one(self, &user_message::ResetHUD::default());
 
-            if !self.game_hud_initialized {
-                self.game_hud_initialized = true;
+            if !self.game_hud_initialized.get() {
+                self.game_hud_initialized.set(true);
                 engine.msg_one(self, &user_message::InitHUD::default());
             }
 
             utils::fire_targets(c"game_playerspawn".into(), UseType::Toggle, None, self);
 
-            let msg =
-                user_message::Flashlight::new(self.is_flashlight_on(), self.flashlight_battery);
+            let flashlight = self.flashlight.borrow();
+            let msg = user_message::Flashlight::new(self.is_flashlight_on(), flashlight.battery);
             engine.msg_one(self, &msg);
 
             engine.msg_one(self, &user_message::Geiger::default());
         }
 
         // update flashlight
-        if self.flashlight_time != 0.0 && self.flashlight_time <= time {
+        let mut flashlight = self.flashlight.borrow_mut();
+        if flashlight.time != 0.0 && flashlight.time <= time {
             if self.is_flashlight_on() {
-                if self.flashlight_battery != 0 {
-                    self.flashlight_time = time + FLASH_DRAIN_TIME;
-                    self.flashlight_battery -= 1;
-                    if self.flashlight_battery == 0 {
+                if flashlight.battery != 0 {
+                    flashlight.time = time + FLASH_DRAIN_TIME;
+                    flashlight.battery -= 1;
+                    if flashlight.battery == 0 {
                         self.flashlight_turn_off();
                     }
                 }
-            } else if self.flashlight_battery < 100 {
-                self.flashlight_time = time + FLASH_CHARGE_TIME;
-                self.flashlight_battery += 1;
+            } else if flashlight.battery < 100 {
+                flashlight.time = time + FLASH_CHARGE_TIME;
+                flashlight.battery += 1;
             } else {
-                self.flashlight_time = MapTime::ZERO;
+                flashlight.time = MapTime::ZERO;
             }
 
-            trace!("send flashlight battery {}%", self.flashlight_battery);
-            let msg = user_message::FlashBat::new(self.flashlight_battery);
+            trace!("send flashlight battery {}%", flashlight.battery);
+            let msg = user_message::FlashBat::new(flashlight.battery);
             self.engine().msg_one(self, &msg);
         }
     }
@@ -211,16 +219,15 @@ impl CreateEntity for TestPlayer {
     fn create(base: BaseEntity) -> Self {
         Self {
             base: BasePlayer::create(base),
-            init_hud: true,
-            game_hud_initialized: false,
+            init_hud: Cell::new(true),
+            game_hud_initialized: Cell::new(false),
 
-            health: 100,
-            battery: 0,
+            flashlight: RefCell::new(Flashlight {
+                time: MapTime::ZERO,
+                battery: 100,
+            }),
 
-            flashlight_time: MapTime::ZERO,
-            flashlight_battery: 100,
-
-            geiger: Geiger::default(),
+            geiger: Default::default(),
         }
     }
 }
@@ -228,29 +235,31 @@ impl CreateEntity for TestPlayer {
 impl Entity for TestPlayer {
     delegate_entity!(base not { precache, spawn, think });
 
-    fn precache(&mut self) {
+    fn precache(&self) {
         self.base.precache();
 
-        self.geiger.reset();
+        self.geiger.borrow_mut().reset();
 
         let engine = self.engine();
         engine.precache_sound(SOUND_FLASHLIGHT_ON);
         engine.precache_sound(SOUND_FLASHLIGHT_OFF);
 
         // force message after level change
-        self.flashlight_time = MapTime::from_secs_f32(1.0);
+        self.flashlight.borrow_mut().time = MapTime::from_secs_f32(1.0);
 
         if self.global_state().init_hud() {
-            self.init_hud = true;
+            self.init_hud.set(true);
         }
     }
 
-    fn spawn(&mut self) {
+    fn spawn(&self) {
         self.base.spawn();
         let engine = self.engine();
 
         // wait a few seconds until user-defined message registrations are recived by all clients
-        self.geiger.set_delay(engine.globals.map_time() + 2.0);
+        self.geiger
+            .borrow_mut()
+            .set_delay(engine.globals.map_time() + 2.0);
 
         // enable suit
         // TODO: move Weapons type to shared crate
@@ -260,42 +269,18 @@ impl Entity for TestPlayer {
 
         self.vars().set_next_think_time_from_now(0.1);
 
-        self.init_hud = true;
+        self.init_hud.set(true);
     }
 
-    fn think(&mut self) {
-        let engine = self.engine();
-
-        self.health -= 1;
-        engine.msg_one(
-            self,
-            &user_message::Health {
-                health: self.health,
-            },
-        );
-        if self.health == 0 {
-            self.health = 100;
-        }
-
-        self.battery += 1;
-        engine.msg_one(
-            self,
-            &user_message::Battery {
-                battery: self.battery,
-            },
-        );
-        if self.battery >= 100 {
-            self.battery = 0;
-        }
-
-        self.vars().set_next_think_time_from_now(0.1);
+    fn think(&self) {
+        // self.vars().set_next_think_time_from_now(0.1);
     }
 }
 
 impl EntityPlayer for TestPlayer {
     delegate_player!(base not { pre_think, post_think, set_geiger_range });
 
-    fn pre_think(&mut self) {
+    fn pre_think(&self) {
         self.base.pre_think();
 
         if self.base.check_player_use() {
@@ -307,13 +292,13 @@ impl EntityPlayer for TestPlayer {
         self.check_suit_update();
     }
 
-    fn post_think(&mut self) {
+    fn post_think(&self) {
         self.impulse_commands();
 
         self.base.post_think();
     }
 
-    fn set_geiger_range(&mut self, range: f32) {
-        self.geiger.set_range(range);
+    fn set_geiger_range(&self, range: f32) {
+        self.geiger.borrow_mut().set_range(range);
     }
 }

@@ -1,3 +1,5 @@
+use core::cell::Cell;
+
 use xash3d_shared::entity::MoveType;
 
 #[cfg(feature = "save")]
@@ -14,9 +16,9 @@ use crate::{
 pub struct NodeEntity {
     base: BaseEntity,
     #[cfg_attr(feature = "save", save(skip))]
-    hint_type: u16,
+    hint_type: Cell<u16>,
     #[cfg_attr(feature = "save", save(skip))]
-    hint_activity: u16,
+    hint_activity: Cell<u16>,
 }
 
 impl_entity_cast!(NodeEntity);
@@ -25,8 +27,8 @@ impl CreateEntity for NodeEntity {
     fn create(base: BaseEntity) -> Self {
         Self {
             base,
-            hint_type: 0,
-            hint_activity: 0,
+            hint_type: Cell::new(0),
+            hint_activity: Cell::new(0),
         }
     }
 }
@@ -40,17 +42,17 @@ impl Entity for NodeEntity {
             .difference(ObjectCaps::ACROSS_TRANSITION)
     }
 
-    fn key_value(&mut self, data: &mut KeyValue) {
+    fn key_value(&self, data: &mut KeyValue) {
         let value = data.value_str();
         match data.key_name().to_bytes() {
-            b"hinttype" => self.hint_type = value.parse().unwrap_or(0),
-            b"activity" => self.hint_activity = value.parse().unwrap_or(0),
+            b"hinttype" => self.hint_type.set(value.parse().unwrap_or(0)),
+            b"activity" => self.hint_activity.set(value.parse().unwrap_or(0)),
             _ => return self.base.key_value(data),
         }
         data.set_handled(true);
     }
 
-    fn spawn(&mut self) {
+    fn spawn(&self) {
         let v = self.vars();
         v.set_solid(Solid::Not);
         v.set_move_type(MoveType::None);

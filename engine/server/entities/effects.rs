@@ -1,3 +1,5 @@
+use core::cell::Cell;
+
 use xash3d_shared::entity::MoveType;
 
 #[cfg(feature = "save")]
@@ -12,15 +14,15 @@ use crate::{
 #[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct Glow {
     base: PointEntity,
-    last_time: MapTime,
-    max_frame: f32,
+    last_time: Cell<MapTime>,
+    max_frame: Cell<f32>,
 }
 
 impl Glow {
-    fn animate(&mut self, frames: f32) {
-        if self.max_frame > 0.0 {
+    fn animate(&self, frames: f32) {
+        if self.max_frame.get() > 0.0 {
             let v = self.base.vars();
-            v.set_frame((v.frame() + frames) % self.max_frame);
+            v.set_frame((v.frame() + frames) % self.max_frame.get());
         }
     }
 }
@@ -31,8 +33,8 @@ impl CreateEntity for Glow {
     fn create(base: BaseEntity) -> Self {
         Self {
             base: PointEntity::create(base),
-            last_time: MapTime::ZERO,
-            max_frame: 0.0,
+            last_time: Cell::new(MapTime::ZERO),
+            max_frame: Cell::new(0.0),
         }
     }
 }
@@ -40,7 +42,7 @@ impl CreateEntity for Glow {
 impl Entity for Glow {
     delegate_entity!(base not { spawn, think });
 
-    fn spawn(&mut self) {
+    fn spawn(&self) {
         let engine = self.engine();
         let v = self.base.vars();
 
@@ -51,21 +53,22 @@ impl Entity for Glow {
         v.reload_model_with_precache();
 
         let v = self.base.vars();
-        self.max_frame = (engine.model_frames(v.model_index_raw()) - 1) as f32;
-        if self.max_frame > 1.0 && v.framerate() != 0.0 {
+        self.max_frame
+            .set((engine.model_frames(v.model_index_raw()) - 1) as f32);
+        if self.max_frame.get() > 1.0 && v.framerate() != 0.0 {
             v.set_next_think_time_from_now(0.1);
         }
-        self.last_time = engine.globals.map_time();
+        self.last_time.set(engine.globals.map_time());
     }
 
-    fn think(&mut self) {
+    fn think(&self) {
         let engine = self.base.engine();
         let v = self.base.vars();
         let now = engine.globals.map_time();
-        self.animate(v.framerate() * now.duration_since(self.last_time).as_secs_f32());
+        self.animate(v.framerate() * now.duration_since(self.last_time.get()).as_secs_f32());
 
         self.vars().set_next_think_time_from_now(0.1);
-        self.last_time = engine.globals.map_time();
+        self.last_time.set(engine.globals.map_time());
     }
 }
 

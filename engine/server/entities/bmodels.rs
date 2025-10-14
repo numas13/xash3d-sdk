@@ -35,7 +35,7 @@ impl Entity for FuncWall {
             .difference(ObjectCaps::ACROSS_TRANSITION)
     }
 
-    fn spawn(&mut self) {
+    fn spawn(&self) {
         let v = self.vars();
         v.set_angles(vec3_t::ZERO);
         v.set_solid(Solid::Bsp);
@@ -44,7 +44,7 @@ impl Entity for FuncWall {
         v.reload_model();
     }
 
-    fn used(&mut self, use_type: UseType, _: Option<&mut dyn Entity>, _: &mut dyn Entity) {
+    fn used(&self, use_type: UseType, _: Option<&dyn Entity>, _: &dyn Entity) {
         let v = self.base.vars();
         if use_type.should_toggle(v.frame() != 0.0) {
             v.set_frame(1.0 - v.frame());

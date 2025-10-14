@@ -301,10 +301,6 @@ pub trait GetPrivateData: AsEntityHandle {
     fn downcast_ref<U: Entity + ?Sized>(&self) -> Option<&U> {
         self.get_private().and_then(|i| i.downcast_ref())
     }
-
-    fn downcast_mut<U: Entity + ?Sized>(&mut self) -> Option<&mut U> {
-        self.get_private_mut().and_then(|i| i.downcast_mut())
-    }
 }
 
 impl<T: AsEntityHandle> GetPrivateData for T {}

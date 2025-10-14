@@ -1,3 +1,5 @@
+use core::cell::{Cell, RefCell};
+
 use alloc::{ffi::CString, string::String, vec::Vec};
 use xash3d_shared::{entity::EntityIndex, sound::Attenuation};
 
@@ -25,7 +27,7 @@ pub trait RestoreField: Restore {
 }
 
 pub trait OnRestore {
-    fn on_restore(&mut self);
+    fn on_restore(&self);
 }
 
 macro_rules! impl_save_restore_for_num {
@@ -382,5 +384,29 @@ impl Restore for PositionVector {
             self.0 += offset;
         }
         Ok(())
+    }
+}
+
+impl<T: Save + Copy> Save for Cell<T> {
+    fn save(&self, state: &mut SaveState, cur: &mut CursorMut) -> SaveResult<()> {
+        self.get().save(state, cur)
+    }
+}
+
+impl<T: Restore> Restore for Cell<T> {
+    fn restore(&mut self, state: &RestoreState, cur: &mut Cursor) -> SaveResult<()> {
+        self.get_mut().restore(state, cur)
+    }
+}
+
+impl<T: Save> Save for RefCell<T> {
+    fn save(&self, state: &mut SaveState, cur: &mut CursorMut) -> SaveResult<()> {
+        self.borrow().save(state, cur)
+    }
+}
+
+impl<T: Restore> Restore for RefCell<T> {
+    fn restore(&mut self, state: &RestoreState, cur: &mut Cursor) -> SaveResult<()> {
+        self.borrow_mut().restore(state, cur)
     }
 }

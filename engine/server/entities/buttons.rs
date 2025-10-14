@@ -1,4 +1,4 @@
-use core::ffi::CStr;
+use core::{cell::Cell, ffi::CStr};
 
 use bitflags::bitflags;
 use xash3d_shared::ffi::common::vec3_t;
@@ -59,8 +59,8 @@ bitflags! {
 #[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct EnvSpark {
     base: BaseEntity,
-    delay: f32,
-    state: EnvSparkState,
+    delay: Cell<f32>,
+    state: Cell<EnvSparkState>,
 }
 
 impl EnvSpark {
@@ -68,9 +68,9 @@ impl EnvSpark {
         EnvSparkSpawnFlags::from_bits_retain(self.vars().spawn_flags())
     }
 
-    fn set_next_think_time(&mut self) {
+    fn set_next_think_time(&self) {
         let engine = self.engine();
-        let delay = engine.random_float(0.0, self.delay);
+        let delay = engine.random_float(0.0, self.delay.get());
         self.vars().set_next_think_time_from_now(0.1 + delay);
     }
 }
@@ -81,8 +81,8 @@ impl CreateEntity for EnvSpark {
     fn create(base: BaseEntity) -> Self {
         Self {
             base,
-            delay: 0.0,
-            state: EnvSparkState::Off,
+            delay: Cell::new(0.0),
+            state: Cell::new(EnvSparkState::Off),
         }
     }
 }
@@ -90,10 +90,10 @@ impl CreateEntity for EnvSpark {
 impl Entity for EnvSpark {
     delegate_entity!(base not { key_value, precache, spawn, think, used });
 
-    fn key_value(&mut self, data: &mut KeyValue) {
+    fn key_value(&self, data: &mut KeyValue) {
         let name = data.key_name();
         if name == c"MaxDelay" {
-            self.delay = data.value_str().parse().unwrap_or(0.0);
+            self.delay.set(data.value_str().parse().unwrap_or(0.0));
             data.set_handled(true);
         } else if name == c"style"
             || name == c"height"
@@ -108,36 +108,39 @@ impl Entity for EnvSpark {
         }
     }
 
-    fn precache(&mut self) {
+    fn precache(&self) {
         let engine = self.engine();
         for &i in SPARK_SOUNDS {
             engine.precache_sound(i);
         }
     }
 
-    fn spawn(&mut self) {
-        if self.delay <= 0.0 {
-            self.delay = 1.5;
+    fn spawn(&self) {
+        if self.delay.get() <= 0.0 {
+            self.delay.set(1.5);
         }
 
         let spawn_flags = self.spawn_flags();
         if spawn_flags.intersects(EnvSparkSpawnFlags::USE) {
             if spawn_flags.intersects(EnvSparkSpawnFlags::USE_START_ON) {
                 self.set_next_think_time();
-                self.state = EnvSparkState::On;
+                self.state.set(EnvSparkState::On);
             } else {
-                self.state = EnvSparkState::Off;
+                self.state.set(EnvSparkState::Off);
             }
         } else {
             self.set_next_think_time();
-            self.state = EnvSparkState::AlwaysOn;
+            self.state.set(EnvSparkState::AlwaysOn);
         }
 
         self.precache();
     }
 
-    fn think(&mut self) {
-        if matches!(self.state, EnvSparkState::On | EnvSparkState::AlwaysOn) {
+    fn think(&self) {
+        if matches!(
+            self.state.get(),
+            EnvSparkState::On | EnvSparkState::AlwaysOn
+        ) {
             self.set_next_think_time();
             let engine = self.engine();
             let v = self.vars();
@@ -145,14 +148,14 @@ impl Entity for EnvSpark {
         }
     }
 
-    fn used(&mut self, _: UseType, _: Option<&mut dyn Entity>, _: &mut dyn Entity) {
-        match self.state {
+    fn used(&self, _: UseType, _: Option<&dyn Entity>, _: &dyn Entity) {
+        match self.state.get() {
             EnvSparkState::Off => {
                 self.set_next_think_time();
-                self.state = EnvSparkState::On;
+                self.state.set(EnvSparkState::On);
             }
             EnvSparkState::On => {
-                self.state = EnvSparkState::Off;
+                self.state.set(EnvSparkState::Off);
             }
             _ => {}
         }

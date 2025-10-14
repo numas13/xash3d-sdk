@@ -1,5 +1,5 @@
-#[cfg(feature = "save")]
-use crate::save::{Restore, Save};
+use core::cell::Cell;
+
 use crate::{
     entity::{
         delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, EntityPlayer,
@@ -10,6 +10,9 @@ use crate::{
     str::MapString,
     utils,
 };
+
+#[cfg(feature = "save")]
+use crate::save::{Restore, Save};
 
 #[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct PointEntity {
@@ -33,7 +36,7 @@ impl Entity for PointEntity {
             .difference(ObjectCaps::ACROSS_TRANSITION)
     }
 
-    fn spawn(&mut self) {
+    fn spawn(&self) {
         let v = self.vars();
         v.set_solid(Solid::Not);
     }
@@ -57,7 +60,7 @@ impl CreateEntity for DeathMatchStart {
 impl Entity for DeathMatchStart {
     delegate_entity!(base not { key_value, is_triggered });
 
-    fn key_value(&mut self, data: &mut KeyValue) {
+    fn key_value(&self, data: &mut KeyValue) {
         if data.key_name() == c"master" {
             let engine = self.engine();
             self.vars()
@@ -100,7 +103,7 @@ impl DelayedUseEntity {
         target: Option<MapString>,
         use_type: UseType,
         kill_target: Option<MapString>,
-        activator: Option<&mut dyn Entity>,
+        activator: Option<&dyn Entity>,
     ) {
         if target.is_none() && kill_target.is_none() {
             return;
@@ -142,10 +145,10 @@ impl CreateEntity for DelayedUseEntity {
 impl Entity for DelayedUseEntity {
     delegate_entity!(base not { think });
 
-    fn think(&mut self) {
+    fn think(&self) {
         let mut activator = None;
-        if let Some(owner) = self.vars().owner().map(|mut e| unsafe { e.as_mut() }) {
-            activator = owner.get_entity_mut();
+        if let Some(owner) = self.vars().owner().map(|e| unsafe { e.as_ref() }) {
+            activator = owner.get_entity();
         }
         utils::use_targets(self.kill_target, self.use_type, activator, self);
         self.remove_from_world();
@@ -153,46 +156,46 @@ impl Entity for DelayedUseEntity {
 }
 
 #[cfg_attr(feature = "save", derive(Save, Restore))]
-#[derive(Copy, Clone)]
 pub struct DelayedUse {
     #[cfg_attr(feature = "save", save(skip))]
     engine: ServerEngineRef,
-    delay: f32,
-    kill_target: Option<MapString>,
+    delay: Cell<f32>,
+    kill_target: Cell<Option<MapString>>,
 }
 
 impl DelayedUse {
     pub fn new(engine: ServerEngineRef) -> Self {
         Self {
             engine,
-            delay: 0.0,
-            kill_target: None,
+            delay: Cell::new(0.0),
+            kill_target: Cell::new(None),
         }
     }
 
     pub fn delay(&self) -> f32 {
-        self.delay
+        self.delay.get()
     }
 
-    pub fn set_delay(&mut self, delay: f32) {
-        self.delay = delay;
+    pub fn set_delay(&self, delay: f32) {
+        self.delay.set(delay);
     }
 
     pub fn kill_target(&self) -> Option<MapString> {
-        self.kill_target
+        self.kill_target.get()
     }
 
-    pub fn set_kill_target(&mut self, kill_target: impl Into<Option<MapString>>) {
-        self.kill_target = kill_target.into();
+    pub fn set_kill_target(&self, kill_target: impl Into<Option<MapString>>) {
+        self.kill_target.set(kill_target.into());
     }
 
-    pub fn key_value(&mut self, data: &mut KeyValue) -> bool {
+    pub fn key_value(&self, data: &mut KeyValue) -> bool {
         if data.key_name() == c"delay" {
-            self.delay = data.value_str().parse().unwrap_or(0.0);
+            self.delay.set(data.value_str().parse().unwrap_or(0.0));
             data.set_handled(true);
             true
         } else if data.key_name() == c"killtarget" {
-            self.kill_target = Some(self.engine.new_map_string(data.value()));
+            self.kill_target
+                .set(Some(self.engine.new_map_string(data.value())));
             data.set_handled(true);
             true
         } else {
@@ -200,18 +203,18 @@ impl DelayedUse {
         }
     }
 
-    pub fn use_targets(self, use_type: UseType, caller: &mut dyn Entity) {
-        if self.delay != 0.0 {
+    pub fn use_targets(&self, use_type: UseType, caller: &dyn Entity) {
+        if self.delay.get() != 0.0 {
             DelayedUseEntity::spawn_new(
                 self.engine,
-                self.delay,
+                self.delay.get(),
                 caller.vars().target(),
                 use_type,
-                self.kill_target,
+                self.kill_target.get(),
                 Some(caller),
             );
         } else {
-            utils::use_targets(self.kill_target, use_type, None, caller);
+            utils::use_targets(self.kill_target.get(), use_type, None, caller);
         }
     }
 }

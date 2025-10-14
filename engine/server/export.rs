@@ -84,7 +84,7 @@ pub trait ServerDll: UnsyncGlobal {
         let engine = self.engine();
         let global_state = self.global_state();
 
-        let Some(ent) = ent.get_entity_mut() else {
+        let Some(ent) = ent.get_entity() else {
             return SpawnResult::Delete;
         };
 
@@ -121,7 +121,7 @@ pub trait ServerDll: UnsyncGlobal {
     }
 
     fn dispatch_think(&self, ent: &mut edict_s) {
-        if let Some(entity) = ent.get_entity_mut() {
+        if let Some(entity) = ent.get_entity() {
             if entity.vars().flags().intersects(EdictFlags::DORMANT) {
                 let classname = entity.classname();
                 warn!("Dormant entity {classname:?} is thinkng");
@@ -131,10 +131,10 @@ pub trait ServerDll: UnsyncGlobal {
     }
 
     fn dispatch_use(&self, used: &mut edict_s, other: &mut edict_s) {
-        let Some(used) = used.get_entity_mut() else {
+        let Some(used) = used.get_entity() else {
             return;
         };
-        let Some(other) = other.get_entity_mut() else {
+        let Some(other) = other.get_entity() else {
             error!("dispatch_use: other private data is null");
             return;
         };
@@ -147,10 +147,10 @@ pub trait ServerDll: UnsyncGlobal {
         if !self.is_touch_enabled() {
             return;
         }
-        let Some(touched) = touched.get_entity_mut() else {
+        let Some(touched) = touched.get_entity() else {
             return;
         };
-        let Some(other) = other.get_entity_mut() else {
+        let Some(other) = other.get_entity() else {
             error!("dispatch_touch: other private data is null");
             return;
         };
@@ -164,10 +164,10 @@ pub trait ServerDll: UnsyncGlobal {
     }
 
     fn dispatch_blocked(&self, blocked: &mut edict_s, other: &mut edict_s) {
-        let Some(blocked) = blocked.get_entity_mut() else {
+        let Some(blocked) = blocked.get_entity() else {
             return;
         };
-        let Some(other) = other.get_entity_mut() else {
+        let Some(other) = other.get_entity() else {
             error!("dispatch_blocked: other private data is null");
             return;
         };
@@ -182,7 +182,7 @@ pub trait ServerDll: UnsyncGlobal {
             return;
         }
 
-        if let Some(ent) = ent.get_entity_mut() {
+        if let Some(ent) = ent.get_entity() {
             ent.key_value(data);
         }
     }
@@ -361,7 +361,7 @@ pub trait ServerDll: UnsyncGlobal {
     }
 
     fn dispatch_object_collsion_box(&self, ent: &mut edict_s) {
-        match ent.get_entity_mut() {
+        match ent.get_entity() {
             Some(entity) => entity.set_object_collision_box(),
             None => crate::entity::set_object_collision_box(&mut ent.v),
         }
@@ -450,13 +450,13 @@ pub trait ServerDll: UnsyncGlobal {
     fn server_deactivate(&self) {}
 
     fn player_pre_think(&self, ent: &mut edict_s) {
-        if let Some(player) = ent.downcast_mut::<dyn EntityPlayer>() {
+        if let Some(player) = ent.downcast_ref::<dyn EntityPlayer>() {
             player.pre_think();
         }
     }
 
     fn player_post_think(&self, ent: &mut edict_s) {
-        if let Some(player) = ent.downcast_mut::<dyn EntityPlayer>() {
+        if let Some(player) = ent.downcast_ref::<dyn EntityPlayer>() {
             player.post_think();
         }
     }
