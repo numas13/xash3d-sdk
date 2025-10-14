@@ -634,6 +634,91 @@ impl Entity for TriggerVolume {
 }
 
 #[cfg_attr(feature = "save", derive(Save, Restore))]
+pub struct TriggerEndSection {
+    base: BaseEntity,
+    enable_used: bool,
+    enable_touched: bool,
+}
+
+impl TriggerEndSection {
+    const SF_USEONLY: u32 = 1;
+
+    fn end_section(&mut self, activator: &dyn Entity) {
+        // TODO: add is_net_client method to Entity/EntityPlayer???
+        if activator.downcast_ref::<dyn EntityPlayer>().is_none() {
+            return;
+        }
+        if let Some(message) = self.vars().message() {
+            self.engine().end_section_by_name(message);
+        }
+        self.remove_from_world();
+    }
+}
+
+impl_entity_cast!(TriggerEndSection);
+
+impl CreateEntity for TriggerEndSection {
+    fn create(base: BaseEntity) -> Self {
+        Self {
+            base,
+            enable_used: false,
+            enable_touched: false,
+        }
+    }
+}
+
+impl Entity for TriggerEndSection {
+    delegate_entity!(base not { object_caps, key_value, spawn, used, touched });
+
+    fn object_caps(&self) -> ObjectCaps {
+        self.base
+            .object_caps()
+            .difference(ObjectCaps::ACROSS_TRANSITION)
+    }
+
+    fn key_value(&mut self, data: &mut KeyValue) {
+        if data.key_name() == c"section" {
+            let engine = self.engine();
+            self.vars_mut()
+                .set_message(engine.new_map_string(data.value()));
+            data.set_handled(true);
+        } else {
+            self.base.key_value(data);
+        }
+    }
+
+    fn spawn(&mut self) {
+        let engine = self.engine();
+        let global_state = self.global_state();
+        let v = self.base.vars_mut();
+
+        if global_state.game_rules().is_deathmatch() {
+            v.delayed_remove();
+            return;
+        }
+
+        init_trigger(&engine, v);
+
+        self.enable_used = true;
+        self.enable_touched = v.spawn_flags() & Self::SF_USEONLY == 0;
+    }
+
+    fn used(&mut self, _: UseType, activator: Option<&mut dyn Entity>, caller: &mut dyn Entity) {
+        if self.enable_used {
+            self.enable_used = false;
+            self.end_section(activator.unwrap_or(caller));
+        }
+    }
+
+    fn touched(&mut self, other: &mut dyn Entity) {
+        if self.enable_touched {
+            self.enable_touched = false;
+            self.end_section(other);
+        }
+    }
+}
+
+#[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct ChangeLevel {
     base: BaseEntity,
     map_name: CStrArray<MAP_NAME_MAX>,
@@ -1104,6 +1189,11 @@ export_entity_default!(
     trigger_transition,
     TriggerVolume
 );
+export_entity_default!(
+    "export-trigger_endsection",
+    trigger_endsection,
+    TriggerEndSection
+);
 
 export_entity_stub!(env_render);
 export_entity_stub!(fireanddie);
@@ -1114,7 +1204,6 @@ export_entity_stub!(trigger_camera);
 export_entity_stub!(trigger_cdaudio);
 export_entity_stub!(trigger_changetarget);
 export_entity_stub!(trigger_counter);
-export_entity_stub!(trigger_endsection);
 export_entity_stub!(trigger_gravity);
 export_entity_stub!(trigger_monsterjump);
 export_entity_stub!(trigger_relay);

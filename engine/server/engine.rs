@@ -397,6 +397,27 @@ impl Drop for File {
     }
 }
 
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum EndSection {
+    #[default]
+    Logo,
+    Demo,
+    Training,
+    Credits,
+}
+
+impl EndSection {
+    pub fn as_c_str(&self) -> &CStr {
+        match self {
+            Self::Logo => c"_oem_end_logo",
+            Self::Demo => c"_oem_end_demo",
+            Self::Training => c"_oem_end_training",
+            Self::Credits => c"oem_end_credits",
+        }
+    }
+}
+
 pub struct ServerEngine {
     raw: enginefuncs_s,
     pub globals: ServerGlobals,
@@ -1219,7 +1240,15 @@ impl ServerEngine {
         unsafe { unwrap!(self, pfnFreeFile)(buffer.cast()) }
     }
 
-    // pub pfnEndSection: Option<unsafe extern "C" fn(pszSectionName: *const c_char)>,
+    pub fn end_section_by_name(&self, name: impl ToEngineStr) {
+        let name = name.to_engine_str();
+        unsafe { unwrap!(self, pfnEndSection)(name.as_ptr()) }
+    }
+
+    pub fn end_section(&self, section: EndSection) {
+        self.end_section_by_name(section.as_c_str());
+    }
+
     // pub pfnCompareFileTime: Option<
     //     unsafe extern "C" fn(
     //         filename1: *const c_char,
