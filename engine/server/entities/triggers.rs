@@ -1166,7 +1166,7 @@ impl Entity for MultiManager {
             self.enable_use = true;
         } else if let Some(target) = self.targets.get(self.index as usize) {
             let next_time = self.start_time + target.delay;
-            self.base.vars_mut().set_next_think_time_absolute(next_time);
+            self.base.vars_mut().set_next_think_time(next_time);
         }
     }
 }

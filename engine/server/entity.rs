@@ -120,62 +120,6 @@ pub trait AsEntityHandle: AsEntityHandleSealed {}
 
 impl<T: AsEntityHandleSealed> AsEntityHandle for T {}
 
-/// Used to get a reference to [edict_s].
-#[deprecated]
-pub trait AsEdict {
-    /// Converts this type into a shared reference to [edict_s].
-    #[deprecated]
-    fn as_edict(&self) -> &edict_s;
-
-    /// Converts this type into a mutable reference to [edict_s].
-    #[deprecated]
-    fn as_edict_mut(&mut self) -> &mut edict_s;
-}
-
-#[allow(deprecated)]
-impl AsEdict for edict_s {
-    fn as_edict(&self) -> &edict_s {
-        self
-    }
-
-    fn as_edict_mut(&mut self) -> &mut edict_s {
-        self
-    }
-}
-
-#[allow(deprecated)]
-impl AsEdict for entvars_s {
-    fn as_edict(&self) -> &edict_s {
-        unsafe { &*self.pContainingEntity }
-    }
-
-    fn as_edict_mut(&mut self) -> &mut edict_s {
-        unsafe { &mut *self.pContainingEntity }
-    }
-}
-
-#[allow(deprecated)]
-impl<T: Entity> AsEdict for T {
-    fn as_edict(&self) -> &edict_s {
-        self.vars().as_edict()
-    }
-
-    fn as_edict_mut(&mut self) -> &mut edict_s {
-        self.vars_mut().as_edict_mut()
-    }
-}
-
-#[allow(deprecated)]
-impl AsEdict for EntityVars {
-    fn as_edict(&self) -> &edict_s {
-        self.as_raw().as_edict()
-    }
-
-    fn as_edict_mut(&mut self) -> &mut edict_s {
-        self.as_raw_mut().as_edict_mut()
-    }
-}
-
 #[repr(transparent)]
 pub struct KeyValue {
     raw: KeyValueData,
