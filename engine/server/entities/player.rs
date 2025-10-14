@@ -135,7 +135,11 @@ impl Player {
         })
     }
 
-    fn player_use_target(&self, mut target: Option<UseTarget>) {
+    fn player_use_target(
+        &self,
+        mut target: Option<UseTarget>,
+        f: impl FnOnce(&dyn Entity, UseType),
+    ) {
         let engine = self.engine();
         let pv = self.base.vars();
 
@@ -183,11 +187,16 @@ impl Player {
             let name = i.entity.name();
             let use_type = i.use_type;
             trace!("player use target {classname}({name}) type {use_type:?}");
-            i.entity.used(use_type, None, self);
+            f(i.entity, i.use_type);
         }
     }
 
-    pub fn player_use_with(&self, search_radius: f32, view_field: ViewField) {
+    pub fn player_use_with_custom(
+        &self,
+        search_radius: f32,
+        view_field: ViewField,
+        f: impl FnOnce(&dyn Entity, UseType),
+    ) {
         let engine = self.engine();
         let pv = self.base.vars();
         let view_origin = pv.origin() + pv.view_ofs();
@@ -201,19 +210,29 @@ impl Player {
         if let Some(target) = closest {
             if view_field.to_dot() <= target.dot {
                 // a target is in the view cone
-                self.player_use_target(Some(target));
+                self.player_use_target(Some(target), f);
             } else {
                 // a target is not in the view cone
-                self.player_use_target(None);
+                self.player_use_target(None, f);
             }
         } else {
             // a target is not found
-            self.player_use_target(None);
+            self.player_use_target(None, f);
         }
     }
 
+    pub fn player_use_with(&self, search_radius: f32, view_field: ViewField) {
+        self.player_use_with_custom(search_radius, view_field, |target, use_type| {
+            target.used(use_type, None, self);
+        });
+    }
+
+    pub fn player_use_custom(&self, f: impl FnOnce(&dyn Entity, UseType)) {
+        self.player_use_with_custom(Self::USE_SEARCH_RADIUS, Self::USE_VIEW_FIELD, f);
+    }
+
     pub fn player_use(&self) {
-        self.player_use_with(Self::USE_SEARCH_RADIUS, Self::USE_VIEW_FIELD);
+        self.player_use_with(Self::USE_SEARCH_RADIUS, Self::USE_VIEW_FIELD)
     }
 }
 
