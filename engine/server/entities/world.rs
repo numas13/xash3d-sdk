@@ -62,7 +62,7 @@ impl Entity for Decal {
         if data.key_name() == c"texture" {
             let engine = self.engine();
             if let Some(skin) = engine.decal_index(data.value()) {
-                self.vars_mut().set_skin(skin.into());
+                self.vars().set_skin(skin.into());
                 data.set_handled(true);
             } else {
                 warn!("failed to find decal {}", data.value());
@@ -74,7 +74,7 @@ impl Entity for Decal {
 
     fn spawn(&mut self) {
         let engine = self.engine();
-        let v = self.base.vars_mut();
+        let v = self.base.vars();
         if v.skin() < 0
             || (engine.globals.is_deathmatch() && v.spawn_flags() & Self::SF_NOTINDEATHMATCH != 0)
         {
@@ -143,7 +143,7 @@ impl Entity for Decal {
         // }
 
         self.state = Self::STATE_REMOVE;
-        self.vars_mut().set_next_think_time_from_now(0.1);
+        self.vars().set_next_think_time_from_now(0.1);
     }
 }
 
@@ -292,7 +292,7 @@ impl Entity for World {
         // TODO: init decals
         // TODO: init world graph
 
-        let v = self.vars_mut();
+        let v = self.vars();
         let zmax = if v.speed() > 0.0 { v.speed() } else { 4096.0 };
         engine.set_cvar(c"sv_zmax", zmax);
         engine.set_cvar(c"sv_wateramp", v.scale());

@@ -41,7 +41,7 @@ impl Entity for Light {
                 self.style = data.value_str().parse().unwrap_or(0);
             }
             b"pitch" => {
-                let v = self.vars_mut();
+                let v = self.vars();
                 v.with_angles(|v| v.with_x(data.value_str().parse().unwrap_or(0.0)));
             }
             b"pattern" => {
@@ -56,7 +56,7 @@ impl Entity for Light {
     fn spawn(&mut self) {
         let engine = self.engine();
         if self.vars().target_name().is_none() {
-            self.vars_mut().delayed_remove();
+            self.vars().delayed_remove();
         } else if self.style >= 32 {
             if self.vars().spawn_flags() & Self::SF_START_OFF != 0 {
                 engine.light_style(self.style, c"a");
@@ -74,7 +74,7 @@ impl Entity for Light {
         }
 
         let engine = self.engine();
-        let v = self.base.vars_mut();
+        let v = self.base.vars();
         let is_start_off = v.spawn_flags() & Self::SF_START_OFF != 0;
         if !use_type.should_toggle(!is_start_off) {
             return;

@@ -39,7 +39,7 @@ impl Geiger {
         self.delay = delay;
     }
 
-    fn update(&mut self, player: &mut EntityVars) {
+    fn update(&mut self, player: &EntityVars) {
         const GEIGER_DELAY: f32 = 0.25;
 
         let engine = player.engine();
@@ -106,7 +106,7 @@ impl TestPlayer {
             .build_sound()
             .channel_weapon()
             .emit_dyn(SOUND_FLASHLIGHT_ON, self);
-        self.vars_mut().with_effects(|f| f | Effects::DIMLIGHT);
+        self.vars().with_effects(|f| f | Effects::DIMLIGHT);
         let msg = user_message::Flashlight::new(true, self.flashlight_battery);
         engine.msg_one(self, &msg);
         self.flashlight_time = engine.globals.map_time() + FLASH_DRAIN_TIME;
@@ -118,7 +118,7 @@ impl TestPlayer {
             .build_sound()
             .channel_weapon()
             .emit_dyn(SOUND_FLASHLIGHT_OFF, self);
-        self.vars_mut()
+        self.vars()
             .with_effects(|f| f.difference(Effects::DIMLIGHT));
         let msg = user_message::Flashlight::new(false, self.flashlight_battery);
         engine.msg_one(self, &msg);
@@ -126,7 +126,7 @@ impl TestPlayer {
     }
 
     fn impulse_commands(&mut self) {
-        let v = self.vars_mut();
+        let v = self.vars();
         let impulse = v.impulse();
         v.set_impulse(0);
         match impulse {
@@ -149,7 +149,7 @@ impl TestPlayer {
             return;
         }
 
-        self.geiger.update(self.base.vars_mut());
+        self.geiger.update(self.base.vars());
 
         // if self.global_state().game_rules().is_multiplayer() {
         //     return;
@@ -254,11 +254,11 @@ impl Entity for TestPlayer {
 
         // enable suit
         // TODO: move Weapons type to shared crate
-        self.vars_mut().with_weapons(|f| f | WEAPON_SUIT);
+        self.vars().with_weapons(|f| f | WEAPON_SUIT);
 
         self.precache();
 
-        self.vars_mut().set_next_think_time_from_now(0.1);
+        self.vars().set_next_think_time_from_now(0.1);
 
         self.init_hud = true;
     }
@@ -288,7 +288,7 @@ impl Entity for TestPlayer {
             self.battery = 0;
         }
 
-        self.vars_mut().set_next_think_time_from_now(0.1);
+        self.vars().set_next_think_time_from_now(0.1);
     }
 }
 

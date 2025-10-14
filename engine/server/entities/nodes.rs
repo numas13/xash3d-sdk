@@ -51,14 +51,14 @@ impl Entity for NodeEntity {
     }
 
     fn spawn(&mut self) {
-        let v = self.vars_mut();
+        let v = self.vars();
         v.set_solid(Solid::Not);
         v.set_move_type(MoveType::None);
 
         // TODO: add node entity to the world graph
         warn!("{}: spawn is not implemented", self.classname());
 
-        self.vars_mut().delayed_remove();
+        self.vars().delayed_remove();
     }
 }
 

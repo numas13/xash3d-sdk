@@ -88,7 +88,7 @@ pub trait ServerDll: UnsyncGlobal {
             return SpawnResult::Delete;
         };
 
-        let v = ent.vars_mut();
+        let v = ent.vars();
         v.set_abs_min(v.origin() - vec3_t::splat(1.0));
         v.set_abs_max(v.origin() + vec3_t::splat(1.0));
 
@@ -222,7 +222,7 @@ pub trait ServerDll: UnsyncGlobal {
             return;
         }
 
-        let v = entity.vars_mut();
+        let v = entity.vars();
         if v.move_type() == MoveType::Push {
             let delta = v.next_think_time() - v.last_think_time();
             v.set_last_think_time_from_now(0.0);
@@ -337,7 +337,7 @@ pub trait ServerDll: UnsyncGlobal {
 
         if global_entity {
             save_data.set_landmark_offset(old_offset);
-            engine.set_origin_and_link(entity.vars().origin(), entity.vars());
+            entity.vars().link();
             entity.override_reset();
             return RestoreResult::Ok;
         } else if let Some(globalname) = entity.globalname() {

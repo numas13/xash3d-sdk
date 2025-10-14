@@ -226,7 +226,7 @@ impl crate::save::OnRestore for Player {
 
         // TODO:
 
-        let v = self.vars_mut();
+        let v = self.vars();
         v.with_view_angle(|v| v.with_z(0.0));
         v.set_angles(v.view_angle());
         v.set_fix_angle(1);
@@ -262,7 +262,7 @@ impl Entity for Player {
 
     fn spawn(&mut self) {
         let engine = self.base.engine();
-        let v = self.vars_mut();
+        let v = self.vars();
         v.set_classname(engine.try_alloc_map_string(c"player").unwrap());
         v.set_health(100.0);
         v.set_armor_value(0.0);
@@ -288,7 +288,8 @@ impl Entity for Player {
 
         self.global_state().game_rules().get_player_spawn_spot(self);
 
-        engine.set_model(self, res::valve::models::PLAYER);
+        let v = self.vars();
+        v.set_model(res::valve::models::PLAYER);
     }
 }
 

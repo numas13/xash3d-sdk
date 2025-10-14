@@ -345,7 +345,7 @@ impl AmbientGeneric {
             .ambient_emit_dyn(sound_file, origin, self);
 
         self.init_modulation_parms();
-        self.vars_mut().set_next_think_time_from_now(0.1);
+        self.vars().set_next_think_time_from_now(0.1);
     }
 
     fn change_pitch(&mut self, sound_file: MapString, value: f32) {
@@ -419,7 +419,7 @@ impl Entity for AmbientGeneric {
                     .flags(SoundFlags::SPAWNING)
                     .pitch(self.dpv.pitch)
                     .ambient_emit_dyn(sample, v.origin(), self);
-                self.vars_mut()
+                self.vars()
                     .set_next_think_time_from_now(engine.globals.map_time_f32() + 0.1);
             }
         }
@@ -439,7 +439,7 @@ impl Entity for AmbientGeneric {
             self.attenuation = Attenuation::STATIC;
         }
 
-        let v = self.base.vars_mut();
+        let v = self.base.vars();
         if MapString::is_none_or_empty(v.message()) {
             let [x, y, z] = v.origin().into();
             error!("Empty ambient at {x}, {y}, {z}");
@@ -615,7 +615,7 @@ impl Entity for AmbientGeneric {
                 .ambient_emit_dyn(sample, self.vars().origin(), self);
         }
 
-        self.vars_mut()
+        self.vars()
             .set_next_think_time_from_now(engine.globals.map_time_f32() + 0.2);
     }
 
@@ -658,7 +658,7 @@ impl Entity for AmbientGeneric {
 
                 self.dpv.pitchrun = (self.dpv.pitchstart + pitchinc * self.dpv.cspincount).min(255);
 
-                self.vars_mut().set_next_think_time_from_now(0.1);
+                self.vars().set_next_think_time_from_now(0.1);
             }
             return;
         }
@@ -666,7 +666,7 @@ impl Entity for AmbientGeneric {
         self.active = false;
 
         // HACK: this makes the code in precache work properly after a save/restore
-        self.vars_mut()
+        self.vars()
             .with_spawn_flags(|f| f | AmbientSound::START_SILENT.bits());
 
         if self.dpv.spindownsav != 0 || self.dpv.fadeoutsav != 0 {
@@ -677,7 +677,7 @@ impl Entity for AmbientGeneric {
             self.dpv.fadeout = self.dpv.fadeoutsav;
             self.dpv.fadein = 0;
 
-            self.vars_mut().set_next_think_time_from_now(0.1);
+            self.vars().set_next_think_time_from_now(0.1);
             return;
         }
 

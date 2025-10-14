@@ -276,9 +276,6 @@ define_entity_trait! {
         /// Returns a shared reference to entity variables.
         fn vars(&self) -> &::xash3d_server::entity::EntityVars;
 
-        /// Returns a mutable reference to entity variables.
-        fn vars_mut(&mut self) -> &mut ::xash3d_server::entity::EntityVars;
-
         fn globalname(&self) -> Option<::xash3d_server::str::MapString> {
             self.vars().globalname()
         }
@@ -308,7 +305,7 @@ define_entity_trait! {
         }
 
         fn make_dormant(&mut self) {
-            let v = self.vars_mut();
+            let v = self.vars();
             v.with_flags(|f| f | EdictFlags::DORMANT);
             v.set_solid(Solid::Not);
             v.set_move_type(MoveType::None);
@@ -355,7 +352,7 @@ define_entity_trait! {
             health: f32,
             damage_type: ::xash3d_server::entity::DamageFlags,
         ) -> bool {
-            let v = self.vars_mut();
+            let v = self.vars();
             if v.take_damage() == TakeDamage::No {
                 return false;
             }
@@ -371,8 +368,8 @@ define_entity_trait! {
             &mut self,
             damage: f32,
             damage_type: ::xash3d_server::entity::DamageFlags,
-            inflictor: &mut ::xash3d_server::entity::EntityVars,
-            attacker: Option<&mut ::xash3d_server::entity::EntityVars>,
+            inflictor: &::xash3d_server::entity::EntityVars,
+            attacker: Option<&::xash3d_server::entity::EntityVars>,
         ) -> bool {
             let classname = self.classname();
             match (inflictor.classname(), attacker.and_then(|i| i.classname())) {
@@ -395,7 +392,7 @@ define_entity_trait! {
             attacker: &mut ::xash3d_server::entity::EntityVars,
             gib: ::xash3d_server::entity::Gib,
         ) {
-            let v = self.vars_mut();
+            let v = self.vars();
             v.set_take_damage(TakeDamage::No);
             v.set_dead(Dead::Yes);
             self.remove_from_world();
@@ -404,7 +401,7 @@ define_entity_trait! {
         fn override_reset(&mut self) {}
 
         fn set_object_collision_box(&mut self) {
-            let v = self.vars_mut();
+            let v = self.vars();
             set_object_collision_box(unsafe { &mut *v.as_mut_ptr() });
         }
 
@@ -425,12 +422,14 @@ define_entity_trait! {
 
         /// Removes this entity from the world.
         fn remove_from_world(&mut self) {
-            if self.vars().flags().intersects(EdictFlags::KILLME) {
+            let v = self.vars();
+
+            if v.flags().intersects(EdictFlags::KILLME) {
                 warn!("{}: trying to remove dead entity", self.classname());
                 return;
             }
 
-            if self.vars().flags().intersects(EdictFlags::GRAPHED) {
+            if v.flags().intersects(EdictFlags::GRAPHED) {
                 // TODO: remove from the world graph
                 warn!("Entity::update_on_remove(): remove from the world graph is not implemented");
             }
@@ -439,13 +438,12 @@ define_entity_trait! {
                 self.global_state().set_entity_state(globalname, EntityState::Dead);
             }
 
-            let v = self.vars_mut();
             if v.health() > 0.0 {
                 v.set_health(0.0);
                 warn!("Entity::remove_from_world(): called with health > 0");
             }
 
-            self.vars_mut().delayed_remove();
+            v.delayed_remove();
         }
     }
 }
@@ -505,10 +503,6 @@ impl Entity for BaseEntity {
 
     fn vars(&self) -> &EntityVars {
         &self.vars
-    }
-
-    fn vars_mut(&mut self) -> &mut EntityVars {
-        &mut self.vars
     }
 }
 
@@ -722,12 +716,11 @@ impl Entity for StubEntity {
         let target = self.vars().target();
         trace!("spawn {classname}({name:?}), target={target:?}");
 
-        let engine = self.engine();
-        let v = self.vars_mut();
+        let v = self.vars();
         v.set_move_dir_from_angles();
         v.set_solid(Solid::Trigger);
         v.set_move_type(MoveType::Push);
-        engine.reload_model(v.model_name(), v);
+        v.reload_model();
     }
 
     fn touched(&mut self, other: &mut dyn Entity) {

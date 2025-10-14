@@ -256,20 +256,20 @@ impl<'a, T: Entity> EntityBuilder<'a, T> {
 
     pub fn class_name(mut self, class_name: impl ToEngineStr) -> Self {
         let s = self.engine.new_map_string(class_name);
-        self.entity.vars_mut().set_classname(s);
+        self.entity.vars().set_classname(s);
         self.class_name = Some(s);
         self
     }
 
     pub fn target_name(self, target_name: impl ToEngineStr) -> Self {
         let s = self.engine.new_map_string(target_name);
-        self.entity.vars_mut().set_target_name(s);
+        self.entity.vars().set_target_name(s);
         self
     }
 
     pub fn target(self, target: impl ToEngineStr) -> Self {
         let s = self.engine.new_map_string(target);
-        self.entity.vars_mut().set_target(s);
+        self.entity.vars().set_target(s);
         self
     }
 
@@ -289,8 +289,8 @@ impl<'a, T: Entity> EntityBuilder<'a, T> {
         self
     }
 
-    pub fn vars(self, mut f: impl FnMut(&mut EntityVars)) -> Self {
-        f(self.entity.vars_mut());
+    pub fn vars(self, mut f: impl FnMut(&EntityVars)) -> Self {
+        f(self.entity.vars());
         self
     }
 
@@ -479,6 +479,7 @@ impl ServerEngine {
         self.set_model(ent, model.as_ref());
     }
 
+    #[deprecated(note = "use vars().reload_model() instead")]
     pub fn reload_model<T>(&self, model: Option<T>, ent: &impl AsEntityHandle)
     where
         T: ToEngineStr,
@@ -488,6 +489,7 @@ impl ServerEngine {
         }
     }
 
+    #[deprecated(note = "use vars().reload_model_with_precache() instead")]
     pub fn reload_model_with_precache<T>(&self, model: Option<T>, ent: &impl AsEntityHandle)
     where
         T: ToEngineStr,
@@ -722,11 +724,6 @@ impl ServerEngine {
     // pub pfnDropToFloor: Option<unsafe extern "C" fn(e: *mut edict_t) -> c_int>,
     // pub pfnWalkMove:
     //     Option<unsafe extern "C" fn(ent: *mut edict_t, yaw: f32, dist: f32, iMode: c_int) -> c_int>,
-
-    #[deprecated(note = "use set_origin_and_link")]
-    pub fn set_origin(&self, origin: vec3_t, ent: &impl AsEntityHandle) {
-        self.set_origin_and_link(origin, ent);
-    }
 
     /// Links the entity to the world at specified position.
     pub fn set_origin_and_link(&self, origin: vec3_t, ent: &impl AsEntityHandle) {

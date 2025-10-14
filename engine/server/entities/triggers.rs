@@ -89,7 +89,7 @@ impl Entity for AutoTrigger {
     }
 
     fn precache(&mut self) {
-        self.vars_mut().set_next_think_time_from_now(0.1);
+        self.vars().set_next_think_time_from_now(0.1);
     }
 
     fn spawn(&mut self) {
@@ -123,13 +123,13 @@ bitflags! {
     }
 }
 
-fn init_trigger(engine: &ServerEngine, v: &mut EntityVars) {
+fn init_trigger(engine: &ServerEngine, v: &EntityVars) {
     if v.angles() != vec3_t::ZERO {
         v.set_move_dir_from_angles();
     }
     v.set_solid(Solid::Trigger);
     v.set_move_type(MoveType::None);
-    engine.reload_model(v.model_name(), v);
+    v.reload_model();
     if !engine.get_cvar::<bool>(c"showtriggers") {
         v.with_effects(|f| f | Effects::NODRAW);
     }
@@ -137,7 +137,7 @@ fn init_trigger(engine: &ServerEngine, v: &mut EntityVars) {
 
 fn toggle_use(ent: &mut impl Entity) {
     let engine = ent.engine();
-    let v = ent.vars_mut();
+    let v = ent.vars();
     match v.solid() {
         Solid::Not => {
             v.set_solid(Solid::Trigger);
@@ -147,7 +147,7 @@ fn toggle_use(ent: &mut impl Entity) {
             v.set_solid(Solid::Not);
         }
     }
-    engine.set_origin_and_link(v.origin(), ent);
+    v.link();
 }
 
 #[cfg_attr(feature = "save", derive(Save, Restore))]
@@ -175,14 +175,14 @@ impl TriggerMultiple {
             }
         }
 
-        let v = self.base.vars_mut();
+        let v = self.base.vars();
         if let Some(noise) = v.noise() {
             engine.build_sound().channel_voice().emit(noise, self);
         }
 
         self.delayed.use_targets(UseType::Toggle, self);
 
-        let v = self.base.vars_mut();
+        let v = self.base.vars();
         if let Some(_message) = v.message() {
             // TODO: need HudText user message defined in xash3d-hl-shared =\
             warn!(
@@ -241,7 +241,7 @@ impl Entity for TriggerMultiple {
     }
 
     fn spawn(&mut self) {
-        init_trigger(&self.engine(), self.vars_mut());
+        init_trigger(&self.engine(), self.vars());
     }
 
     fn touched(&mut self, other: &mut dyn Entity) {
@@ -324,7 +324,7 @@ impl Entity for TriggerPush {
 
     fn spawn(&mut self) {
         let engine = self.base.engine();
-        let v = self.base.vars_mut();
+        let v = self.base.vars();
 
         if v.angles() == vec3_t::ZERO {
             v.with_angles(|v| v.with_y(360.0));
@@ -340,7 +340,7 @@ impl Entity for TriggerPush {
             v.set_solid(Solid::Not);
         }
 
-        engine.set_origin_and_link(v.origin(), v);
+        v.link();
     }
 
     fn used(&mut self, _: UseType, _: Option<&mut dyn Entity>, _: &mut dyn Entity) {
@@ -348,7 +348,7 @@ impl Entity for TriggerPush {
     }
 
     fn touched(&mut self, other: &mut dyn Entity) {
-        let other_v = other.vars_mut();
+        let other_v = other.vars();
         if let MoveType::None | MoveType::Push | MoveType::NoClip | MoveType::Follow =
             other_v.move_type()
         {
@@ -446,7 +446,7 @@ impl Entity for TriggerHurt {
     fn spawn(&mut self) {
         let spawn_flags = self.spawn_flags();
         let engine = self.base.engine();
-        let v = self.base.vars_mut();
+        let v = self.base.vars();
         init_trigger(&engine, v);
 
         if self.damage_type.intersects(DamageFlags::RADIATION) {
@@ -457,7 +457,7 @@ impl Entity for TriggerHurt {
             v.set_solid(Solid::Not);
         }
 
-        engine.set_origin_and_link(v.origin(), v);
+        v.link();
     }
 
     fn used(&mut self, _: UseType, _: Option<&mut dyn Entity>, _: &mut dyn Entity) {
@@ -480,7 +480,7 @@ impl Entity for TriggerHurt {
             return;
         }
 
-        let v = self.base.vars_mut();
+        let v = self.base.vars();
         let now = engine.globals.map_time();
         let is_multiplayer = global_state.game_rules().is_multiplayer();
         if is_multiplayer {
@@ -511,7 +511,7 @@ impl Entity for TriggerHurt {
             }
             self.delayed.use_targets(UseType::Toggle, self);
             if spawn_flags.intersects(TriggerHurtSpawnFlags::TARGET_ONCE) {
-                self.vars_mut().set_target(None);
+                self.vars().set_target(None);
             }
         }
     }
@@ -522,7 +522,7 @@ impl Entity for TriggerHurt {
         }
 
         let engine = self.base.engine();
-        let v = self.base.vars_mut();
+        let v = self.base.vars();
 
         // set origin to center of trigger so that this check works
         let orig_origin = v.origin();
@@ -539,12 +539,12 @@ impl Entity for TriggerHurt {
 
         if let Some(player) = player.and_then(|i| i.downcast_mut::<dyn EntityPlayer>()) {
             let spot1 = v.abs_center();
-            let spot2 = player.vars_mut().abs_center();
+            let spot2 = player.vars().abs_center();
             let range = (spot1 - spot2).length();
             player.set_geiger_range(range);
         }
 
-        self.vars_mut().set_next_think_time_from_now(0.25);
+        v.set_next_think_time_from_now(0.25);
     }
 }
 
@@ -586,7 +586,7 @@ impl Entity for TriggerSave {
             return;
         }
 
-        init_trigger(&self.engine(), self.vars_mut());
+        init_trigger(&self.engine(), self.vars());
     }
 
     fn touched(&mut self, other: &mut dyn Entity) {
@@ -624,11 +624,10 @@ impl Entity for TriggerVolume {
     delegate_entity!(base not { spawn });
 
     fn spawn(&mut self) {
-        let engine = self.engine();
-        let v = self.vars_mut();
+        let v = self.vars();
         v.set_solid(Solid::Not);
         v.set_move_type(MoveType::None);
-        engine.reload_model(v.model_name(), v);
+        v.reload_model();
         v.remove_model();
     }
 }
@@ -679,8 +678,7 @@ impl Entity for TriggerEndSection {
     fn key_value(&mut self, data: &mut KeyValue) {
         if data.key_name() == c"section" {
             let engine = self.engine();
-            self.vars_mut()
-                .set_message(engine.new_map_string(data.value()));
+            self.vars().set_message(engine.new_map_string(data.value()));
             data.set_handled(true);
         } else {
             self.base.key_value(data);
@@ -690,7 +688,7 @@ impl Entity for TriggerEndSection {
     fn spawn(&mut self) {
         let engine = self.engine();
         let global_state = self.global_state();
-        let v = self.base.vars_mut();
+        let v = self.base.vars();
 
         if global_state.game_rules().is_deathmatch() {
             v.delayed_remove();
@@ -740,7 +738,7 @@ impl ChangeLevel {
             return;
         }
 
-        let v = self.base.vars_mut();
+        let v = self.base.vars();
         let now = engine.globals.map_time();
         if now == v.damage_time() {
             return;
@@ -824,7 +822,7 @@ impl Entity for ChangeLevel {
             // TODO: use target name
         }
 
-        init_trigger(&self.engine(), self.vars_mut());
+        init_trigger(&self.engine(), self.vars());
 
         if self.vars().spawn_flags() & Self::SF_USE_ONLY != 0 {
             // TODO: set touch
@@ -1039,9 +1037,9 @@ impl MultiManager {
         let multi = engine.new_entity::<Private<Self>>().build();
         let edict = multi.vars().containing_entity();
         unsafe {
-            ptr::copy_nonoverlapping(self.vars().as_ptr(), multi.vars_mut().as_mut_ptr(), 1);
+            ptr::copy_nonoverlapping(self.vars().as_ptr(), multi.vars().as_mut_ptr(), 1);
         }
-        let v = multi.vars_mut();
+        let v = multi.vars();
         v.set_containing_entity(edict.map(|e| unsafe { e.as_ref() }));
         v.with_spawn_flags(|f| f | MultiManagerSpawnFlags::CLONE.bits());
         multi.targets = self.targets.clone();
@@ -1096,7 +1094,7 @@ impl Entity for MultiManager {
     }
 
     fn spawn(&mut self) {
-        self.vars_mut().set_solid(Solid::Not);
+        self.vars().set_solid(Solid::Not);
         self.targets
             .sort_by(|a, b| a.delay.partial_cmp(&b.delay).unwrap());
         self.enable_use = true;
@@ -1124,7 +1122,7 @@ impl Entity for MultiManager {
         self.start_time = engine.globals.map_time();
         self.enable_use = false;
         self.enable_think = true;
-        self.vars_mut().set_next_think_time_from_now(0.0);
+        self.vars().set_next_think_time_from_now(0.0);
     }
 
     fn think(&mut self) {
@@ -1166,7 +1164,7 @@ impl Entity for MultiManager {
             self.enable_use = true;
         } else if let Some(target) = self.targets.get(self.index as usize) {
             let next_time = self.start_time + target.delay;
-            self.base.vars_mut().set_next_think_time(next_time);
+            self.base.vars().set_next_think_time(next_time);
         }
     }
 }

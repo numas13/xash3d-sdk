@@ -50,17 +50,16 @@ impl Entity for FrictionModifier {
     }
 
     fn spawn(&mut self) {
-        let engine = self.engine();
-        let v = self.vars_mut();
+        let v = self.vars();
         v.set_solid(Solid::Trigger);
         v.set_move_type(MoveType::None);
-        engine.reload_model(v.model_name(), v);
+        v.reload_model();
     }
 
     fn touched(&mut self, other: &mut dyn Entity) {
         match other.vars().move_type() {
             MoveType::Bounce | MoveType::BounceMissile => {}
-            _ => other.vars_mut().set_friction(self.friction),
+            _ => other.vars().set_friction(self.friction),
         }
     }
 }
@@ -88,15 +87,14 @@ impl Entity for Ladder {
     }
 
     fn spawn(&mut self) {
-        let engine = self.engine();
-        let v = self.base.vars_mut();
+        let v = self.base.vars();
         v.set_skin(ffi::common::CONTENTS_LADDER);
         v.set_solid(Solid::Not);
         v.set_move_type(MoveType::Push);
         v.set_render_mode(RenderMode::TransTexture);
         v.set_render_amount(0.0);
         v.with_effects(|f| f.difference(Effects::NODRAW));
-        engine.reload_model(v.model_name(), v);
+        v.reload_model();
     }
 }
 

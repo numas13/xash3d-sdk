@@ -34,7 +34,7 @@ impl Entity for PointEntity {
     }
 
     fn spawn(&mut self) {
-        let v = self.vars_mut();
+        let v = self.vars();
         v.set_solid(Solid::Not);
     }
 }
@@ -60,8 +60,8 @@ impl Entity for DeathMatchStart {
     fn key_value(&mut self, data: &mut KeyValue) {
         if data.key_name() == c"master" {
             let engine = self.engine();
-            let v = self.vars_mut();
-            v.set_net_name(engine.new_map_string(data.value()));
+            self.vars()
+                .set_net_name(engine.new_map_string(data.value()));
             data.set_handled(true);
         } else {
             self.base.key_value(data);
@@ -121,7 +121,7 @@ impl DelayedUseEntity {
 
         if let Some(activator) = activator {
             if activator.downcast_ref::<dyn EntityPlayer>().is_some() {
-                temp.vars_mut().set_owner(&activator);
+                temp.vars().set_owner(&activator);
             }
         }
     }
