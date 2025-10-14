@@ -9,7 +9,7 @@ use crate::{
     engine::ServerEngineRef,
     entity::{
         delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, EntityVars, KeyValue,
-        UseType,
+        ObjectCaps, StubEntity, TakeDamage, UseType,
     },
     export::{export_entity_default, export_entity_stub},
     prelude::*,
@@ -160,6 +160,36 @@ impl Entity for EnvSpark {
     }
 }
 
+#[cfg_attr(feature = "save", derive(Save, Restore))]
+pub struct Button {
+    base: StubEntity,
+}
+
+impl_entity_cast!(Button);
+
+impl CreateEntity for Button {
+    fn create(base: BaseEntity) -> Self {
+        Self {
+            base: StubEntity::new(base, false),
+        }
+    }
+}
+
+impl Entity for Button {
+    delegate_entity!(base not { object_caps });
+
+    fn object_caps(&self) -> ObjectCaps {
+        self.base
+            .object_caps()
+            .difference(ObjectCaps::ACROSS_TRANSITION)
+            .union(if self.vars().take_damage() == TakeDamage::No {
+                ObjectCaps::IMPULSE_USE
+            } else {
+                ObjectCaps::NONE
+            })
+    }
+}
+
 const SPARK_SOUNDS: &[&CStr] = &[
     res::valve::sound::buttons::SPARK1,
     res::valve::sound::buttons::SPARK2,
@@ -186,7 +216,7 @@ export_entity_default!("export-env_debris", env_debris, EnvSpark);
 
 export_entity_stub!(button_target);
 export_entity_stub!(env_global);
-export_entity_stub!(func_button);
-export_entity_stub!(func_rot_button);
+export_entity_stub!(func_button, Button);
+export_entity_stub!(func_rot_button, Button);
 export_entity_stub!(momentary_rot_button);
 export_entity_stub!(multisource);

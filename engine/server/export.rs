@@ -1699,9 +1699,12 @@ pub use export_entity_default;
 #[doc(hidden)]
 #[macro_export]
 macro_rules! export_entity_stub {
-    ($name:ident $(,)?) => {
+    ($name:ident, $entity:ty $(,)?) => {
         #[cfg(any(feature = "export-stubs"))]
-        $crate::export::export_entity!($name, $crate::entity::Private<$crate::entity::StubEntity>);
+        $crate::export::export_entity!($name, $crate::entity::Private<$entity>);
+    };
+    ($name:ident $(,)?) => {
+        $crate::export::export_entity_stub!($name, $crate::entity::StubEntity);
     };
 }
 pub use export_entity_stub;
