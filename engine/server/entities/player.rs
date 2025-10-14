@@ -2,7 +2,7 @@ use core::{ffi::c_int, ptr};
 
 use xash3d_shared::{
     entity::{Buttons, EdictFlags, EntityIndex, MoveType},
-    ffi::server::edict_s,
+    ffi::{common::vec3_t, server::edict_s},
     math::ToAngleVectors,
 };
 
@@ -61,14 +61,20 @@ impl Input {
     }
 }
 
-struct TargetUse {
-    ty: UseType,
+struct UseTarget<'a> {
+    entity: &'a mut dyn Entity,
+    use_type: UseType,
     // TODO: physics flags
+    dot: f32,
 }
 
-impl TargetUse {
-    fn new(ty: UseType) -> Self {
-        Self { ty }
+impl<'a> UseTarget<'a> {
+    fn new(entity: &'a mut dyn Entity, use_type: UseType, dot: f32) -> Self {
+        Self {
+            entity,
+            use_type,
+            dot,
+        }
     }
 }
 
@@ -80,10 +86,10 @@ pub struct Player {
 }
 
 impl Player {
-    /// Default search radius for use player action.
+    /// Default search radius for player use action.
     pub const USE_SEARCH_RADIUS: f32 = 64.0;
 
-    /// Default view field for use player action.
+    /// Default view field for player use action.
     pub const USE_VIEW_FIELD: ViewField = ViewField::NARROW;
 
     fn is_use_button_active(&self) -> bool {
@@ -95,57 +101,75 @@ impl Player {
         !self.is_observer() && self.is_use_button_active()
     }
 
-    fn player_use_type(&mut self, target: &mut dyn Entity) -> Option<TargetUse> {
+    fn new_use_target<'a>(
+        &self,
+        target: &'a mut dyn Entity,
+        view_origin: vec3_t,
+        forward: vec3_t,
+    ) -> Option<UseTarget<'a>> {
         let v = self.base.vars();
         let caps = target.object_caps();
-        if v.buttons().is_use() && caps.is_continuous_use() {
+        if !caps.is_player_use() {
+            return None;
+        }
+
+        let use_type = if v.buttons().is_use() && caps.is_continuous_use() {
             warn!("player: set physics flags USING is not implemented yet");
-            Some(TargetUse::new(UseType::Set(1.0)))
+            Some(UseType::Set(1.0))
         } else if self.input.pressed().is_use() && (caps.is_impulse_use() || caps.is_on_off_use()) {
-            Some(TargetUse::new(UseType::Set(1.0)))
+            Some(UseType::Set(1.0))
         } else if self.input.released().is_use() && caps.is_on_off_use() {
-            Some(TargetUse::new(UseType::Set(0.0)))
+            Some(UseType::Set(0.0))
         } else {
             None
-        }
+        };
+
+        use_type.map(|use_type| {
+            let v = target.vars();
+            let los = v.bmodel_origin() - view_origin;
+            // This essentially moves the origin of the target to the corner nearest
+            // the player to test to see if it's "hull" is in the view cone.
+            let los = utils::clamp_vector_to_box(los, v.size() * 0.5);
+            let dot = los.dot(forward);
+            UseTarget::new(target, use_type, dot)
+        })
     }
 
-    fn player_use_target(&mut self, target: &mut dyn Entity, mut target_use: Option<TargetUse>) {
-        trace!("player use target {}", target.classname());
-        let debug_use = false;
+    fn player_use_target(&mut self, mut target: Option<UseTarget>) {
         let engine = self.engine();
         let pv = self.base.vars();
-        let tv = target.vars();
 
-        // check if there is something between the player and the button
-        let start = pv.origin() + pv.view_ofs();
-        let end = tv.bmodel_origin();
-        let trace = engine.trace_line(start, end, TraceIgnore::MONSTERS, Some(pv));
-        if trace.fraction() < 0.9 && !ptr::eq(tv.containing_entity_raw(), trace.hit_entity()) {
-            if debug_use {
+        if let Some(i) = &target {
+            // check if there is something between the player and the target
+            trace!("player use target {}", i.entity.classname());
+            let tv = i.entity.vars();
+            let start = pv.origin() + pv.view_ofs();
+            let end = tv.bmodel_origin();
+            let trace = engine.trace_line(start, end, TraceIgnore::MONSTERS, Some(pv));
+            if trace.fraction() < 0.9 && !ptr::eq(tv.containing_entity_raw(), trace.hit_entity()) {
                 let classname = trace.hit_entity().get_entity().map(|e| e.classname());
                 trace!("player use trace hit {classname:?} ({})", trace.fraction());
+                target = None;
             }
-            target_use = None;
-        }
 
-        if debug_use {
-            let msg = crate::user_message::Line {
-                start: start.into(),
-                end: (start + (end - start) * trace.fraction()).into(),
-                duration: 10.0.into(),
-                color: if target_use.is_some() {
-                    crate::color::RGB::GREEN
-                } else {
-                    crate::color::RGB::RED
-                },
-            };
-            engine.msg_one_reliable(pv, &msg);
+            if false {
+                let msg = crate::user_message::Line {
+                    start: start.into(),
+                    end: (start + (end - start) * trace.fraction()).into(),
+                    duration: 10.0.into(),
+                    color: if target.is_some() {
+                        crate::color::RGB::GREEN
+                    } else {
+                        crate::color::RGB::RED
+                    },
+                };
+                engine.msg_one_reliable(pv, &msg);
+            }
         }
 
         if self.input.pressed().is_use() {
             engine.build_sound().channel_item().volume(0.4).emit_dyn(
-                if target_use.is_some() {
+                if target.is_some() {
                     res::valve::sound::common::WPN_SELECT
                 } else {
                     res::valve::sound::common::WPN_DENYSELECT
@@ -154,58 +178,37 @@ impl Player {
             );
         }
 
-        if let Some(target_use) = target_use {
-            let classname = target.classname();
-            let name = target.name();
-            let ty = target_use.ty;
-            trace!("player use target {classname}({name}) type {ty:?}");
-            target.used(target_use.ty, None, self);
+        if let Some(i) = target {
+            let classname = i.entity.classname();
+            let name = i.entity.name();
+            let use_type = i.use_type;
+            trace!("player use target {classname}({name}) type {use_type:?}");
+            i.entity.used(use_type, None, self);
         }
     }
 
     pub fn player_use_with(&mut self, search_radius: f32, view_field: ViewField) {
-        let debug_search = false;
-        if debug_search {
-            trace!("player use search:");
-        }
-
         let engine = self.engine();
         let pv = self.base.vars();
+        let view_origin = pv.origin() + pv.view_ofs();
         let forward = pv.view_angle().angle_vectors().forward();
-        let mut target_use = None;
-        let mut target = None;
-        let mut target_dot = view_field.to_dot();
-        let entities =
-            engine.find_entity_in_sphere_iter(None::<&edict_s>, pv.origin(), search_radius);
-        for mut ent in entities {
-            let Some(ent) = unsafe { ent.as_mut() }.get_entity_mut() else {
-                continue;
-            };
-            if !ent.object_caps().is_player_use() {
-                continue;
-            }
-            let Some(use_type) = self.player_use_type(ent) else {
-                continue;
-            };
+        let closest = engine
+            .find_entity_in_sphere_iter(None::<&edict_s>, pv.origin(), search_radius)
+            .filter_map(|mut i| unsafe { i.as_mut() }.get_entity_mut())
+            .filter_map(|i| self.new_use_target(i, view_origin, forward))
+            .reduce(|a, b| if a.dot <= b.dot { b } else { a });
 
-            let pv = self.base.vars();
-            let los = ent.vars().bmodel_origin() - (pv.origin() + pv.view_ofs());
-            // This essentially moves the origin of the target to the corner nearest
-            // the player to test to see if it's "hull" is in the view cone.
-            let los = utils::clamp_vector_to_box(los, ent.vars().size() * 0.5);
-            let dot = los.dot(forward);
-            if debug_search {
-                trace!("  {}({}) dot={dot}", ent.classname(), ent.name());
+        if let Some(target) = closest {
+            if view_field.to_dot() <= target.dot {
+                // a target is in the view cone
+                self.player_use_target(Some(target));
+            } else {
+                // a target is not in the view cone
+                self.player_use_target(None);
             }
-            if target_dot <= dot {
-                target_use = Some(use_type);
-                target = Some(ent);
-                target_dot = dot;
-            }
-        }
-
-        if let Some(target) = target {
-            self.player_use_target(target, target_use);
+        } else {
+            // a target is not found
+            self.player_use_target(None);
         }
     }
 
