@@ -275,32 +275,46 @@ impl<T: Entity> PrivateEntity for Private<T> {
 }
 
 /// Used to get a reference to a private data of entity.
-pub trait GetPrivateData: AsEntityHandle {
+pub trait GetPrivateData<'a> {
     /// Returns a shared reference to a private data of this entity.
-    fn get_private(&self) -> Option<&PrivateData> {
-        let edict = unsafe { &*self.as_entity_handle() };
-        PrivateData::from_edict(edict)
-    }
+    fn get_private(&self) -> Option<&'a PrivateData>;
 
     /// Returns a mutable reference to a private data of this entity.
-    fn get_private_mut(&mut self) -> Option<&mut PrivateData> {
-        let edict = unsafe { &mut *self.as_entity_handle() };
-        PrivateData::from_edict_mut(edict)
-    }
+    fn get_private_mut(&mut self) -> Option<&'a mut PrivateData>;
 
     /// Returns a shared dyn reference if the entity has a private data.
-    fn get_entity(&self) -> Option<&dyn Entity> {
+    fn get_entity(&self) -> Option<&'a dyn Entity> {
         self.get_private().map(|i| i.as_entity())
     }
 
     /// Returns a mutable dyn reference if the entity has a private data.
-    fn get_entity_mut(&mut self) -> Option<&mut dyn Entity> {
+    fn get_entity_mut(&mut self) -> Option<&'a mut dyn Entity> {
         self.get_private_mut().map(|i| i.as_entity_mut())
     }
 
-    fn downcast_ref<U: Entity + ?Sized>(&self) -> Option<&U> {
+    fn downcast_ref<U: Entity + ?Sized>(&self) -> Option<&'a U> {
         self.get_private().and_then(|i| i.downcast_ref())
     }
 }
 
-impl<T: AsEntityHandle> GetPrivateData for T {}
+impl<'a, T: 'a + AsEntityHandle> GetPrivateData<'a> for T {
+    fn get_private(&self) -> Option<&'a PrivateData> {
+        let edict = unsafe { &*self.as_entity_handle() };
+        PrivateData::from_edict(edict)
+    }
+
+    fn get_private_mut(&mut self) -> Option<&'a mut PrivateData> {
+        let edict = unsafe { &mut *self.as_entity_handle() };
+        PrivateData::from_edict_mut(edict)
+    }
+}
+
+impl<'a, T: 'a + AsEntityHandle> GetPrivateData<'a> for Option<T> {
+    fn get_private(&self) -> Option<&'a PrivateData> {
+        self.as_ref().and_then(|i| i.get_private())
+    }
+
+    fn get_private_mut(&mut self) -> Option<&'a mut PrivateData> {
+        self.as_mut().and_then(|i| i.get_private_mut())
+    }
+}
