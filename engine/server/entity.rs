@@ -55,7 +55,16 @@ impl From<RestoreResult> for c_int {
 #[repr(transparent)]
 pub struct EntityOffset(u32);
 
+impl Default for EntityOffset {
+    fn default() -> Self {
+        Self::WORLD_SPAWN
+    }
+}
+
 impl EntityOffset {
+    /// The world spawn entity offset.
+    pub const WORLD_SPAWN: Self = Self(0);
+
     /// Create a new `EntityOffset` from a value.
     ///
     /// # Safety
@@ -70,8 +79,14 @@ impl EntityOffset {
         self.0
     }
 
+    #[deprecated(note = "use is_world_spawn instead")]
     pub const fn is_first(&self) -> bool {
         self.0 == 0
+    }
+
+    /// Returns `true` if the offset is for the world spawn entity.
+    pub const fn is_world_spawn(&self) -> bool {
+        self.0 == Self::WORLD_SPAWN.0
     }
 }
 

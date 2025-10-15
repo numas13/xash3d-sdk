@@ -564,7 +564,7 @@ impl ServerEngine {
     }
 
     pub fn is_null_ent(&self, ent: *const edict_s) -> bool {
-        ent.is_null() || self.ent_offset_of_entity(unsafe { &*ent }).is_first()
+        ent.is_null() || self.ent_offset_of_entity(unsafe { &*ent }).is_world_spawn()
     }
 
     pub fn find_ent_by_string_iter<'a>(

@@ -27,12 +27,16 @@ pub struct EntityIndex(u16);
 
 impl Default for EntityIndex {
     fn default() -> Self {
-        Self::ZERO
+        Self::WORLD_SPAWN
     }
 }
 
 impl EntityIndex {
+    #[deprecated(note = "use WORLD_SPAWN instead")]
     pub const ZERO: Self = Self(0);
+
+    /// The world spawn entity index.
+    pub const WORLD_SPAWN: Self = Self(0);
 
     pub const fn new(index: u16) -> Option<Self> {
         if index < 0x1000 {
@@ -59,8 +63,14 @@ impl EntityIndex {
         self.0 as i32
     }
 
+    #[deprecated(note = "use is_world_spawn instead")]
     pub const fn is_zero(&self) -> bool {
         self.0 == 0
+    }
+
+    /// Returns `true` if the index is for the world spawn entity.
+    pub const fn is_world_spawn(&self) -> bool {
+        self.0 == Self::WORLD_SPAWN.0
     }
 }
 

@@ -310,7 +310,7 @@ define_temp_entity_msg! {
         pub position: Coord<vec3_t>,
         pub texture_index: u16,
         pub entity: EntityIndex,
-        if |msg| !msg.entity.is_zero();
+        if |msg| !msg.entity.is_world_spawn();
         pub model_index: u16,
     }
 }

@@ -308,7 +308,7 @@ impl Utils {
 
         let sample = samples[engine.random_int(0, samples.len() as c_int - 1) as usize];
         ev.build_sound_at(tr.endpos)
-            .entity(EntityIndex::ZERO)
+            .entity(EntityIndex::WORLD_SPAWN)
             .channel_static()
             .volume(fvol)
             .attenuation(fattn)

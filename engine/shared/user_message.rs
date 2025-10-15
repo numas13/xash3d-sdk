@@ -366,7 +366,7 @@ impl UserMessageValue<'_> for EntityIndex {
 
     fn msg_read(msg: &mut UserMessageBuffer) -> Result<Self, UserMessageError> {
         let index = msg.read_u16()?;
-        Ok(EntityIndex::new(index).unwrap_or(EntityIndex::ZERO))
+        Ok(EntityIndex::new(index).unwrap_or(EntityIndex::WORLD_SPAWN))
     }
 }
 

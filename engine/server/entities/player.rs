@@ -336,7 +336,7 @@ impl EntityPlayer for Player {
             spot
         } else {
             error!("No info_player_start on level");
-            engine.entity_of_ent_index(EntityIndex::ZERO)
+            engine.entity_of_ent_index(EntityIndex::WORLD_SPAWN)
         }
     }
 

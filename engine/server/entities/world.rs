@@ -38,7 +38,7 @@ impl Decal {
             Some(self),
         );
         let entity = engine.ent_index(trace.hit_entity_mut());
-        let model_index = if !entity.is_zero() {
+        let model_index = if !entity.is_world_spawn() {
             trace.hit_entity().v.modelindex
         } else {
             0
