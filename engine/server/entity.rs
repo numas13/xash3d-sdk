@@ -627,7 +627,7 @@ define_entity_trait! {
         fn override_reset(&self) {}
 
         fn set_object_collision_box(&self) {
-            set_object_collision_box(unsafe { &mut *self.vars().as_mut_ptr() });
+            set_object_collision_box(self.vars());
         }
 
         fn intersects(&self, other: &dyn ::xash3d_server::entity::Entity) -> bool {
@@ -739,29 +739,29 @@ define_entity_trait! {
     }
 }
 
-pub fn set_object_collision_box(ev: &mut entvars_s) {
-    if ev.solid == Solid::Bsp.into() && ev.angles != vec3_t::ZERO {
+pub fn set_object_collision_box(ev: &EntityVars) {
+    if ev.solid() == Solid::Bsp && ev.angles() != vec3_t::ZERO {
         let mut max = 0.0;
         for i in 0..3 {
-            let v = fabsf(ev.mins[i]);
+            let v = fabsf(ev.min_size()[i]);
             if v > max {
                 max = v;
             }
-            let v = fabsf(ev.maxs[i]);
+            let v = fabsf(ev.max_size()[i]);
             if v > max {
                 max = v;
             }
         }
 
-        ev.absmin = ev.origin - vec3_t::splat(max);
-        ev.absmax = ev.origin + vec3_t::splat(max);
+        ev.set_abs_min(ev.origin() - vec3_t::splat(max));
+        ev.set_abs_max(ev.origin() + vec3_t::splat(max));
     } else {
-        ev.absmin = ev.origin + ev.mins; // TODO: should it be sub?
-        ev.absmax = ev.origin + ev.maxs;
+        ev.set_abs_min(ev.origin() + ev.min_size());
+        ev.set_abs_max(ev.origin() + ev.max_size());
     }
 
-    ev.absmin -= vec3_t::splat(1.0);
-    ev.absmax += vec3_t::splat(1.0);
+    ev.with_abs_min(|v| v - vec3_t::splat(1.0));
+    ev.with_abs_max(|v| v + vec3_t::splat(1.0));
 }
 
 pub fn create_baseline(

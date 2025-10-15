@@ -362,7 +362,11 @@ pub trait ServerDll: UnsyncGlobal {
     fn dispatch_object_collsion_box(&self, ent: &mut edict_s) {
         match ent.get_entity() {
             Some(entity) => entity.set_object_collision_box(),
-            None => crate::entity::set_object_collision_box(&mut ent.v),
+            None => {
+                let vars =
+                    unsafe { EntityVars::from_raw(self.engine(), self.global_state(), &mut ent.v) };
+                crate::entity::set_object_collision_box(&vars);
+            }
         }
     }
 
