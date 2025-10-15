@@ -263,6 +263,7 @@ pub enum SaveError {
     InvalidNumber,
     InvalidString,
     InvalidEntityIndex,
+    InvalidEntityHandle,
 }
 
 impl fmt::Display for SaveError {
@@ -275,6 +276,7 @@ impl fmt::Display for SaveError {
             Self::InvalidNumber => fmt.write_str("invalid numder"),
             Self::InvalidString => fmt.write_str("invalid string"),
             Self::InvalidEntityIndex => fmt.write_str("invalid entity index"),
+            Self::InvalidEntityHandle => fmt.write_str("invalid entity handle"),
         }
     }
 }

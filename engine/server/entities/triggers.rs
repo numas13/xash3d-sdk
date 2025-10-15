@@ -4,7 +4,7 @@ use alloc::vec::Vec;
 use bitflags::bitflags;
 use csz::{cstr, CStrArray, CStrThin};
 use xash3d_shared::{
-    entity::{DamageFlags, EdictFlags, Effects, EntityIndex, MoveType},
+    entity::{DamageFlags, EdictFlags, Effects, MoveType},
     ffi::{
         common::vec3_t,
         server::{edict_s, FENTTABLE_GLOBAL, FENTTABLE_MOVEABLE, LEVELLIST},
@@ -1002,7 +1002,7 @@ pub struct MultiManager {
     targets: Vec<MultiManagerTarget>,
     wait: f32,
     start_time: Cell<MapTime>,
-    activator: Cell<EntityIndex>,
+    activator: Cell<EntityHandle>,
     index: Cell<u32>,
     enable_use: Cell<bool>,
     enable_think: Cell<bool>,
@@ -1043,12 +1043,13 @@ impl_entity_cast!(MultiManager);
 
 impl CreateEntity for MultiManager {
     fn create(base: BaseEntity) -> Self {
+        let engine = base.engine();
         Self {
             base,
             targets: Default::default(),
             wait: 0.0,
             start_time: Default::default(),
-            activator: Default::default(),
+            activator: Cell::new(engine.get_world_spawn_entity()),
             index: Default::default(),
             enable_use: Default::default(),
             enable_think: Default::default(),
@@ -1105,7 +1106,7 @@ impl Entity for MultiManager {
 
         let engine = self.engine();
         self.activator
-            .set(engine.get_entity_index(&activator.unwrap_or(caller)));
+            .set(activator.unwrap_or(caller).entity_handle());
         self.index.set(0);
         self.start_time.set(engine.globals.map_time());
         self.enable_use.set(false);
@@ -1120,9 +1121,7 @@ impl Entity for MultiManager {
 
         let engine = self.engine();
         let time = engine.globals.map_time() - self.start_time.get();
-        let activator = engine
-            .get_entity_by_index(self.activator.get())
-            .and_then(|i| i.get_entity());
+        let activator = self.activator.get().get_entity();
 
         for target in self.targets.iter().skip(self.index.get() as usize) {
             if target.delay > time {

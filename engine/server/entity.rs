@@ -277,6 +277,39 @@ impl<'a> From<&'a EntityHandle> for EntityHandleRef<'a> {
     }
 }
 
+#[cfg(feature = "save")]
+impl save::Save for EntityHandle {
+    fn save(&self, state: &mut save::SaveState, cur: &mut save::CursorMut) -> save::SaveResult<()> {
+        self.entity_index().save(state, cur)
+    }
+}
+
+#[cfg(feature = "save")]
+impl save::RestoreWithDefault for EntityHandle {
+    fn default_for_restore(state: &save::RestoreState) -> Self {
+        state.engine().get_world_spawn_entity()
+    }
+}
+
+#[cfg(feature = "save")]
+impl save::Restore for EntityHandle {
+    fn restore(
+        &mut self,
+        state: &save::RestoreState,
+        cur: &mut save::Cursor,
+    ) -> save::SaveResult<()> {
+        let mut index = EntityIndex::default();
+        index.restore(state, cur)?;
+
+        *self = state
+            .engine()
+            .get_entity_by_index(index)
+            .ok_or(save::SaveError::InvalidEntityHandle)?;
+
+        Ok(())
+    }
+}
+
 pub(crate) trait AsEntityHandleSealed {
     fn as_entity_handle(&self) -> *mut edict_s;
 }

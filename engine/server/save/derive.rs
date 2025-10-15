@@ -17,6 +17,16 @@ pub trait Restore {
     fn restore(&mut self, state: &RestoreState, cur: &mut Cursor) -> SaveResult<()>;
 }
 
+pub trait RestoreWithDefault: Restore {
+    fn default_for_restore(state: &RestoreState) -> Self;
+}
+
+impl<T: Restore + Default> RestoreWithDefault for T {
+    fn default_for_restore(_: &RestoreState) -> Self {
+        T::default()
+    }
+}
+
 pub trait RestoreField: Restore {
     fn restore_field(
         &mut self,
@@ -133,14 +143,14 @@ impl<T: Save> Save for Option<T> {
     }
 }
 
-impl<T: Restore + Default> Restore for Option<T> {
+impl<T: RestoreWithDefault> Restore for Option<T> {
     fn restore(&mut self, state: &RestoreState, cur: &mut Cursor) -> SaveResult<()> {
         match cur.read_u8()? {
             0 => {
                 *self = None;
             }
             _ => {
-                let mut value = T::default();
+                let mut value = T::default_for_restore(state);
                 value.restore(state, cur)?;
                 *self = Some(value);
             }
@@ -165,16 +175,16 @@ impl<T: Save, E: Save> Save for Result<T, E> {
     }
 }
 
-impl<T: Restore + Default, E: Restore + Default> Restore for Result<T, E> {
+impl<T: RestoreWithDefault, E: RestoreWithDefault> Restore for Result<T, E> {
     fn restore(&mut self, state: &RestoreState, cur: &mut Cursor) -> SaveResult<()> {
         match cur.read_u8()? {
             0 => {
-                let mut value = E::default();
+                let mut value = E::default_for_restore(state);
                 value.restore(state, cur)?;
                 *self = Err(value);
             }
             _ => {
-                let mut value = T::default();
+                let mut value = T::default_for_restore(state);
                 value.restore(state, cur)?;
                 *self = Ok(value);
             }
@@ -245,7 +255,7 @@ impl<T: Save> Save for Vec<T> {
     }
 }
 
-impl<T: Restore + Default> Restore for Vec<T> {
+impl<T: RestoreWithDefault> Restore for Vec<T> {
     fn restore(&mut self, state: &RestoreState, cur: &mut Cursor) -> SaveResult<()> {
         self.clear();
         let len = cur.read_leb_usize()?;
@@ -253,7 +263,7 @@ impl<T: Restore + Default> Restore for Vec<T> {
         for _ in 0..len {
             let size = cur.read_u16_le()? as usize;
             let bytes = cur.read(size)?;
-            let mut value = T::default();
+            let mut value = T::default_for_restore(state);
             value.restore(state, &mut Cursor::new(bytes))?;
             self.push(value);
         }
