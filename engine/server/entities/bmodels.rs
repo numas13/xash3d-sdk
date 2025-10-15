@@ -35,7 +35,7 @@ impl Entity for FuncWall {
             .difference(ObjectCaps::ACROSS_TRANSITION)
     }
 
-    fn spawn(&self) {
+    fn spawn(&mut self) {
         let v = self.vars();
         v.set_angles(vec3_t::ZERO);
         v.set_solid(Solid::Bsp);

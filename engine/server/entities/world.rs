@@ -61,7 +61,7 @@ impl CreateEntity for Decal {
 impl Entity for Decal {
     delegate_entity!(base not { key_value, spawn, think, used });
 
-    fn key_value(&self, data: &mut KeyValue) {
+    fn key_value(&mut self, data: &mut KeyValue) {
         if data.key_name() == c"texture" {
             let engine = self.engine();
             if let Some(skin) = engine.decal_index(data.value()) {
@@ -75,7 +75,7 @@ impl Entity for Decal {
         }
     }
 
-    fn spawn(&self) {
+    fn spawn(&mut self) {
         let engine = self.engine();
         let v = self.base.vars();
         if v.skin() < 0
@@ -188,7 +188,7 @@ impl_entity_cast!(World);
 impl Entity for World {
     delegate_entity!(base not { key_value, precache, spawn });
 
-    fn key_value(&self, data: &mut KeyValue) {
+    fn key_value(&mut self, data: &mut KeyValue) {
         let class_name = data.class_name();
         let key_name = data.key_name();
         let value = data.value();
@@ -197,7 +197,7 @@ impl Entity for World {
         data.set_handled(true);
     }
 
-    fn precache(&self) {
+    fn precache(&mut self) {
         let engine = self.engine();
         let global_state = self.global_state();
 
@@ -311,7 +311,7 @@ impl Entity for World {
         v.set_spawn_flags(spawn_flags.bits());
     }
 
-    fn spawn(&self) {
+    fn spawn(&mut self) {
         // TODO: global_game_over = false;
         self.precache();
     }

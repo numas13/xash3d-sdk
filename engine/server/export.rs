@@ -84,7 +84,7 @@ pub trait ServerDll: UnsyncGlobal {
         let engine = self.engine();
         let global_state = self.global_state();
 
-        let Some(ent) = ent.get_entity() else {
+        let Some(ent) = (unsafe { ent.get_entity_mut() }) else {
             return SpawnResult::Delete;
         };
 
@@ -182,7 +182,7 @@ pub trait ServerDll: UnsyncGlobal {
             return;
         }
 
-        if let Some(ent) = ent.get_entity() {
+        if let Some(ent) = unsafe { ent.get_entity_mut() } {
             ent.key_value(data);
         }
     }

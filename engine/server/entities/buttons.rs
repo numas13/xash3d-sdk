@@ -59,7 +59,7 @@ bitflags! {
 #[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct EnvSpark {
     base: BaseEntity,
-    delay: Cell<f32>,
+    delay: f32,
     state: Cell<EnvSparkState>,
 }
 
@@ -70,7 +70,7 @@ impl EnvSpark {
 
     fn set_next_think_time(&self) {
         let engine = self.engine();
-        let delay = engine.random_float(0.0, self.delay.get());
+        let delay = engine.random_float(0.0, self.delay);
         self.vars().set_next_think_time_from_now(0.1 + delay);
     }
 }
@@ -81,7 +81,7 @@ impl CreateEntity for EnvSpark {
     fn create(base: BaseEntity) -> Self {
         Self {
             base,
-            delay: Cell::new(0.0),
+            delay: 0.0,
             state: Cell::new(EnvSparkState::Off),
         }
     }
@@ -90,10 +90,10 @@ impl CreateEntity for EnvSpark {
 impl Entity for EnvSpark {
     delegate_entity!(base not { key_value, precache, spawn, think, used });
 
-    fn key_value(&self, data: &mut KeyValue) {
+    fn key_value(&mut self, data: &mut KeyValue) {
         let name = data.key_name();
         if name == c"MaxDelay" {
-            self.delay.set(data.value_str().parse().unwrap_or(0.0));
+            self.delay = data.parse_or_default();
             data.set_handled(true);
         } else if name == c"style"
             || name == c"height"
@@ -108,16 +108,16 @@ impl Entity for EnvSpark {
         }
     }
 
-    fn precache(&self) {
+    fn precache(&mut self) {
         let engine = self.engine();
         for &i in SPARK_SOUNDS {
             engine.precache_sound(i);
         }
     }
 
-    fn spawn(&self) {
-        if self.delay.get() <= 0.0 {
-            self.delay.set(1.5);
+    fn spawn(&mut self) {
+        if self.delay <= 0.0 {
+            self.delay = 1.5;
         }
 
         let spawn_flags = self.spawn_flags();

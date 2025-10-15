@@ -1,5 +1,3 @@
-use core::cell::Cell;
-
 #[cfg(feature = "save")]
 use crate::save::{Restore, Save};
 use crate::{
@@ -14,8 +12,8 @@ use crate::{
 #[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct Light {
     base: PointEntity,
-    style: Cell<i32>,
-    pattern: Cell<Option<MapString>>,
+    style: i32,
+    pattern: Option<MapString>,
 }
 
 impl Light {
@@ -28,8 +26,8 @@ impl CreateEntity for Light {
     fn create(base: BaseEntity) -> Self {
         Self {
             base: PointEntity::create(base),
-            style: Cell::new(0),
-            pattern: Cell::new(None),
+            style: 0,
+            pattern: None,
         }
     }
 }
@@ -37,10 +35,10 @@ impl CreateEntity for Light {
 impl Entity for Light {
     delegate_entity!(base not { key_value, spawn, used });
 
-    fn key_value(&self, data: &mut KeyValue) {
+    fn key_value(&mut self, data: &mut KeyValue) {
         match data.key_name().to_bytes() {
             b"style" => {
-                self.style.set(data.value_str().parse().unwrap_or(0));
+                self.style = data.value_str().parse().unwrap_or(0);
             }
             b"pitch" => {
                 let v = self.vars();
@@ -48,31 +46,30 @@ impl Entity for Light {
             }
             b"pattern" => {
                 let engine = self.engine();
-                self.pattern.set(engine.try_alloc_map_string(data.value()));
+                self.pattern = engine.try_alloc_map_string(data.value());
             }
             _ => return self.base.key_value(data),
         }
         data.set_handled(true);
     }
 
-    fn spawn(&self) {
+    fn spawn(&mut self) {
         let engine = self.engine();
         if self.vars().target_name().is_none() {
             self.vars().delayed_remove();
-        } else if self.style.get() >= 32 {
+        } else if self.style >= 32 {
             if self.vars().spawn_flags() & Self::SF_START_OFF != 0 {
-                engine.light_style(self.style.get(), c"a");
-            } else if let Some(pattern) = self.pattern.get() {
-                engine.light_style(self.style.get(), pattern);
+                engine.light_style(self.style, c"a");
+            } else if let Some(pattern) = self.pattern {
+                engine.light_style(self.style, pattern);
             } else {
-                engine.light_style(self.style.get(), c"m");
+                engine.light_style(self.style, c"m");
             }
         }
     }
 
     fn used(&self, use_type: UseType, _: Option<&dyn Entity>, _: &dyn Entity) {
-        let style = self.style.get();
-        if style < 32 {
+        if self.style < 32 {
             return;
         }
 
@@ -84,14 +81,14 @@ impl Entity for Light {
         }
 
         if is_start_off {
-            if let Some(pattern) = self.pattern.get() {
-                engine.light_style(style, pattern);
+            if let Some(pattern) = self.pattern {
+                engine.light_style(self.style, pattern);
             } else {
-                engine.light_style(style, c"m");
+                engine.light_style(self.style, c"m");
             }
             v.with_spawn_flags(|f| f & !Self::SF_START_OFF);
         } else {
-            engine.light_style(style, c"a");
+            engine.light_style(self.style, c"a");
             v.with_spawn_flags(|f| f | Self::SF_START_OFF);
         }
     }

@@ -235,7 +235,7 @@ impl CreateEntity for TestPlayer {
 impl Entity for TestPlayer {
     delegate_entity!(base not { precache, spawn, think });
 
-    fn precache(&self) {
+    fn precache(&mut self) {
         self.base.precache();
 
         self.geiger.borrow_mut().reset();
@@ -252,7 +252,7 @@ impl Entity for TestPlayer {
         }
     }
 
-    fn spawn(&self) {
+    fn spawn(&mut self) {
         self.base.spawn();
         let engine = self.engine();
 

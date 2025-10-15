@@ -310,7 +310,7 @@ bitflags! {
 pub struct AmbientGeneric {
     base: BaseEntity,
 
-    attenuation: Cell<Attenuation>,
+    attenuation: Attenuation,
     active: Cell<bool>,
     looping: Cell<bool>,
     remove_me: Cell<bool>,
@@ -343,7 +343,7 @@ impl AmbientGeneric {
         engine
             .build_sound()
             .volume(self.dpv.borrow().vol as f32 * 0.01)
-            .attenuation(self.attenuation.get())
+            .attenuation(self.attenuation)
             .pitch(self.dpv.borrow().pitch)
             .ambient_emit_dyn(sound_file, origin, self);
 
@@ -371,7 +371,7 @@ impl CreateEntity for AmbientGeneric {
         Self {
             base,
 
-            attenuation: Cell::new(Attenuation::default()),
+            attenuation: Attenuation::default(),
             active: Cell::new(false),
             looping: Cell::new(false),
             remove_me: Cell::new(false),
@@ -389,14 +389,14 @@ impl Entity for AmbientGeneric {
             .difference(ObjectCaps::ACROSS_TRANSITION)
     }
 
-    fn key_value(&self, data: &mut KeyValue) {
+    fn key_value(&mut self, data: &mut KeyValue) {
         self.dpv.borrow_mut().key_value(data);
         if !data.handled() {
             self.base.key_value(data);
         }
     }
 
-    fn precache(&self) {
+    fn precache(&mut self) {
         let engine = self.engine();
 
         if let Some(sample) = self.vars().message() {
@@ -420,7 +420,7 @@ impl Entity for AmbientGeneric {
                 engine
                     .build_sound()
                     .volume(dpv.vol as f32 * 0.01)
-                    .attenuation(self.attenuation.get())
+                    .attenuation(self.attenuation)
                     .flags(SoundFlags::SPAWNING)
                     .pitch(dpv.pitch)
                     .ambient_emit_dyn(sample, v.origin(), self);
@@ -430,9 +430,9 @@ impl Entity for AmbientGeneric {
         }
     }
 
-    fn spawn(&self) {
+    fn spawn(&mut self) {
         let spawn_flags = self.spawn_flags();
-        let attn = if spawn_flags.intersects(AmbientSound::EVERYWHERE) {
+        self.attenuation = if spawn_flags.intersects(AmbientSound::EVERYWHERE) {
             Attenuation::NONE
         } else if spawn_flags.intersects(AmbientSound::SMALL_RADIUS) {
             Attenuation::IDLE
@@ -443,7 +443,6 @@ impl Entity for AmbientGeneric {
         } else {
             Attenuation::STATIC
         };
-        self.attenuation.set(attn);
 
         let v = self.base.vars();
         if MapString::is_none_or_empty(v.message()) {
@@ -618,7 +617,7 @@ impl Entity for AmbientGeneric {
             engine
                 .build_sound()
                 .volume(vol as f32 * 0.01)
-                .attenuation(self.attenuation.get())
+                .attenuation(self.attenuation)
                 .pitch(Pitch::from(pitch))
                 .ambient_emit_dyn(sample, self.vars().origin(), self);
         }

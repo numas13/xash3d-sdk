@@ -543,13 +543,13 @@ define_entity_trait! {
             self.vars().flags().intersects(EdictFlags::DORMANT)
         }
 
-        fn key_value(&self, data: &mut ::xash3d_server::entity::KeyValue) {
+        fn key_value(&mut self, data: &mut ::xash3d_server::entity::KeyValue) {
             data.set_handled(false);
         }
 
-        fn precache(&self) {}
+        fn precache(&mut self) {}
 
-        fn spawn(&self) {}
+        fn spawn(&mut self) {}
 
         fn think(&self) {}
 
@@ -915,7 +915,7 @@ impl Entity for StubEntity {
             .difference(ObjectCaps::ACROSS_TRANSITION)
     }
 
-    fn key_value(&self, data: &mut KeyValue) {
+    fn key_value(&mut self, data: &mut KeyValue) {
         self.base.key_value(data);
 
         if self.dump_key_value && !data.handled() {
@@ -926,7 +926,7 @@ impl Entity for StubEntity {
         }
     }
 
-    fn spawn(&self) {
+    fn spawn(&mut self) {
         let classname = self.classname();
         let name = self.vars().target_name();
         let target = self.vars().target();

@@ -1,5 +1,3 @@
-use core::cell::Cell;
-
 use xash3d_shared::{
     entity::{Effects, MoveType},
     ffi,
@@ -19,7 +17,7 @@ use crate::{
 #[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct FrictionModifier {
     base: BaseEntity,
-    friction: Cell<f32>,
+    friction: f32,
 }
 
 impl_entity_cast!(FrictionModifier);
@@ -28,7 +26,7 @@ impl CreateEntity for FrictionModifier {
     fn create(base: BaseEntity) -> Self {
         Self {
             base,
-            friction: Cell::new(1.0),
+            friction: 1.0,
         }
     }
 }
@@ -42,17 +40,16 @@ impl Entity for FrictionModifier {
             .difference(ObjectCaps::ACROSS_TRANSITION)
     }
 
-    fn key_value(&self, data: &mut KeyValue) {
+    fn key_value(&mut self, data: &mut KeyValue) {
         if data.key_name() == c"modifier" {
-            self.friction
-                .set(data.value_str().parse().unwrap_or(0.0) / 100.0);
+            self.friction = data.value_str().parse().unwrap_or(0.0) / 100.0;
             data.set_handled(true);
         } else {
             self.base.key_value(data);
         }
     }
 
-    fn spawn(&self) {
+    fn spawn(&mut self) {
         let v = self.vars();
         v.set_solid(Solid::Trigger);
         v.set_move_type(MoveType::None);
@@ -62,7 +59,7 @@ impl Entity for FrictionModifier {
     fn touched(&self, other: &dyn Entity) {
         match other.vars().move_type() {
             MoveType::Bounce | MoveType::BounceMissile => {}
-            _ => other.vars().set_friction(self.friction.get()),
+            _ => other.vars().set_friction(self.friction),
         }
     }
 }
@@ -89,7 +86,7 @@ impl Entity for Ladder {
             .difference(ObjectCaps::ACROSS_TRANSITION)
     }
 
-    fn spawn(&self) {
+    fn spawn(&mut self) {
         let v = self.base.vars();
         v.set_skin(ffi::common::CONTENTS_LADDER);
         v.set_solid(Solid::Not);

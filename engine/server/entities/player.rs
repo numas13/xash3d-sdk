@@ -285,9 +285,9 @@ impl Entity for Player {
             .difference(ObjectCaps::ACROSS_TRANSITION)
     }
 
-    fn spawn(&self) {
+    fn spawn(&mut self) {
         let engine = self.base.engine();
-        let v = self.vars();
+        let v = self.base.vars();
         v.set_classname(engine.try_alloc_map_string(c"player").unwrap());
         v.set_health(100.0);
         v.set_armor_value(0.0);

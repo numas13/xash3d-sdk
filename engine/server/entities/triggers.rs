@@ -1,7 +1,4 @@
-use core::{
-    cell::{Cell, RefCell},
-    mem, ptr,
-};
+use core::{cell::Cell, ptr};
 
 use alloc::vec::Vec;
 use bitflags::bitflags;
@@ -37,8 +34,8 @@ const MAP_NAME_MAX: usize = 32;
 pub struct AutoTrigger {
     base: BaseEntity,
     delayed: DelayedUse,
-    global_state: Cell<Option<MapString>>,
-    trigger_type: Cell<UseType>,
+    global_state: Option<MapString>,
+    trigger_type: UseType,
 }
 
 impl AutoTrigger {
@@ -53,8 +50,8 @@ impl CreateEntity for AutoTrigger {
         Self {
             delayed: DelayedUse::new(base.engine()),
             base,
-            global_state: Cell::new(None),
-            trigger_type: Cell::new(UseType::Off),
+            global_state: None,
+            trigger_type: UseType::Off,
         }
     }
 }
@@ -68,16 +65,15 @@ impl Entity for AutoTrigger {
             .difference(ObjectCaps::ACROSS_TRANSITION)
     }
 
-    fn key_value(&self, data: &mut KeyValue) {
+    fn key_value(&mut self, data: &mut KeyValue) {
         match data.key_name().to_bytes() {
             b"globalstate" => {
-                self.global_state
-                    .set(Some(self.engine().new_map_string(data.value())));
+                self.global_state = Some(self.engine().new_map_string(data.value()));
             }
             b"triggerstate" => match data.value().to_bytes() {
-                b"0" => self.trigger_type.set(UseType::Off),
-                b"2" => self.trigger_type.set(UseType::Toggle),
-                _ => self.trigger_type.set(UseType::On),
+                b"0" => self.trigger_type = UseType::Off,
+                b"2" => self.trigger_type = UseType::Toggle,
+                _ => self.trigger_type = UseType::On,
             },
             _ => {
                 if !self.delayed.key_value(data) {
@@ -89,22 +85,22 @@ impl Entity for AutoTrigger {
         data.set_handled(true);
     }
 
-    fn precache(&self) {
+    fn precache(&mut self) {
         self.vars().set_next_think_time_from_now(0.1);
     }
 
-    fn spawn(&self) {
+    fn spawn(&mut self) {
         self.precache();
     }
 
     fn think(&self) {
-        if !self.global_state.get().map_or(true, |name| {
+        if !self.global_state.map_or(true, |name| {
             self.global_state().entity_state(name) == EntityState::On
         }) {
             return;
         }
 
-        self.delayed.use_targets(self.trigger_type.get(), self);
+        self.delayed.use_targets(self.trigger_type, self);
 
         if self.vars().spawn_flags() & Self::SF_FIREONCE != 0 {
             self.remove_from_world();
@@ -155,11 +151,13 @@ fn toggle_use(ent: &impl Entity) {
 pub struct TriggerMultiple {
     base: BaseEntity,
     delayed: DelayedUse,
+
+    master: Option<MapString>,
     /// Time in seconds before the trigger is ready to be re-triggered.
-    wait: Cell<f32>,
+    wait: f32,
+
     /// The time when this trigger can be re-triggered.
     reset_time: Cell<MapTime>,
-    master: Cell<Option<MapString>>,
 }
 
 impl TriggerMultiple {
@@ -172,7 +170,7 @@ impl TriggerMultiple {
             return;
         }
 
-        if let Some(master) = self.master.get() {
+        if let Some(master) = self.master {
             if !utils::is_master_triggered(&engine, master, other) {
                 return;
             }
@@ -192,9 +190,8 @@ impl TriggerMultiple {
             );
         }
 
-        if self.wait.get() > 0.0 {
-            self.reset_time
-                .set(engine.globals.map_time() + self.wait.get());
+        if self.wait > 0.0 {
+            self.reset_time.set(engine.globals.map_time() + self.wait);
         } else {
             self.remove_from_world();
         }
@@ -208,9 +205,11 @@ impl CreateEntity for TriggerMultiple {
         Self {
             delayed: DelayedUse::new(base.engine()),
             base,
-            wait: Cell::new(0.2),
-            reset_time: Cell::new(MapTime::ZERO),
-            master: Cell::new(None),
+
+            master: None,
+            wait: 0.2,
+
+            reset_time: Cell::default(),
         }
     }
 }
@@ -224,15 +223,10 @@ impl Entity for TriggerMultiple {
             .difference(ObjectCaps::ACROSS_TRANSITION)
     }
 
-    fn key_value(&self, data: &mut KeyValue) {
+    fn key_value(&mut self, data: &mut KeyValue) {
         match data.key_name().to_bytes() {
-            b"master" => {
-                self.master
-                    .set(Some(self.engine().new_map_string(data.value())));
-            }
-            b"wait" => {
-                self.wait.set(data.value_str().parse().unwrap_or(0.0));
-            }
+            b"master" => self.master = Some(self.engine().new_map_string(data.value())),
+            b"wait" => self.wait = data.parse_or_default(),
             _ => {
                 if !self.delayed.key_value(data) {
                     self.base.key_value(data);
@@ -243,7 +237,7 @@ impl Entity for TriggerMultiple {
         data.set_handled(true);
     }
 
-    fn spawn(&self) {
+    fn spawn(&mut self) {
         init_trigger(&self.engine(), self.vars());
     }
 
@@ -287,8 +281,8 @@ impl CreateEntity for TriggerOnce {
 impl Entity for TriggerOnce {
     delegate_entity!(base not { spawn });
 
-    fn spawn(&self) {
-        self.base.wait.set(-1.0);
+    fn spawn(&mut self) {
+        self.base.wait = -1.0;
         self.base.spawn();
     }
 }
@@ -325,7 +319,7 @@ impl Entity for TriggerPush {
             .difference(ObjectCaps::ACROSS_TRANSITION)
     }
 
-    fn spawn(&self) {
+    fn spawn(&mut self) {
         let engine = self.base.engine();
         let v = self.base.vars();
 
@@ -400,7 +394,7 @@ bitflags! {
 pub struct TriggerHurt {
     base: BaseEntity,
     delayed: DelayedUse,
-    damage_type: Cell<DamageFlags>,
+    damage_type: DamageFlags,
 }
 
 impl TriggerHurt {
@@ -416,7 +410,7 @@ impl CreateEntity for TriggerHurt {
         Self {
             delayed: DelayedUse::new(base.engine()),
             base,
-            damage_type: Cell::new(DamageFlags::default()),
+            damage_type: DamageFlags::default(),
         }
     }
 }
@@ -430,11 +424,11 @@ impl Entity for TriggerHurt {
             .difference(ObjectCaps::ACROSS_TRANSITION)
     }
 
-    fn key_value(&self, data: &mut KeyValue) {
+    fn key_value(&mut self, data: &mut KeyValue) {
         match data.key_name().to_bytes() {
             b"damagetype" => {
-                let bits = data.value_str().parse().unwrap_or(0);
-                self.damage_type.set(DamageFlags::from_bits_retain(bits));
+                let bits = data.parse_or_default();
+                self.damage_type = DamageFlags::from_bits_retain(bits);
             }
             _ => {
                 if !self.delayed.key_value(data) {
@@ -446,13 +440,13 @@ impl Entity for TriggerHurt {
         data.set_handled(true);
     }
 
-    fn spawn(&self) {
+    fn spawn(&mut self) {
         let spawn_flags = self.spawn_flags();
         let engine = self.base.engine();
         let v = self.base.vars();
         init_trigger(&engine, v);
 
-        if self.damage_type.get().intersects(DamageFlags::RADIATION) {
+        if self.damage_type.intersects(DamageFlags::RADIATION) {
             v.set_next_think_time_from_now(engine.random_float(0.0, 0.5));
         }
 
@@ -499,10 +493,10 @@ impl Entity for TriggerHurt {
         let dmg = v.damage() * 0.5;
         if dmg < 0.0 {
             if !(is_multiplayer && is_player && other.vars().dead() != Dead::No) {
-                other.take_health(-dmg, self.damage_type.get());
+                other.take_health(-dmg, self.damage_type);
             }
         } else {
-            other.take_damage(dmg, self.damage_type.get(), v, None);
+            other.take_damage(dmg, self.damage_type, v, None);
         }
 
         v.set_pain_finished_time(now);
@@ -520,7 +514,7 @@ impl Entity for TriggerHurt {
     }
 
     fn think(&self) {
-        if !self.damage_type.get().intersects(DamageFlags::RADIATION) {
+        if !self.damage_type.intersects(DamageFlags::RADIATION) {
             return;
         }
 
@@ -552,17 +546,14 @@ impl Entity for TriggerHurt {
 #[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct TriggerSave {
     base: BaseEntity,
-    master: Cell<Option<MapString>>,
+    master: Option<MapString>,
 }
 
 impl_entity_cast!(TriggerSave);
 
 impl CreateEntity for TriggerSave {
     fn create(base: BaseEntity) -> Self {
-        Self {
-            base,
-            master: Cell::new(None),
-        }
+        Self { base, master: None }
     }
 }
 
@@ -575,17 +566,16 @@ impl Entity for TriggerSave {
             .difference(ObjectCaps::ACROSS_TRANSITION)
     }
 
-    fn key_value(&self, data: &mut KeyValue) {
+    fn key_value(&mut self, data: &mut KeyValue) {
         if data.key_name() == c"master" {
-            self.master
-                .set(Some(self.engine().new_map_string(data.value())));
+            self.master = Some(self.engine().new_map_string(data.value()));
             data.set_handled(true);
         } else {
             self.base.key_value(data);
         }
     }
 
-    fn spawn(&self) {
+    fn spawn(&mut self) {
         if self.global_state().game_rules().is_deathmatch() {
             self.remove_from_world();
             return;
@@ -597,7 +587,7 @@ impl Entity for TriggerSave {
     fn touched(&self, other: &dyn Entity) {
         let engine = self.engine();
 
-        if let Some(master) = self.master.get() {
+        if let Some(master) = self.master {
             if !utils::is_master_triggered(&engine, master, other) {
                 return;
             }
@@ -628,7 +618,7 @@ impl CreateEntity for TriggerVolume {
 impl Entity for TriggerVolume {
     delegate_entity!(base not { spawn });
 
-    fn spawn(&self) {
+    fn spawn(&mut self) {
         let v = self.vars();
         v.set_solid(Solid::Not);
         v.set_move_type(MoveType::None);
@@ -680,7 +670,7 @@ impl Entity for TriggerEndSection {
             .difference(ObjectCaps::ACROSS_TRANSITION)
     }
 
-    fn key_value(&self, data: &mut KeyValue) {
+    fn key_value(&mut self, data: &mut KeyValue) {
         if data.key_name() == c"section" {
             let engine = self.engine();
             self.vars().set_message(engine.new_map_string(data.value()));
@@ -690,7 +680,7 @@ impl Entity for TriggerEndSection {
         }
     }
 
-    fn spawn(&self) {
+    fn spawn(&mut self) {
         let engine = self.engine();
         let global_state = self.global_state();
         let v = self.base.vars();
@@ -720,19 +710,13 @@ impl Entity for TriggerEndSection {
     }
 }
 
-#[derive(Default)]
 #[cfg_attr(feature = "save", derive(Save, Restore))]
-struct ChangeLevelState {
+pub struct ChangeLevel {
+    base: BaseEntity,
     map_name: CStrArray<MAP_NAME_MAX>,
     landmark_name: CStrArray<MAP_NAME_MAX>,
     target: Option<MapString>,
     change_target_delay: f32,
-}
-
-#[cfg_attr(feature = "save", derive(Save, Restore))]
-pub struct ChangeLevel {
-    base: BaseEntity,
-    state: RefCell<ChangeLevelState>,
 }
 
 impl ChangeLevel {
@@ -740,8 +724,7 @@ impl ChangeLevel {
 
     fn change_level_now(&self, _other: &dyn Entity) {
         let engine = self.base.engine();
-        let state = self.state.borrow();
-        if state.map_name.is_empty() {
+        if self.map_name.is_empty() {
             panic!("Detected problems with save/restore!!!");
         }
 
@@ -757,14 +740,14 @@ impl ChangeLevel {
         v.set_damage_time(now);
 
         let mut next_spot = cstr!("");
-        if let Some(landmark) = find_landmark(engine, state.landmark_name.as_thin()) {
-            next_spot = state.landmark_name.as_thin();
+        if let Some(landmark) = find_landmark(engine, self.landmark_name.as_thin()) {
+            next_spot = self.landmark_name.as_thin();
             let landmark_origin = landmark.vars().origin();
             engine.globals.set_landmark_offset(landmark_origin);
         }
 
-        info!("CHANGE LEVEL: {:?} {next_spot:?}", state.map_name);
-        engine.change_level(&state.map_name, next_spot);
+        info!("CHANGE LEVEL: {:?} {next_spot:?}", self.map_name);
+        engine.change_level(&self.map_name, next_spot);
     }
 }
 
@@ -774,7 +757,10 @@ impl CreateEntity for ChangeLevel {
     fn create(base: BaseEntity) -> Self {
         Self {
             base,
-            state: Default::default(),
+            map_name: Default::default(),
+            landmark_name: Default::default(),
+            target: None,
+            change_target_delay: 0.0,
         }
     }
 }
@@ -788,48 +774,45 @@ impl Entity for ChangeLevel {
             .difference(ObjectCaps::ACROSS_TRANSITION)
     }
 
-    fn key_value(&self, data: &mut KeyValue) {
+    fn key_value(&mut self, data: &mut KeyValue) {
         let engine = self.base.engine();
         let value = data.value();
-        let mut state = self.state.borrow_mut();
 
         match data.key_name().to_bytes() {
             b"map" => {
-                if state.map_name.cursor().write_c_str(value).is_err() {
+                if self.map_name.cursor().write_c_str(value).is_err() {
                     error!("Map name {value:?} too long ({MAP_NAME_MAX} chars)");
                 }
             }
             b"landmark" => {
-                if state.landmark_name.cursor().write_c_str(value).is_err() {
+                if self.landmark_name.cursor().write_c_str(value).is_err() {
                     error!("Landmark name {value:?} too long ({MAP_NAME_MAX} chars)");
                 }
             }
             b"changetarget" => {
-                state.target = Some(engine.new_map_string(value));
+                self.target = Some(engine.new_map_string(value));
             }
             b"changedelay" => {
-                state.change_target_delay = data.value_str().parse().unwrap_or(0.0);
+                self.change_target_delay = data.parse_or_default();
             }
             _ => return self.base.key_value(data),
         }
         data.set_handled(true);
     }
 
-    fn spawn(&self) {
-        let state = self.state.borrow();
-
-        if state.map_name.is_empty() {
+    fn spawn(&mut self) {
+        if self.map_name.is_empty() {
             info!("A trigger_changelevel does not have a map");
         }
 
-        if state.landmark_name.is_empty() {
+        if self.landmark_name.is_empty() {
             info!(
                 "A trigger_changelevel to {:?} does not have a landmark",
-                state.map_name
+                self.map_name
             );
         }
 
-        if let Some(_target) = state.target {
+        if let Some(_target) = self.target {
             // TODO: use target name
         }
 
@@ -919,9 +902,8 @@ pub fn build_change_list(engine: ServerEngineRef, level_list: &mut [LEVELLIST]) 
     let mut count = 0;
     for i in engine.entities().by_class_name(c"trigger_changelevel") {
         if let Some(trigger) = i.downcast_ref::<ChangeLevel>() {
-            let state = trigger.state.borrow();
-            let map_name = state.map_name.as_thin();
-            let landmark_name = state.landmark_name.as_thin();
+            let map_name = trigger.map_name.as_thin();
+            let landmark_name = trigger.landmark_name.as_thin();
             if let Some(landmark) = find_landmark(engine, landmark_name) {
                 let is_added = add_transition_to_list(
                     level_list,
@@ -1014,22 +996,16 @@ bitflags! {
     }
 }
 
-#[derive(Default)]
-#[cfg_attr(feature = "save", derive(Save, Restore))]
-struct MultiManagerState {
-    targets: Vec<MultiManagerTarget>,
-    wait: f32,
-    start_time: MapTime,
-    activator: EntityIndex,
-    index: u32,
-    enable_use: bool,
-    enable_think: bool,
-}
-
 #[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct MultiManager {
     base: BaseEntity,
-    state: RefCell<MultiManagerState>,
+    targets: Vec<MultiManagerTarget>,
+    wait: f32,
+    start_time: Cell<MapTime>,
+    activator: Cell<EntityIndex>,
+    index: Cell<u32>,
+    enable_use: Cell<bool>,
+    enable_think: Cell<bool>,
 }
 
 impl MultiManager {
@@ -1058,7 +1034,7 @@ impl MultiManager {
         let v = multi.vars();
         v.set_containing_entity(edict.map(|e| unsafe { e.as_ref() }));
         v.with_spawn_flags(|f| f | MultiManagerSpawnFlags::CLONE.bits());
-        multi.state.borrow_mut().targets = self.state.borrow().targets.clone();
+        multi.targets = self.targets.clone();
         multi
     }
 }
@@ -1069,7 +1045,13 @@ impl CreateEntity for MultiManager {
     fn create(base: BaseEntity) -> Self {
         Self {
             base,
-            state: Default::default(),
+            targets: Default::default(),
+            wait: 0.0,
+            start_time: Default::default(),
+            activator: Default::default(),
+            index: Default::default(),
+            enable_use: Default::default(),
+            enable_think: Default::default(),
         }
     }
 }
@@ -1083,20 +1065,18 @@ impl Entity for MultiManager {
             .difference(ObjectCaps::ACROSS_TRANSITION)
     }
 
-    fn key_value(&self, data: &mut KeyValue) {
+    fn key_value(&mut self, data: &mut KeyValue) {
         let key = data.key_name();
         if key == c"wait" {
-            let mut state = self.state.borrow_mut();
-            state.wait = data.parse_or(0.0);
+            self.wait = data.parse_or(0.0);
             data.set_handled(true);
         } else {
             let mut tmp = CStrArray::<128>::new();
             match utils::strip_token(key.into(), &mut tmp) {
                 Ok(()) => {
-                    let mut state = self.state.borrow_mut();
                     let name = self.engine().new_map_string(&tmp);
                     let delay = data.parse_or_default();
-                    state.targets.push(MultiManagerTarget::new(name, delay))
+                    self.targets.push(MultiManagerTarget::new(name, delay))
                 }
                 Err(_) => {
                     error!("{}: failed to strip token {key:?}", self.classname());
@@ -1105,18 +1085,15 @@ impl Entity for MultiManager {
         }
     }
 
-    fn spawn(&self) {
+    fn spawn(&mut self) {
         self.vars().set_solid(Solid::Not);
-        let mut state = self.state.borrow_mut();
-        state
-            .targets
+        self.targets
             .sort_by(|a, b| a.delay.partial_cmp(&b.delay).unwrap());
-        state.enable_use = true;
+        self.enable_use.set(true);
     }
 
     fn used(&self, _use_type: UseType, activator: Option<&dyn Entity>, caller: &dyn Entity) {
-        let mut state = self.state.borrow_mut();
-        if !state.enable_use {
+        if !self.enable_use.get() {
             return;
         }
 
@@ -1127,53 +1104,44 @@ impl Entity for MultiManager {
         }
 
         let engine = self.engine();
-        state.activator = engine.get_entity_index(&activator.unwrap_or(caller));
-        state.index = 0;
-        state.start_time = engine.globals.map_time();
-        state.enable_use = false;
-        state.enable_think = true;
+        self.activator
+            .set(engine.get_entity_index(&activator.unwrap_or(caller)));
+        self.index.set(0);
+        self.start_time.set(engine.globals.map_time());
+        self.enable_use.set(false);
+        self.enable_think.set(true);
         self.vars().set_next_think_time_from_now(0.0);
     }
 
     fn think(&self) {
-        let mut state = self.state.borrow_mut();
-        if !state.enable_think {
+        if !self.enable_think.get() {
             return;
         }
 
         let engine = self.engine();
-        let time = engine.globals.map_time() - state.start_time;
+        let time = engine.globals.map_time() - self.start_time.get();
         let activator = engine
-            .get_entity_by_index(state.activator)
+            .get_entity_by_index(self.activator.get())
             .and_then(|i| i.get_entity());
 
-        let skip = state.index as usize;
-        let targets = mem::take(&mut state.targets);
-
-        // called in fire_targets bellow
-        drop(state);
-
-        for target in targets.iter().skip(skip) {
+        for target in self.targets.iter().skip(self.index.get() as usize) {
             if target.delay > time {
                 break;
             }
             if let Some(target_name) = target.name {
                 utils::fire_targets(&target_name, UseType::Toggle, activator, self);
             }
-            self.state.borrow_mut().index += 1;
+            self.index.set(self.index.get() + 1);
         }
 
-        let mut state = self.state.borrow_mut();
-        state.targets = targets;
-
-        if state.index as usize >= state.targets.len() {
-            state.enable_think = false;
+        if self.index.get() as usize >= self.targets.len() {
+            self.enable_think.set(false);
             if self.is_clone() {
                 self.remove_from_world();
             }
-            state.enable_use = true;
-        } else if let Some(target) = state.targets.get(state.index as usize) {
-            let next_time = state.start_time + target.delay;
+            self.enable_use.set(true);
+        } else if let Some(target) = self.targets.get(self.index.get() as usize) {
+            let next_time = self.start_time.get() + target.delay;
             self.base.vars().set_next_think_time(next_time);
         }
     }
