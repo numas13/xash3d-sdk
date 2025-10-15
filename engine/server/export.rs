@@ -215,7 +215,7 @@ pub trait ServerDll: UnsyncGlobal {
         if save_data.table()[current_index].pent != ent {
             error!("Entity table or index is wrong");
         }
-        let Some(entity) = ent.get_entity_mut() else {
+        let Some(entity) = (unsafe { ent.get_entity_mut() }) else {
             return;
         };
         if entity.object_caps().intersects(ObjectCaps::DONT_SAVE) {
@@ -290,14 +290,13 @@ pub trait ServerDll: UnsyncGlobal {
             old_offset = save_data.landmark_offset();
             let classname = tmp_vars.classname().unwrap();
             let globalname = tmp_vars.globalname().unwrap();
-            if let Some(mut new_ent) = engine.find_global_entity(classname, globalname) {
-                let new_ent = unsafe { new_ent.as_mut() };
+            if let Some(new_ent) = engine.find_global_entity(classname, globalname) {
                 global_mode = true;
                 let mut landmark_offset = save_data.landmark_offset();
-                landmark_offset -= new_ent.v.mins;
+                landmark_offset -= new_ent.vars().min_size();
                 landmark_offset += tmp_vars.mins;
                 save_data.set_landmark_offset(landmark_offset);
-                ent = new_ent;
+                ent = unsafe { &mut *new_ent.as_ptr() };
                 entities.update(
                     ent.v.globalname().unwrap(),
                     engine.globals.map_name().unwrap(),
@@ -307,7 +306,7 @@ pub trait ServerDll: UnsyncGlobal {
             }
         }
 
-        let Some(entity) = ent.get_entity_mut() else {
+        let Some(entity) = (unsafe { ent.get_entity_mut() }) else {
             return RestoreResult::Ok;
         };
 
@@ -679,14 +678,14 @@ pub trait ServerDll: UnsyncGlobal {
         state.rendercolor.b = ent.v.rendercolor[2] as u8;
 
         state.aiment = if !ent.v.aiment.is_null() {
-            engine.ent_index(unsafe { &*ent.v.aiment }).to_i32()
+            engine.get_entity_index(unsafe { &*ent.v.aiment }).to_i32()
         } else {
             0
         };
 
         state.owner = 0;
         if !ent.v.owner.is_null() {
-            let owner = engine.ent_index(unsafe { &*ent.v.owner }).to_i32();
+            let owner = engine.get_entity_index(unsafe { &*ent.v.owner }).to_i32();
             if owner >= 1 && owner <= engine.globals.max_clients() {
                 state.owner = owner;
             }

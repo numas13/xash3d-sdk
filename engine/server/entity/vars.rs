@@ -8,7 +8,7 @@ use core::{
 use bitflags::bitflags;
 use csz::CStrThin;
 use xash3d_shared::{
-    entity::{Buttons, EdictFlags, Effects, MoveType},
+    entity::{Buttons, EdictFlags, Effects, EntityIndex, MoveType},
     ffi::{
         self,
         common::vec3_t,
@@ -22,7 +22,7 @@ use xash3d_shared::{
 
 use crate::{
     engine::ServerEngineRef,
-    entity::{AsEntityHandle, KeyValue},
+    entity::{AsEntityHandle, EntityOffset, KeyValue},
     global_state::GlobalStateRef,
     save::{FieldType, SaveFields},
     str::MapString,
@@ -333,6 +333,16 @@ impl EntityVars {
 
     pub fn global_state(&self) -> GlobalStateRef {
         self.global_state
+    }
+
+    /// Returns an index of this entity.
+    pub fn entity_index(&self) -> EntityIndex {
+        self.engine().get_entity_index(self)
+    }
+
+    /// Returns an offset of this entity.
+    pub fn entity_offset(&self) -> EntityOffset {
+        self.engine().get_entity_offset(self)
     }
 
     field!(get classname, fn classname() -> Option<MapString>);

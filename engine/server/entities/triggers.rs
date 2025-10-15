@@ -1,7 +1,6 @@
 use core::{
     cell::{Cell, RefCell},
-    mem,
-    ptr::{self, NonNull},
+    mem, ptr,
 };
 
 use alloc::vec::Vec;
@@ -20,8 +19,8 @@ use crate::save::{Restore, Save};
 use crate::{
     entities::subs::{DelayedUse, PointEntity},
     entity::{
-        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Dead, Entity, EntityPlayer,
-        EntityVars, KeyValue, ObjectCaps, Private, Solid, TakeDamage, UseType,
+        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Dead, Entity, EntityHandle,
+        EntityPlayer, EntityVars, KeyValue, ObjectCaps, Private, Solid, TakeDamage, UseType,
     },
     export::{export_entity_default, export_entity_stub},
     global_state::EntityState,
@@ -534,14 +533,12 @@ impl Entity for TriggerHurt {
         v.set_origin(v.abs_center());
         v.set_view_ofs(vec3_t::ZERO);
 
-        let player = engine
-            .find_client_in_pvs(v)
-            .and_then(|i| unsafe { i.as_ref() }.get_entity());
+        let player = engine.find_client_in_pvs(v);
 
         v.set_origin(orig_origin);
         v.set_view_ofs(orig_view_ofs);
 
-        if let Some(player) = player.and_then(|i| i.downcast_ref::<dyn EntityPlayer>()) {
+        if let Some(player) = player.downcast_ref::<dyn EntityPlayer>() {
             let spot1 = v.abs_center();
             let spot2 = player.vars().abs_center();
             let range = (spot1 - spot2).length();
@@ -762,7 +759,7 @@ impl ChangeLevel {
         let mut next_spot = cstr!("");
         if let Some(landmark) = find_landmark(engine, state.landmark_name.as_thin()) {
             next_spot = state.landmark_name.as_thin();
-            let landmark_origin = unsafe { landmark.as_ref() }.v.origin;
+            let landmark_origin = landmark.vars().origin();
             engine.globals.set_landmark_offset(landmark_origin);
         }
 
@@ -880,13 +877,16 @@ pub fn add_transition_to_list(
     true
 }
 
-fn find_landmark(engine: ServerEngineRef, landmark_name: &CStrThin) -> Option<NonNull<edict_s>> {
+fn find_landmark(engine: ServerEngineRef, landmark_name: &CStrThin) -> Option<EntityHandle> {
     engine
-        .find_ent_by_targetname_iter(landmark_name)
+        .entities()
+        .by_target_name(landmark_name)
         .find(|&ent| {
-            let classname = unsafe { ent.as_ref() }.v.classname().unwrap();
-            classname.as_thin() == c"info_landmark"
+            ent.vars()
+                .classname()
+                .is_some_and(|s| s.as_thin() == c"info_landmark")
         })
+        .map(|ent| ent.into())
 }
 
 fn in_transition_volume(
@@ -902,14 +902,12 @@ fn in_transition_volume(
         ent = unsafe { aim.as_mut() }.get_entity().unwrap();
     }
 
-    let mut ent_volume = engine.find_ent_by_target_name(ptr::null_mut(), volume_name);
-    while !engine.is_null_ent(ent_volume) {
-        if let Some(volume) = unsafe { &*ent_volume }.get_entity() {
+    for i in engine.entities().by_target_name(volume_name) {
+        if let Some(volume) = i.get_entity() {
             if volume.is_classname(c"trigger_transition".into()) && volume.intersects(ent) {
                 return true;
             }
         }
-        ent_volume = engine.find_ent_by_target_name(ent_volume, volume_name);
     }
 
     false
@@ -918,25 +916,21 @@ fn in_transition_volume(
 pub fn build_change_list(engine: ServerEngineRef, level_list: &mut [LEVELLIST]) -> usize {
     const MAX_ENTITY: usize = 512;
 
-    let mut ent = engine.find_ent_by_classname(ptr::null_mut(), c"trigger_changelevel");
-    if engine.is_null_ent(ent) {
-        return 0;
-    }
     let mut count = 0;
-    while !engine.is_null_ent(ent) {
-        let private = unsafe { &*ent }.get_private().unwrap();
-        if let Some(trigger) = private.downcast_ref::<ChangeLevel>() {
+    for i in engine.entities().by_class_name(c"trigger_changelevel") {
+        if let Some(trigger) = i.downcast_ref::<ChangeLevel>() {
             let state = trigger.state.borrow();
             let map_name = state.map_name.as_thin();
             let landmark_name = state.landmark_name.as_thin();
             if let Some(landmark) = find_landmark(engine, landmark_name) {
-                if add_transition_to_list(
+                let is_added = add_transition_to_list(
                     level_list,
                     count,
                     map_name,
                     landmark_name,
                     landmark.as_ptr(),
-                ) {
+                );
+                if is_added {
                     count += 1;
                     if count >= level_list.len() {
                         break;
@@ -944,7 +938,10 @@ pub fn build_change_list(engine: ServerEngineRef, level_list: &mut [LEVELLIST]) 
                 }
             }
         }
-        ent = engine.find_ent_by_classname(ent, c"trigger_changelevel");
+    }
+
+    if count == 0 {
+        return 0;
     }
 
     if let Some(mut save_data) = engine.globals.save_data() {
@@ -955,9 +952,8 @@ pub fn build_change_list(engine: ServerEngineRef, level_list: &mut [LEVELLIST]) 
                 let mut ent_list = [ptr::null_mut(); MAX_ENTITY];
                 let mut ent_flags = [0; MAX_ENTITY];
 
-                let mut ent = engine.entities_in_pvs(unsafe { &mut *level.pentLandmark });
-                while !engine.is_null_ent(ent) {
-                    if let Some(entity) = unsafe { &*ent }.get_entity() {
+                for ent in engine.entities().in_pvs(unsafe { &*level.pentLandmark }) {
+                    if let Some(entity) = ent.get_entity() {
                         let caps = entity.object_caps();
                         if !caps.intersects(ObjectCaps::DONT_SAVE) {
                             let mut flags = 0;
@@ -969,13 +965,12 @@ pub fn build_change_list(engine: ServerEngineRef, level_list: &mut [LEVELLIST]) 
                                 flags |= FENTTABLE_GLOBAL;
                             }
                             if flags != 0 {
-                                ent_list[ent_count] = entity.as_entity_handle();
+                                ent_list[ent_count] = entity.vars().containing_entity_raw();
                                 ent_flags[ent_count] = flags;
                                 ent_count += 1;
                             }
                         }
                     }
-                    ent = unsafe { (*ent).v.chain };
                 }
 
                 for j in 0..ent_count {
@@ -1132,7 +1127,7 @@ impl Entity for MultiManager {
         }
 
         let engine = self.engine();
-        state.activator = engine.ent_index(activator.unwrap_or(caller));
+        state.activator = engine.get_entity_index(&activator.unwrap_or(caller));
         state.index = 0;
         state.start_time = engine.globals.map_time();
         state.enable_use = false;
@@ -1148,12 +1143,9 @@ impl Entity for MultiManager {
 
         let engine = self.engine();
         let time = engine.globals.map_time() - state.start_time;
-        let activator = unsafe {
-            engine
-                .entity_of_ent_index(state.activator)
-                .as_ref()
-                .and_then(|i| i.get_entity())
-        };
+        let activator = engine
+            .get_entity_by_index(state.activator)
+            .and_then(|i| i.get_entity());
 
         let skip = state.index as usize;
         let targets = mem::take(&mut state.targets);

@@ -1,10 +1,10 @@
 use core::{any::Any, ffi::CStr};
 
-use xash3d_shared::ffi::{common::vec3_t, server::edict_s};
+use xash3d_shared::ffi::common::vec3_t;
 
 use crate::{
     engine::ServerEngineRef,
-    entity::{Entity, EntityPlayer},
+    entity::{Entity, EntityHandle, EntityPlayer},
     global_state::GlobalStateRef,
 };
 
@@ -36,21 +36,21 @@ pub trait GameRules: Any {
         true
     }
 
-    fn get_player_spawn_spot(&self, player: &dyn EntityPlayer) -> *mut edict_s {
+    fn get_player_spawn_spot(&self, player: &dyn EntityPlayer) -> EntityHandle {
         let spawn_spot = player.select_spawn_point();
-        let sev = unsafe { &(*spawn_spot).v };
+        let sv = spawn_spot.vars();
         let pv = player.vars();
-        pv.set_origin(sev.origin + vec3_t::new(0.0, 0.0, 1.0));
+        pv.set_origin(sv.origin() + vec3_t::new(0.0, 0.0, 1.0));
         pv.set_view_angle(vec3_t::ZERO);
         pv.set_velocity(vec3_t::ZERO);
-        pv.set_angles(sev.angles);
+        pv.set_angles(sv.angles());
         pv.set_punch_angle(vec3_t::ZERO);
         pv.set_fix_angle(1);
         spawn_spot
     }
 
     #[allow(unused_variables)]
-    fn player_spawn(&self, player: &mut dyn EntityPlayer) {}
+    fn player_spawn(&self, player: &dyn EntityPlayer) {}
 
     fn allow_flashlight(&self) -> bool {
         false

@@ -1,16 +1,16 @@
 use core::{cell::Cell, ffi::c_int, ptr};
 
 use xash3d_shared::{
-    entity::{Buttons, EdictFlags, EntityIndex, MoveType},
-    ffi::{common::vec3_t, server::edict_s},
+    entity::{Buttons, EdictFlags, MoveType},
+    ffi::common::vec3_t,
     math::ToAngleVectors,
 };
 
 use crate::{
     engine::TraceIgnore,
     entity::{
-        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Dead, Entity, EntityPlayer,
-        EntityVars, GetPrivateData, ObjectCaps, Solid, TakeDamage, UseType,
+        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Dead, Entity, EntityHandle,
+        EntityPlayer, EntityVars, GetPrivateData, ObjectCaps, Solid, TakeDamage, UseType,
     },
     utils::{self, ViewField},
 };
@@ -150,7 +150,12 @@ impl Player {
             let start = pv.origin() + pv.view_ofs();
             let end = tv.bmodel_origin();
             let trace = engine.trace_line(start, end, TraceIgnore::MONSTERS, Some(pv));
-            if trace.fraction() < 0.9 && !ptr::eq(tv.containing_entity_raw(), trace.hit_entity()) {
+            if trace.fraction() < 0.9
+                && !ptr::eq(
+                    tv.containing_entity_raw(),
+                    trace.hit_entity().vars().containing_entity_raw(),
+                )
+            {
                 let classname = trace.hit_entity().get_entity().map(|e| e.classname());
                 trace!("player use trace hit {classname:?} ({})", trace.fraction());
                 target = None;
@@ -202,8 +207,9 @@ impl Player {
         let view_origin = pv.origin() + pv.view_ofs();
         let forward = pv.view_angle().angle_vectors().forward();
         let closest = engine
-            .find_entity_in_sphere_iter(None::<&edict_s>, pv.origin(), search_radius)
-            .filter_map(|i| unsafe { i.as_ref() }.get_entity())
+            .entities()
+            .in_sphere(pv.origin(), search_radius)
+            .filter_map(|i| i.get_entity())
             .filter_map(|i| self.new_use_target(i, view_origin, forward))
             .reduce(|a, b| if a.dot <= b.dot { b } else { a });
 
@@ -313,7 +319,7 @@ impl Entity for Player {
 }
 
 impl EntityPlayer for Player {
-    fn select_spawn_point(&self) -> *mut edict_s {
+    fn select_spawn_point(&self) -> EntityHandle {
         let engine = self.engine();
         let global_state = self.global_state();
         let game_rules = global_state.game_rules();
@@ -329,14 +335,13 @@ impl EntityPlayer for Player {
         if start_spot.is_empty() {
             start_spot = c"info_player_start".into();
         }
-        let spot = engine.find_ent_by_classname(ptr::null_mut(), start_spot);
 
-        if !spot.is_null() {
-            self.global_state().set_last_spawn(spot);
+        if let Some(spot) = engine.entities().by_class_name(start_spot).first() {
+            self.global_state().set_last_spawn(Some(spot));
             spot
         } else {
             error!("No info_player_start on level");
-            engine.entity_of_ent_index(EntityIndex::WORLD_SPAWN)
+            engine.get_world_spawn_entity()
         }
     }
 

@@ -1,6 +1,7 @@
 use core::{
     ffi::{c_char, c_int, c_long, c_uchar, c_void, CStr},
     fmt, iter,
+    marker::PhantomData,
     mem::MaybeUninit,
     ptr::{self, NonNull},
     slice,
@@ -24,8 +25,8 @@ use xash3d_shared::{
 use crate::{
     cvar::CVarPtr,
     entity::{
-        AsEntityHandle, BaseEntity, CreateEntity, Entity, EntityOffset, EntityVars, GetPrivateData,
-        KeyValue, PrivateData, PrivateEntity,
+        AsEntityHandle, BaseEntity, CreateEntity, Entity, EntityHandle, EntityHandleRef,
+        EntityOffset, EntityVars, GetPrivateData, KeyValue, PrivateData, PrivateEntity,
     },
     global_state::GlobalStateRef,
     globals::ServerGlobals,
@@ -299,14 +300,20 @@ impl<'a, T: Entity> EntityBuilder<'a, T> {
     }
 }
 
-pub struct TraceResult {
+pub struct TraceResult<'a> {
+    engine: ServerEngineRef,
     raw: ffi::server::TraceResult,
+    phantom: PhantomData<&'a ServerEngine>,
 }
 
-impl TraceResult {
-    pub fn new(raw: ffi::server::TraceResult) -> Self {
+impl<'a> TraceResult<'a> {
+    pub fn new(engine: &'a ServerEngine, raw: ffi::server::TraceResult) -> Self {
         debug_assert!(!raw.pHit.is_null());
-        Self { raw }
+        Self {
+            engine: engine.engine_ref(),
+            raw,
+            phantom: PhantomData,
+        }
     }
 
     pub fn all_solid(&self) -> bool {
@@ -345,14 +352,9 @@ impl TraceResult {
     }
 
     // TODO: return Option if fraction is 1.0?
-    pub fn hit_entity(&self) -> &edict_s {
+    pub fn hit_entity(&self) -> EntityHandleRef<'a> {
         // SAFETY: the engine returns non-null pointer
-        unsafe { &*self.raw.pHit }
-    }
-
-    pub fn hit_entity_mut(&mut self) -> &mut edict_s {
-        // SAFETY: the engine returns non-null pointer
-        unsafe { &mut *self.raw.pHit }
+        unsafe { EntityHandleRef::new_unchecked(self.engine, self.raw.pHit) }
     }
 
     /// Returns `0` for generic group and non-zero for a specific body part.
@@ -535,6 +537,23 @@ impl ServerEngine {
     // pub pfnChangeYaw: Option<unsafe extern "C" fn(ent: *mut edict_t)>,
     // pub pfnChangePitch: Option<unsafe extern "C" fn(ent: *mut edict_t)>,
 
+    fn find_entity_by_string_impl<'a>(
+        &'a self,
+        start: *mut edict_s,
+        field: &CStrThin,
+        value: &CStrThin,
+    ) -> Option<EntityHandleRef<'a>> {
+        let ret =
+            unsafe { unwrap!(self, pfnFindEntityByString)(start, field.as_ptr(), value.as_ptr()) };
+        unsafe { EntityHandleRef::new_not_world_spawn(self.engine_ref(), ret) }
+    }
+
+    pub fn entities(&self) -> Entities<'_> {
+        Entities::new(self)
+    }
+
+    #[deprecated(note = "use entities instead")]
+    #[allow(deprecated)]
     pub fn find_ent_by_string(
         &self,
         start_search_after: *mut edict_s,
@@ -547,6 +566,8 @@ impl ServerEngine {
         unsafe { unwrap!(self, pfnFindEntityByString)(start, field.as_ptr(), value.as_ptr()) }
     }
 
+    #[deprecated(note = "use entities instead")]
+    #[allow(deprecated)]
     pub fn find_ent_by_classname(
         &self,
         start_search_after: *mut edict_s,
@@ -555,6 +576,8 @@ impl ServerEngine {
         self.find_ent_by_string(start_search_after, c"classname", name)
     }
 
+    #[deprecated(note = "use entities instead")]
+    #[allow(deprecated)]
     pub fn find_ent_by_target_name(
         &self,
         start_search_after: *mut edict_s,
@@ -564,9 +587,10 @@ impl ServerEngine {
     }
 
     pub fn is_null_ent(&self, ent: *const edict_s) -> bool {
-        ent.is_null() || self.ent_offset_of_entity(unsafe { &*ent }).is_world_spawn()
+        ent.is_null() || self.get_entity_offset(unsafe { &*ent }).is_world_spawn()
     }
 
+    #[deprecated(note = "use entities instead")]
     pub fn find_ent_by_string_iter<'a>(
         &'a self,
         field: impl ToEngineStr + 'a,
@@ -587,6 +611,8 @@ impl ServerEngine {
         })
     }
 
+    #[deprecated(note = "use entities instead")]
+    #[allow(deprecated)]
     pub fn find_ent_by_classname_iter<'a>(
         &'a self,
         value: impl ToEngineStr + 'a,
@@ -594,6 +620,8 @@ impl ServerEngine {
         self.find_ent_by_string_iter(c"classname", value)
     }
 
+    #[deprecated(note = "use entities instead")]
+    #[allow(deprecated)]
     pub fn find_ent_by_globalname_iter<'a>(
         &'a self,
         value: impl ToEngineStr + 'a,
@@ -601,6 +629,8 @@ impl ServerEngine {
         self.find_ent_by_string_iter(c"globalname", value)
     }
 
+    #[deprecated(note = "use entities instead")]
+    #[allow(deprecated)]
     pub fn find_ent_by_targetname_iter<'a>(
         &'a self,
         value: impl ToEngineStr + 'a,
@@ -612,59 +642,62 @@ impl ServerEngine {
         &self,
         class_name: MapString,
         global_name: MapString,
-    ) -> Option<NonNull<edict_s>> {
-        self.find_ent_by_globalname_iter(&global_name).find(|&ent| {
-            if let Some(entity) = unsafe { ent.as_ref() }.get_entity() {
-                if entity.is_classname(&class_name) {
-                    return true;
-                } else {
-                    debug!("Global entity found \"{global_name}\", wrong class \"{class_name}\"");
+    ) -> Option<EntityHandle> {
+        self.entities()
+            .by_global_name(&global_name)
+            .find(|&i| {
+                if let Some(entity) = i.get_entity() {
+                    if entity.is_classname(&class_name) {
+                        return true;
+                    } else {
+                        debug!(
+                            "Global entity found \"{global_name}\", wrong class \"{class_name}\""
+                        );
+                    }
                 }
-            }
-            false
-        })
+                false
+            })
+            .map(|i| i.into())
     }
 
     pub fn get_entity_illum(&self, ent: &impl AsEntityHandle) -> c_int {
         unsafe { unwrap!(self, pfnGetEntityIllum)(ent.as_entity_handle()) }
     }
 
-    fn find_entity_in_sphere_impl(
-        &self,
+    fn find_entity_in_sphere_impl<'a>(
+        &'a self,
         start_search_after: *mut edict_s,
         origin: vec3_t,
         radius: f32,
-    ) -> Option<NonNull<edict_s>> {
-        let result = unsafe {
+    ) -> Option<EntityHandleRef<'a>> {
+        let ret = unsafe {
             unwrap!(self, pfnFindEntityInSphere)(
                 start_search_after,
                 origin.as_ref().as_ptr(),
                 radius,
             )
         };
-        if !self.is_null_ent(result) {
-            Some(unsafe { NonNull::new_unchecked(result) })
-        } else {
-            None
-        }
+        unsafe { EntityHandleRef::new_not_world_spawn(self.engine_ref(), ret) }
     }
 
-    pub fn find_entity_in_sphere(
-        &self,
+    #[deprecated(note = "use entites().in_sphere instead")]
+    pub fn find_entity_in_sphere<'a>(
+        &'a self,
         start_search_after: Option<&impl AsEntityHandle>,
         origin: vec3_t,
         radius: f32,
-    ) -> Option<NonNull<edict_s>> {
+    ) -> Option<EntityHandleRef<'a>> {
         let start = start_search_after.map_or(ptr::null_mut(), |e| e.as_entity_handle());
         self.find_entity_in_sphere_impl(start, origin, radius)
     }
 
+    #[deprecated(note = "use entites().in_sphere instead")]
     pub fn find_entity_in_sphere_iter<'a>(
         &'a self,
         start_search_after: Option<&impl AsEntityHandle>,
         origin: vec3_t,
         radius: f32,
-    ) -> impl 'a + Iterator<Item = NonNull<edict_s>> {
+    ) -> impl 'a + Iterator<Item = EntityHandleRef<'a>> {
         let mut start = start_search_after.map_or(ptr::null_mut(), |i| i.as_entity_handle());
         iter::from_fn(move || {
             let ret = self.find_entity_in_sphere_impl(start, origin, radius);
@@ -673,13 +706,20 @@ impl ServerEngine {
         })
     }
 
-    pub fn find_client_in_pvs(&self, ent: &impl AsEntityHandle) -> Option<NonNull<edict_s>> {
+    pub fn find_client_in_pvs<'a>(
+        &'a self,
+        ent: &impl AsEntityHandle,
+    ) -> Option<EntityHandleRef<'a>> {
         let ret = unsafe { unwrap!(self, pfnFindClientInPVS)(ent.as_entity_handle()) };
-        NonNull::new(ret)
+        unsafe { EntityHandleRef::new_not_world_spawn(self.engine_ref(), ret) }
     }
 
-    pub fn entities_in_pvs(&self, player: *mut edict_s) -> *mut edict_s {
-        unsafe { unwrap!(self, pfnEntitiesInPVS)(player) }
+    fn entities_in_pvs_impl<'a>(
+        &'a self,
+        player: &impl AsEntityHandle,
+    ) -> Option<EntityHandleRef<'a>> {
+        let raw = unsafe { unwrap!(self, pfnEntitiesInPVS)(player.as_entity_handle()) };
+        unsafe { EntityHandleRef::new_not_world_spawn(self.engine_ref(), raw) }
     }
 
     /// Write results to globals().{v_forward, v_right, v_up}
@@ -696,8 +736,9 @@ impl ServerEngine {
     //     ),
     // >,
 
-    pub fn create_entity(&self) -> *mut edict_s {
-        unsafe { unwrap!(self, pfnCreateEntity)() }
+    pub fn create_entity(&self) -> Option<EntityHandle> {
+        let ret = unsafe { unwrap!(self, pfnCreateEntity)() };
+        unsafe { EntityHandle::new(self.engine_ref(), ret) }
     }
 
     /// Call the private data destructor and immediately delete the entity.
@@ -792,13 +833,13 @@ impl ServerEngine {
         }
     }
 
-    pub fn trace_line(
-        &self,
+    pub fn trace_line<'a>(
+        &'a self,
         start: vec3_t,
         end: vec3_t,
         ignore: TraceIgnore,
         ignore_ent: Option<&impl AsEntityHandle>,
-    ) -> TraceResult {
+    ) -> TraceResult<'a> {
         let mut trace = MaybeUninit::uninit();
         unsafe {
             unwrap!(self, pfnTraceLine)(
@@ -809,14 +850,14 @@ impl ServerEngine {
                 trace.as_mut_ptr(),
             );
         }
-        TraceResult::new(unsafe { trace.assume_init() })
+        TraceResult::new(self, unsafe { trace.assume_init() })
     }
 
-    pub fn trace_toss(
-        &self,
+    pub fn trace_toss<'a>(
+        &'a self,
         ent: &impl AsEntityHandle,
         ignore_ent: Option<&impl AsEntityHandle>,
-    ) -> TraceResult {
+    ) -> TraceResult<'a> {
         let mut trace = MaybeUninit::uninit();
         unsafe {
             unwrap!(self, pfnTraceToss)(
@@ -825,17 +866,17 @@ impl ServerEngine {
                 trace.as_mut_ptr(),
             );
         }
-        TraceResult::new(unsafe { trace.assume_init() })
+        TraceResult::new(self, unsafe { trace.assume_init() })
     }
 
-    pub fn trace_monster_hull(
-        &self,
+    pub fn trace_monster_hull<'a>(
+        &'a self,
         start: vec3_t,
         end: vec3_t,
         ent: &impl AsEntityHandle,
         ignore: TraceIgnore,
         ignore_ent: Option<&impl AsEntityHandle>,
-    ) -> Option<TraceResult> {
+    ) -> Option<TraceResult<'a>> {
         let mut trace = MaybeUninit::uninit();
         let result = unsafe {
             unwrap!(self, pfnTraceMonsterHull)(
@@ -848,20 +889,20 @@ impl ServerEngine {
             )
         };
         if result != 0 {
-            Some(TraceResult::new(unsafe { trace.assume_init() }))
+            Some(TraceResult::new(self, unsafe { trace.assume_init() }))
         } else {
             None
         }
     }
 
-    pub fn trace_hull(
-        &self,
+    pub fn trace_hull<'a>(
+        &'a self,
         start: vec3_t,
         end: vec3_t,
         hull_number: i32,
         ignore: TraceIgnore,
         ignore_ent: Option<&impl AsEntityHandle>,
-    ) -> TraceResult {
+    ) -> TraceResult<'a> {
         let mut trace = MaybeUninit::uninit();
         unsafe {
             unwrap!(self, pfnTraceHull)(
@@ -873,16 +914,16 @@ impl ServerEngine {
                 trace.as_mut_ptr(),
             );
         }
-        TraceResult::new(unsafe { trace.assume_init() })
+        TraceResult::new(self, unsafe { trace.assume_init() })
     }
 
-    pub fn trace_model(
-        &self,
+    pub fn trace_model<'a>(
+        &'a self,
         start: vec3_t,
         end: vec3_t,
         hull_number: i32,
         ent: &impl AsEntityHandle,
-    ) -> TraceResult {
+    ) -> TraceResult<'a> {
         let mut trace = MaybeUninit::uninit();
         unsafe {
             unwrap!(self, pfnTraceModel)(
@@ -893,7 +934,7 @@ impl ServerEngine {
                 trace.as_mut_ptr(),
             );
         }
-        TraceResult::new(unsafe { trace.assume_init() })
+        TraceResult::new(self, unsafe { trace.assume_init() })
     }
 
     pub fn trace_texture(
@@ -1097,7 +1138,8 @@ impl ServerEngine {
 
     // pub pfnEngineFprintf: Option<unsafe extern "C" fn(pfile: *mut FILE, szFmt: *mut c_char, ...)>,
 
-    pub fn alloc_ent_private_data(&self, edict: *mut edict_s, cb: usize) -> *mut c_void {
+    pub fn alloc_ent_private_data(&self, ent: &impl AsEntityHandle, cb: usize) -> *mut c_void {
+        let edict = ent.as_entity_handle();
         let ptr = unsafe { unwrap!(self, pfnPvAllocEntPrivateData)(edict, cb as c_long) };
         assert!(!ptr.is_null());
         ptr
@@ -1135,23 +1177,54 @@ impl ServerEngine {
 
     // pub pfnGetVarsOfEnt: Option<unsafe extern "C" fn(pEdict: *mut edict_t) -> *mut entvars_s>,
 
+    #[deprecated(note = "use get_entity_by_offset instead")]
     pub fn entity_of_ent_offset(&self, offset: EntityOffset) -> *mut edict_s {
         let offset = offset.to_u32() as c_int;
         unsafe { unwrap!(self, pfnPEntityOfEntOffset)(offset) }
     }
 
+    #[deprecated(note = "use get_entity_offset instead")]
     pub fn ent_offset_of_entity(&self, ent: &impl AsEntityHandle) -> EntityOffset {
         let offset = unsafe { unwrap!(self, pfnEntOffsetOfPEntity)(ent.as_entity_handle()) };
         unsafe { EntityOffset::new_unchecked(offset.try_into().unwrap()) }
     }
 
+    #[deprecated(note = "use get_entity_index instead")]
     pub fn ent_index(&self, edict: &(impl AsEntityHandle + ?Sized)) -> EntityIndex {
         let index = unsafe { unwrap!(self, pfnIndexOfEdict)(edict.as_entity_handle()) };
         unsafe { EntityIndex::new_unchecked(index.try_into().unwrap()) }
     }
 
+    #[deprecated(note = "use entities_by_target_name instead")]
     pub fn entity_of_ent_index(&self, ent: EntityIndex) -> *mut edict_s {
-        unsafe { unwrap!(self, pfnPEntityOfEntIndex)(ent.to_i32()) }
+        self.get_entity_by_index(ent)
+            .map_or(ptr::null_mut(), |i| i.as_ptr())
+    }
+
+    pub fn get_entity_offset(&self, ent: &impl AsEntityHandle) -> EntityOffset {
+        let offset = unsafe { unwrap!(self, pfnEntOffsetOfPEntity)(ent.as_entity_handle()) };
+        unsafe { EntityOffset::new_unchecked(offset.try_into().unwrap()) }
+    }
+
+    pub fn get_entity_by_offset(&self, offset: EntityOffset) -> Option<EntityHandle> {
+        let offset = offset.to_u32() as c_int;
+        let ret = unsafe { unwrap!(self, pfnPEntityOfEntOffset)(offset) };
+        unsafe { EntityHandle::new(self.engine_ref(), ret) }
+    }
+
+    pub fn get_entity_index(&self, ent: &impl AsEntityHandle) -> EntityIndex {
+        let index = unsafe { unwrap!(self, pfnIndexOfEdict)(ent.as_entity_handle()) };
+        unsafe { EntityIndex::new_unchecked(index.try_into().unwrap()) }
+    }
+
+    pub fn get_entity_by_index(&self, index: EntityIndex) -> Option<EntityHandle> {
+        let ret = unsafe { unwrap!(self, pfnPEntityOfEntIndex)(index.to_i32()) };
+        unsafe { EntityHandle::new(self.engine_ref(), ret) }
+    }
+
+    pub fn get_world_spawn_entity(&self) -> EntityHandle {
+        self.get_entity_by_offset(EntityOffset::WORLD_SPAWN)
+            .expect("world spawn entity")
     }
 
     // pub pfnFindEntityByVars: Option<unsafe extern "C" fn(pvars: *mut entvars_s) -> *mut edict_t>,
@@ -1623,5 +1696,122 @@ impl UserMessageWrite for MsgWriter<'_> {
 
     fn write_str(&mut self, str: impl ToEngineStr) {
         self.engine.msg_write_string(str);
+    }
+}
+
+pub struct Entities<'a> {
+    engine: &'a ServerEngine,
+}
+
+impl<'a> Entities<'a> {
+    fn new(engine: &'a ServerEngine) -> Self {
+        Self { engine }
+    }
+
+    pub fn by_string<F: ToEngineStr, V: ToEngineStr>(
+        &self,
+        field: F,
+        value: V,
+    ) -> EntitiesByString<'a, F, V> {
+        EntitiesByString {
+            engine: self.engine,
+            last: Some(ptr::null_mut()),
+            field: field.to_engine_str(),
+            value: value.to_engine_str(),
+        }
+    }
+
+    pub fn by_class_name<V: ToEngineStr>(
+        &self,
+        value: V,
+    ) -> EntitiesByString<'a, &'static CStr, V> {
+        self.by_string(c"classname", value)
+    }
+
+    pub fn by_global_name<V: ToEngineStr>(
+        &self,
+        value: V,
+    ) -> EntitiesByString<'a, &'static CStr, V> {
+        self.by_string(c"globalname", value)
+    }
+
+    pub fn by_target_name<V: ToEngineStr>(
+        &self,
+        value: V,
+    ) -> EntitiesByString<'a, &'static CStr, V> {
+        self.by_string(c"targetname", value)
+    }
+
+    pub fn in_pvs(&self, player: &impl AsEntityHandle) -> EntitiesInPvs<'a> {
+        EntitiesInPvs {
+            last: self.engine.entities_in_pvs_impl(player),
+        }
+    }
+
+    pub fn in_sphere(&self, origin: vec3_t, radius: f32) -> EntitiesInSphere<'a> {
+        EntitiesInSphere {
+            engine: self.engine,
+            last: Some(ptr::null_mut()),
+            origin,
+            radius,
+        }
+    }
+}
+
+pub struct EntitiesByString<'a, F: ToEngineStr, V: ToEngineStr> {
+    engine: &'a ServerEngine,
+    last: Option<*mut edict_s>,
+    field: F::Output,
+    value: V::Output,
+}
+
+impl<'a, F: ToEngineStr, V: ToEngineStr> EntitiesByString<'a, F, V> {
+    pub fn first(mut self) -> Option<EntityHandle> {
+        self.next().map(|i| i.into())
+    }
+}
+
+impl<'a, F: ToEngineStr, V: ToEngineStr> Iterator for EntitiesByString<'a, F, V> {
+    type Item = EntityHandleRef<'a>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let start = self.last?;
+        let field = self.field.as_ref();
+        let value = self.value.as_ref();
+        let result = self.engine.find_entity_by_string_impl(start, field, value);
+        self.last = result.map(|i| i.as_ptr());
+        result
+    }
+}
+
+pub struct EntitiesInPvs<'a> {
+    last: Option<EntityHandleRef<'a>>,
+}
+
+impl<'a> Iterator for EntitiesInPvs<'a> {
+    type Item = EntityHandleRef<'a>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.last.inspect(|i| self.last = i.next())
+    }
+}
+
+pub struct EntitiesInSphere<'a> {
+    engine: &'a ServerEngine,
+    origin: vec3_t,
+    radius: f32,
+    last: Option<*mut edict_s>,
+}
+
+impl<'a> Iterator for EntitiesInSphere<'a> {
+    type Item = EntityHandleRef<'a>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let start = self.last?;
+        let result = self
+            .engine
+            .find_entity_in_sphere_impl(start, self.origin, self.radius);
+        self.last = result.map(|i| i.as_ptr());
+        result
     }
 }

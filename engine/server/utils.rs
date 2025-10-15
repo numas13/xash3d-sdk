@@ -42,8 +42,9 @@ pub fn is_master_triggered(
     activator: &dyn Entity,
 ) -> bool {
     engine
-        .find_ent_by_targetname_iter(&master)
-        .filter_map(|ent| unsafe { ent.as_ref() }.get_entity())
+        .entities()
+        .by_target_name(&master)
+        .filter_map(|ent| ent.get_entity())
         .find(|ent| ent.object_caps().intersects(ObjectCaps::MASTER))
         .map_or(true, |ent| ent.is_triggered(activator))
 }
@@ -56,8 +57,8 @@ pub fn fire_targets(
 ) {
     let engine = caller.engine();
     trace!("Firing: ({target_name})");
-    for target in engine.find_ent_by_targetname_iter(target_name) {
-        if let Some(target) = unsafe { target.as_ref() }.get_entity() {
+    for target in engine.entities().by_target_name(target_name) {
+        if let Some(target) = target.get_entity() {
             if !target.vars().flags().intersects(EdictFlags::KILLME) {
                 trace!("Found: {}, firing ({target_name})", target.classname());
                 target.used(use_type, activator, caller);
@@ -75,8 +76,8 @@ pub fn use_targets(
     if let Some(kill_target) = kill_target {
         let engine = caller.engine();
         trace!("KillTarget: {kill_target}");
-        for target in engine.find_ent_by_targetname_iter(&kill_target) {
-            if let Some(target) = unsafe { target.as_ref() }.get_entity() {
+        for target in engine.entities().by_target_name(&kill_target) {
+            if let Some(target) = target.get_entity() {
                 trace!("killing {}", target.classname());
                 target.remove_from_world();
             }

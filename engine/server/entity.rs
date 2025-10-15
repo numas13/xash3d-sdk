@@ -3,8 +3,10 @@ mod private_data;
 mod vars;
 
 use core::{
-    ffi::{c_int, c_short},
+    ffi::{c_int, c_short, c_void},
+    marker::PhantomData,
     mem,
+    ptr::{self, NonNull},
     str::FromStr,
 };
 
@@ -90,6 +92,191 @@ impl EntityOffset {
     }
 }
 
+/// A reference to an entity handle.
+#[derive(Copy, Clone)]
+pub struct EntityHandleRef<'a> {
+    engine: ServerEngineRef,
+    raw: NonNull<edict_s>,
+    phantom: PhantomData<&'a edict_s>,
+}
+
+impl<'a> EntityHandleRef<'a> {
+    /// Create a new entity handle reference.
+    ///
+    /// # Safety
+    ///
+    /// The pointer must be non-null and received from the engine.
+    pub(crate) unsafe fn new_unchecked(engine: ServerEngineRef, raw: *mut edict_s) -> Self {
+        Self {
+            engine,
+            raw: unsafe { NonNull::new_unchecked(raw) },
+            phantom: PhantomData,
+        }
+    }
+
+    /// Create a new entity handle reference if the pointer is non-null.
+    ///
+    /// # Safety
+    ///
+    /// The pointer must be received from the engine.
+    pub unsafe fn new(engine: ServerEngineRef, raw: *mut edict_s) -> Option<Self> {
+        NonNull::new(raw).map(|raw| Self {
+            engine,
+            raw,
+            phantom: PhantomData,
+        })
+    }
+
+    /// Create a new entity handle if the pointer is non-null and it is not the world entity.
+    ///
+    /// # Safety
+    ///
+    /// The pointer must be received from the engine.
+    pub unsafe fn new_not_world_spawn(engine: ServerEngineRef, raw: *mut edict_s) -> Option<Self> {
+        let ent = unsafe { Self::new(engine, raw)? };
+        if !ent.is_world_spawn() {
+            Some(ent)
+        } else {
+            None
+        }
+    }
+
+    /// Returns the raw pointer to this entity.
+    pub fn as_ptr(&self) -> *mut edict_s {
+        self.raw.as_ptr()
+    }
+
+    fn as_handle(&self) -> EntityHandle {
+        unsafe { EntityHandle::new_unchecked(self.engine, self.as_ptr()) }
+    }
+
+    /// Returns `true` if this is the world spawn entity.
+    pub fn is_world_spawn(&self) -> bool {
+        self.as_handle().is_world_spawn()
+    }
+
+    /// Returns a next entity in the same PVS as this entity.
+    pub fn next(&self) -> Option<EntityHandleRef<'a>> {
+        unsafe { Self::new_not_world_spawn(self.engine, self.raw.as_ref().v.chain) }
+    }
+
+    /// Returns variables of this entity.
+    pub fn vars(&self) -> EntityVars {
+        self.as_handle().vars()
+    }
+
+    /// Returns an index of this entity.
+    pub fn entity_index(&self) -> EntityIndex {
+        self.engine.get_entity_index(self)
+    }
+
+    /// Returns an offset of this entity.
+    pub fn entity_offset(&self) -> EntityOffset {
+        self.engine.get_entity_offset(self)
+    }
+}
+
+impl From<EntityHandleRef<'_>> for EntityHandle {
+    fn from(value: EntityHandleRef) -> Self {
+        value.as_handle()
+    }
+}
+
+/// An owned handle to an entity.
+#[derive(Copy, Clone)]
+pub struct EntityHandle {
+    engine: ServerEngineRef,
+    raw: NonNull<edict_s>,
+}
+
+impl EntityHandle {
+    /// Create a new entity handle.
+    ///
+    /// # Safety
+    ///
+    /// The pointer must be non-null and received from the engine.
+    pub unsafe fn new_unchecked(engine: ServerEngineRef, raw: *mut edict_s) -> Self {
+        Self {
+            engine,
+            raw: unsafe { NonNull::new_unchecked(raw) },
+        }
+    }
+
+    /// Create a new entity handle if the pointer is non-null.
+    ///
+    /// # Safety
+    ///
+    /// The pointer must be received from the engine.
+    pub unsafe fn new(engine: ServerEngineRef, raw: *mut edict_s) -> Option<Self> {
+        NonNull::new(raw).map(|raw| Self { engine, raw })
+    }
+
+    /// Create a new entity handle if the pointer is non-null and it is not the world entity.
+    ///
+    /// # Safety
+    ///
+    /// The pointer must be received from the engine.
+    pub unsafe fn new_not_world_spawn(engine: ServerEngineRef, raw: *mut edict_s) -> Option<Self> {
+        let ent = unsafe { Self::new(engine, raw)? };
+        if !ent.is_world_spawn() {
+            Some(ent)
+        } else {
+            None
+        }
+    }
+
+    /// Returns the raw pointer to this entity.
+    pub fn as_ptr(&self) -> *mut edict_s {
+        self.raw.as_ptr()
+    }
+
+    /// Returns `true` if this is the world spawn entity.
+    pub fn is_world_spawn(&self) -> bool {
+        self.engine.get_entity_offset(self).is_world_spawn()
+    }
+
+    /// Returns a next entity in the same PVS as this entity.
+    pub fn next(&self) -> Option<EntityHandle> {
+        unsafe { Self::new_not_world_spawn(self.engine, self.raw.as_ref().v.chain) }
+    }
+
+    /// Sets a private data for this entity.
+    ///
+    /// # Safety
+    ///
+    /// The private data must be allocated with
+    /// [ServerEngine::alloc_ent_private_data](crate::engine::ServerEngine::alloc_ent_private_data).
+    pub unsafe fn set_private_data(&mut self, private_data: *mut c_void) {
+        unsafe {
+            self.raw.as_mut().pvPrivateData = private_data;
+        }
+    }
+
+    /// Returns variables of this entity.
+    pub fn vars(&self) -> EntityVars {
+        unsafe {
+            let v = ptr::addr_of!(self.raw.as_ref().v).cast_mut();
+            EntityVars::from_raw(self.engine, self.engine.global_state_ref(), v)
+        }
+    }
+
+    /// Returns an index of this entity.
+    pub fn entity_index(&self) -> EntityIndex {
+        self.engine.get_entity_index(self)
+    }
+
+    /// Returns an offset of this entity.
+    pub fn entity_offset(&self) -> EntityOffset {
+        self.engine.get_entity_offset(self)
+    }
+}
+
+impl<'a> From<&'a EntityHandle> for EntityHandleRef<'a> {
+    fn from(value: &'a EntityHandle) -> Self {
+        unsafe { EntityHandleRef::new_unchecked(value.engine, value.as_ptr()) }
+    }
+}
+
 pub(crate) trait AsEntityHandleSealed {
     fn as_entity_handle(&self) -> *mut edict_s;
 }
@@ -103,6 +290,18 @@ impl AsEntityHandleSealed for edict_s {
 impl AsEntityHandleSealed for entvars_s {
     fn as_entity_handle(&self) -> *mut edict_s {
         self.pContainingEntity
+    }
+}
+
+impl AsEntityHandleSealed for EntityHandleRef<'_> {
+    fn as_entity_handle(&self) -> *mut edict_s {
+        self.as_ptr()
+    }
+}
+
+impl AsEntityHandleSealed for EntityHandle {
+    fn as_entity_handle(&self) -> *mut edict_s {
+        self.as_ptr()
     }
 }
 
@@ -287,6 +486,16 @@ define_entity_trait! {
 
         /// Returns a shared reference to entity variables.
         fn vars(&self) -> &::xash3d_server::entity::EntityVars;
+
+        /// Returns an index of this entity.
+        fn entity_index(&self) -> ::xash3d_server::entity::EntityIndex {
+            self.engine().get_entity_index(self.vars())
+        }
+
+        /// Returns an offset of this entity.
+        fn entity_offset(&self) -> ::xash3d_server::entity::EntityOffset {
+            self.engine().get_entity_offset(self.vars())
+        }
 
         fn globalname(&self) -> Option<::xash3d_server::str::MapString> {
             self.vars().globalname()
@@ -510,7 +719,7 @@ impl Entity for BaseEntity {
 
 define_entity_trait! {
     pub trait EntityPlayer(delegate_player): (Entity) {
-        fn select_spawn_point(&self) -> *mut ::xash3d_server::ffi::server::edict_s;
+        fn select_spawn_point(&self) -> ::xash3d_server::entity::EntityHandle;
 
         fn pre_think(&self);
 

@@ -10,7 +10,9 @@ use xash3d_shared::ffi::server::{edict_s, entvars_s};
 
 use crate::{
     engine::ServerEngineRef,
-    entity::{AsEntityHandle, BaseEntity, CreateEntity, Entity, EntityCast, EntityVars},
+    entity::{
+        AsEntityHandle, BaseEntity, CreateEntity, Entity, EntityCast, EntityHandle, EntityVars,
+    },
     global_state::GlobalStateRef,
 };
 
@@ -131,7 +133,7 @@ pub struct PrivateData {
 }
 
 impl PrivateData {
-    fn alloc<P>(engine: ServerEngineRef, ent: &mut edict_s, value: P::Entity) -> Self
+    fn alloc<P>(engine: ServerEngineRef, ent: &EntityHandle, value: P::Entity) -> Self
     where
         P: PrivateEntity,
     {
@@ -180,20 +182,23 @@ impl PrivateData {
     where
         P: PrivateEntity,
     {
-        let ent = unsafe {
-            ev.as_ref()
-                .map(|ev| &mut *ev.pContainingEntity)
-                .unwrap_or_else(|| &mut *engine.create_entity())
-        };
-        if !ent.pvPrivateData.is_null() {
+        let mut ent = unsafe { ev.as_ref() }
+            .and_then(|ev| unsafe { EntityHandle::new(engine, ev.pContainingEntity) })
+            .or_else(|| engine.create_entity())
+            .expect("failed to allocate new entity");
+
+        if ent.get_private().is_some() {
             panic!("The entity already has a private data.");
         }
-        let base = BaseEntity {
-            vars: unsafe { EntityVars::from_raw(engine, global_state, &mut ent.v) },
-        };
-        let private = Self::alloc::<P>(engine, ent, init(base));
-        ent.pvPrivateData = private.data.cast();
-        unsafe { &mut *(&*private.data).as_ptr().cast() }
+
+        let vars = unsafe { EntityVars::from_raw(engine, global_state, &mut (*ent.as_ptr()).v) };
+        let base = BaseEntity { vars };
+        let private = Self::alloc::<P>(engine, &ent, init(base));
+
+        unsafe {
+            ent.set_private_data(private.data.cast());
+            &mut *(&*private.data).as_ptr().cast()
+        }
     }
 
     /// Executes the private data destructor of the given entity.
@@ -204,9 +209,9 @@ impl PrivateData {
     ///
     /// The pointer must be received from the engine.
     pub unsafe fn drop_in_place(ent: *mut edict_s) {
-        if let Some(ent) = unsafe { ent.as_mut() } {
-            if let Some(private) = ent.get_private_mut() {
-                unsafe {
+        unsafe {
+            if let Some(ent) = ent.as_mut() {
+                if let Some(private) = ent.get_private_mut() {
                     Data::drop_in_place(private.data);
                 }
             }
@@ -280,7 +285,11 @@ pub trait GetPrivateData<'a> {
     fn get_private(&self) -> Option<&'a PrivateData>;
 
     /// Returns a mutable reference to a private data of this entity.
-    fn get_private_mut(&mut self) -> Option<&'a mut PrivateData>;
+    ///
+    /// # Safety
+    ///
+    /// Must follow Rust aliasing rules.
+    unsafe fn get_private_mut(&mut self) -> Option<&'a mut PrivateData>;
 
     /// Returns a shared dyn reference if the entity has a private data.
     fn get_entity(&self) -> Option<&'a dyn Entity> {
@@ -288,8 +297,12 @@ pub trait GetPrivateData<'a> {
     }
 
     /// Returns a mutable dyn reference if the entity has a private data.
-    fn get_entity_mut(&mut self) -> Option<&'a mut dyn Entity> {
-        self.get_private_mut().map(|i| i.as_entity_mut())
+    ///
+    /// # Safety
+    ///
+    /// Must follow Rust aliasing rules.
+    unsafe fn get_entity_mut(&mut self) -> Option<&'a mut dyn Entity> {
+        unsafe { self.get_private_mut() }.map(|i| i.as_entity_mut())
     }
 
     fn downcast_ref<U: Entity + ?Sized>(&self) -> Option<&'a U> {
@@ -303,7 +316,7 @@ impl<'a, T: 'a + AsEntityHandle> GetPrivateData<'a> for T {
         PrivateData::from_edict(edict)
     }
 
-    fn get_private_mut(&mut self) -> Option<&'a mut PrivateData> {
+    unsafe fn get_private_mut(&mut self) -> Option<&'a mut PrivateData> {
         let edict = unsafe { &mut *self.as_entity_handle() };
         PrivateData::from_edict_mut(edict)
     }
@@ -314,7 +327,7 @@ impl<'a, T: 'a + AsEntityHandle> GetPrivateData<'a> for Option<T> {
         self.as_ref().and_then(|i| i.get_private())
     }
 
-    fn get_private_mut(&mut self) -> Option<&'a mut PrivateData> {
-        self.as_mut().and_then(|i| i.get_private_mut())
+    unsafe fn get_private_mut(&mut self) -> Option<&'a mut PrivateData> {
+        self.as_mut().and_then(|i| unsafe { i.get_private_mut() })
     }
 }

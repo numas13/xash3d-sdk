@@ -1,4 +1,4 @@
-use core::{cell::Cell, ffi::CStr, ptr};
+use core::{cell::Cell, ffi::CStr};
 
 use bitflags::bitflags;
 use xash3d_shared::ffi::common::vec3_t;
@@ -31,15 +31,15 @@ impl Decal {
     fn static_decal(&self) {
         let engine = self.engine();
         let v = self.base.vars();
-        let mut trace = engine.trace_line(
+        let trace = engine.trace_line(
             v.origin() - vec3_t::splat(5.0),
             v.origin() + vec3_t::splat(5.0),
             TraceIgnore::MONSTERS,
             Some(self),
         );
-        let entity = engine.ent_index(trace.hit_entity_mut());
+        let entity = trace.hit_entity().entity_index();
         let model_index = if !entity.is_world_spawn() {
-            trace.hit_entity().v.modelindex
+            trace.hit_entity().vars().model_index_raw()
         } else {
             0
         };
@@ -125,8 +125,8 @@ impl Entity for Decal {
         let msg = user_message::BspDecal {
             position: origin.into(),
             texture_index: self.vars().skin() as u16,
-            entity: engine.ent_index(trace.hit_entity()),
-            model_index: trace.hit_entity().v.modelindex as u16,
+            entity: engine.get_entity_index(&trace.hit_entity()),
+            model_index: trace.hit_entity().vars().model_index_raw() as u16,
         };
         engine.msg_broadcast(&msg);
 
@@ -201,7 +201,7 @@ impl Entity for World {
         let engine = self.engine();
         let global_state = self.global_state();
 
-        global_state.set_last_spawn(ptr::null_mut());
+        global_state.set_last_spawn(None);
 
         engine.set_cvar(c"sv_gravity", c"800");
         engine.set_cvar(c"sv_stepsize", c"18");

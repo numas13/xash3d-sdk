@@ -2,20 +2,16 @@ use core::{
     cell::{Cell, Ref, RefCell, RefMut},
     ffi::{c_int, CStr},
     mem::MaybeUninit,
-    ptr,
 };
 
 use alloc::{boxed::Box, collections::linked_list::LinkedList};
 use csz::{CStrArray, CStrThin};
-use xash3d_shared::{
-    engine::EngineRef,
-    export::impl_unsync_global,
-    ffi::server::{edict_s, TYPEDESCRIPTION},
-};
+use xash3d_shared::{engine::EngineRef, export::impl_unsync_global, ffi::server::TYPEDESCRIPTION};
 
 use crate::{
     define_fields,
     engine::ServerEngineRef,
+    entity::EntityHandle,
     game_rules::{GameRules, StubGameRules},
     save::{FieldType, SaveFields, SaveReader, SaveRestoreData, SaveResult, SaveWriter},
     sound::Sentences,
@@ -168,7 +164,7 @@ pub struct GlobalState {
     engine: ServerEngineRef,
     entities: RefCell<Entities>,
     game_rules: RefCell<Box<dyn GameRules>>,
-    last_spawn: Cell<*mut edict_s>,
+    last_spawn: Cell<Option<EntityHandle>>,
     init_hud: Cell<bool>,
     sentences: RefCell<Option<Sentences>>,
 }
@@ -181,7 +177,7 @@ impl GlobalState {
             engine,
             entities: RefCell::new(Entities::new()),
             game_rules: RefCell::new(Box::new(StubGameRules::new(engine))),
-            last_spawn: Cell::new(ptr::null_mut()),
+            last_spawn: Cell::new(None),
             init_hud: Cell::new(true),
             sentences: RefCell::new(None),
         }
@@ -207,11 +203,11 @@ impl GlobalState {
         self.game_rules.replace(Box::new(game_rules));
     }
 
-    pub fn last_spawn(&self) -> *mut edict_s {
+    pub fn last_spawn(&self) -> Option<EntityHandle> {
         self.last_spawn.get()
     }
 
-    pub fn set_last_spawn(&self, ent: *mut edict_s) {
+    pub fn set_last_spawn(&self, ent: Option<EntityHandle>) {
         self.last_spawn.set(ent);
     }
 
