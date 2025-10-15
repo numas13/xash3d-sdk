@@ -190,7 +190,7 @@ impl LockSounds {
     const DOOR_SOUND_WAIT: f32 = 3.0;
     const BUTTON_SOUND_WAIT: f32 = 0.5;
 
-    fn play_lock(&mut self, v: &mut EntityVars, sound_wait: f32) {
+    fn play_lock(&mut self, v: &EntityVars, sound_wait: f32) {
         let engine = v.engine();
         let now = engine.globals.map_time();
 
@@ -221,7 +221,7 @@ impl LockSounds {
         }
     }
 
-    fn play_unlock(&mut self, v: &mut EntityVars, sound_wait: f32) {
+    fn play_unlock(&mut self, v: &EntityVars, sound_wait: f32) {
         let engine = v.engine();
         let now = engine.globals.map_time();
 
@@ -252,7 +252,7 @@ impl LockSounds {
         }
     }
 
-    pub fn play_door(&mut self, locked: bool, v: &mut EntityVars) {
+    pub fn play_door(&mut self, locked: bool, v: &EntityVars) {
         if locked {
             self.play_lock(v, Self::DOOR_SOUND_WAIT);
         } else {
@@ -260,7 +260,7 @@ impl LockSounds {
         }
     }
 
-    pub fn play_button(&mut self, locked: bool, v: &mut EntityVars) {
+    pub fn play_button(&mut self, locked: bool, v: &EntityVars) {
         if locked {
             self.play_lock(v, Self::BUTTON_SOUND_WAIT);
         } else {
