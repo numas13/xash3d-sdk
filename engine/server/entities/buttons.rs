@@ -192,6 +192,45 @@ impl Entity for Button {
     }
 }
 
+const BUTTON_SOUNDS: &[&CStr] = &[
+    res::valve::sound::common::NULL,
+    res::valve::sound::buttons::BUTTON1,
+    res::valve::sound::buttons::BUTTON2,
+    res::valve::sound::buttons::BUTTON3,
+    res::valve::sound::buttons::BUTTON4,
+    res::valve::sound::buttons::BUTTON5,
+    res::valve::sound::buttons::BUTTON6,
+    res::valve::sound::buttons::BUTTON7,
+    res::valve::sound::buttons::BUTTON8,
+    res::valve::sound::buttons::BUTTON9,
+    res::valve::sound::buttons::BUTTON10,
+    res::valve::sound::buttons::BUTTON11,
+    res::valve::sound::buttons::LATCHLOCKED1,
+    res::valve::sound::buttons::LATCHUNLOCKED1,
+    res::valve::sound::buttons::LIGHTSWITCH2,
+    res::valve::sound::buttons::BUTTON9, // reserved
+    res::valve::sound::buttons::BUTTON9, // reserved
+    res::valve::sound::buttons::BUTTON9, // reserved
+    res::valve::sound::buttons::BUTTON9, // reserved
+    res::valve::sound::buttons::BUTTON9, // reserved
+    res::valve::sound::buttons::BUTTON9, // reserved
+    res::valve::sound::buttons::LEVER1,
+    res::valve::sound::buttons::LEVER2,
+    res::valve::sound::buttons::LEVER3,
+    res::valve::sound::buttons::LEVER4,
+    res::valve::sound::buttons::LEVER5,
+];
+
+const BUTTON_DEFAULT_SOUND: &CStr = res::valve::sound::buttons::BUTTON9;
+
+pub fn button_sound(index: usize) -> Option<&'static CStr> {
+    BUTTON_SOUNDS.get(index).copied()
+}
+
+pub fn button_sound_or_default(index: usize) -> &'static CStr {
+    button_sound(index).unwrap_or(BUTTON_DEFAULT_SOUND)
+}
+
 const SPARK_SOUNDS: &[&CStr] = &[
     res::valve::sound::buttons::SPARK1,
     res::valve::sound::buttons::SPARK2,
