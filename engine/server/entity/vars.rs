@@ -22,7 +22,7 @@ use xash3d_shared::{
 
 use crate::{
     engine::ServerEngineRef,
-    entity::{AsEntityHandle, EntityOffset, KeyValue},
+    entity::{AsEntityHandle, EntityHandle, EntityOffset, KeyValue},
     global_state::GlobalStateRef,
     save::{FieldType, SaveFields},
     str::MapString,
@@ -333,6 +333,11 @@ impl EntityVars {
 
     pub fn global_state(&self) -> GlobalStateRef {
         self.global_state
+    }
+
+    /// Returns an entity handle of this entity.
+    pub fn entity_handle(&self) -> EntityHandle {
+        unsafe { EntityHandle::new_unchecked(self.engine, self.containing_entity_raw()) }
     }
 
     /// Returns an index of this entity.

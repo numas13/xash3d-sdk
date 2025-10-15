@@ -487,6 +487,11 @@ define_entity_trait! {
         /// Returns a shared reference to entity variables.
         fn vars(&self) -> &::xash3d_server::entity::EntityVars;
 
+        /// Returns an entity handle of this entity.
+        fn entity_handle(&self) -> ::xash3d_server::entity::EntityHandle {
+            self.vars().entity_handle()
+        }
+
         /// Returns an index of this entity.
         fn entity_index(&self) -> ::xash3d_server::entity::EntityIndex {
             self.engine().get_entity_index(self.vars())
