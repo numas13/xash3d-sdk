@@ -1195,7 +1195,7 @@ impl ServerEngine {
         unsafe { EntityIndex::new_unchecked(index.try_into().unwrap()) }
     }
 
-    #[deprecated(note = "use entities_by_target_name instead")]
+    #[deprecated(note = "use get_entity_by_index instead")]
     pub fn entity_of_ent_index(&self, ent: EntityIndex) -> *mut edict_s {
         self.get_entity_by_index(ent)
             .map_or(ptr::null_mut(), |i| i.as_ptr())
