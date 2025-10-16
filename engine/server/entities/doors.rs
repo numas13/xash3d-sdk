@@ -18,11 +18,14 @@ use crate::{
     },
     export::export_entity_default,
     prelude::*,
-    save::{self, PositionVector, Restore, Save},
+    save::{PositionVector, Restore, Save},
     sound::LockSounds,
     str::MapString,
     utils,
 };
+
+#[cfg(feature = "save")]
+use crate::save;
 
 const MOVE_SOUNDS: &[&CStr] = &[
     res::valve::sound::common::NULL,
