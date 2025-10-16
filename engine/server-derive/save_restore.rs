@@ -1,8 +1,8 @@
 use std::ffi::{CStr, CString};
 
 use proc_macro2::{Span, TokenStream};
-use quote::quote;
-use syn::{parse::Parse, spanned::Spanned, DeriveInput, Error, Token};
+use quote::{quote, ToTokens};
+use syn::{parse::Parse, parse_quote, spanned::Spanned, DeriveInput, Error, Token};
 
 trait Combine<T> {
     fn combine(&mut self, other: T);
@@ -38,6 +38,7 @@ fn make_bstr(s: &str) -> syn::LitByteStr {
 
 struct Field {
     member: syn::Member,
+    ty: syn::Type,
     rename: Option<String>,
     alias: Vec<String>,
     flatten: bool,
@@ -51,6 +52,7 @@ impl Field {
         let mut result = Ok(());
         let mut ret = Self {
             member,
+            ty: field.ty.clone(),
             rename: None,
             alias: Vec::new(),
             flatten: false,
@@ -357,14 +359,58 @@ impl<'a> SaveRestore<'a> {
         })
     }
 
+    fn add_where_predicates(
+        &self,
+        generics: &mut syn::Generics,
+        bound: syn::TypeParamBound,
+        skip: impl Fn(&Field) -> bool,
+    ) {
+        match &self.kind {
+            Kind::Struct(container) => {
+                for param in self.generics.type_params() {
+                    for field in &container.fields {
+                        if skip(field) {
+                            continue;
+                        }
+                        if let syn::Type::Path(ty) = &field.ty {
+                            if ty.path.get_ident() == Some(&param.ident) {
+                                add_where_predicate(generics, &param.ident, bound.clone());
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            Kind::Enum(_variants) => todo!(),
+        }
+    }
+
+    fn add_where_predicates_for_save(&self, generics: &mut syn::Generics) {
+        let bound = make_type_param_trait_bound(parse_quote!(::xash3d_server::save::Save));
+        self.add_where_predicates(generics, bound, |field| field.skip_save);
+    }
+
+    fn add_where_predicates_for_restore(&self, generics: &mut syn::Generics) {
+        let bound = make_type_param_trait_bound(parse_quote!(::xash3d_server::save::Restore));
+        self.add_where_predicates(generics, bound, |field| field.skip_restore || field.flatten);
+
+        let bound = make_type_param_trait_bound(parse_quote!(::xash3d_server::save::RestoreField));
+        self.add_where_predicates(generics, bound, |field| {
+            field.skip_restore || !field.flatten
+        });
+    }
+
     pub fn impl_save(&self) -> TokenStream {
         let body = match &self.kind {
             Kind::Struct(container) => container.make_save(),
             Kind::Enum(_variants) => todo!(),
         };
 
+        let mut generics = self.generics.clone();
+        self.add_where_predicates_for_save(&mut generics);
+        let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
+
         let name = &self.input.ident;
-        let (impl_generics, ty_generics, where_clause) = self.generics.split_for_impl();
         quote! {
             impl #impl_generics ::xash3d_server::save::Save for #name #ty_generics
             #where_clause
@@ -380,14 +426,14 @@ impl<'a> SaveRestore<'a> {
         }
     }
 
-    pub fn impl_restore_field(&self) -> TokenStream {
+    pub fn impl_restore_field(&self, generics: &syn::Generics) -> TokenStream {
         let body = match &self.kind {
             Kind::Struct(container) => container.make_restore_field(),
             Kind::Enum(_variants) => todo!(),
         };
 
         let name = &self.input.ident;
-        let (impl_generics, ty_generics, where_clause) = self.generics.split_for_impl();
+        let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
         quote! {
             impl #impl_generics ::xash3d_server::save::RestoreField for #name #ty_generics
             #where_clause
@@ -410,8 +456,11 @@ impl<'a> SaveRestore<'a> {
             Kind::Enum(_variants) => todo!(),
         };
 
+        let mut generics = self.generics.clone();
+        self.add_where_predicates_for_restore(&mut generics);
+        let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
+
         let name = &self.input.ident;
-        let (impl_generics, ty_generics, where_clause) = self.generics.split_for_impl();
         let mut tokens = quote! {
             impl #impl_generics ::xash3d_server::save::Restore for #name #ty_generics
             #where_clause
@@ -428,10 +477,39 @@ impl<'a> SaveRestore<'a> {
 
         if let syn::Data::Struct(data) = &self.input.data {
             if let syn::Fields::Named(..) = &data.fields {
-                tokens.extend(self.impl_restore_field());
+                tokens.extend(self.impl_restore_field(&generics));
             }
         }
 
         tokens
     }
+}
+
+fn make_type_param_trait_bound(path: syn::Path) -> syn::TypeParamBound {
+    syn::TypeParamBound::Trait(syn::TraitBound {
+        paren_token: None,
+        modifier: syn::TraitBoundModifier::None,
+        lifetimes: None,
+        path,
+    })
+}
+
+fn make_where_predicate_type(
+    bounded_ty: syn::Type,
+    bound: syn::TypeParamBound,
+) -> syn::WherePredicate {
+    syn::WherePredicate::Type(syn::PredicateType {
+        lifetimes: None,
+        bounded_ty,
+        colon_token: Token![:](Span::call_site()),
+        bounds: syn::punctuated::Punctuated::from_iter([bound.clone()]),
+    })
+}
+
+fn add_where_predicate(generics: &mut syn::Generics, ty: &syn::Ident, bound: syn::TypeParamBound) {
+    let ty = syn::Type::Verbatim(ty.to_token_stream());
+    generics
+        .make_where_clause()
+        .predicates
+        .push(make_where_predicate_type(ty, bound));
 }
