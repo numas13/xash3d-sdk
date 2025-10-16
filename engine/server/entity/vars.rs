@@ -293,6 +293,7 @@ macro_rules! field {
 }
 
 /// A safe wrapper for [entvars_s].
+#[derive(PartialEq, Eq)]
 pub struct EntityVars {
     engine: ServerEngineRef,
     global_state: GlobalStateRef,
