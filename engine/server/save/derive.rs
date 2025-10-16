@@ -147,12 +147,11 @@ impl<T: RestoreWithDefault> Restore for Option<T> {
     fn restore(&mut self, state: &RestoreState, cur: &mut Cursor) -> SaveResult<()> {
         match cur.read_u8()? {
             0 => {
-                *self = None;
+                self.take();
             }
             _ => {
-                let mut value = T::default_for_restore(state);
-                value.restore(state, cur)?;
-                *self = Some(value);
+                self.get_or_insert_with(|| T::default_for_restore(state))
+                    .restore(state, cur)?;
             }
         }
         Ok(())
@@ -179,14 +178,20 @@ impl<T: RestoreWithDefault, E: RestoreWithDefault> Restore for Result<T, E> {
     fn restore(&mut self, state: &RestoreState, cur: &mut Cursor) -> SaveResult<()> {
         match cur.read_u8()? {
             0 => {
-                let mut value = E::default_for_restore(state);
-                value.restore(state, cur)?;
-                *self = Err(value);
+                if self.is_ok() {
+                    *self = Err(E::default_for_restore(state));
+                }
+                if let Err(value) = self {
+                    value.restore(state, cur)?;
+                }
             }
             _ => {
-                let mut value = T::default_for_restore(state);
-                value.restore(state, cur)?;
-                *self = Ok(value);
+                if self.is_err() {
+                    *self = Ok(T::default_for_restore(state));
+                }
+                if let Ok(value) = self {
+                    value.restore(state, cur)?;
+                }
             }
         }
         Ok(())
