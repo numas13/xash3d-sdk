@@ -1815,3 +1815,43 @@ impl<'a> Iterator for EntitiesInSphere<'a> {
         result
     }
 }
+
+/// Add server command.
+///
+/// # Examples
+///
+/// ```
+/// use xash3d_server::{engine::add_command, prelude::*};
+///
+/// fn add_my_command(engine: &ServerEngine) {
+///     add_command!(engine, c"my_command", |engine| {
+///         // first argument is the command name
+///         let comand_name = engine.cmd_argv(0);
+///         log::trace!("execute server command \"{comand_name}\"",);
+///
+///         // print command arguments
+///         log::trace!("command arguments:");
+///         for (i, arg) in engine.cmd_args().skip(1).enumerate() {
+///             log::trace!("  {i}: {arg}");
+///         }
+///     });
+/// }
+/// ```
+#[doc(hidden)]
+#[macro_export]
+macro_rules! add_command {
+    ($engine:expr, $name:expr, $expr:expr) => {{
+        unsafe extern "C" fn __command_entry() {
+            let engine = unsafe { $crate::engine::ServerEngineRef::new() };
+            let handler: fn($crate::engine::ServerEngineRef) = $expr;
+            handler(engine);
+        }
+
+        use $crate::engine::EngineCmd;
+        if $engine.add_command($name, __command_entry).is_err() {
+            log::error!("failed to add server command {:?}", $name);
+        }
+    }};
+}
+#[doc(inline)]
+pub use add_command;
