@@ -354,8 +354,18 @@ impl EntityVars {
     field!(get classname, fn classname() -> Option<MapString>);
     field!(set classname, fn set_classname(s: Option<MapString>));
 
+    pub fn is_class_name(&self, name: impl AsRef<CStrThin>) -> bool {
+        self.classname()
+            .is_some_and(|s| s.as_thin() == name.as_ref())
+    }
+
     field!(get globalname, fn globalname() -> Option<MapString>);
     field!(set globalname, fn set_globalname(s: Option<MapString>));
+
+    pub fn is_global_name(&self, name: impl AsRef<CStrThin>) -> bool {
+        self.globalname()
+            .is_some_and(|s| s.as_thin() == name.as_ref())
+    }
 
     field!(get origin, fn origin() -> vec3_t);
     field!(set origin,
@@ -716,8 +726,17 @@ impl EntityVars {
     field!(get target, fn target() -> Option<MapString>);
     field!(set target, fn set_target(s: Option<MapString>));
 
+    pub fn is_target(&self, name: impl AsRef<CStrThin>) -> bool {
+        self.target().is_some_and(|s| s.as_thin() == name.as_ref())
+    }
+
     field!(get targetname, fn target_name() -> Option<MapString>);
     field!(set targetname, fn set_target_name(s: Option<MapString>));
+
+    pub fn is_target_name(&self, name: impl AsRef<CStrThin>) -> bool {
+        self.target_name()
+            .is_some_and(|s| s.as_thin() == name.as_ref())
+    }
 
     field!(get netname, fn net_name() -> Option<MapString>);
     field!(set netname, fn set_net_name(s: Option<MapString>));
