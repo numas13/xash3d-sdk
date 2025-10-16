@@ -314,58 +314,57 @@ pub(crate) trait AsEntityHandleSealed {
     fn as_entity_handle(&self) -> *mut edict_s;
 }
 
+#[allow(private_bounds)]
+pub trait AsEntityHandle: AsEntityHandleSealed {}
+
+impl AsEntityHandle for edict_s {}
 impl AsEntityHandleSealed for edict_s {
     fn as_entity_handle(&self) -> *mut edict_s {
         (self as *const edict_s).cast_mut()
     }
 }
 
+impl AsEntityHandle for entvars_s {}
 impl AsEntityHandleSealed for entvars_s {
     fn as_entity_handle(&self) -> *mut edict_s {
         self.pContainingEntity
     }
 }
 
+impl AsEntityHandle for EntityHandleRef<'_> {}
 impl AsEntityHandleSealed for EntityHandleRef<'_> {
     fn as_entity_handle(&self) -> *mut edict_s {
         self.as_ptr()
     }
 }
 
+impl AsEntityHandle for EntityHandle {}
 impl AsEntityHandleSealed for EntityHandle {
     fn as_entity_handle(&self) -> *mut edict_s {
         self.as_ptr()
     }
 }
 
+impl AsEntityHandle for EntityVars {}
 impl AsEntityHandleSealed for EntityVars {
     fn as_entity_handle(&self) -> *mut edict_s {
         self.containing_entity_raw()
     }
 }
 
+impl<T: Entity> AsEntityHandle for T {}
 impl<T: Entity> AsEntityHandleSealed for T {
     fn as_entity_handle(&self) -> *mut edict_s {
         self.vars().as_entity_handle()
     }
 }
 
+impl AsEntityHandle for &'_ dyn Entity {}
 impl AsEntityHandleSealed for &'_ dyn Entity {
     fn as_entity_handle(&self) -> *mut edict_s {
         self.vars().as_entity_handle()
     }
 }
-
-impl AsEntityHandleSealed for &'_ mut dyn Entity {
-    fn as_entity_handle(&self) -> *mut edict_s {
-        self.vars().as_entity_handle()
-    }
-}
-
-#[allow(private_bounds)]
-pub trait AsEntityHandle: AsEntityHandleSealed {}
-
-impl<T: AsEntityHandleSealed> AsEntityHandle for T {}
 
 #[repr(transparent)]
 pub struct KeyValue {
