@@ -71,6 +71,14 @@ export-env_spark = []
 export-env_debris = []
 
 #
+# Entities: doors
+#
+
+export-func_door = []
+export-func_water = []
+export-func_door_rotating = []
+
+#
 # Entities: triggers
 #
 
