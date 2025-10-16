@@ -1,8 +1,22 @@
 mod cursor;
-#[cfg(feature = "save")]
-mod derive;
 mod macros;
 mod save_restore_data;
+
+#[cfg(feature = "save")]
+mod derive;
+
+#[cfg(not(feature = "save"))]
+mod derive {
+    #[doc(hidden)]
+    pub trait Save {}
+
+    #[doc(hidden)]
+    pub trait Restore {}
+
+    impl<T> Save for T {}
+
+    impl<T> Restore for T {}
+}
 
 use core::{
     ffi::{c_char, c_float, c_int, c_short, CStr},
@@ -29,7 +43,6 @@ use crate::{
 };
 
 pub use self::cursor::*;
-#[cfg(feature = "save")]
 pub use self::derive::*;
 pub use self::macros::*;
 pub use self::save_restore_data::*;

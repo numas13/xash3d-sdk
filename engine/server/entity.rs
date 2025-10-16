@@ -24,11 +24,12 @@ use xash3d_shared::{
 use crate::{
     engine::ServerEngineRef,
     global_state::{EntityState, GlobalStateRef},
+    save::{Restore, Save},
     str::MapString,
 };
 
 #[cfg(feature = "save")]
-use crate::save::{self, Restore, Save};
+use crate::save;
 
 pub use xash3d_shared::entity::*;
 
@@ -494,12 +495,6 @@ pub trait EntityCast: 'static {
     fn as_player(&self) -> Option<&dyn EntityPlayer>;
 }
 
-#[cfg(feature = "save")]
-pub trait EntitySaveRestore: Save + Restore {}
-
-#[cfg(feature = "save")]
-impl<T: Save + Restore> EntitySaveRestore for T {}
-
 #[cfg(not(feature = "save"))]
 pub trait EntitySaveRestore {}
 
@@ -508,7 +503,7 @@ impl<T> EntitySaveRestore for T {}
 
 define_entity_trait! {
     /// The base trait for all entities.
-    pub trait Entity(delegate_entity): (EntitySaveRestore + EntityCast + AsEntityHandle) {
+    pub trait Entity(delegate_entity): (Save + Restore + EntityCast + AsEntityHandle) {
         fn private(&self) -> &::xash3d_server::entity::PrivateData;
 
         /// Returns a reference to the server engine.
