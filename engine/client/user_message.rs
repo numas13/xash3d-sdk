@@ -28,7 +28,7 @@ macro_rules! hook_user_message {
             let mut msg = UserMessageBuffer::new(name, raw);
             // debug!("user message {name:?} = {msg:?}");
             let handle: fn(ClientEngineRef, &mut UserMessageBuffer) -> _ = $handle;
-            handle(engine, &mut msg).into_user_message_result()
+            handle(engine, &mut msg).into_user_message_result(name.into())
         }
 
         let name = $crate::macros::cstringify!($name);

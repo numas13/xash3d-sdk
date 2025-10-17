@@ -27,41 +27,59 @@ pub enum UserMessageError {
     InvalidUtf8String,
 }
 
+impl fmt::Display for UserMessageError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Self::UnexpectedEnd => f.write_str("unexpected end"),
+            Self::InvalidEnum => f.write_str("invalid enum"),
+            Self::InvalidNumber => f.write_str("invalid number"),
+            Self::InvalidUtf8String => f.write_str("invalid utf8 string"),
+        }
+    }
+}
+
 pub trait IntoUserMessageResult {
-    fn into_user_message_result(self) -> c_int;
+    fn into_user_message_result(self, _: &CStrThin) -> c_int;
 }
 
 impl IntoUserMessageResult for bool {
-    fn into_user_message_result(self) -> c_int {
+    fn into_user_message_result(self, _: &CStrThin) -> c_int {
         self as c_int
     }
 }
 
 impl IntoUserMessageResult for c_int {
-    fn into_user_message_result(self) -> c_int {
+    fn into_user_message_result(self, _: &CStrThin) -> c_int {
         self
     }
 }
 
 impl IntoUserMessageResult for Option<()> {
-    fn into_user_message_result(self) -> c_int {
+    fn into_user_message_result(self, _: &CStrThin) -> c_int {
         self.is_some() as c_int
     }
 }
 
 impl IntoUserMessageResult for Result<(), UserMessageError> {
-    fn into_user_message_result(self) -> c_int {
-        // TODO: log message error
-        self.is_ok() as c_int
+    fn into_user_message_result(self, name: &CStrThin) -> c_int {
+        match self {
+            Ok(_) => 1,
+            Err(err) => {
+                error!("{name}: user message error: {err}");
+                0
+            }
+        }
     }
 }
 
 impl IntoUserMessageResult for Result<bool, UserMessageError> {
-    fn into_user_message_result(self) -> c_int {
-        // TODO: log message error
+    fn into_user_message_result(self, name: &CStrThin) -> c_int {
         match self {
             Ok(value) => value as c_int,
-            Err(_) => 0,
+            Err(err) => {
+                error!("{name}: user message error: {err}");
+                0
+            }
         }
     }
 }
