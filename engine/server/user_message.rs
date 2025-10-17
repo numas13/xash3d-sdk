@@ -955,9 +955,54 @@ define_temp_entity_msg! {
     }
 }
 
+define_user_message! {
+    pub struct Intermission = ffi::common::svc_intermission
+}
+
+define_user_message! {
+    pub struct CdTrack {
+        pub track_num: u8,
+        pub loop_num: u8,
+    } = ffi::common::svc_cdtrack
+}
+
+impl CdTrack {
+    pub const fn new(track_num: u8, loop_num: u8) -> Self {
+        Self {
+            track_num,
+            loop_num,
+        }
+    }
+}
+
+define_user_message! {
+    pub struct WeaponAnimation {
+        pub sequence: u8,
+        pub weapon_model: u8,
+    } = ffi::common::svc_weaponanim
+}
+
+define_user_message! {
+    pub struct RoomType {
+        pub room_type: u16,
+    } = ffi::common::svc_roomtype
+}
+
+impl RoomType {
+    pub const fn new(room_type: u16) -> Self {
+        Self { room_type }
+    }
+}
+
+// TODO: define user message for svc_director
+
+/// Take the last path component and convert it to a CStr.
 #[doc(hidden)]
 #[macro_export]
 macro_rules! user_message_name {
+    ($path:path, $($tt:tt)+) => {
+        $crate::user_message::user_message_name!($($tt)+)
+    };
     ($head:ident :: $($tt:tt)+) => {
         $crate::user_message::user_message_name!($($tt)+)
     };
@@ -974,7 +1019,9 @@ macro_rules! register_user_message {
         $engine.register_user_message::<$path>($crate::user_message::user_message_name!($name))
     };
     ($engine:expr, $( $tt:tt )+ ) => {
-        $engine.register_user_message::<$($tt)+>($crate::user_message::user_message_name!($($tt)+))
+        $engine.register_user_message::<$($tt)+>(
+            $crate::user_message::user_message_name!($($tt)+, $($tt)+)
+        )
     };
 }
 #[doc(inline)]

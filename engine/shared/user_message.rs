@@ -19,6 +19,7 @@ use crate::{
     str::ToEngineStr,
 };
 
+// TODO: track failed field
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum UserMessageError {
     UnexpectedEnd,
@@ -853,10 +854,10 @@ pub use impl_message_value_for_bitflags;
 #[doc(hidden)]
 #[macro_export]
 macro_rules! default_value {
-    ($value:expr) => {
+    ($default:expr, $value:expr $(,)?) => {
         $value
     };
-    () => {
+    ($default:expr $(,)?) => {
         Default::default()
     };
 }
@@ -880,6 +881,31 @@ macro_rules! impl_user_message_trait {
 }
 pub use impl_user_message_trait;
 
+/// Implement ServerMessage::msg_type.
+#[doc(hidden)]
+#[macro_export]
+macro_rules! impl_user_message_type {
+    ($fixed:expr) => {
+        fn msg_type(_: Option<i32>) -> i32 {
+            $fixed
+        }
+    };
+    () => {
+        fn msg_type(msg_type: Option<i32>) -> i32 {
+            use ::core::sync::atomic::{AtomicI32, Ordering};
+            static MSG_TYPE: AtomicI32 = AtomicI32::new(0);
+            match msg_type {
+                Some(msg_type) => {
+                    MSG_TYPE.store(msg_type, Ordering::Relaxed);
+                    msg_type
+                }
+                None => MSG_TYPE.load(Ordering::Relaxed),
+            }
+        }
+    };
+}
+pub use impl_user_message_type;
+
 #[doc(hidden)]
 #[macro_export]
 macro_rules! define_user_message {
@@ -889,7 +915,7 @@ macro_rules! define_user_message {
             $( #[$field_attr:meta] )*
             $field_vis:vis $field:ident: $field_ty:ty $(= $field_default:expr )?
         ),* $(,)?
-    }) => {
+    } $(= $msg_type:expr)? ) => {
         $( #[$attr] )*
         #[derive(Copy, Clone, Debug)]
         $vis struct $name $(<$lifetime>)? {
@@ -902,7 +928,11 @@ macro_rules! define_user_message {
         impl $(<$lifetime>)? Default for $name $(<$lifetime>)? {
             fn default() -> Self {
                 Self {
-                    $( $field: $crate::user_message::default_value!($( $field_default )?) ),*
+                    $(
+                        $field: $crate::user_message::default_value!(
+                            Default::default(), $( $field_default )?
+                        )
+                    ),*
                 }
             }
         }
@@ -935,17 +965,7 @@ macro_rules! define_user_message {
         }
 
         impl $(<$lifetime>)? $crate::user_message::ServerMessage for $name $(<$lifetime>)? {
-            fn msg_type(msg_type: Option<i32>) -> i32 {
-                use ::core::sync::atomic::{AtomicI32, Ordering};
-                static MSG_TYPE: AtomicI32 = AtomicI32::new(0);
-                match msg_type {
-                    Some(msg_type) => {
-                        MSG_TYPE.store(msg_type, Ordering::Relaxed);
-                        msg_type
-                    }
-                    None => MSG_TYPE.load(Ordering::Relaxed),
-                }
-            }
+            $crate::user_message::impl_user_message_type!($($msg_type)?);
 
             fn msg_write_body<T: $crate::user_message::UserMessageWrite>(
                 &self,
@@ -954,6 +974,48 @@ macro_rules! define_user_message {
                 use $crate::user_message::UserMessageValue;
                 self.msg_write(writer);
             }
+        }
+    };
+    (
+        $( #[$attr:meta] )*
+        $vis:vis struct $name:ident $(= $msg_type:expr)?
+    ) => {
+        $( #[$attr] )*
+        #[derive(Copy, Clone, Debug)]
+        $vis struct $name;
+
+        impl Default for $name {
+            fn default() -> Self {
+                Self
+            }
+        }
+
+        $crate::user_message::impl_user_message_trait! {
+            $name {
+                fn msg_size() -> Option<usize> {
+                    Some(0)
+                }
+
+                fn msg_write<T: $crate::user_message::UserMessageWrite>(
+                    &self,
+                    _: &mut T,
+                ) {}
+
+                fn msg_read(
+                    _: &mut $crate::user_message::UserMessageBuffer,
+                ) -> Result<Self, $crate::user_message::UserMessageError> {
+                    Ok(Self)
+                }
+            }
+        }
+
+        impl $crate::user_message::ServerMessage for $name {
+            $crate::user_message::impl_user_message_type!($($msg_type)?);
+
+            fn msg_write_body<T: $crate::user_message::UserMessageWrite>(
+                &self,
+                _: &mut T,
+            ) {}
         }
     }
 }
