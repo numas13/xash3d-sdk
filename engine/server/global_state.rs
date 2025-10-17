@@ -16,6 +16,7 @@ use crate::{
     save::{FieldType, SaveFields, SaveReader, SaveRestoreData, SaveResult, SaveWriter},
     sound::Sentences,
     str::MapString,
+    time::MapTime,
 };
 
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
@@ -167,6 +168,7 @@ pub struct GlobalState {
     last_spawn: Cell<Option<EntityHandle>>,
     init_hud: Cell<bool>,
     sentences: RefCell<Option<Sentences>>,
+    talk_wait_time: Cell<MapTime>,
 }
 
 impl_unsync_global!(GlobalState);
@@ -180,6 +182,7 @@ impl GlobalState {
             last_spawn: Cell::new(None),
             init_hud: Cell::new(true),
             sentences: RefCell::new(None),
+            talk_wait_time: Default::default(),
         }
     }
 
@@ -286,6 +289,18 @@ impl GlobalState {
         Ref::filter_map(self.sentences.borrow(), |i| i.as_ref())
             .ok()
             .expect("sentences must be initialized by world spawn")
+    }
+
+    pub fn talk_wait_time(&self) -> MapTime {
+        self.talk_wait_time.get()
+    }
+
+    pub fn set_talk_wait_time(&self, time: MapTime) {
+        self.talk_wait_time.set(time);
+    }
+
+    pub fn set_talk_wait_time_from_now(&self, relative: f32) {
+        self.set_talk_wait_time(self.engine.globals.map_time() + relative);
     }
 }
 

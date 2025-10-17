@@ -1,10 +1,10 @@
-use core::{cmp, fmt::Write};
+use core::{cell::RefCell, cmp, fmt::Write};
 
 use alloc::vec::Vec;
 use csz::{CStrArray, CStrSlice, CStrThin};
 use xash3d_shared::str::ByteSliceExt;
 
-use crate::{engine::ServerEngineRef, entity::EntityVars, str::MapString, time::MapTime};
+use crate::{entity::EntityVars, prelude::*, str::MapString, time::MapTime};
 
 pub use xash3d_shared::sound::*;
 
@@ -16,6 +16,29 @@ struct SentenceEntry {
 pub struct SentenceGroup {
     name_offset: u32,
     count: u16,
+    lru: RefCell<Vec<u16>>,
+}
+
+impl SentenceGroup {
+    fn new(name_offset: u32, count: u16) -> Self {
+        Self {
+            name_offset,
+            count,
+            lru: RefCell::new(Vec::new()),
+        }
+    }
+
+    fn random_lru_pick(&self, engine: &ServerEngine) -> u16 {
+        let mut lru = self.lru.borrow_mut();
+        if lru.is_empty() {
+            if lru.capacity() == 0 {
+                lru.reserve_exact(self.count as usize);
+            }
+            lru.extend(0..self.count);
+        }
+        let max = (lru.len() - 1) as i32;
+        lru.swap_remove(engine.random_int(0, max) as usize)
+    }
 }
 
 pub struct Sentences {
@@ -82,10 +105,7 @@ impl Sentences {
                 let name_offset = self.strings.len() as u32;
                 self.strings.extend(group);
                 self.strings.push(0);
-                self.groups.push(SentenceGroup {
-                    name_offset,
-                    count: 1,
-                })
+                self.groups.push(SentenceGroup::new(name_offset, 1));
             } else {
                 self.groups.last_mut().unwrap().count += 1;
             }
@@ -166,6 +186,19 @@ impl Sentences {
         };
 
         Some((next, buffer.as_thin()))
+    }
+
+    /// Returns `None` if the group does not exists or buffer is not larger enough to hold the sample
+    /// name.
+    pub fn pick_random<'a>(
+        &self,
+        group_name: &CStrThin,
+        buffer: &'a mut CStrSlice,
+    ) -> Option<(u16, &'a CStrThin)> {
+        let group = self.find_group(group_name)?;
+        let pick = group.random_lru_pick(&self.engine);
+        write!(buffer.cursor(), "!{group_name}{pick}").ok()?;
+        Some((pick, buffer.as_thin()))
     }
 }
 

@@ -238,6 +238,19 @@ impl<'a> SoundBuilder<'a> {
             None
         }
     }
+
+    pub fn emit_random_sentence(self, group: &CStrThin, ent: &impl AsEntityHandle) -> Option<u16> {
+        let global_state = self.engine.global_state_ref();
+        let sentences = global_state.sentences();
+        let mut buffer = CStrArray::<256>::new();
+        if let Some((played, name)) = sentences.pick_random(group, &mut buffer) {
+            trace!("play random sentence {name}");
+            self.channel_voice().emit_dyn(name, ent);
+            Some(played)
+        } else {
+            None
+        }
+    }
 }
 
 pub struct EntityBuilder<'a, T: Entity> {
