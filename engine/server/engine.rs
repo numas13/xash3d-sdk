@@ -20,6 +20,7 @@ use xash3d_shared::{
     sound::{Attenuation, Channel, Pitch, SoundFlags},
     str::{AsCStrPtr, ToEngineStr},
     user_message::{Angle, Coord, UserMessageValue, UserMessageWrite},
+    utils::cstr_or_none,
 };
 
 use crate::{
@@ -1564,8 +1565,23 @@ impl ServerEngine {
     // pub pfnQueryClientCvarValue2: Option<
     //     unsafe extern "C" fn(player: *const edict_t, cvarName: *const c_char, requestID: c_int),
     // >,
-    // pub pfnCheckParm:
-    //     Option<unsafe extern "C" fn(parm: *mut c_char, ppnext: *mut *mut c_char) -> c_int>,
+
+    pub fn check_parm(&self, parm: impl ToEngineStr) -> bool {
+        let parm = parm.to_engine_str();
+        // FIXME: ffi: why parm is mutable?
+        unsafe { unwrap!(self, pfnCheckParm)(parm.as_ptr().cast_mut(), ptr::null_mut()) != 0 }
+    }
+
+    pub fn get_parm(&self, parm: impl ToEngineStr) -> Option<&CStrThin> {
+        let parm = parm.to_engine_str();
+        let mut next = ptr::null_mut();
+        unsafe {
+            // FIXME: ffi: why parm is mutable?
+            unwrap!(self, pfnCheckParm)(parm.as_ptr().cast_mut(), &mut next);
+            cstr_or_none(next)
+        }
+    }
+
     // pub pfnPEntityOfEntIndexAllEntities:
     //     Option<unsafe extern "C" fn(iEntIndex: c_int) -> *mut edict_t>,
 

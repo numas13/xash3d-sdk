@@ -1,24 +1,20 @@
 use csz::CStrThin;
-use xash3d_shared::logger::EngineConsoleLogger;
+use xash3d_shared::logger::{self, EngineConsoleLogger};
 
 use crate::prelude::*;
 
 struct Console;
 
 impl EngineConsoleLogger for Console {
-    fn get_cvar_float(name: &CStrThin) -> f32 {
-        // TODO: remove me
-        let engine = unsafe { RefEngineRef::new() };
-        engine.get_cvar_float(name)
-    }
-
-    fn console_print(s: &CStrThin) {
-        // TODO: remove me
+    unsafe fn console_print(s: &CStrThin) {
         let engine = unsafe { RefEngineRef::new() };
         engine.console_print(s);
     }
 }
 
-pub fn init_console_logger() {
-    xash3d_shared::logger::init_console_logger::<Console>();
+pub unsafe fn init_console_logger(engine: &RefEngine) {
+    let developer = engine.get_cvar_float(c"developer");
+    unsafe {
+        logger::init_console_logger::<Console>(developer, None);
+    }
 }

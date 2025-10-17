@@ -225,6 +225,7 @@ impl<T: UiDll> UiDllExport for Export<T> {
     unsafe extern "C" fn init() {
         unsafe {
             let engine = UiEngineRef::new();
+            crate::logger::init_console_logger(&engine);
             (&mut *T::global_as_mut_ptr()).write(T::new(engine));
         }
     }

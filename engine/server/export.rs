@@ -1078,6 +1078,7 @@ impl<T: ServerDll> ServerDllExport for Export<T> {
     unsafe extern "C" fn init() {
         unsafe {
             let engine = ServerEngineRef::new();
+            crate::logger::init_console_logger(&engine);
             (*GlobalState::global_as_mut_ptr()).write(GlobalState::new(engine));
             let global_state = GlobalStateRef::new();
             (*T::global_as_mut_ptr()).write(T::new(engine, global_state));

@@ -243,7 +243,7 @@ impl Input {
             in_impulse: 0,
             in_cancel: false,
 
-            mouse_initialized: engine.check_parm(c"-nomouse") == 0,
+            mouse_initialized: !engine.check_parm(c"-nomouse"),
             mouse_active: false,
             mouse_visible: false,
             mouse_in_use: false,

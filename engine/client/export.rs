@@ -390,9 +390,12 @@ impl<T: ClientDll> ClientDllExport for Export<T> {
     }
 
     unsafe extern "C" fn init() {
-        let engine = unsafe { ClientEngineRef::new() };
-        let dll = T::new(engine);
         unsafe {
+            let engine = ClientEngineRef::new();
+
+            crate::logger::init_console_logger(&engine);
+
+            let dll = T::new(engine);
             (&mut *T::global_as_mut_ptr()).write(dll);
         }
     }

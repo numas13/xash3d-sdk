@@ -62,7 +62,6 @@ pub unsafe fn init_engine(engine_funcs: &ffi::client::cl_enginefuncs_s) -> bool 
         }
     });
 
-    crate::logger::init_console_logger();
     true
 }
 

@@ -19,6 +19,7 @@ use xash3d_shared::{
     },
     misc::WRectExt,
     str::{AsCStrPtr, ToEngineStr},
+    utils::cstr_or_none,
 };
 
 use crate::{
@@ -377,10 +378,20 @@ impl ClientEngine {
         unsafe { unwrap!(self, GetClientMaxspeed)() }
     }
 
-    pub fn check_parm(&self, parm: impl ToEngineStr) -> c_int {
+    pub fn check_parm(&self, parm: impl ToEngineStr) -> bool {
         let parm = parm.to_engine_str();
         // FIXME: ffi: why parm is mutable?
-        unsafe { unwrap!(self, CheckParm)(parm.as_ptr().cast_mut(), ptr::null_mut()) }
+        unsafe { unwrap!(self, CheckParm)(parm.as_ptr().cast_mut(), ptr::null_mut()) != 0 }
+    }
+
+    pub fn get_parm(&self, parm: impl ToEngineStr) -> Option<&CStrThin> {
+        let parm = parm.to_engine_str();
+        let mut next = ptr::null_mut();
+        unsafe {
+            // FIXME: ffi: why parm is mutable?
+            unwrap!(self, CheckParm)(parm.as_ptr().cast_mut(), &mut next);
+            cstr_or_none(next)
+        }
     }
 
     pub fn key_event(&self, key: i32, down: bool) {

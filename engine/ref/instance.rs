@@ -15,5 +15,4 @@ pub unsafe fn init_engine(
     unsafe {
         (*RefEngine::global_as_mut_ptr()).write(engine);
     }
-    crate::logger::init_console_logger();
 }

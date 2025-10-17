@@ -14,7 +14,6 @@ pub unsafe fn init_engine(
     unsafe {
         (*UiEngine::global_as_mut_ptr()).write(UiEngine::new(engine_funcs, globals));
     }
-    crate::logger::init_console_logger();
 }
 
 /// Initialize extended functions for global [UiEngine] instance.

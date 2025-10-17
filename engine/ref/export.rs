@@ -969,12 +969,18 @@ fn texture_name<'a>(name: *const c_char) -> Option<&'a CStrThin> {
 
 impl<T: RefDll> RefDllExport for Export<T> {
     unsafe extern "C" fn init() -> qboolean {
-        match T::new(unsafe { RefEngineRef::new() }) {
-            Some(instance) => unsafe {
-                (&mut *T::global_as_mut_ptr()).write(instance);
-                1
-            },
-            None => 0,
+        unsafe {
+            let engine = RefEngineRef::new();
+
+            crate::logger::init_console_logger(&engine);
+
+            match T::new(engine) {
+                Some(instance) => {
+                    (&mut *T::global_as_mut_ptr()).write(instance);
+                    1
+                }
+                None => 0,
+            }
         }
     }
 
