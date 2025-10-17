@@ -94,7 +94,7 @@ impl EntityOffset {
 }
 
 /// A reference to an entity handle.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq, Eq)]
 pub struct EntityHandleRef<'a> {
     engine: ServerEngineRef,
     raw: NonNull<edict_s>,
@@ -184,7 +184,7 @@ impl From<EntityHandleRef<'_>> for EntityHandle {
 }
 
 /// An owned handle to an entity.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq, Eq)]
 pub struct EntityHandle {
     engine: ServerEngineRef,
     raw: NonNull<edict_s>,
