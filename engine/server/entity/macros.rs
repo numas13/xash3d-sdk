@@ -79,7 +79,7 @@ pub use static_trait_cast;
 /// impl MyMonster for Zombie {}
 ///
 /// // initialize to zeroes only for test purpose
-/// let zombie: Zombie = unsafe { core::mem::zeroed() };
+/// let zombie: Zombie = unsafe { core::mem::MaybeUninit::zeroed().assume_init() };
 ///
 /// assert!(zombie.as_my_toggle().is_none());
 /// assert!(zombie.as_my_monster().is_some());

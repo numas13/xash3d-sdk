@@ -121,7 +121,7 @@ macro_rules! field {
     (get enum $field:ident, $( #[$attr:meta] )* fn $meth:ident() -> $ty:ty) => {
         $( #[$attr] )*
         pub fn $meth(&self) -> $ty {
-            let value = unsafe { (*self.raw).$field };
+            let value = unsafe { (*self.as_ptr()).$field };
             <$ty>::from_raw(value).unwrap()
         }
     };
@@ -129,7 +129,7 @@ macro_rules! field {
     (get bitflags $field:ident, $( #[$attr:meta] )* fn $meth:ident() -> $ty:ty, $from:ty as $to:ty) => {
         $( #[$attr] )*
         pub fn $meth(&self) -> $ty {
-            let value: $from = unsafe { (*self.raw).$field };
+            let value: $from = unsafe { (*self.as_ptr()).$field };
             <$ty>::from_bits_retain(value as $to)
         }
     };
@@ -137,7 +137,7 @@ macro_rules! field {
     (get bitflags $field:ident, $( #[$attr:meta] )* fn $meth:ident() -> $ty:ty) => {
         $( #[$attr] )*
         pub fn $meth(&self) -> $ty {
-            let value = unsafe { (*self.raw).$field };
+            let value = unsafe { (*self.as_ptr()).$field };
             <$ty>::from_bits_retain(value)
         }
     };
@@ -145,7 +145,7 @@ macro_rules! field {
     (get $field:ident, $( #[$attr:meta] )* fn $meth:ident() -> Option<MapString>) => {
         $( #[$attr] )*
         pub fn $meth(&self) -> Option<MapString> {
-            let value = unsafe { (*self.raw).$field };
+            let value = unsafe { (*self.as_ptr()).$field };
             MapString::from_index(self.engine, value)
         }
     };
@@ -153,7 +153,7 @@ macro_rules! field {
     (get $field:ident, $( #[$attr:meta] )* fn $meth:ident() -> MapTime) => {
         $( #[$attr] )*
         pub fn $meth(&self) -> MapTime {
-            let value = unsafe { (*self.raw).$field };
+            let value = unsafe { (*self.as_ptr()).$field };
             MapTime::from_secs_f32(value)
         }
     };
@@ -161,7 +161,7 @@ macro_rules! field {
     (get $field:ident, $( #[$attr:meta] )* fn $meth:ident() -> Option<NonNull<$ty:ty>>) => {
         $( #[$attr] )*
         pub fn $meth(&self) -> Option<NonNull<$ty>> {
-            let value = unsafe { (*self.raw).$field };
+            let value = unsafe { (*self.as_ptr()).$field };
             NonNull::new(value)
         }
     };
@@ -169,7 +169,7 @@ macro_rules! field {
     (get $field:ident, $( #[$attr:meta] )* fn $meth:ident() -> $ty:ty as $to:ty) => {
         $( #[$attr] )*
         pub fn $meth(&self) -> $to {
-            let value: $ty = unsafe { (*self.raw).$field };
+            let value: $ty = unsafe { (*self.as_ptr()).$field };
             value as $to
         }
     };
@@ -177,7 +177,7 @@ macro_rules! field {
     (get $field:ident, $( #[$attr:meta] )* fn $meth:ident() -> $ty:ty) => {
         $( #[$attr] )*
         pub fn $meth(&self) -> $ty {
-            unsafe { (*self.raw).$field }
+            unsafe { (*self.as_ptr()).$field }
         }
     };
 
@@ -190,7 +190,7 @@ macro_rules! field {
         {
             let value = $arg.into().map_or(ptr::null_mut(), |v| v.as_entity_handle());
             unsafe {
-                (*self.raw).$field = value;
+                (*self.as_mut_ptr()).$field = value;
             }
         }
     };
@@ -200,7 +200,7 @@ macro_rules! field {
         pub fn $meth(&self, $arg: $ty) {
             let value = $arg.into_raw();
             unsafe {
-                (*self.raw).$field = value;
+                (*self.as_mut_ptr()).$field = value;
             }
         }
     };
@@ -210,7 +210,7 @@ macro_rules! field {
         pub fn $meth(&self, $arg: $ty) {
             let value = $arg.bits() $( as $to)?;
             unsafe {
-                (*self.raw).$field = value;
+                (*self.as_mut_ptr()).$field = value;
             }
         }
     };
@@ -220,7 +220,7 @@ macro_rules! field {
         pub fn $meth(&self, $arg: impl Into<Option<MapString>>) {
             let value = $arg.into().map_or(0, |s| s.index());
             unsafe {
-                (*self.raw).$field = value;
+                (*self.as_mut_ptr()).$field = value;
             }
         }
     };
@@ -230,7 +230,7 @@ macro_rules! field {
         pub fn $meth(&self, $arg: MapTime) {
             let value = $arg.as_secs_f32();
             unsafe {
-                (*self.raw).$field = value;
+                (*self.as_mut_ptr()).$field = value;
             }
         }
     };
@@ -240,7 +240,7 @@ macro_rules! field {
         pub fn $meth(&self, $arg: impl Into<vec3_t>) {
             let value = $arg.into();
             unsafe {
-                (*self.raw).$field = value;
+                (*self.as_mut_ptr()).$field = value;
             }
         }
     };
@@ -250,7 +250,7 @@ macro_rules! field {
         pub fn $meth(&self, $arg: $ty) {
             let value = $arg;
             unsafe {
-                (*self.raw).$field = value;
+                (*self.as_mut_ptr()).$field = value;
             }
         }
     };
@@ -261,7 +261,7 @@ macro_rules! field {
         pub unsafe fn $meth(&self, $arg: $ty) {
             let value = $arg;
             unsafe {
-                (*self.raw).$field = value;
+                (*self.as_mut_ptr()).$field = value;
             }
         }
     };
@@ -270,12 +270,12 @@ macro_rules! field {
     (mut bitflags $field:ident, $( #[$attr:meta] )* fn $meth:ident($ty:ty $(, $from:ty as $to:ty)?)) => {
         $( #[$attr] )*
         pub fn $meth(&self, f: impl FnOnce($ty) -> $ty) {
-            let bits = unsafe { (*self.raw).$field };
+            let bits = unsafe { (*self.as_ptr()).$field };
             $( let bits: $from = bits; )?
             $( let bits: $to = bits as $to; )?
             let value = f(<$ty>::from_bits_retain(bits)).bits();
             unsafe {
-                (*self.raw).$field = value;
+                (*self.as_mut_ptr()).$field = value;
             }
         }
     };
@@ -283,10 +283,10 @@ macro_rules! field {
     (mut $field:ident, $( #[$attr:meta] )* fn $meth:ident($ty:ty)) => {
         $( #[$attr] )*
         pub fn $meth(&self, f: impl FnOnce($ty) -> $ty) {
-            let value = unsafe { (*self.raw).$field };
+            let value = unsafe { (*self.as_ptr()).$field };
             let value = f(value);
             unsafe {
-                (*self.raw).$field = value;
+                (*self.as_mut_ptr()).$field = value;
             }
         }
     };
@@ -297,7 +297,7 @@ macro_rules! field {
 pub struct EntityVars {
     engine: ServerEngineRef,
     global_state: GlobalStateRef,
-    raw: *mut entvars_s,
+    raw: NonNull<entvars_s>,
 }
 
 impl EntityVars {
@@ -316,16 +316,16 @@ impl EntityVars {
         Self {
             engine,
             global_state,
-            raw,
+            raw: unsafe { NonNull::new_unchecked(raw) },
         }
     }
 
     pub fn as_ptr(&self) -> *const entvars_s {
-        self.raw
+        self.raw.as_ptr()
     }
 
     pub fn as_mut_ptr(&self) -> *mut entvars_s {
-        self.raw
+        self.raw.as_ptr()
     }
 
     pub fn engine(&self) -> ServerEngineRef {
@@ -408,7 +408,7 @@ impl EntityVars {
     field!(mut movedir, fn with_move_dir(vec3_t));
 
     pub fn set_move_dir_from_angles(&self) {
-        let ev = unsafe { &mut (*self.raw) };
+        let ev = unsafe { &mut (*self.as_mut_ptr()) };
         if ev.angles == vec3_t::new(0.0, -1.0, 0.0) {
             ev.movedir = vec3_t::new(0.0, 0.0, 1.0);
         } else if ev.angles == vec3_t::new(0.0, -2.0, 0.0) {
@@ -930,7 +930,7 @@ impl EntityVars {
 
         if let Some(field) = field {
             let field_type = FieldType::from_raw(field.fieldType).unwrap();
-            let pev = self.raw as *mut u8;
+            let pev = self.as_ptr() as *mut u8;
             let p = unsafe { pev.offset(field.fieldOffset as isize) };
 
             match field_type {
@@ -977,14 +977,14 @@ impl EntityVars {
 #[cfg(feature = "save")]
 impl save::Save for EntityVars {
     fn save(&self, state: &mut save::SaveState, cur: &mut save::CursorMut) -> SaveResult<()> {
-        save::write_fields(state, cur, unsafe { &*self.raw })
+        save::write_fields(state, cur, unsafe { &*self.as_ptr() })
     }
 }
 
 #[cfg(feature = "save")]
 impl save::Restore for EntityVars {
     fn restore(&mut self, state: &save::RestoreState, cur: &mut save::Cursor) -> SaveResult<()> {
-        save::read_fields(state, cur, unsafe { &mut *self.raw })
+        save::read_fields(state, cur, unsafe { &mut *self.as_mut_ptr() })
     }
 }
 
