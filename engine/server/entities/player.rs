@@ -10,7 +10,8 @@ use crate::{
     engine::TraceIgnore,
     entity::{
         delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Dead, Entity, EntityHandle,
-        EntityPlayer, EntityVars, GetPrivateData, ObjectCaps, Solid, TakeDamage, UseType,
+        EntityPlayer, EntityVars, GetPrivateData, LastSound, ObjectCaps, Solid, TakeDamage,
+        UseType,
     },
     utils::{self, ViewField},
 };
@@ -82,7 +83,22 @@ impl<'a> UseTarget<'a> {
 pub struct Player {
     base: BaseEntity,
 
+    #[cfg_attr(feature = "save", save(skip))]
+    last_sound: Cell<Option<LastSound>>,
+
     pub input: Input,
+}
+
+impl CreateEntity for Player {
+    fn create(base: BaseEntity) -> Self {
+        Self {
+            base,
+
+            last_sound: Default::default(),
+
+            input: Input::default(),
+        }
+    }
 }
 
 impl Player {
@@ -240,6 +256,10 @@ impl Player {
     pub fn player_use(&self) {
         self.player_use_with(Self::USE_SEARCH_RADIUS, Self::USE_VIEW_FIELD)
     }
+
+    pub fn set_custom_decal_frames(&mut self, frames: c_int) {
+        debug!("Player::set_custom_decal_frames({frames})");
+    }
 }
 
 impl_entity_cast!(Player);
@@ -257,22 +277,6 @@ impl crate::save::OnRestore for Player {
         v.set_fix_angle(1);
 
         engine.set_physics_key_value(self, c"hl", c"1");
-    }
-}
-
-impl Player {
-    pub fn set_custom_decal_frames(&mut self, frames: c_int) {
-        debug!("Player::set_custom_decal_frames({frames})");
-    }
-}
-
-impl CreateEntity for Player {
-    fn create(base: BaseEntity) -> Self {
-        Self {
-            base,
-
-            input: Input::default(),
-        }
     }
 }
 
@@ -351,6 +355,14 @@ impl EntityPlayer for Player {
 
     fn post_think(&self) {
         self.input.post_think(self.base.vars());
+    }
+
+    fn env_sound(&self) -> Option<LastSound> {
+        self.last_sound.get()
+    }
+
+    fn set_env_sound(&self, last: Option<LastSound>) {
+        self.last_sound.set(last);
     }
 }
 

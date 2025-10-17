@@ -43,6 +43,7 @@ export-func_ladder = []
 #
 
 export-ambient_generic = []
+export-env_sound = []
 
 #
 # Entities: lights

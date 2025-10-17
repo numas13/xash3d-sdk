@@ -749,6 +749,32 @@ impl Entity for BaseEntity {
     }
 }
 
+#[derive(Copy, Clone)]
+pub struct LastSound {
+    /// A last sound entity that modified the player room type.
+    entity: EntityHandle,
+    /// The distance from the player to a sound entity.
+    range: f32,
+}
+
+impl LastSound {
+    pub fn new(entity: EntityHandle, range: f32) -> Self {
+        Self { entity, range }
+    }
+
+    pub fn with_range(self, range: f32) -> Self {
+        Self { range, ..self }
+    }
+
+    pub fn entity(&self) -> EntityHandle {
+        self.entity
+    }
+
+    pub fn range(&self) -> f32 {
+        self.range
+    }
+}
+
 define_entity_trait! {
     pub trait EntityPlayer(delegate_player): (Entity) {
         fn select_spawn_point(&self) -> ::xash3d_server::entity::EntityHandle;
@@ -763,6 +789,13 @@ define_entity_trait! {
         fn is_observer(&self) -> bool {
             self.vars().iuser1() != 0
         }
+
+        fn env_sound(&self) -> Option<::xash3d_server::entity::LastSound> {
+            None
+        }
+
+        #[allow(unused_variables)]
+        fn set_env_sound(&self, last: Option<::xash3d_server::entity::LastSound>) {}
     }
 }
 
