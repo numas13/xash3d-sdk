@@ -57,6 +57,13 @@ impl Filter {
             true
         }
     }
+
+    fn max_level(&self) -> LevelFilter {
+        match self.directives.iter().max_by_key(|(_, l)| l) {
+            Some((_, l)) => self.level.max(*l),
+            None => self.level,
+        }
+    }
 }
 
 pub trait EngineConsoleLogger: Send + Sync {
@@ -177,5 +184,5 @@ where
             T::console_print(c"[^1Error^7] Failed initialize console logger".into());
         }
     }
-    log::set_max_level(global_filter.level);
+    log::set_max_level(global_filter.max_level());
 }
