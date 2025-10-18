@@ -30,8 +30,8 @@ use xash3d_shared::{
 use crate::{
     entities::triggers,
     entity::{
-        BaseEntity, CreateEntity, Entity, EntityHandle, EntityPlayer, EntityVars, KeyValue,
-        PrivateData, PrivateEntity, RestoreResult, UseType,
+        BaseEntity, CreateEntity, Entity, EntityHandle, EntityPlayer, KeyValue, PrivateData,
+        PrivateEntity, RestoreResult, UseType,
     },
     global_state::{EntityState, GlobalState, GlobalStateRef},
     prelude::*,
@@ -257,7 +257,10 @@ pub trait ServerDll: UnsyncGlobal {
 
         use xash3d_shared::ffi::server::entvars_s;
 
-        use crate::{entity::ObjectCaps, save};
+        use crate::{
+            entity::{EntityVars, ObjectCaps},
+            save,
+        };
 
         let engine = self.engine();
         let global_state = self.global_state();
