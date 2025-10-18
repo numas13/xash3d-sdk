@@ -1159,13 +1159,13 @@ impl ServerEngine {
         ptr
     }
 
-    pub fn ent_private_data(&self, edict: &mut edict_s) -> *mut c_void {
-        unsafe { unwrap!(self, pfnPvEntPrivateData)(edict) }
-    }
+    // pub fn ent_private_data(&self, edict: &impl AsEntityHandle) -> *mut c_void {
+    //     unsafe { unwrap!(self, pfnPvEntPrivateData)(edict.as_entity_handle()) }
+    // }
 
-    pub fn free_ent_private_data(&self, edict: &mut edict_s) {
-        unsafe { unwrap!(self, pfnFreeEntPrivateData)(edict) }
-    }
+    // pub unsafe fn free_ent_private_data(&self, ent: &impl AsEntityHandle) {
+    //     unsafe { unwrap!(self, pfnFreeEntPrivateData)(ent.as_entity_handle()) }
+    // }
 
     /// Tries to create a new map string from a given `string`.
     pub fn try_alloc_map_string(&self, string: impl ToEngineStr) -> Option<MapString> {

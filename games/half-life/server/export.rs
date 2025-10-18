@@ -3,9 +3,8 @@ use core::ffi::{c_int, CStr};
 use xash3d_server::{
     engine::RegisterUserMessageError,
     entities::world::World,
-    entity::{BaseEntity, Private},
+    entity::{BaseEntity, EntityHandle, Private},
     export::{export_dll, impl_unsync_global, ServerDll},
-    ffi::server::edict_s,
     global_state::GlobalStateRef,
     prelude::*,
     user_message::register_user_message,
@@ -94,7 +93,7 @@ impl ServerDll for Dll {
         c"Half-Life"
     }
 
-    fn client_command(&self, _ent: &mut edict_s) {
+    fn client_command(&self, _ent: EntityHandle) {
         if let Some(args) = self.engine.cmd_args_raw() {
             trace!("client command {args}");
         }

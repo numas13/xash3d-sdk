@@ -3,9 +3,8 @@ mod private_data;
 mod vars;
 
 use core::{
-    ffi::{c_int, c_short, c_void},
+    ffi::{c_int, c_void},
     marker::PhantomData,
-    mem,
     ptr::{self, NonNull},
     str::FromStr,
 };
@@ -25,7 +24,6 @@ use crate::{
     engine::ServerEngineRef,
     global_state::{EntityState, GlobalStateRef},
     save::{Restore, Save},
-    str::MapString,
 };
 
 #[cfg(feature = "save")]
@@ -828,22 +826,24 @@ pub fn create_baseline(
     player: bool,
     eindex: c_int,
     baseline: &mut entity_state_s,
-    ent: &mut edict_s,
+    ent: EntityHandle,
     player_model_index: c_int,
     player_mins: vec3_t,
     player_maxs: vec3_t,
 ) {
-    baseline.origin = ent.v.origin;
-    baseline.angles = ent.v.angles;
-    baseline.frame = ent.v.frame;
-    baseline.skin = ent.v.skin as c_short;
+    let v = ent.vars();
 
-    baseline.rendermode = ent.v.rendermode as c_int;
-    baseline.renderamt = ent.v.renderamt as u8 as c_int;
-    baseline.rendercolor.r = ent.v.rendercolor[0] as u8;
-    baseline.rendercolor.g = ent.v.rendercolor[1] as u8;
-    baseline.rendercolor.b = ent.v.rendercolor[2] as u8;
-    baseline.renderfx = ent.v.renderfx as c_int;
+    baseline.origin = v.origin();
+    baseline.angles = v.angles();
+    baseline.frame = v.frame();
+    baseline.skin = v.skin() as i16;
+
+    baseline.rendermode = v.render_mode() as i32;
+    baseline.renderamt = v.render_amount() as u8 as i32;
+    baseline.rendercolor.r = v.render_color()[0] as u8;
+    baseline.rendercolor.g = v.render_color()[1] as u8;
+    baseline.rendercolor.b = v.render_color()[2] as u8;
+    baseline.renderfx = v.render_fx() as i32;
 
     if player {
         baseline.mins = player_mins;
@@ -854,92 +854,22 @@ pub fn create_baseline(
         baseline.friction = 1.0;
         baseline.movetype = MoveType::Walk.into();
 
-        baseline.scale = ent.v.scale;
-        baseline.solid = Solid::SlideBox.into_raw() as c_short;
+        baseline.scale = v.scale();
+        baseline.solid = Solid::SlideBox.into_raw() as i16;
         baseline.framerate = 1.0;
         baseline.gravity = 1.0;
     } else {
-        baseline.mins = ent.v.mins;
-        baseline.maxs = ent.v.maxs;
+        baseline.mins = v.min_size();
+        baseline.maxs = v.max_size();
 
         baseline.colormap = 0;
-        baseline.modelindex = ent.v.modelindex;
-        baseline.movetype = ent.v.movetype as c_int;
+        baseline.modelindex = v.model_index_raw();
+        baseline.movetype = v.move_type() as i32;
 
-        baseline.scale = ent.v.scale;
-        baseline.solid = ent.v.solid as c_short;
-        baseline.framerate = ent.v.framerate;
-        baseline.gravity = ent.v.gravity;
-    }
-}
-
-// TODO: add safe wrapper for entvars_s and remove this trait
-#[doc(hidden)]
-pub trait EntityVarsExt {
-    fn classname(&self) -> Option<MapString>;
-
-    fn globalname(&self) -> Option<MapString>;
-
-    fn model(&self) -> Option<MapString>;
-
-    fn viewmodel(&self) -> Option<MapString>;
-
-    fn weaponmodel(&self) -> Option<MapString>;
-
-    fn flags(&self) -> &EdictFlags;
-
-    fn flags_mut(&mut self) -> &mut EdictFlags;
-
-    fn effects(&self) -> &Effects;
-
-    fn effects_mut(&mut self) -> &mut Effects;
-}
-
-impl EntityVarsExt for entvars_s {
-    fn classname(&self) -> Option<MapString> {
-        // TODO: remove me
-        let engine = unsafe { ServerEngineRef::new() };
-        MapString::from_index(engine, self.classname)
-    }
-
-    fn globalname(&self) -> Option<MapString> {
-        // TODO: remove me
-        let engine = unsafe { ServerEngineRef::new() };
-        MapString::from_index(engine, self.globalname)
-    }
-
-    fn model(&self) -> Option<MapString> {
-        // TODO: remove me
-        let engine = unsafe { ServerEngineRef::new() };
-        MapString::from_index(engine, self.model)
-    }
-
-    fn viewmodel(&self) -> Option<MapString> {
-        // TODO: remove me
-        let engine = unsafe { ServerEngineRef::new() };
-        MapString::from_index(engine, self.viewmodel)
-    }
-
-    fn weaponmodel(&self) -> Option<MapString> {
-        // TODO: remove me
-        let engine = unsafe { ServerEngineRef::new() };
-        MapString::from_index(engine, self.weaponmodel)
-    }
-
-    fn flags(&self) -> &EdictFlags {
-        unsafe { mem::transmute(&self.flags) }
-    }
-
-    fn flags_mut(&mut self) -> &mut EdictFlags {
-        unsafe { mem::transmute(&mut self.flags) }
-    }
-
-    fn effects(&self) -> &Effects {
-        unsafe { mem::transmute(&self.effects) }
-    }
-
-    fn effects_mut(&mut self) -> &mut Effects {
-        unsafe { mem::transmute(&mut self.effects) }
+        baseline.scale = v.scale();
+        baseline.solid = v.solid() as i16;
+        baseline.framerate = v.framerate();
+        baseline.gravity = v.gravity();
     }
 }
 

@@ -30,8 +30,8 @@ use xash3d_shared::{
 use crate::{
     entities::triggers,
     entity::{
-        BaseEntity, CreateEntity, Entity, EntityPlayer, EntityVars, KeyValue, PrivateData,
-        PrivateEntity, RestoreResult, UseType,
+        BaseEntity, CreateEntity, Entity, EntityHandle, EntityPlayer, EntityVars, KeyValue,
+        PrivateData, PrivateEntity, RestoreResult, UseType,
     },
     global_state::{EntityState, GlobalState, GlobalStateRef},
     prelude::*,
@@ -80,7 +80,7 @@ pub trait ServerDll: UnsyncGlobal {
         true
     }
 
-    fn dispatch_spawn(&self, ent: &mut edict_s) -> SpawnResult {
+    fn dispatch_spawn(&self, mut ent: EntityHandle) -> SpawnResult {
         let engine = self.engine();
         let global_state = self.global_state();
 
@@ -120,7 +120,7 @@ pub trait ServerDll: UnsyncGlobal {
         SpawnResult::Ok
     }
 
-    fn dispatch_think(&self, ent: &mut edict_s) {
+    fn dispatch_think(&self, ent: EntityHandle) {
         if let Some(entity) = ent.get_entity() {
             if entity.vars().flags().intersects(EdictFlags::DORMANT) {
                 let classname = entity.classname();
@@ -130,7 +130,7 @@ pub trait ServerDll: UnsyncGlobal {
         }
     }
 
-    fn dispatch_use(&self, used: &mut edict_s, other: &mut edict_s) {
+    fn dispatch_use(&self, used: EntityHandle, other: EntityHandle) {
         let Some(used) = used.get_entity() else {
             return;
         };
@@ -143,7 +143,7 @@ pub trait ServerDll: UnsyncGlobal {
         }
     }
 
-    fn dispatch_touch(&self, touched: &mut edict_s, other: &mut edict_s) {
+    fn dispatch_touch(&self, touched: EntityHandle, other: EntityHandle) {
         if !self.is_touch_enabled() {
             return;
         }
@@ -163,7 +163,7 @@ pub trait ServerDll: UnsyncGlobal {
         touched.touched(other);
     }
 
-    fn dispatch_blocked(&self, blocked: &mut edict_s, other: &mut edict_s) {
+    fn dispatch_blocked(&self, blocked: EntityHandle, other: EntityHandle) {
         let Some(blocked) = blocked.get_entity() else {
             return;
         };
@@ -174,10 +174,7 @@ pub trait ServerDll: UnsyncGlobal {
         blocked.blocked(other);
     }
 
-    fn dispatch_key_value(&self, ent: &mut edict_s, data: &mut KeyValue) {
-        let ev = unsafe { EntityVars::from_raw(self.engine(), self.global_state(), &mut ent.v) };
-        ev.key_value(data);
-
+    fn dispatch_key_value(&self, mut ent: EntityHandle, data: &mut KeyValue) {
         if data.handled() || data.class_name().is_none() {
             return;
         }
@@ -188,14 +185,14 @@ pub trait ServerDll: UnsyncGlobal {
     }
 
     #[cfg(not(feature = "save"))]
-    fn dispatch_save(&self, _ent: &mut edict_s, _save_data: &mut SaveRestoreData) {
+    fn dispatch_save(&self, _ent: EntityHandle, _save_data: &mut SaveRestoreData) {
         error!("dispatch_save: feature \"save\" is not enabled");
     }
 
     #[cfg(not(feature = "save"))]
     fn dispatch_restore(
         &self,
-        _ent: &mut edict_s,
+        _ent: EntityHandle,
         _save_data: &mut SaveRestoreData,
         _global_entity: bool,
     ) -> RestoreResult {
@@ -204,7 +201,7 @@ pub trait ServerDll: UnsyncGlobal {
     }
 
     #[cfg(feature = "save")]
-    fn dispatch_save(&self, ent: &mut edict_s, save_data: &mut SaveRestoreData) {
+    fn dispatch_save(&self, mut ent: EntityHandle, save_data: &mut SaveRestoreData) {
         use crate::{
             entity::{MoveType, ObjectCaps},
             save,
@@ -212,7 +209,7 @@ pub trait ServerDll: UnsyncGlobal {
 
         let engine = self.engine();
         let current_index = save_data.current_index();
-        if save_data.table()[current_index].pent != ent {
+        if save_data.table()[current_index].pent != ent.as_ptr() {
             error!("Entity table or index is wrong");
         }
         let Some(entity) = (unsafe { ent.get_entity_mut() }) else {
@@ -252,7 +249,7 @@ pub trait ServerDll: UnsyncGlobal {
     #[cfg(feature = "save")]
     fn dispatch_restore(
         &self,
-        mut ent: &mut edict_s,
+        mut ent: EntityHandle,
         save_data: &mut SaveRestoreData,
         global_entity: bool,
     ) -> RestoreResult {
@@ -265,19 +262,20 @@ pub trait ServerDll: UnsyncGlobal {
         let engine = self.engine();
         let global_state = self.global_state();
 
-        let mut global_vars = MaybeUninit::<entvars_s>::uninit();
+        let mut global_mode = false;
+        let mut old_offset = vec3_t::ZERO;
+
         if global_entity {
+            let mut global_vars = MaybeUninit::<entvars_s>::zeroed();
             let mut reader = SaveReader::new(engine);
             reader.precache_mode(false);
             reader
                 .read_fields(save_data, unsafe { global_vars.assume_init_mut() })
                 .unwrap();
-        }
 
-        let mut global_mode = false;
-        let mut old_offset = vec3_t::ZERO;
-        if global_entity {
-            let tmp_vars = unsafe { global_vars.assume_init_mut() };
+            let tmp_vars =
+                unsafe { EntityVars::from_raw(engine, global_state, global_vars.as_mut_ptr()) };
+
             // HACK: restore save pointers
             save_data.restore_save_pointers();
 
@@ -294,11 +292,11 @@ pub trait ServerDll: UnsyncGlobal {
                 global_mode = true;
                 let mut landmark_offset = save_data.landmark_offset();
                 landmark_offset -= new_ent.vars().min_size();
-                landmark_offset += tmp_vars.mins;
+                landmark_offset += tmp_vars.min_size();
                 save_data.set_landmark_offset(landmark_offset);
-                ent = unsafe { &mut *new_ent.as_ptr() };
+                ent = new_ent;
                 entities.update(
-                    ent.v.globalname().unwrap(),
+                    ent.vars().globalname().unwrap(),
                     engine.globals.map_name().unwrap(),
                 );
             } else {
@@ -359,14 +357,10 @@ pub trait ServerDll: UnsyncGlobal {
         RestoreResult::Ok
     }
 
-    fn dispatch_object_collsion_box(&self, ent: &mut edict_s) {
+    fn dispatch_object_collsion_box(&self, ent: EntityHandle) {
         match ent.get_entity() {
             Some(entity) => entity.set_object_collision_box(),
-            None => {
-                let vars =
-                    unsafe { EntityVars::from_raw(self.engine(), self.global_state(), &mut ent.v) };
-                crate::entity::set_object_collision_box(&vars);
-            }
+            None => crate::entity::set_object_collision_box(&ent.vars()),
         }
     }
 
@@ -418,7 +412,7 @@ pub trait ServerDll: UnsyncGlobal {
 
     fn client_connect(
         &self,
-        ent: &mut edict_s,
+        ent: EntityHandle,
         name: &CStrThin,
         address: &CStrThin,
         reject_reason: &mut CStrArray<128>,
@@ -426,39 +420,39 @@ pub trait ServerDll: UnsyncGlobal {
         true
     }
 
-    fn client_disconnect(&self, ent: &mut edict_s) {}
+    fn client_disconnect(&self, ent: EntityHandle) {}
 
-    fn client_kill(&self, ent: &mut edict_s) {}
+    fn client_kill(&self, ent: EntityHandle) {}
 
-    fn client_put_in_server(&self, ent: &mut edict_s) {
+    fn client_put_in_server(&self, ent: EntityHandle) {
         let engine = self.engine();
         let global_state = self.global_state();
-
-        let player =
-            unsafe { PrivateData::create::<Self::Player>(engine, global_state, &mut ent.v) };
+        let vars = ent.vars().as_mut_ptr();
+        let player = unsafe { PrivateData::create::<Self::Player>(engine, global_state, vars) };
 
         player.spawn();
 
-        ent.v.effects_mut().insert(Effects::NOINTERP);
-        ent.v.iuser1 = 0;
-        ent.v.iuser2 = 0;
+        let v = player.vars();
+        v.with_effects(|f| f | Effects::NOINTERP);
+        v.set_iuser1(0);
+        v.set_iuser2(0);
     }
 
-    fn client_command(&self, ent: &mut edict_s) {}
+    fn client_command(&self, ent: EntityHandle) {}
 
-    fn client_user_info_changed(&self, ent: &mut edict_s, info_buffer: &CStrThin) {}
+    fn client_user_info_changed(&self, ent: EntityHandle, info_buffer: &CStrThin) {}
 
-    fn server_activate(&self, list: &mut [edict_s], client_max: c_int) {}
+    fn server_activate(&self, list: impl Iterator<Item = EntityHandle>, client_max: c_int) {}
 
     fn server_deactivate(&self) {}
 
-    fn player_pre_think(&self, ent: &mut edict_s) {
+    fn player_pre_think(&self, ent: EntityHandle) {
         if let Some(player) = ent.downcast_ref::<dyn EntityPlayer>() {
             player.pre_think();
         }
     }
 
-    fn player_post_think(&self, ent: &mut edict_s) {
+    fn player_post_think(&self, ent: EntityHandle) {
         if let Some(player) = ent.downcast_ref::<dyn EntityPlayer>() {
             player.post_think();
         }
@@ -485,13 +479,13 @@ pub trait ServerDll: UnsyncGlobal {
         self.global_state().game_rules().get_game_description()
     }
 
-    fn player_customization(&self, ent: &mut edict_s, custom: &mut customization_s) {}
+    fn player_customization(&self, ent: EntityHandle, custom: &mut customization_s) {}
 
-    fn spectator_connect(&self, ent: &mut edict_s) {}
+    fn spectator_connect(&self, ent: EntityHandle) {}
 
-    fn spectator_disconnect(&self, ent: &mut edict_s) {}
+    fn spectator_disconnect(&self, ent: EntityHandle) {}
 
-    fn spectator_think(&self, ent: &mut edict_s) {}
+    fn spectator_think(&self, ent: EntityHandle) {}
 
     /// Called when the engine has encountered an error.
     fn system_error(&self, error_string: &CStrThin) {}
@@ -512,20 +506,20 @@ pub trait ServerDll: UnsyncGlobal {
 
     fn setup_visibility(
         &self,
-        view_entity: Option<&mut edict_s>,
-        client: &mut edict_s,
+        view_entity: Option<EntityHandle>,
+        client: EntityHandle,
         pvs: &mut *mut c_uchar,
         pas: &mut *mut c_uchar,
     ) {
-        if client.v.flags().intersects(EdictFlags::PROXY) {
+        if client.vars().flags().intersects(EdictFlags::PROXY) {
             *pvs = ptr::null_mut();
             *pas = ptr::null_mut();
             return;
         }
 
         let view = view_entity.unwrap_or(client);
-        let mut org = view.v.origin + view.v.view_ofs;
-        if view.v.flags().intersects(EdictFlags::DUCKING) {
+        let mut org = view.vars().origin() + view.vars().view_ofs();
+        if view.vars().flags().intersects(EdictFlags::DUCKING) {
             org += VEC_HULL_MIN - VEC_DUCK_HULL_MIN;
         }
 
@@ -534,52 +528,56 @@ pub trait ServerDll: UnsyncGlobal {
         *pas = engine.set_pas(org);
     }
 
-    fn update_client_data(&self, ent: &edict_s, send_weapons: bool, cd: &mut clientdata_s) {
-        if ent.pvPrivateData.is_null() {
+    fn update_client_data(&self, ent: EntityHandle, send_weapons: bool, cd: &mut clientdata_s) {
+        if ent.get_private().is_none() {
             return;
         }
 
         let engine = self.engine();
-        let ev = &ent.v;
+        let ev = ent.vars();
 
         // TODO:
 
-        cd.flags = ev.flags;
-        cd.health = ev.health;
+        cd.flags = ev.flags().bits();
+        cd.health = ev.health();
 
-        cd.viewmodel =
-            engine.model_index(ev.viewmodel().as_ref().map_or(c"".into(), |s| s.as_thin()));
+        cd.viewmodel = engine.model_index(
+            ev.view_model_name()
+                .as_ref()
+                .map_or(c"".into(), |s| s.as_thin()),
+        );
 
-        cd.waterlevel = ev.waterlevel;
-        cd.watertype = ev.watertype;
-        cd.weapons = ev.weapons;
+        cd.waterlevel = ev.water_level().into_raw();
+        cd.watertype = ev.water_type();
+        cd.weapons = ev.weapons() as i32;
 
-        cd.origin = ev.origin;
-        cd.velocity = ev.velocity;
-        cd.view_ofs = ev.view_ofs;
-        cd.punchangle = ev.punchangle;
+        cd.origin = ev.origin();
+        cd.velocity = ev.velocity();
+        cd.view_ofs = ev.view_ofs();
+        cd.punchangle = ev.punch_angle();
 
-        cd.bInDuck = ev.bInDuck;
-        cd.flTimeStepSound = ev.flTimeStepSound;
-        cd.flDuckTime = ev.flDuckTime;
-        cd.flSwimTime = ev.flSwimTime;
-        cd.waterjumptime = ev.teleport_time as c_int;
+        cd.bInDuck = ev.in_duck().into();
+        cd.flTimeStepSound = ev.time_step_sound();
+        cd.flDuckTime = ev.duck_time();
+        cd.flSwimTime = ev.swim_time();
+        cd.waterjumptime = ev.teleport_time().as_secs_f32() as c_int;
 
-        CStrSlice::new_in_slice(&mut cd.physinfo)
-            .cursor()
-            .write_c_str(engine.get_physics_info_string(ent).into())
-            .unwrap();
+        let cd_phys_info = CStrSlice::new_in_slice(&mut cd.physinfo);
+        let phys_info = engine.get_physics_info_string(&ent).into();
+        if cd_phys_info.cursor().write_c_str(phys_info).is_err() {
+            error!("failed to write client data phys_info");
+        }
 
-        cd.maxspeed = ev.maxspeed;
-        cd.fov = ev.fov;
-        cd.weaponanim = ev.weaponanim;
+        cd.maxspeed = ev.max_speed();
+        cd.fov = ev.fov();
+        cd.weaponanim = ev.weapon_animation();
 
-        cd.pushmsec = ev.pushmsec;
+        cd.pushmsec = ev.push_msec();
 
         // TODO: spectator mode
 
-        cd.iuser1 = ev.iuser1;
-        cd.iuser2 = ev.iuser2;
+        cd.iuser1 = ev.iuser1();
+        cd.iuser2 = ev.iuser2();
 
         // TODO: sendweapons
         // #[cfg(feature = "client-weapons")]
@@ -593,38 +591,41 @@ pub trait ServerDll: UnsyncGlobal {
         &self,
         state: &mut entity_state_s,
         e: c_int,
-        ent: &edict_s,
-        host: &edict_s,
+        ent: EntityHandle,
+        host: EntityHandle,
         hostflags: c_int,
         player: bool,
         set: *mut c_uchar,
     ) -> bool {
-        if ent.v.effects().intersects(Effects::NODRAW) && !ptr::eq(ent, host) {
+        let ev = ent.vars();
+        let hv = host.vars();
+
+        if ent != host && ev.effects().intersects(Effects::NODRAW) {
             return false;
         }
 
-        if ent.v.modelindex == 0 || ent.v.model().unwrap().is_empty() {
+        if ev.model_index().is_none() || ev.model_name().map_or(true, |s| s.is_empty()) {
             return false;
         }
 
-        if ent.v.flags().intersects(EdictFlags::SPECTATOR) && !ptr::eq(ent, host) {
+        if ent != host && ev.flags().intersects(EdictFlags::SPECTATOR) {
             return false;
         }
 
         let engine = self.engine();
-        if !ptr::eq(ent, host) && !engine.check_visibility(ent, set) {
+        if ent != host && !engine.check_visibility(&ent, set) {
             return false;
         }
 
         // do not send if the client say it is predicting the entity itself
-        if ent.v.flags().intersects(EdictFlags::SKIPLOCALHOST)
+        if ev.flags().intersects(EdictFlags::SKIPLOCALHOST)
             && hostflags & 1 != 0
-            && ptr::eq(ent.v.owner, host)
+            && ev.owner().map(|i| i.as_ptr()) == Some(host.as_ptr())
         {
             return false;
         }
 
-        if host.v.groupinfo != 0 {
+        if hv.group_info() != 0 {
             debug!("TODO: add_to_full_pack groupinfo");
         }
 
@@ -634,93 +635,88 @@ pub trait ServerDll: UnsyncGlobal {
 
         state.number = e;
 
-        state.entityType = if ent.v.flags().intersects(EdictFlags::CUSTOMENTITY) {
+        state.entityType = if ev.flags().intersects(EdictFlags::CUSTOMENTITY) {
             ENTITY_BEAM
         } else {
             ENTITY_NORMAL
         };
 
-        state.animtime = ((1000.0 * ent.v.animtime) as i32) as f32 / 1000.0;
+        state.animtime = ((1000.0 * ev.animation_time()) as i32) as f32 / 1000.0;
 
-        state.origin = ent.v.origin;
-        state.angles = ent.v.angles;
-        state.mins = ent.v.mins;
-        state.maxs = ent.v.maxs;
+        state.origin = ev.origin();
+        state.angles = ev.angles();
+        state.mins = ev.min_size();
+        state.maxs = ev.max_size();
 
-        state.startpos = ent.v.startpos;
-        state.endpos = ent.v.endpos;
+        state.startpos = ev.start_pos();
+        state.endpos = ev.end_pos();
 
-        state.modelindex = ent.v.modelindex;
+        state.modelindex = ev.model_index_raw();
 
-        state.frame = ent.v.frame;
+        state.frame = ev.frame();
 
-        state.skin = ent.v.skin as c_short;
-        state.effects = ent.v.effects;
+        state.skin = ev.skin() as c_short;
+        state.effects = ev.effects().bits();
 
-        if !player && ent.v.animtime != 0.0 && ent.v.velocity == vec3_t::ZERO {
+        if !player && ev.animation_time() != 0.0 && ev.velocity() == vec3_t::ZERO {
             state.eflags |= EFLAG_SLERP as u8;
         }
 
-        state.scale = ent.v.scale;
-        state.solid = ent.v.solid as c_short;
-        state.colormap = ent.v.colormap;
+        state.scale = ev.scale();
+        state.solid = ev.solid() as c_short;
+        state.colormap = ev.color_map();
 
-        state.movetype = ent.v.movetype as c_int;
-        state.sequence = ent.v.sequence;
-        state.framerate = ent.v.framerate;
-        state.body = ent.v.body;
+        state.movetype = ev.move_type() as c_int;
+        state.sequence = ev.sequence();
+        state.framerate = ev.framerate();
+        state.body = ev.body();
 
-        state.controller = ent.v.controller;
-        state.blending[0] = ent.v.blending[0];
-        state.blending[1] = ent.v.blending[1];
+        state.controller = ev.controller();
+        state.blending[0] = ev.blending()[0];
+        state.blending[1] = ev.blending()[1];
 
-        state.rendermode = ent.v.rendermode as c_int;
-        state.renderamt = ent.v.renderamt as c_int;
-        state.renderfx = ent.v.renderfx as c_int;
-        state.rendercolor.r = ent.v.rendercolor[0] as u8;
-        state.rendercolor.g = ent.v.rendercolor[1] as u8;
-        state.rendercolor.b = ent.v.rendercolor[2] as u8;
+        state.rendermode = ev.render_mode() as c_int;
+        state.renderamt = ev.render_amount() as c_int;
+        state.renderfx = ev.render_fx() as c_int;
+        state.rendercolor.r = ev.render_color()[0] as u8;
+        state.rendercolor.g = ev.render_color()[1] as u8;
+        state.rendercolor.b = ev.render_color()[2] as u8;
 
-        state.aiment = if !ent.v.aiment.is_null() {
-            engine.get_entity_index(unsafe { &*ent.v.aiment }).to_i32()
+        state.aiment = if let Some(aiment) = ev.aim_entity() {
+            engine.get_entity_index(unsafe { aiment.as_ref() }).to_i32()
         } else {
             0
         };
 
         state.owner = 0;
-        if !ent.v.owner.is_null() {
-            let owner = engine.get_entity_index(unsafe { &*ent.v.owner }).to_i32();
+        if let Some(owner) = ev.owner() {
+            let owner = engine.get_entity_index(unsafe { owner.as_ref() }).to_i32();
             if owner >= 1 && owner <= engine.globals.max_clients() {
                 state.owner = owner;
             }
         }
 
         if !player {
-            state.playerclass = ent.v.playerclass;
+            state.playerclass = ev.player_class();
         }
 
         if player {
-            state.basevelocity = ent.v.basevelocity;
+            state.basevelocity = ev.base_velocity();
 
             state.weaponmodel = engine.model_index(
-                ent.v
-                    .weaponmodel()
+                ev.weapon_model_name()
                     .as_ref()
                     .map_or(c"".into(), |s| s.as_thin()),
             );
-            state.gaitsequence = ent.v.gaitsequence;
-            state.spectator = ent.v.flags().intersects(EdictFlags::SPECTATOR).into();
-            state.friction = ent.v.friction;
+            state.gaitsequence = ev.gaitsequence();
+            state.spectator = ev.flags().intersects(EdictFlags::SPECTATOR).into();
+            state.friction = ev.friction();
 
-            state.gravity = ent.v.gravity;
-            // state.team = env.v.team;
+            state.gravity = ev.gravity();
+            // state.team = ev.team();
 
-            state.usehull = if ent.v.flags().intersects(EdictFlags::DUCKING) {
-                1
-            } else {
-                0
-            };
-            state.health = ent.v.health as c_int;
+            state.usehull = ev.flags().intersects(EdictFlags::DUCKING) as i32;
+            state.health = ev.health() as c_int;
         }
 
         // TODO: state.eflags |= EFLAG_FLESH_SOUND
@@ -734,7 +730,7 @@ pub trait ServerDll: UnsyncGlobal {
         player: bool,
         eindex: c_int,
         baseline: &mut entity_state_s,
-        ent: &mut edict_s,
+        ent: EntityHandle,
         player_model_index: c_int,
         player_mins: vec3_t,
         player_maxs: vec3_t,
@@ -752,13 +748,13 @@ pub trait ServerDll: UnsyncGlobal {
 
     fn register_encoders(&self) {}
 
-    fn get_weapon_data(&self, player: &mut edict_s) -> Option<weapon_data_s> {
+    fn get_weapon_data(&self, player: EntityHandle) -> Option<weapon_data_s> {
         None
     }
 
-    fn command_start(&self, player: &mut edict_s, cmd: &usercmd_s, random_seed: c_uint) {}
+    fn command_start(&self, player: EntityHandle, cmd: &usercmd_s, random_seed: c_uint) {}
 
-    fn command_end(&self, player: *const edict_s) {}
+    fn command_end(&self, player: EntityHandle) {}
 
     fn connectionless_packet(
         &self,
@@ -778,7 +774,7 @@ pub trait ServerDll: UnsyncGlobal {
 
     fn inconsistent_file(
         &self,
-        player: &edict_s,
+        player: EntityHandle,
         filename: &CStrThin,
         disconnect_message: &mut CStrArray<256>,
     ) -> bool {
@@ -799,15 +795,15 @@ pub trait ServerDll: UnsyncGlobal {
         unsafe { PrivateData::drop_in_place(ent) }
     }
 
-    fn chould_collide(&self, touched: &mut edict_s, other: &mut edict_s) -> bool {
+    fn chould_collide(&self, touched: EntityHandle, other: EntityHandle) -> bool {
         false
     }
 
-    fn cvar_value(&self, ent: &edict_s, value: &CStrThin) {}
+    fn cvar_value(&self, ent: EntityHandle, value: &CStrThin) {}
 
     fn cvar_value2(
         &self,
-        ent: &edict_s,
+        ent: EntityHandle,
         request_id: c_int,
         cvar_name: &CStrThin,
         value: &CStrThin,
@@ -1095,59 +1091,86 @@ impl<T: ServerDll> ServerDllExport for Export<T> {
     }
 
     unsafe extern "C" fn dispatch_spawn(ent: *mut edict_s) -> c_int {
-        if let Some(ent) = unsafe { ent.as_mut() } {
-            return unsafe { T::global_assume_init_ref() }
-                .dispatch_spawn(ent)
-                .into();
+        unsafe {
+            let engine = ServerEngineRef::new();
+            if let Some(ent) = EntityHandle::new(engine, ent) {
+                let dll = T::global_assume_init_ref();
+                return dll.dispatch_spawn(ent).into();
+            }
+            SpawnResult::Delete.into()
         }
-        SpawnResult::Delete.into()
     }
 
     unsafe extern "C" fn dispatch_think(ent: *mut edict_s) {
-        if let Some(ent) = unsafe { ent.as_mut() } {
-            unsafe { T::global_assume_init_ref() }.dispatch_think(ent);
+        unsafe {
+            let engine = ServerEngineRef::new();
+            if let Some(ent) = EntityHandle::new(engine, ent) {
+                let dll = T::global_assume_init_ref();
+                dll.dispatch_think(ent);
+            }
         }
     }
 
     unsafe extern "C" fn dispatch_use(used: *mut edict_s, other: *mut edict_s) {
-        let used = unsafe { used.as_mut() };
-        let other = unsafe { other.as_mut() };
-        if let (Some(used), Some(other)) = (used, other) {
-            unsafe { T::global_assume_init_ref() }.dispatch_use(used, other)
+        unsafe {
+            let engine = ServerEngineRef::new();
+            let used = EntityHandle::new(engine, used);
+            let other = EntityHandle::new(engine, other);
+            if let (Some(used), Some(other)) = (used, other) {
+                let dll = T::global_assume_init_ref();
+                dll.dispatch_use(used, other);
+            }
         }
     }
 
     unsafe extern "C" fn dispatch_touch(touched: *mut edict_s, other: *mut edict_s) {
-        let touched = unsafe { touched.as_mut() };
-        let other = unsafe { other.as_mut() };
-        if let (Some(touched), Some(other)) = (touched, other) {
-            unsafe { T::global_assume_init_ref() }.dispatch_touch(touched, other);
+        unsafe {
+            let engine = ServerEngineRef::new();
+            let touched = EntityHandle::new(engine, touched);
+            let other = EntityHandle::new(engine, other);
+            if let (Some(touched), Some(other)) = (touched, other) {
+                let dll = T::global_assume_init_ref();
+                dll.dispatch_touch(touched, other);
+            }
         }
     }
 
     unsafe extern "C" fn dispatch_blocked(blocked: *mut edict_s, other: *mut edict_s) {
-        let blocked = unsafe { blocked.as_mut() };
-        let other = unsafe { other.as_mut() };
-        if let (Some(blocked), Some(other)) = (blocked, other) {
-            unsafe { T::global_assume_init_ref() }.dispatch_blocked(blocked, other);
+        unsafe {
+            let engine = ServerEngineRef::new();
+            let blocked = EntityHandle::new(engine, blocked);
+            let other = EntityHandle::new(engine, other);
+            if let (Some(blocked), Some(other)) = (blocked, other) {
+                let dll = T::global_assume_init_ref();
+                dll.dispatch_blocked(blocked, other);
+            }
         }
     }
 
     unsafe extern "C" fn dispatch_key_value(ent: *mut edict_s, data: *mut KeyValueData) {
-        let ent = unsafe { ent.as_mut() };
-        let data = unsafe { data.as_mut() };
-        if let (Some(ent), Some(data)) = (ent, data) {
-            let data = KeyValue::new(data);
-            unsafe { T::global_assume_init_ref() }.dispatch_key_value(ent, data);
+        unsafe {
+            let engine = ServerEngineRef::new();
+            let ent = EntityHandle::new(engine, ent);
+            let data = data.as_mut();
+            if let (Some(ent), Some(data)) = (ent, data) {
+                let data = KeyValue::new(data);
+                ent.vars().key_value(data);
+                let dll = T::global_assume_init_ref();
+                dll.dispatch_key_value(ent, data);
+            }
         }
     }
 
     unsafe extern "C" fn dispatch_save(ent: *mut edict_s, save_data: *mut SAVERESTOREDATA) {
-        let ent = unsafe { ent.as_mut() };
-        let save_data = unsafe { save_data.as_mut() };
-        if let (Some(ent), Some(save_data)) = (ent, save_data) {
-            let save_data = SaveRestoreData::new(save_data);
-            unsafe { T::global_assume_init_ref() }.dispatch_save(ent, save_data);
+        unsafe {
+            let engine = ServerEngineRef::new();
+            let ent = EntityHandle::new(engine, ent);
+            let save_data = save_data.as_mut();
+            if let (Some(ent), Some(save_data)) = (ent, save_data) {
+                let save_data = SaveRestoreData::new(save_data);
+                let dll = T::global_assume_init_ref();
+                dll.dispatch_save(ent, save_data);
+            }
         }
     }
 
@@ -1156,21 +1179,28 @@ impl<T: ServerDll> ServerDllExport for Export<T> {
         save_data: *mut SAVERESTOREDATA,
         global_entity: c_int,
     ) -> c_int {
-        let ent = unsafe { ent.as_mut() };
-        let save_data = unsafe { save_data.as_mut() };
-        if let (Some(ent), Some(save_data)) = (ent, save_data) {
-            let save_data = SaveRestoreData::new(save_data);
-            let global_entity = global_entity != 0;
-            return unsafe { T::global_assume_init_ref() }
-                .dispatch_restore(ent, save_data, global_entity)
-                .into();
+        unsafe {
+            let engine = ServerEngineRef::new();
+            let ent = EntityHandle::new(engine, ent);
+            let save_data = save_data.as_mut();
+            if let (Some(ent), Some(save_data)) = (ent, save_data) {
+                let save_data = SaveRestoreData::new(save_data);
+                let global_entity = global_entity != 0;
+                let dll = T::global_assume_init_ref();
+                dll.dispatch_restore(ent, save_data, global_entity).into()
+            } else {
+                RestoreResult::Delete.into()
+            }
         }
-        RestoreResult::Delete.into()
     }
 
     unsafe extern "C" fn dispatch_object_collsion_box(ent: *mut edict_s) {
-        if let Some(ent) = unsafe { ent.as_mut() } {
-            unsafe { T::global_assume_init_ref() }.dispatch_object_collsion_box(ent);
+        unsafe {
+            let engine = ServerEngineRef::new();
+            if let Some(ent) = EntityHandle::new(engine, ent) {
+                let dll = T::global_assume_init_ref();
+                dll.dispatch_object_collsion_box(ent);
+            }
         }
     }
 
@@ -1182,9 +1212,9 @@ impl<T: ServerDll> ServerDllExport for Export<T> {
         fields_count: c_int,
     ) {
         unsafe {
-            let save_data = save_data.as_mut().unwrap();
+            let save_data = save_data.as_mut().expect("save_data must be non-null");
             let save_data = SaveRestoreData::new(save_data);
-            let name = cstr_or_none(name).unwrap();
+            let name = cstr_or_none(name).expect("name must be non-null");
             let fields = slice_from_raw_parts_or_empty_mut(fields, fields_count as usize);
             let dll = T::global_assume_init_ref();
             dll.save_write_fields(save_data, name, base_data, fields);
@@ -1199,9 +1229,9 @@ impl<T: ServerDll> ServerDllExport for Export<T> {
         fields_count: c_int,
     ) {
         unsafe {
-            let save_data = save_data.as_mut().unwrap();
+            let save_data = save_data.as_mut().expect("save_data must be non-null");
             let save_data = SaveRestoreData::new(save_data);
-            let name = cstr_or_none(name).unwrap();
+            let name = cstr_or_none(name).expect("name must be non-null");
             let fields = slice_from_raw_parts_or_empty_mut(fields, fields_count as usize);
             let dll = T::global_assume_init_ref();
             dll.save_read_fields(save_data, name, base_data, fields);
@@ -1209,19 +1239,26 @@ impl<T: ServerDll> ServerDllExport for Export<T> {
     }
 
     unsafe extern "C" fn save_global_state(save_data: *mut SAVERESTOREDATA) {
-        let save_data = unsafe { save_data.as_mut() }.unwrap();
-        let save_data = SaveRestoreData::new(save_data);
-        unsafe { T::global_assume_init_ref() }.save_global_state(save_data);
+        unsafe {
+            let save_data = save_data.as_mut().expect("save_data must be non-null");
+            let save_data = SaveRestoreData::new(save_data);
+            let dll = T::global_assume_init_ref();
+            dll.save_global_state(save_data);
+        }
     }
 
     unsafe extern "C" fn restore_global_state(save_data: *mut SAVERESTOREDATA) {
-        let save_data = unsafe { save_data.as_mut() }.unwrap();
-        let save_data = SaveRestoreData::new(save_data);
-        unsafe { T::global_assume_init_ref() }.restore_global_state(save_data);
+        unsafe {
+            let save_data = save_data.as_mut().expect("save_data must be non-null");
+            let save_data = SaveRestoreData::new(save_data);
+            let dll = T::global_assume_init_ref();
+            dll.restore_global_state(save_data);
+        }
     }
 
     unsafe extern "C" fn reset_global_state() {
-        unsafe { T::global_assume_init_ref() }.reset_global_state();
+        let dll = unsafe { T::global_assume_init_ref() };
+        dll.reset_global_state();
     }
 
     unsafe extern "C" fn client_connect(
@@ -1230,40 +1267,66 @@ impl<T: ServerDll> ServerDllExport for Export<T> {
         address: *const c_char,
         reject_reason: *mut [c_char; 128],
     ) -> qboolean {
-        let ent = unsafe { ent.as_mut() }.unwrap();
-        let name = unsafe { cstr_or_none(name) }.unwrap();
-        let address = unsafe { cstr_or_none(address) }.unwrap();
-        let reject_reason = unsafe { reject_reason.cast::<CStrArray<128>>().as_mut() }.unwrap();
-        reject_reason.clear();
-        unsafe { T::global_assume_init_ref() }
-            .client_connect(ent, name, address, reject_reason)
-            .into()
+        unsafe {
+            let engine = ServerEngineRef::new();
+            let ent = EntityHandle::new(engine, ent).expect("ent must be non-null");
+            let name = cstr_or_none(name).expect("name must be non-null");
+            let address = cstr_or_none(address).expect("address must be non-null");
+            let reject_reason = reject_reason
+                .cast::<CStrArray<128>>()
+                .as_mut()
+                .expect("reject_reason must be non-null");
+            reject_reason.clear();
+            let dll = T::global_assume_init_ref();
+            dll.client_connect(ent, name, address, reject_reason).into()
+        }
     }
 
     unsafe extern "C" fn client_disconnect(ent: *mut edict_s) {
-        let ent = unsafe { ent.as_mut() }.unwrap();
-        unsafe { T::global_assume_init_ref() }.client_disconnect(ent);
+        unsafe {
+            let engine = ServerEngineRef::new();
+            let ent = EntityHandle::new(engine, ent).expect("ent must be non-null");
+            let dll = T::global_assume_init_ref();
+            dll.client_disconnect(ent);
+        }
     }
 
     unsafe extern "C" fn client_kill(ent: *mut edict_s) {
-        let ent = unsafe { ent.as_mut() }.unwrap();
-        unsafe { T::global_assume_init_ref() }.client_kill(ent);
+        unsafe {
+            let engine = ServerEngineRef::new();
+            let ent = EntityHandle::new(engine, ent).expect("ent must be non-null");
+            let dll = T::global_assume_init_ref();
+            dll.client_kill(ent);
+        }
     }
 
     unsafe extern "C" fn client_put_in_server(ent: *mut edict_s) {
-        let ent = unsafe { ent.as_mut() }.unwrap();
-        unsafe { T::global_assume_init_ref() }.client_put_in_server(ent);
+        unsafe {
+            let engine = ServerEngineRef::new();
+            let ent = EntityHandle::new(engine, ent).expect("ent must be non-null");
+            let dll = T::global_assume_init_ref();
+            dll.client_put_in_server(ent);
+        }
     }
 
     unsafe extern "C" fn client_command(ent: *mut edict_s) {
-        let ent = unsafe { ent.as_mut() }.unwrap();
-        unsafe { T::global_assume_init_ref() }.client_command(ent);
+        unsafe {
+            let engine = ServerEngineRef::new();
+            let ent = EntityHandle::new(engine, ent).expect("ent must be non-null");
+            let dll = T::global_assume_init_ref();
+            dll.client_command(ent);
+        }
     }
 
     unsafe extern "C" fn client_user_info_changed(ent: *mut edict_s, info_buffer: *mut c_char) {
-        let ent = unsafe { ent.as_mut() }.unwrap();
-        let info_buffer = unsafe { cstr_or_none(info_buffer) }.unwrap();
-        unsafe { T::global_assume_init_ref() }.client_user_info_changed(ent, info_buffer);
+        unsafe {
+            let engine = ServerEngineRef::new();
+            let ent = EntityHandle::new(engine, ent).expect("ent must be non-null");
+            let info_buffer =
+                cstr_or_none(info_buffer).expect("info_buffer must be non-null and not empty");
+            let dll = T::global_assume_init_ref();
+            dll.client_user_info_changed(ent, info_buffer);
+        }
     }
 
     unsafe extern "C" fn server_activate(
@@ -1271,85 +1334,124 @@ impl<T: ServerDll> ServerDllExport for Export<T> {
         edict_count: c_int,
         client_max: c_int,
     ) {
-        let list = unsafe { slice_from_raw_parts_or_empty_mut(edict_list, edict_count as usize) };
-        unsafe { T::global_assume_init_ref() }.server_activate(list, client_max)
+        unsafe {
+            let engine = ServerEngineRef::new();
+            let list = (0..edict_count).map(|i| {
+                let raw = edict_list.wrapping_add(i as usize);
+                EntityHandle::new_unchecked(engine, raw)
+            });
+            let dll = T::global_assume_init_ref();
+            dll.server_activate(list, client_max);
+        }
     }
 
     unsafe extern "C" fn server_deactivate() {
-        unsafe { T::global_assume_init_ref() }.server_deactivate();
+        let dll = unsafe { T::global_assume_init_ref() };
+        dll.server_deactivate();
     }
 
     unsafe extern "C" fn player_pre_think(ent: *mut edict_s) {
-        let ent = unsafe { ent.as_mut() }.unwrap();
-        unsafe { T::global_assume_init_ref() }.player_pre_think(ent);
+        unsafe {
+            let engine = ServerEngineRef::new();
+            let ent = EntityHandle::new(engine, ent).expect("ent must be non-null");
+            let dll = T::global_assume_init_ref();
+            dll.player_pre_think(ent);
+        }
     }
 
     unsafe extern "C" fn player_post_think(ent: *mut edict_s) {
-        let ent = unsafe { ent.as_mut() }.unwrap();
-        unsafe { T::global_assume_init_ref() }.player_post_think(ent);
+        unsafe {
+            let engine = ServerEngineRef::new();
+            let ent = EntityHandle::new(engine, ent).expect("ent must be non-null");
+            let dll = T::global_assume_init_ref();
+            dll.player_post_think(ent);
+        }
     }
 
     unsafe extern "C" fn start_frame() {
-        unsafe { T::global_assume_init_ref() }.start_frame();
+        let dll = unsafe { T::global_assume_init_ref() };
+        dll.start_frame();
     }
 
     unsafe extern "C" fn parms_new_level() {
-        unsafe { T::global_assume_init_ref() }.parms_new_level();
+        let dll = unsafe { T::global_assume_init_ref() };
+        dll.parms_new_level();
     }
 
     unsafe extern "C" fn parms_change_level() {
-        unsafe { T::global_assume_init_ref() }.parms_change_level();
+        let dll = unsafe { T::global_assume_init_ref() };
+        dll.parms_change_level();
     }
 
     unsafe extern "C" fn get_game_description() -> *const c_char {
         if INITIALIZED.load(Ordering::Relaxed) {
-            unsafe { T::global_assume_init_ref() }
-                .get_game_description()
-                .as_ptr()
+            let dll = unsafe { T::global_assume_init_ref() };
+            dll.get_game_description().as_ptr()
         } else {
             T::get_game_description_static().as_ptr()
         }
     }
 
     unsafe extern "C" fn player_customization(ent: *mut edict_s, custom: *mut customization_s) {
-        let ent = unsafe { ent.as_mut() }.unwrap();
-        let custom = unsafe { custom.as_mut() }.unwrap();
-        unsafe { T::global_assume_init_ref() }.player_customization(ent, custom);
+        unsafe {
+            let engine = ServerEngineRef::new();
+            let ent = EntityHandle::new(engine, ent).expect("ent must be non-null");
+            let custom = custom.as_mut().expect("custom must be non-null");
+            let dll = T::global_assume_init_ref();
+            dll.player_customization(ent, custom);
+        }
     }
 
     unsafe extern "C" fn spectator_connect(ent: *mut edict_s) {
-        let ent = unsafe { ent.as_mut() }.unwrap();
-        unsafe { T::global_assume_init_ref() }.spectator_connect(ent);
+        unsafe {
+            let engine = ServerEngineRef::new();
+            let ent = EntityHandle::new(engine, ent).expect("ent must be non-null");
+            let dll = T::global_assume_init_ref();
+            dll.spectator_connect(ent);
+        }
     }
 
     unsafe extern "C" fn spectator_disconnect(ent: *mut edict_s) {
-        let ent = unsafe { ent.as_mut() }.unwrap();
-        unsafe { T::global_assume_init_ref() }.spectator_disconnect(ent);
+        unsafe {
+            let engine = ServerEngineRef::new();
+            let ent = EntityHandle::new(engine, ent).expect("ent must be non-null");
+            let dll = T::global_assume_init_ref();
+            dll.spectator_disconnect(ent);
+        }
     }
 
     unsafe extern "C" fn spectator_think(ent: *mut edict_s) {
-        let ent = unsafe { ent.as_mut() }.unwrap();
-        unsafe { T::global_assume_init_ref() }.spectator_think(ent);
+        unsafe {
+            let engine = ServerEngineRef::new();
+            let ent = EntityHandle::new(engine, ent).expect("ent must be non-null");
+            let dll = T::global_assume_init_ref();
+            dll.spectator_think(ent);
+        }
     }
 
     unsafe extern "C" fn system_error(error_string: *const c_char) {
-        let error_string = unsafe { cstr_or_none(error_string) }.unwrap();
-        unsafe { T::global_assume_init_ref() }.system_error(error_string);
+        let error_string =
+            unsafe { cstr_or_none(error_string) }.expect("error_string must be non-null");
+        let dll = unsafe { T::global_assume_init_ref() };
+        dll.system_error(error_string);
     }
 
     unsafe extern "C" fn player_move_init(pm: *mut playermove_s) {
-        let pm = NonNull::new(pm).unwrap();
-        unsafe { T::global_assume_init_ref() }.player_move_init(pm);
+        let pm = NonNull::new(pm).expect("pm must be non-null");
+        let dll = unsafe { T::global_assume_init_ref() };
+        dll.player_move_init(pm);
     }
 
     unsafe extern "C" fn player_move(pm: *mut playermove_s, is_server: qboolean) {
-        let pm = NonNull::new(pm).unwrap();
-        unsafe { T::global_assume_init_ref() }.player_move(pm, is_server != 0);
+        let pm = NonNull::new(pm).expect("pm must be non-null");
+        let dll = unsafe { T::global_assume_init_ref() };
+        dll.player_move(pm, is_server != 0);
     }
 
     unsafe extern "C" fn player_move_find_texture_type(name: *mut c_char) -> c_char {
-        let name = unsafe { cstr_or_none(name) }.unwrap();
-        unsafe { T::global_assume_init_ref() }.player_move_find_texture_type(name)
+        let name = unsafe { cstr_or_none(name) }.expect("name must be non-null");
+        let dll = unsafe { T::global_assume_init_ref() };
+        dll.player_move_find_texture_type(name)
     }
 
     unsafe extern "C" fn setup_visibility(
@@ -1358,11 +1460,15 @@ impl<T: ServerDll> ServerDllExport for Export<T> {
         pvs: *mut *mut c_uchar,
         pas: *mut *mut c_uchar,
     ) {
-        let view_entity = unsafe { view_entity.as_mut() };
-        let client = unsafe { client.as_mut() }.unwrap();
-        let pvs = unsafe { pvs.as_mut().unwrap() };
-        let pas = unsafe { pas.as_mut().unwrap() };
-        unsafe { T::global_assume_init_ref() }.setup_visibility(view_entity, client, pvs, pas);
+        unsafe {
+            let engine = ServerEngineRef::new();
+            let view_entity = EntityHandle::new(engine, view_entity);
+            let client = EntityHandle::new(engine, client).expect("client must be non-null");
+            let pvs = pvs.as_mut().expect("pvs must be non-null");
+            let pas = pas.as_mut().expect("pas must be non-null");
+            let dll = T::global_assume_init_ref();
+            dll.setup_visibility(view_entity, client, pvs, pas);
+        }
     }
 
     unsafe extern "C" fn update_client_data(
@@ -1370,10 +1476,14 @@ impl<T: ServerDll> ServerDllExport for Export<T> {
         send_weapons: c_int,
         cd: *mut clientdata_s,
     ) {
-        let ent = unsafe { ent.as_ref() }.unwrap();
-        let send_weapons = send_weapons != 0;
-        let cd = unsafe { cd.as_mut() }.unwrap();
-        unsafe { T::global_assume_init_ref() }.update_client_data(ent, send_weapons, cd);
+        unsafe {
+            let engine = ServerEngineRef::new();
+            let ent = EntityHandle::new(engine, ent.cast_mut()).expect("ent must be non-null");
+            let send_weapons = send_weapons != 0;
+            let cd = cd.as_mut().expect("client data must be non-null");
+            let dll = T::global_assume_init_ref();
+            dll.update_client_data(ent, send_weapons, cd);
+        }
     }
 
     unsafe extern "C" fn add_to_full_pack(
@@ -1385,76 +1495,94 @@ impl<T: ServerDll> ServerDllExport for Export<T> {
         player: c_int,
         set: *mut c_uchar,
     ) -> c_int {
-        let state = unsafe { state.as_mut() }.unwrap();
-        let ent = unsafe { ent.as_ref() }.unwrap();
-        let host = unsafe { host.as_ref() }.unwrap();
-        let player = player != 0;
-        unsafe { T::global_assume_init_ref() }
-            .add_to_full_pack(state, e, ent, host, host_flags, player, set) as c_int
+        unsafe {
+            let engine = ServerEngineRef::new();
+            let state = state.as_mut().expect("state must be non-null");
+            let ent = EntityHandle::new(engine, ent).expect("ent must be non-null");
+            let host = EntityHandle::new(engine, host).expect("ent must be non-null");
+            let player = player != 0;
+            let dll = T::global_assume_init_ref();
+            dll.add_to_full_pack(state, e, ent, host, host_flags, player, set) as c_int
+        }
     }
 
     unsafe extern "C" fn create_baseline(
         player: c_int,
         eindex: c_int,
         baseline: *mut entity_state_s,
-        entity: *mut edict_s,
+        ent: *mut edict_s,
         player_model_index: c_int,
         player_mins: *mut vec3_t,
         player_maxs: *mut vec3_t,
     ) {
-        let baseline = unsafe { baseline.as_mut() }.unwrap();
-        let entity = unsafe { entity.as_mut() }.unwrap();
-        let player_mins = *unsafe { player_mins.as_ref() }.unwrap();
-        let player_maxs = *unsafe { player_maxs.as_ref() }.unwrap();
-        unsafe { T::global_assume_init_ref() }.create_baseline(
-            player != 0,
-            eindex,
-            baseline,
-            entity,
-            player_model_index,
-            player_mins,
-            player_maxs,
-        );
+        unsafe {
+            let engine = ServerEngineRef::new();
+            let baseline = baseline.as_mut().expect("baseline must be non-null");
+            let ent = EntityHandle::new(engine, ent).expect("ent must be non-null");
+            let player_mins = *player_mins.as_ref().expect("player_mins must be non-null");
+            let player_maxs = *player_maxs.as_ref().expect("player_maxs must be non-null");
+            let dll = T::global_assume_init_ref();
+            dll.create_baseline(
+                player != 0,
+                eindex,
+                baseline,
+                ent,
+                player_model_index,
+                player_mins,
+                player_maxs,
+            );
+        }
     }
 
     unsafe extern "C" fn register_encoders() {
-        unsafe { T::global_assume_init_ref() }.register_encoders();
+        let dll = unsafe { T::global_assume_init_ref() };
+        dll.register_encoders();
     }
 
     unsafe extern "C" fn get_weapon_data(player: *mut edict_s, info: *mut weapon_data_s) -> c_int {
-        assert!(!info.is_null());
-        let player = unsafe { player.as_mut() }.unwrap();
-        match unsafe { T::global_assume_init_ref() }.get_weapon_data(player) {
-            Some(x) => {
-                unsafe {
+        unsafe {
+            assert!(!info.is_null(), "info must be non-null");
+            let engine = ServerEngineRef::new();
+            let player = EntityHandle::new(engine, player).expect("player must be non-null");
+            let dll = T::global_assume_init_ref();
+            match dll.get_weapon_data(player) {
+                Some(x) => {
                     info.write(x);
+                    1
                 }
-                1
-            }
-            None => {
-                unsafe {
+                None => {
                     info.write_bytes(0, 1);
+                    0
                 }
-                0
             }
         }
     }
 
     unsafe extern "C" fn command_start(
+        // FIXME: ffi: player must be mut
         player: *const edict_s,
         cmd: *const usercmd_s,
         random_seed: c_uint,
     ) {
-        // FIXME: ffi: player must be mut
-        let player = unsafe { player.cast_mut().as_mut() }.unwrap();
-        let cmd = unsafe { cmd.as_ref() }.unwrap();
-        unsafe { T::global_assume_init_ref() }.command_start(player, cmd, random_seed);
+        unsafe {
+            let engine = ServerEngineRef::new();
+            let player =
+                EntityHandle::new(engine, player.cast_mut()).expect("player must be non-null");
+            let cmd = cmd.as_ref().expect("cmd must be non-null");
+            let dll = T::global_assume_init_ref();
+            dll.command_start(player, cmd, random_seed);
+        }
     }
 
     unsafe extern "C" fn command_end(player: *const edict_s) {
         // FIXME: ffi: player must be mut
-        let player = unsafe { player.cast_mut().as_mut() }.unwrap();
-        unsafe { T::global_assume_init_ref() }.command_end(player);
+        unsafe {
+            let engine = ServerEngineRef::new();
+            let player =
+                EntityHandle::new(engine, player.cast_mut()).expect("player must be non-null");
+            let dll = T::global_assume_init_ref();
+            dll.command_end(player);
+        }
     }
 
     unsafe extern "C" fn connectionless_packet(
@@ -1463,29 +1591,47 @@ impl<T: ServerDll> ServerDllExport for Export<T> {
         response_buffer: *mut c_char,
         response_buffer_size: *mut c_int,
     ) -> c_int {
-        assert!(!response_buffer.is_null());
-        let from = unsafe { from.as_ref() }.unwrap();
-        let args = unsafe { cstr_or_none(args) }.unwrap();
-        let response_buffer_size = unsafe { response_buffer_size.as_mut() }.unwrap();
-        let max_buffer_size = *response_buffer_size as usize;
-        let buffer = unsafe { slice::from_raw_parts_mut(response_buffer.cast(), max_buffer_size) };
-        match unsafe { T::global_assume_init_ref() }.connectionless_packet(from, args, buffer) {
-            Ok(len) => {
-                *response_buffer_size = len as c_int;
-                (len > 0) as c_int
+        assert!(
+            !response_buffer.is_null(),
+            "response_buffer must be non-null"
+        );
+        unsafe {
+            let from = from.as_ref().expect("from must be non-null");
+            let args = cstr_or_none(args).expect("args must be non-null");
+            let response_buffer_size = response_buffer_size
+                .as_mut()
+                .expect("response_buffer_size must be non-null");
+            let max_buffer_size = *response_buffer_size as usize;
+            let buffer = slice::from_raw_parts_mut(response_buffer.cast(), max_buffer_size);
+            let dll = T::global_assume_init_ref();
+            match dll.connectionless_packet(from, args, buffer) {
+                Ok(len) => {
+                    *response_buffer_size = len as c_int;
+                    (len > 0) as c_int
+                }
+                Err(_) => 0,
             }
-            Err(_) => 0,
         }
     }
 
     extern "C" fn get_hull_bounds(hullnumber: c_int, mins: *mut f32, maxs: *mut f32) -> c_int {
-        let mins = unsafe { mins.cast::<vec3_t>().as_mut() }.unwrap();
-        let maxs = unsafe { maxs.cast::<vec3_t>().as_mut() }.unwrap();
-        unsafe { T::global_assume_init_ref() }.get_hull_bounds(hullnumber, mins, maxs)
+        unsafe {
+            let mins = mins
+                .cast::<vec3_t>()
+                .as_mut()
+                .expect("mins must be non-null");
+            let maxs = maxs
+                .cast::<vec3_t>()
+                .as_mut()
+                .expect("maxs must be non-null");
+            let dll = T::global_assume_init_ref();
+            dll.get_hull_bounds(hullnumber, mins, maxs)
+        }
     }
 
     unsafe extern "C" fn create_instanced_baselines() {
-        unsafe { T::global_assume_init_ref() }.create_instanced_baselines();
+        let dll = unsafe { T::global_assume_init_ref() };
+        dll.create_instanced_baselines();
     }
 
     unsafe extern "C" fn inconsistent_file(
@@ -1493,39 +1639,53 @@ impl<T: ServerDll> ServerDllExport for Export<T> {
         filename: *const c_char,
         disconnect_message: *mut c_char,
     ) -> c_int {
-        assert!(!disconnect_message.is_null());
-        let player = unsafe { player.as_ref() }.unwrap();
-        let filename = unsafe { cstr_or_none(filename) }.unwrap();
-        let disconnect_message = unsafe { &mut *disconnect_message.cast() };
-        unsafe { T::global_assume_init_ref() }.inconsistent_file(
-            player,
-            filename,
-            disconnect_message,
-        ) as c_int
+        unsafe {
+            assert!(
+                !disconnect_message.is_null(),
+                "disconnect_message must be non-null"
+            );
+            let engine = ServerEngineRef::new();
+            let player =
+                EntityHandle::new(engine, player.cast_mut()).expect("player must be non-null");
+            let filename = cstr_or_none(filename).expect("filename must be non-null");
+            let disconnect_message = &mut *disconnect_message.cast();
+            let dll = T::global_assume_init_ref();
+            dll.inconsistent_file(player, filename, disconnect_message) as c_int
+        }
     }
 
     unsafe extern "C" fn allow_lag_compensation() -> c_int {
-        unsafe { T::global_assume_init_ref() }.allow_lag_compensation() as c_int
+        let dll = unsafe { T::global_assume_init_ref() };
+        dll.allow_lag_compensation() as c_int
     }
 
     unsafe extern "C" fn on_free_entity_private_data(ent: *mut edict_s) {
         if !ent.is_null() {
             unsafe {
-                T::global_assume_init_ref().on_free_entity_private_data(ent);
+                let dll = T::global_assume_init_ref();
+                dll.on_free_entity_private_data(ent);
             }
         }
     }
 
     unsafe extern "C" fn should_collide(touched: *mut edict_s, other: *mut edict_s) -> c_int {
-        let touched = unsafe { touched.as_mut() }.unwrap();
-        let other = unsafe { other.as_mut() }.unwrap();
-        unsafe { T::global_assume_init_ref() }.chould_collide(touched, other) as c_int
+        unsafe {
+            let engine = ServerEngineRef::new();
+            let touched = EntityHandle::new(engine, touched).expect("touched must be non-null");
+            let other = EntityHandle::new(engine, other).expect("other must be non-null");
+            let dll = T::global_assume_init_ref();
+            dll.chould_collide(touched, other) as c_int
+        }
     }
 
     unsafe extern "C" fn cvar_value(ent: *const edict_s, value: *const c_char) {
-        let ent = unsafe { ent.as_ref() }.unwrap();
-        let value = unsafe { cstr_or_none(value) }.unwrap();
-        unsafe { T::global_assume_init_ref() }.cvar_value(ent, value);
+        unsafe {
+            let engine = ServerEngineRef::new();
+            let ent = EntityHandle::new(engine, ent.cast_mut()).expect("ent must be non-null");
+            let value = cstr_or_none(value).expect("value must be non-null");
+            let dll = T::global_assume_init_ref();
+            dll.cvar_value(ent, value);
+        }
     }
 
     unsafe extern "C" fn cvar_value2(
@@ -1534,10 +1694,14 @@ impl<T: ServerDll> ServerDllExport for Export<T> {
         cvar_name: *const c_char,
         value: *const c_char,
     ) {
-        let ent = unsafe { ent.as_ref() }.unwrap();
-        let cvar_name = unsafe { cstr_or_none(cvar_name) }.unwrap();
-        let value = unsafe { cstr_or_none(value) }.unwrap();
-        unsafe { T::global_assume_init_ref() }.cvar_value2(ent, request_id, cvar_name, value);
+        unsafe {
+            let engine = ServerEngineRef::new();
+            let ent = EntityHandle::new(engine, ent.cast_mut()).expect("ent must be non-null");
+            let cvar_name = cstr_or_none(cvar_name).expect("cvar_name must be non-null");
+            let value = cstr_or_none(value).expect("value must be non-null");
+            let dll = T::global_assume_init_ref();
+            dll.cvar_value2(ent, request_id, cvar_name, value);
+        }
     }
 }
 

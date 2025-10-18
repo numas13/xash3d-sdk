@@ -2,13 +2,12 @@ use core::ffi::{c_int, CStr};
 
 use xash3d_server::{
     entities::{player::Player, world::World},
-    entity::{BaseEntity, Downcast, Entity, EntityCast, Private, PrivateEntity},
+    entity::{BaseEntity, Downcast, Entity, EntityCast, EntityHandle, Private, PrivateEntity},
     export::{export_dll, impl_unsync_global, ServerDll},
     game_rules::StubGameRules,
     global_state::GlobalStateRef,
     prelude::*,
 };
-use xash3d_shared::ffi::server::edict_s;
 
 // A custom interface to entities.
 trait EntityCustom: Entity {
@@ -90,7 +89,7 @@ impl ServerDll for Dll {
         c"ServerStub"
     }
 
-    fn dispatch_touch(&self, touched: &mut edict_s, _other: &mut edict_s) {
+    fn dispatch_touch(&self, touched: EntityHandle, _other: EntityHandle) {
         // call the custom method for player on touch
         if let Some(touched) = touched.get_entity() {
             if let Some(touched) = touched.downcast_ref::<dyn EntityCustom>() {

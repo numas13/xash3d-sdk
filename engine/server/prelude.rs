@@ -7,6 +7,6 @@ pub use crate::{
 
 pub use crate::{
     engine::LevelListExt,
-    entity::{AsEntityHandle, EntityVarsExt, GetPrivateData},
+    entity::{AsEntityHandle, GetPrivateData},
     save::TypeDescriptionExt,
 };

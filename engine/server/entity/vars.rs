@@ -618,9 +618,13 @@ impl EntityVars {
     field!(get framerate, fn framerate() -> f32);
     field!(set framerate, fn set_framerate(v: f32));
 
-    // TODO:
-    // pub controller: [byte; 4usize],
-    // pub blending: [byte; 2usize],
+    field!(get controller, fn controller() -> [u8; 4]);
+    field!(set controller, fn set_controller(v: [u8; 4]));
+    field!(mut controller, fn with_controller([u8; 4]));
+
+    field!(get blending, fn blending() -> [u8; 2]);
+    field!(set blending, fn set_blending(v: [u8; 2]));
+    field!(mut blending, fn with_blending([u8; 2]));
 
     field!(get scale,
         /// Returns this entity rendering scale. Applies to studio and sprite models.
@@ -914,7 +918,7 @@ impl EntityVars {
         self.set_target_name(None);
     }
 
-    pub fn key_value(&self, data: &mut KeyValue) {
+    pub(crate) unsafe fn key_value(&self, data: &mut KeyValue) {
         let key_name = data.key_name();
 
         if key_name == c"damage" {
