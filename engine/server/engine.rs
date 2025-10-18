@@ -5,6 +5,7 @@ use core::{
     mem::MaybeUninit,
     ptr::{self, NonNull},
     slice,
+    time::Duration,
 };
 
 use bitflags::bitflags;
@@ -1550,7 +1551,13 @@ impl ServerEngine {
     //     ) -> *mut c_void,
     // >,
     // pub pfnGetFileSize: Option<unsafe extern "C" fn(filename: *const c_char) -> c_int>,
-    // pub pfnGetApproxWavePlayLen: Option<unsafe extern "C" fn(filepath: *const c_char) -> c_uint>,
+
+    pub fn get_approx_wav_duration(&self, filepath: impl ToEngineStr) -> Duration {
+        let filepath = filepath.to_engine_str();
+        let msec = unsafe { unwrap!(self, pfnGetApproxWavePlayLen)(filepath.as_ptr()) };
+        Duration::from_millis(msec as u64)
+    }
+
     // pub pfnIsCareerMatch: Option<unsafe extern "C" fn() -> c_int>,
     // pub pfnGetLocalizedStringLength: Option<unsafe extern "C" fn(label: *const c_char) -> c_int>,
     // pub pfnRegisterTutorMessageShown: Option<unsafe extern "C" fn(mid: c_int)>,
