@@ -295,7 +295,7 @@ impl<'a> PlayerMove<'a> {
     }
 
     fn ladder(&self) -> *const physent_s {
-        for pe in self.raw.moveents.as_slice() {
+        for pe in &self.raw.moveents[..self.raw.nummoveent as usize] {
             if pe.model.is_null() {
                 continue;
             }
