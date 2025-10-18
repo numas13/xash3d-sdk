@@ -906,6 +906,24 @@ macro_rules! impl_user_message_type {
 }
 pub use impl_user_message_type;
 
+/// Implement [ServerMessage] trait for the given type.
+#[doc(hidden)]
+#[macro_export]
+macro_rules! impl_server_message {
+    ($name:ident $(<$lifetime:lifetime>)? $(= $msg_type:expr )?) => {
+        impl $(<$lifetime>)? $crate::user_message::ServerMessage for $name $(<$lifetime>)? {
+            $crate::user_message::impl_user_message_type!($($msg_type)?);
+
+            fn msg_write_body<T: $crate::user_message::UserMessageWrite>(&self, writer: &mut T) {
+                use $crate::user_message::UserMessageValue;
+                self.msg_write(writer);
+            }
+        }
+    };
+}
+#[doc(inline)]
+pub use impl_server_message;
+
 #[doc(hidden)]
 #[macro_export]
 macro_rules! define_user_message {
@@ -964,17 +982,7 @@ macro_rules! define_user_message {
             }
         }
 
-        impl $(<$lifetime>)? $crate::user_message::ServerMessage for $name $(<$lifetime>)? {
-            $crate::user_message::impl_user_message_type!($($msg_type)?);
-
-            fn msg_write_body<T: $crate::user_message::UserMessageWrite>(
-                &self,
-                writer: &mut T,
-            ) {
-                use $crate::user_message::UserMessageValue;
-                self.msg_write(writer);
-            }
-        }
+        $crate::user_message::impl_server_message!($name $(<$lifetime>)? $(= $msg_type)?);
     };
     (
         $( #[$attr:meta] )*
@@ -1009,14 +1017,7 @@ macro_rules! define_user_message {
             }
         }
 
-        impl $crate::user_message::ServerMessage for $name {
-            $crate::user_message::impl_user_message_type!($($msg_type)?);
-
-            fn msg_write_body<T: $crate::user_message::UserMessageWrite>(
-                &self,
-                _: &mut T,
-            ) {}
-        }
+        $crate::user_message::impl_server_message!($name $(= $msg_type)?);
     }
 }
 #[doc(inline)]
