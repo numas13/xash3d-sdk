@@ -26,6 +26,33 @@ pub use ffi::common::{
     CONTENTS_TRANSLUCENT, CONTENTS_WATER, CONTENT_FLYFIELD, CONTENT_FOG, CONTENT_GRAVITY_FLYFIELD,
 };
 
+define_enum_for_primitive! {
+    #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
+    pub enum Contents: i32 {
+        #[default]
+        None(0),
+        Empty(ffi::common::CONTENTS_EMPTY),
+        Solid(ffi::common::CONTENTS_SOLID),
+        Water(ffi::common::CONTENTS_WATER),
+        Slime(ffi::common::CONTENTS_SLIME),
+        Lava(ffi::common::CONTENTS_LAVA),
+        Sky(ffi::common::CONTENTS_SKY),
+        Origin(ffi::common::CONTENTS_ORIGIN),
+        Clip(ffi::common::CONTENTS_CLIP),
+        Current0(ffi::common::CONTENTS_CURRENT_0),
+        Current90(ffi::common::CONTENTS_CURRENT_90),
+        Current180(ffi::common::CONTENTS_CURRENT_180),
+        Current270(ffi::common::CONTENTS_CURRENT_270),
+        CurrentUp(ffi::common::CONTENTS_CURRENT_UP),
+        CurrentDown(ffi::common::CONTENTS_CURRENT_DOWN),
+        Translucent(ffi::common::CONTENTS_TRANSLUCENT),
+        Ladder(ffi::common::CONTENTS_LADDER),
+        FlyField(ffi::common::CONTENT_FLYFIELD),
+        GravityFlyField(ffi::common::CONTENT_GRAVITY_FLYFIELD),
+        Fog(ffi::common::CONTENT_FOG),
+    }
+}
+
 pub use ffi::common::{
     IN_ALT1, IN_ATTACK, IN_ATTACK2, IN_BACK, IN_CANCEL, IN_DUCK, IN_FORWARD, IN_JUMP, IN_LEFT,
     IN_MOVELEFT, IN_MOVERIGHT, IN_RELOAD, IN_RIGHT, IN_RUN, IN_SCORE, IN_USE,

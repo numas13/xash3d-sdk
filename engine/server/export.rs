@@ -28,6 +28,7 @@ use xash3d_shared::{
 };
 
 use crate::{
+    engine::ClientInfoBuffer,
     entities::triggers,
     entity::{
         BaseEntity, CreateEntity, Entity, EntityHandle, EntityPlayer, KeyValue, PrivateData,
@@ -443,7 +444,7 @@ pub trait ServerDll: UnsyncGlobal {
 
     fn client_command(&self, ent: EntityHandle) {}
 
-    fn client_user_info_changed(&self, ent: EntityHandle, info_buffer: &CStrThin) {}
+    fn client_user_info_changed(&self, info_buffer: ClientInfoBuffer) {}
 
     fn server_activate(&self, list: impl Iterator<Item = EntityHandle>, client_max: c_int) {}
 
@@ -1323,12 +1324,12 @@ impl<T: ServerDll> ServerDllExport for Export<T> {
 
     unsafe extern "C" fn client_user_info_changed(ent: *mut edict_s, info_buffer: *mut c_char) {
         unsafe {
+            assert!(!info_buffer.is_null(), "info_buffer must be non-null");
             let engine = ServerEngineRef::new();
             let ent = EntityHandle::new(engine, ent).expect("ent must be non-null");
-            let info_buffer =
-                cstr_or_none(info_buffer).expect("info_buffer must be non-null and not empty");
+            let info_buffer = ClientInfoBuffer::new(engine, ent, info_buffer);
             let dll = T::global_assume_init_ref();
-            dll.client_user_info_changed(ent, info_buffer);
+            dll.client_user_info_changed(info_buffer);
         }
     }
 

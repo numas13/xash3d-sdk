@@ -92,7 +92,7 @@ impl<T: EngineConsoleLogger> ConsoleLogger<T> {
             f.write_str(record.target())?;
             f.write_str("] ")?;
         } else {
-            f.write_str("^7]")?;
+            f.write_str("^7] ")?;
         }
         f.write_fmt(*record.args())?;
         f.write_char('\n')?;

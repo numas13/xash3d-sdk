@@ -1,8 +1,12 @@
 use core::{
+    cmp,
     ffi::{c_char, c_int, c_long, c_uchar, c_void, CStr},
-    fmt, iter,
+    fmt,
+    hash::{BuildHasher, Hasher},
+    iter,
     marker::PhantomData,
     mem::MaybeUninit,
+    ops::Deref,
     ptr::{self, NonNull},
     slice,
     time::Duration,
@@ -11,13 +15,18 @@ use core::{
 use bitflags::bitflags;
 use csz::{CStrArray, CStrSlice, CStrThin};
 use xash3d_shared::{
-    entity::EntityIndex,
+    consts::{Contents, MAX_SYSPATH},
+    entity::{Buttons, EntityIndex},
     export::impl_unsync_global,
     ffi::{
         self,
-        common::{cvar_s, vec3_t},
-        server::{edict_s, enginefuncs_s, globalvars_t, KeyValueData, ALERT_TYPE, LEVELLIST},
+        common::{cvar_s, cvar_t, entity_state_s, vec3_t},
+        server::{
+            edict_s, enginefuncs_s, entvars_s, globalvars_t, CRC32_t, KeyValueData, ALERT_TYPE,
+            LEVELLIST,
+        },
     },
+    macros::define_enum_for_primitive,
     sound::{Attenuation, Channel, Pitch, SoundFlags},
     str::{AsCStrPtr, ToEngineStr},
     user_message::{Angle, Coord, UserMessageValue, UserMessageWrite},
@@ -435,6 +444,346 @@ impl EndSection {
     }
 }
 
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
+pub enum MoveToOriginType {
+    /// Normal move in the direction monster is facing.
+    #[default]
+    Normal = 0,
+    /// Moves in direction specified, no matter which way monster is facing.
+    Strafe = 1,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum DropToFloorResult {
+    AllSolid = -1,
+    False = 0,
+    True = 1,
+}
+
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
+pub enum WalkMove {
+    #[default]
+    /// Normal walkmove.
+    Normal = 0,
+    /// Doesn't hit ANY entities, no matter what the solid type.
+    WorldOnly = 1,
+    /// Move, but don't touch triggers.
+    CheckOnly = 2,
+}
+
+pub struct Crc32Hasher {
+    engine: ServerEngineRef,
+    state: CRC32_t,
+}
+
+impl Hasher for Crc32Hasher {
+    fn finish(&self) -> u64 {
+        self.engine.crc32_finish(self.state) as u64
+    }
+
+    fn write(&mut self, bytes: &[u8]) {
+        self.engine.crc32_process_bytes(&mut self.state, bytes);
+    }
+
+    fn write_u8(&mut self, i: u8) {
+        self.engine.crc32_process_byte(&mut self.state, i);
+    }
+
+    fn write_i8(&mut self, i: i8) {
+        self.engine.crc32_process_byte(&mut self.state, i as u8);
+    }
+}
+
+pub struct BuildCrc32Hasher {
+    engine: ServerEngineRef,
+}
+
+impl BuildCrc32Hasher {
+    pub fn new(engine: &ServerEngine) -> Self {
+        Self {
+            engine: engine.engine_ref(),
+        }
+    }
+}
+
+impl BuildHasher for BuildCrc32Hasher {
+    type Hasher = Crc32Hasher;
+
+    fn build_hasher(&self) -> Self::Hasher {
+        self.engine.crc32_hasher()
+    }
+}
+
+pub struct InfoBuffer<'a> {
+    engine: ServerEngineRef,
+    info_buffer: *mut c_char,
+    phantom: PhantomData<&'a ServerEngine>,
+}
+
+impl<'a> InfoBuffer<'a> {
+    /// Creates a new info buffer.
+    ///
+    /// # Safety
+    ///
+    /// The info buffer pointer must be non-null and received from the engine.
+    pub unsafe fn new(engine: &'a ServerEngine, info_buffer: *mut c_char) -> Self {
+        Self {
+            engine: engine.engine_ref(),
+            info_buffer,
+            phantom: PhantomData,
+        }
+    }
+
+    pub fn as_thin(&self) -> &CStrThin {
+        unsafe { CStrThin::from_ptr(self.info_buffer) }
+    }
+
+    pub fn get(&self, key: impl ToEngineStr) -> &CStrThin {
+        self.engine.info_buffer_get(self.info_buffer, key)
+    }
+
+    pub fn set(&mut self, key: impl ToEngineStr, value: impl ToEngineStr) {
+        self.engine.info_buffer_set(self.info_buffer, key, value);
+    }
+
+    pub fn remove(&mut self, key: impl ToEngineStr) {
+        self.engine.info_buffer_remove(self.info_buffer, key);
+    }
+}
+
+impl Deref for InfoBuffer<'_> {
+    type Target = CStrThin;
+
+    fn deref(&self) -> &Self::Target {
+        self.as_thin()
+    }
+}
+
+pub struct ClientInfoBuffer<'a> {
+    engine: ServerEngineRef,
+    entity: EntityHandle,
+    info_buffer: *mut c_char,
+    phantom: PhantomData<&'a ServerEngine>,
+}
+
+impl<'a> ClientInfoBuffer<'a> {
+    /// Creates a new client info buffer.
+    ///
+    /// # Safety
+    ///
+    /// The pointer must be non-null and received from the engine.
+    pub unsafe fn new(
+        engine: ServerEngineRef,
+        entity: EntityHandle,
+        info_buffer: *mut c_char,
+    ) -> Self {
+        Self {
+            engine: engine.engine_ref(),
+            entity,
+            info_buffer,
+            phantom: PhantomData,
+        }
+    }
+
+    pub fn entity(&self) -> EntityHandle {
+        self.entity
+    }
+
+    pub fn as_thin(&self) -> &CStrThin {
+        unsafe { CStrThin::from_ptr(self.info_buffer) }
+    }
+
+    pub fn get(&self, key: impl ToEngineStr) -> &CStrThin {
+        self.engine.info_buffer_get(self.info_buffer, key)
+    }
+
+    pub fn set(&mut self, key: impl ToEngineStr, value: impl ToEngineStr) {
+        let index = self.engine.get_entity_index(&self.entity);
+        self.engine
+            .info_buffer_client_set(index, self.info_buffer, key, value);
+    }
+
+    pub fn remove(&mut self, key: impl ToEngineStr) {
+        self.engine.info_buffer_remove(self.info_buffer, key);
+    }
+}
+
+impl Deref for ClientInfoBuffer<'_> {
+    type Target = CStrThin;
+
+    fn deref(&self) -> &Self::Target {
+        self.as_thin()
+    }
+}
+
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct EventIndex(u16);
+
+impl EventIndex {
+    pub fn to_u16(self) -> u16 {
+        self.0
+    }
+}
+
+bitflags! {
+    #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
+    struct PlaybackEventFlags: u32 {
+        const NONE      = 0;
+        const NOT_HOST  = 1 << 0;
+        const RELIABLE  = 1 << 1;
+        const GLOBAL    = 1 << 2;
+        const UPDATE    = 1 << 3;
+        const HOST_ONLY = 1 << 4;
+        const SERVER    = 1 << 5;
+        const CLIENT    = 1 << 6;
+    }
+}
+
+pub struct PlaybackEventBuilder {
+    engine: ServerEngineRef,
+    flags: PlaybackEventFlags,
+    delay: f32,
+    origin: vec3_t,
+    angles: vec3_t,
+    fparam1: f32,
+    fparam2: f32,
+    iparam1: c_int,
+    iparam2: c_int,
+    bparam1: c_int,
+    bparam2: c_int,
+}
+
+impl PlaybackEventBuilder {
+    fn add_flags(mut self, flags: PlaybackEventFlags) -> Self {
+        self.flags = self.flags.union(flags);
+        self
+    }
+
+    pub fn not_host(self) -> Self {
+        self.add_flags(PlaybackEventFlags::NOT_HOST)
+    }
+
+    pub fn reliable(self) -> Self {
+        self.add_flags(PlaybackEventFlags::RELIABLE)
+    }
+
+    pub fn global(self) -> Self {
+        self.add_flags(PlaybackEventFlags::GLOBAL)
+    }
+
+    pub fn update(self) -> Self {
+        self.add_flags(PlaybackEventFlags::UPDATE)
+    }
+
+    pub fn host_only(self) -> Self {
+        self.add_flags(PlaybackEventFlags::HOST_ONLY)
+    }
+
+    pub fn server(self) -> Self {
+        self.add_flags(PlaybackEventFlags::SERVER)
+    }
+
+    pub fn client(self) -> Self {
+        self.add_flags(PlaybackEventFlags::CLIENT)
+    }
+
+    pub fn delay(mut self, delay: f32) -> Self {
+        self.delay = delay;
+        self
+    }
+
+    pub fn origin(mut self, origin: vec3_t) -> Self {
+        self.origin = origin;
+        self
+    }
+
+    pub fn angles(mut self, angles: vec3_t) -> Self {
+        self.angles = angles;
+        self
+    }
+
+    pub fn fparam1(mut self, value: f32) -> Self {
+        self.fparam1 = value;
+        self
+    }
+
+    pub fn fparam2(mut self, value: f32) -> Self {
+        self.fparam2 = value;
+        self
+    }
+
+    pub fn iparam1(mut self, value: c_int) -> Self {
+        self.iparam1 = value;
+        self
+    }
+
+    pub fn iparam2(mut self, value: c_int) -> Self {
+        self.iparam2 = value;
+        self
+    }
+
+    pub fn bparam1(mut self, value: bool) -> Self {
+        self.bparam1 = value as i32;
+        self
+    }
+
+    pub fn bparam2(mut self, value: bool) -> Self {
+        self.bparam2 = value as i32;
+        self
+    }
+
+    pub fn bparam1_raw(mut self, value: c_int) -> Self {
+        self.bparam1 = value;
+        self
+    }
+
+    pub fn bparam2_raw(mut self, value: c_int) -> Self {
+        self.bparam2 = value;
+        self
+    }
+
+    pub fn build(self, event_index: EventIndex, invoker: &impl AsEntityHandle) {
+        self.engine.playback_event(
+            self.flags.bits() as i32,
+            invoker,
+            event_index,
+            self.delay,
+            self.origin,
+            self.angles,
+            self.fparam1,
+            self.fparam2,
+            self.iparam1,
+            self.iparam2,
+            self.bparam1,
+            self.bparam2,
+        )
+    }
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum GroupOp {
+    And = 0,
+    Nand = 1,
+}
+
+define_enum_for_primitive! {
+    #[derive(Copy, Clone, Debug, PartialEq, Eq)]
+    #[non_exhaustive]
+    pub enum ForceType: ffi::server::FORCE_TYPE {
+        ExactFile(ffi::server::FORCE_TYPE_force_exactfile),
+        ModelSameBounds(ffi::server::FORCE_TYPE_force_model_samebounds),
+        ModelSpecifyBounds(ffi::server::FORCE_TYPE_force_model_specifybounds),
+        ModelSpecifyBoundsIfAvailable(ffi::server::FORCE_TYPE_force_model_specifybounds_if_avail),
+    }
+}
+
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
+pub struct PlayerStats {
+    pub ping: i32,
+    pub packet_loss: i32,
+}
+
 pub struct ServerEngine {
     raw: enginefuncs_s,
     pub globals: ServerGlobals,
@@ -541,16 +890,49 @@ impl ServerEngine {
         unsafe { unwrap!(self, pfnChangeLevel)(map.as_ptr(), spot.as_ptr()) }
     }
 
-    // pub pfnGetSpawnParms: Option<unsafe extern "C" fn(ent: *mut edict_t)>,
-    // pub pfnSaveSpawnParms: Option<unsafe extern "C" fn(ent: *mut edict_t)>,
-    // pub pfnVecToYaw: Option<unsafe extern "C" fn(rgflVector: *const f32) -> f32>,
-    // pub pfnVecToAngles:
-    //     Option<unsafe extern "C" fn(rgflVectorIn: *const f32, rgflVectorOut: *mut f32)>,
-    // pub pfnMoveToOrigin: Option<
-    //     unsafe extern "C" fn(ent: *mut edict_t, pflGoal: *const f32, dist: f32, iMoveType: c_int),
-    // >,
-    // pub pfnChangeYaw: Option<unsafe extern "C" fn(ent: *mut edict_t)>,
-    // pub pfnChangePitch: Option<unsafe extern "C" fn(ent: *mut edict_t)>,
+    // pfnGetSpawnParmsis is obsolete and not implemented in the engine
+    // pfnSaveSpawnParms is obsolete and not implemented in the engine
+
+    pub fn vec_to_yaw(&self, direction: vec3_t) -> f32 {
+        unsafe { unwrap!(self, pfnVecToYaw)(direction.as_ref().as_ptr()) }
+    }
+
+    pub fn vec_to_angles(&self, forward: vec3_t) -> vec3_t {
+        unsafe {
+            let mut angles = MaybeUninit::<[f32; 3]>::uninit();
+            unwrap!(self, pfnVecToAngles)(forward.as_ref().as_ptr(), angles.as_mut_ptr().cast());
+            angles.assume_init().into()
+        }
+    }
+
+    pub fn move_to_origin_with_type(
+        &self,
+        ent: &impl AsEntityHandle,
+        goal: vec3_t,
+        dist: f32,
+        move_type: MoveToOriginType,
+    ) {
+        unsafe {
+            unwrap!(self, pfnMoveToOrigin)(
+                ent.as_entity_handle(),
+                goal.as_ref().as_ptr(),
+                dist,
+                move_type as i32,
+            );
+        }
+    }
+
+    pub fn move_to_origin(&self, ent: &impl AsEntityHandle, goal: vec3_t, dist: f32) {
+        self.move_to_origin_with_type(ent, goal, dist, MoveToOriginType::Normal);
+    }
+
+    pub fn change_yaw(&self, ent: &impl AsEntityHandle) {
+        unsafe { unwrap!(self, pfnChangeYaw)(ent.as_entity_handle()) }
+    }
+
+    pub fn change_pitch(&self, ent: &impl AsEntityHandle) {
+        unsafe { unwrap!(self, pfnChangePitch)(ent.as_entity_handle()) }
+    }
 
     fn find_entity_by_string_impl<'a>(
         &'a self,
@@ -774,12 +1156,43 @@ impl ServerEngine {
         unsafe { unwrap!(self, pfnRemoveEntity)(ent.as_entity_handle()) }
     }
 
-    // pub pfnCreateNamedEntity: Option<unsafe extern "C" fn(className: c_int) -> *mut edict_t>,
-    // pub pfnMakeStatic: Option<unsafe extern "C" fn(ent: *mut edict_t)>,
-    // pub pfnEntIsOnFloor: Option<unsafe extern "C" fn(e: *mut edict_t) -> c_int>,
-    // pub pfnDropToFloor: Option<unsafe extern "C" fn(e: *mut edict_t) -> c_int>,
-    // pub pfnWalkMove:
-    //     Option<unsafe extern "C" fn(ent: *mut edict_t, yaw: f32, dist: f32, iMode: c_int) -> c_int>,
+    pub fn create_named_entity(&self, class_name: impl ToEngineStr) -> Option<EntityHandle> {
+        let class_name = self.new_map_string(class_name);
+        let ent = unsafe { unwrap!(self, pfnCreateNamedEntity)(class_name.index()) };
+        unsafe { EntityHandle::new(self.engine_ref(), ent) }
+    }
+
+    pub fn make_static(&self, ent: &impl AsEntityHandle) {
+        unsafe { unwrap!(self, pfnMakeStatic)(ent.as_entity_handle()) }
+    }
+
+    pub fn is_on_floor(&self, ent: &impl AsEntityHandle) -> bool {
+        unsafe { unwrap!(self, pfnEntIsOnFloor)(ent.as_entity_handle()) != 0 }
+    }
+
+    pub fn drop_to_floor(&self, ent: &impl AsEntityHandle) -> DropToFloorResult {
+        let result = unsafe { unwrap!(self, pfnDropToFloor)(ent.as_entity_handle()) };
+        match result {
+            -1 => DropToFloorResult::AllSolid,
+            0 => DropToFloorResult::False,
+            1 => DropToFloorResult::True,
+            _ => {
+                error!("drop_to_floor: unexpected result={result} from the engine");
+                DropToFloorResult::False
+            }
+        }
+    }
+
+    pub fn walk_move(
+        &self,
+        ent: &impl AsEntityHandle,
+        yaw: f32,
+        dist: f32,
+        mode: WalkMove,
+    ) -> bool {
+        let mode = mode as i32;
+        unsafe { unwrap!(self, pfnWalkMove)(ent.as_entity_handle(), yaw, dist, mode) != 0 }
+    }
 
     /// Links the entity to the world at specified position.
     pub fn set_origin_and_link(&self, origin: vec3_t, ent: &impl AsEntityHandle) {
@@ -974,8 +1387,14 @@ impl ServerEngine {
 
     // pfnTraceSphere is obsolete and not implemented in the engine
 
-    // pub pfnGetAimVector:
-    //     Option<unsafe extern "C" fn(ent: *mut edict_t, speed: f32, rgflReturn: *mut f32)>,
+    pub fn get_aim_vector(&self, ent: &impl AsEntityHandle, speed: f32) -> vec3_t {
+        let ent = ent.as_entity_handle();
+        let mut ret = vec3_t::ZERO;
+        unsafe {
+            unwrap!(self, pfnGetAimVector)(ent, speed, ret.as_mut().as_mut_ptr());
+        }
+        ret
+    }
 
     pub fn server_command(&self, cmd: impl ToEngineStr) {
         let cmd = cmd.to_engine_str();
@@ -992,8 +1411,16 @@ impl ServerEngine {
         unsafe { unwrap!(self, pfnClientCommand)(ent.as_entity_handle(), cmd.as_ptr().cast_mut()) }
     }
 
-    // pub pfnParticleEffect:
-    //     Option<unsafe extern "C" fn(org: *const f32, dir: *const f32, color: f32, count: f32)>,
+    pub fn particle_effect(&self, origin: vec3_t, direction: vec3_t, color: f32, count: f32) {
+        unsafe {
+            unwrap!(self, pfnParticleEffect)(
+                origin.as_ref().as_ptr(),
+                direction.as_ref().as_ptr(),
+                color,
+                count,
+            )
+        }
+    }
 
     pub fn light_style(&self, style: c_int, value: impl ToEngineStr) {
         let value = value.to_engine_str();
@@ -1011,7 +1438,13 @@ impl ServerEngine {
         }
     }
 
-    // pub pfnPointContents: Option<unsafe extern "C" fn(rgflVector: *const f32) -> c_int>,
+    pub fn point_contents(&self, origin: vec3_t) -> Contents {
+        let raw = unsafe { unwrap!(self, pfnPointContents)(origin.as_ref().as_ptr()) };
+        match Contents::from_raw(raw) {
+            Some(i) => i,
+            None => panic!("point_contents: unexpected contents({raw}) from the engine"),
+        }
+    }
 
     fn msg_send<T: ServerMessage>(
         &self,
@@ -1190,7 +1623,9 @@ impl ServerEngine {
         }
     }
 
-    // pub pfnGetVarsOfEnt: Option<unsafe extern "C" fn(pEdict: *mut edict_t) -> *mut entvars_s>,
+    // pub fn get_entity_vars(&self, ent: &impl AsEntityHandle) -> *mut entvars_s {
+    //     unsafe { unwrap!(self, pfnGetVarsOfEnt)(ent.as_entity_handle()) }
+    // }
 
     #[deprecated(note = "use get_entity_by_offset instead")]
     pub fn entity_of_ent_offset(&self, offset: EntityOffset) -> *mut edict_s {
@@ -1242,8 +1677,13 @@ impl ServerEngine {
             .expect("world spawn entity")
     }
 
-    // pub pfnFindEntityByVars: Option<unsafe extern "C" fn(pvars: *mut entvars_s) -> *mut edict_t>,
-    // pub pfnGetModelPtr: Option<unsafe extern "C" fn(pEdict: *mut edict_t) -> *mut c_void>,
+    pub fn find_entity_by_vars(&self, vars: *mut entvars_s) -> *mut edict_s {
+        unsafe { unwrap!(self, pfnFindEntityByVars)(vars) }
+    }
+
+    pub fn get_model_ptr(&self, ent: &impl AsEntityHandle) -> *mut c_void {
+        unsafe { unwrap!(self, pfnGetModelPtr)(ent.as_entity_handle()) }
+    }
 
     pub fn register_user_message<'a, T>(
         &self,
@@ -1274,37 +1714,163 @@ impl ServerEngine {
         }
     }
 
-    // pub pfnAnimationAutomove: Option<unsafe extern "C" fn(pEdict: *const edict_t, flTime: f32)>,
-    // pub pfnGetBonePosition: Option<
-    //     unsafe extern "C" fn(
-    //         pEdict: *const edict_t,
-    //         iBone: c_int,
-    //         rgflOrigin: *mut f32,
-    //         rgflAngles: *mut f32,
-    //     ),
-    // >,
-    // pub pfnFunctionFromName: Option<unsafe extern "C" fn(pName: *const c_char) -> c_ulong>,
-    // pub pfnNameForFunction: Option<unsafe extern "C" fn(function: c_ulong) -> *const c_char>,
+    // pfnAnimationAutomove is obsolete and not implemented in the engine
+
+    fn get_bone_position_impl(
+        &self,
+        ent: &impl AsEntityHandle,
+        bone: i32,
+        origin: Option<&mut vec3_t>,
+        angles: Option<&mut vec3_t>,
+    ) {
+        unsafe {
+            unwrap!(self, pfnGetBonePosition)(
+                ent.as_entity_handle(),
+                bone,
+                origin.map_or(ptr::null_mut(), |v| v.as_mut().as_mut_ptr()),
+                angles.map_or(ptr::null_mut(), |v| v.as_mut().as_mut_ptr()),
+            );
+        }
+    }
+
+    pub fn get_bone_position_and_angles(
+        &self,
+        ent: &impl AsEntityHandle,
+        bone: i32,
+    ) -> (vec3_t, vec3_t) {
+        let mut origin = MaybeUninit::uninit();
+        let mut angles = MaybeUninit::uninit();
+        unsafe {
+            self.get_bone_position_impl(
+                ent,
+                bone,
+                Some(origin.assume_init_mut()),
+                Some(angles.assume_init_mut()),
+            );
+            (origin.assume_init(), angles.assume_init())
+        }
+    }
+
+    pub fn get_bone_position(&self, ent: &impl AsEntityHandle, bone: i32) -> vec3_t {
+        let mut origin = MaybeUninit::uninit();
+        unsafe {
+            self.get_bone_position_impl(ent, bone, Some(origin.assume_init_mut()), None);
+            origin.assume_init()
+        }
+    }
+
+    pub fn get_bone_angles(&self, ent: &impl AsEntityHandle, bone: i32) -> vec3_t {
+        let mut angles = MaybeUninit::uninit();
+        unsafe {
+            self.get_bone_position_impl(ent, bone, None, Some(angles.assume_init_mut()));
+            angles.assume_init()
+        }
+    }
+
+    // pub fn function_from_name(&self, name: impl ToEngineStr) -> c_ulong {
+    //     let name = name.to_engine_str();
+    //     unsafe { unwrap!(self, pfnFunctionFromName)(name.as_ptr()) }
+    // }
+
+    // pub fn name_for_function(&self, func: c_ulong) -> Option<&CStrThin> {
+    //     unsafe {
+    //         let name = unwrap!(self, pfnNameForFunction)(func);
+    //         cstr_or_none(name)
+    //     }
+    // }
+
     // pub pfnClientPrintf:
     //     Option<unsafe extern "C" fn(pEdict: *mut edict_t, ptype: PRINT_TYPE, szMsg: *const c_char)>,
 
-    // pub pfnGetAttachment: Option<
-    //     unsafe extern "C" fn(
-    //         pEdict: *const edict_t,
-    //         iAttachment: c_int,
-    //         rgflOrigin: *mut f32,
-    //         rgflAngles: *mut f32,
-    //     ),
-    // >,
-    // pub pfnCRC32_Init: Option<unsafe extern "C" fn(pulCRC: *mut CRC32_t)>,
-    // pub pfnCRC32_ProcessBuffer:
-    //     Option<unsafe extern "C" fn(pulCRC: *mut CRC32_t, p: *const c_void, len: c_int)>,
-    // pub pfnCRC32_ProcessByte: Option<unsafe extern "C" fn(pulCRC: *mut CRC32_t, ch: c_uchar)>,
-    // pub pfnCRC32_Final: Option<unsafe extern "C" fn(pulCRC: CRC32_t) -> CRC32_t>,
+    fn get_attachment_impl(
+        &self,
+        ent: &impl AsEntityHandle,
+        attachment: i32,
+        origin: Option<&mut vec3_t>,
+        angles: Option<&mut vec3_t>,
+    ) {
+        unsafe {
+            unwrap!(self, pfnGetAttachment)(
+                ent.as_entity_handle(),
+                attachment,
+                origin.map_or(ptr::null_mut(), |v| v.as_mut().as_mut_ptr()),
+                angles.map_or(ptr::null_mut(), |v| v.as_mut().as_mut_ptr()),
+            );
+        }
+    }
 
-    // pub pfnSetView: Option<unsafe extern "C" fn(pClient: *const edict_t, pViewent: *const edict_t)>,
-    // pub pfnCrosshairAngle:
-    //     Option<unsafe extern "C" fn(pClient: *const edict_t, pitch: f32, yaw: f32)>,
+    pub fn get_attachment_position_and_angles(
+        &self,
+        ent: &impl AsEntityHandle,
+        attachment: i32,
+    ) -> (vec3_t, vec3_t) {
+        let mut origin = MaybeUninit::uninit();
+        let mut angles = MaybeUninit::uninit();
+        unsafe {
+            self.get_attachment_impl(
+                ent,
+                attachment,
+                Some(origin.assume_init_mut()),
+                Some(angles.assume_init_mut()),
+            );
+            (origin.assume_init(), angles.assume_init())
+        }
+    }
+
+    pub fn get_attachment_position(&self, ent: &impl AsEntityHandle, attachment: i32) -> vec3_t {
+        let mut origin = MaybeUninit::uninit();
+        unsafe {
+            self.get_attachment_impl(ent, attachment, Some(origin.assume_init_mut()), None);
+            origin.assume_init()
+        }
+    }
+
+    pub fn get_attachment_angles(&self, ent: &impl AsEntityHandle, attachment: i32) -> vec3_t {
+        let mut angles = MaybeUninit::uninit();
+        unsafe {
+            self.get_attachment_impl(ent, attachment, None, Some(angles.assume_init_mut()));
+            angles.assume_init()
+        }
+    }
+
+    pub fn crc32_new(&self) -> CRC32_t {
+        unsafe {
+            let mut ret = MaybeUninit::uninit();
+            unwrap!(self, pfnCRC32_Init)(ret.as_mut_ptr());
+            ret.assume_init()
+        }
+    }
+
+    pub fn crc32_process_bytes(&self, state: &mut CRC32_t, bytes: &[u8]) {
+        unsafe {
+            unwrap!(self, pfnCRC32_ProcessBuffer)(state, bytes.as_ptr().cast(), bytes.len() as i32)
+        }
+    }
+
+    pub fn crc32_process_byte(&self, state: &mut CRC32_t, byte: u8) {
+        unsafe { unwrap!(self, pfnCRC32_ProcessByte)(state, byte) }
+    }
+
+    pub fn crc32_finish(&self, state: CRC32_t) -> CRC32_t {
+        unsafe { unwrap!(self, pfnCRC32_Final)(state) }
+    }
+
+    pub fn crc32_hasher(&self) -> Crc32Hasher {
+        Crc32Hasher {
+            engine: self.engine_ref(),
+            state: self.crc32_new(),
+        }
+    }
+
+    pub fn set_view(&self, client: &impl AsEntityHandle, view_entity: &impl AsEntityHandle) {
+        unsafe {
+            unwrap!(self, pfnSetView)(client.as_entity_handle(), view_entity.as_entity_handle())
+        }
+    }
+
+    pub fn crosshair_angle(&self, ent: &impl AsEntityHandle, pitch: f32, yaw: f32) {
+        unsafe { unwrap!(self, pfnCrosshairAngle)(ent.as_entity_handle(), pitch, yaw) }
+    }
 
     pub fn load_file(&self, filename: impl ToEngineStr) -> Result<File, LoadFileError> {
         let filename = filename.to_engine_str();
@@ -1334,55 +1900,173 @@ impl ServerEngine {
         self.end_section_by_name(section.as_c_str());
     }
 
-    // pub pfnCompareFileTime: Option<
-    //     unsafe extern "C" fn(
-    //         filename1: *const c_char,
-    //         filename2: *const c_char,
-    //         iCompare: *mut c_int,
-    //     ) -> c_int,
-    // >,
-    // pub pfnGetGameDir: Option<unsafe extern "C" fn(szGetGameDir: *mut c_char)>,
-    // pub pfnCvar_RegisterVariable: Option<unsafe extern "C" fn(variable: *mut cvar_t)>,
-    // pub pfnFadeClientVolume: Option<
-    //     unsafe extern "C" fn(
-    //         pEdict: *const edict_t,
-    //         fadePercent: c_int,
-    //         fadeOutSeconds: c_int,
-    //         holdTime: c_int,
-    //         fadeInSeconds: c_int,
-    //     ),
-    // >,
-    // pub pfnSetClientMaxspeed:
-    //     Option<unsafe extern "C" fn(pEdict: *const edict_t, fNewMaxspeed: f32)>,
-    // pub pfnCreateFakeClient: Option<unsafe extern "C" fn(netname: *const c_char) -> *mut edict_t>,
-    // pub pfnRunPlayerMove: Option<
-    //     unsafe extern "C" fn(
-    //         fakeclient: *mut edict_t,
-    //         viewangles: *const f32,
-    //         forwardmove: f32,
-    //         sidemove: f32,
-    //         upmove: f32,
-    //         buttons: c_ushort,
-    //         impulse: byte,
-    //         msec: byte,
-    //     ),
-    // >,
-    // pub pfnNumberOfEntities: Option<unsafe extern "C" fn() -> c_int>,
-    // pub pfnGetInfoKeyBuffer: Option<unsafe extern "C" fn(e: *mut edict_t) -> *mut c_char>,
-    // pub pfnInfoKeyValue: Option<
-    //     unsafe extern "C" fn(infobuffer: *const c_char, key: *const c_char) -> *const c_char,
-    // >,
-    // pub pfnSetKeyValue:
-    //     Option<unsafe extern "C" fn(infobuffer: *mut c_char, key: *mut c_char, value: *mut c_char)>,
-    // pub pfnSetClientKeyValue: Option<
-    //     unsafe extern "C" fn(
-    //         clientIndex: c_int,
-    //         infobuffer: *mut c_char,
-    //         key: *mut c_char,
-    //         value: *mut c_char,
-    //     ),
-    // >,
-    // pub pfnIsMapValid: Option<unsafe extern "C" fn(filename: *mut c_char) -> c_int>,
+    pub fn compare_file_time(
+        &self,
+        path1: impl ToEngineStr,
+        path2: impl ToEngineStr,
+    ) -> Option<cmp::Ordering> {
+        let path1 = path1.to_engine_str();
+        let path2 = path2.to_engine_str();
+        let mut compare = MaybeUninit::uninit();
+        let result = unsafe {
+            unwrap!(self, pfnCompareFileTime)(path1.as_ptr(), path2.as_ptr(), compare.as_mut_ptr())
+        };
+        if result == 0 {
+            return None;
+        }
+        match unsafe { compare.assume_init() } {
+            -1 => Some(cmp::Ordering::Less),
+            0 => Some(cmp::Ordering::Equal),
+            1 => Some(cmp::Ordering::Greater),
+            compare => unreachable!("compare_file_time: unexpected compare {compare}"),
+        }
+    }
+
+    pub fn get_game_dir(&self) -> CStrArray<MAX_SYSPATH> {
+        // FIXME: limit game dir buffer size to 256 bytes???
+        let mut buffer = CStrArray::new();
+        unsafe { unwrap!(self, pfnGetGameDir)(buffer.as_mut_ptr()) }
+        buffer
+    }
+
+    // TODO: add safety docs
+    #[allow(clippy::missing_safety_doc)]
+    pub unsafe fn register_cvar_raw(&self, cvar: *mut cvar_t) {
+        unsafe { unwrap!(self, pfnCvar_RegisterVariable)(cvar) }
+    }
+
+    pub fn fade_client_volume(
+        &self,
+        ent: &impl AsEntityHandle,
+        fade_precent: u8,
+        fade_out_seconds: u8,
+        hold_time: u8,
+        fade_in_seconds: u8,
+    ) {
+        unsafe {
+            unwrap!(self, pfnFadeClientVolume)(
+                ent.as_entity_handle(),
+                fade_precent as i32,
+                fade_out_seconds as i32,
+                hold_time as i32,
+                fade_in_seconds as i32,
+            );
+        }
+    }
+
+    pub fn set_client_maxspeed(&self, ent: &impl AsEntityHandle, new_maxspeed: f32) {
+        unsafe { unwrap!(self, pfnSetClientMaxspeed)(ent.as_entity_handle(), new_maxspeed) }
+    }
+
+    pub fn create_fake_client(&self, net_name: impl ToEngineStr) -> Option<EntityHandle> {
+        let net_name = net_name.to_engine_str();
+        unsafe {
+            let ent = unwrap!(self, pfnCreateFakeClient)(net_name.as_ptr());
+            EntityHandle::new(self.engine_ref(), ent)
+        }
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn run_player_move(
+        &self,
+        fake_client: &impl AsEntityHandle,
+        view_angles: vec3_t,
+        forward_move: f32,
+        side_move: f32,
+        up_move: f32,
+        buttons: Buttons,
+        impulse: u8,
+        msec: u8,
+    ) {
+        unsafe {
+            unwrap!(self, pfnRunPlayerMove)(
+                fake_client.as_entity_handle(),
+                view_angles.as_ref().as_ptr(),
+                forward_move,
+                side_move,
+                up_move,
+                buttons.bits() as u16,
+                impulse,
+                msec,
+            )
+        }
+    }
+
+    fn number_of_entities(&self) -> usize {
+        unsafe { unwrap!(self, pfnNumberOfEntities)() as usize }
+    }
+
+    pub fn get_info_buffer_raw(&self, ent: &impl AsEntityHandle) -> *mut c_char {
+        let ent = ent.as_entity_handle();
+        unsafe { unwrap!(self, pfnGetInfoKeyBuffer)(ent) }
+    }
+
+    pub fn get_info_buffer<'a>(&'a self, ent: &impl AsEntityHandle) -> ClientInfoBuffer<'a> {
+        ClientInfoBuffer {
+            engine: self.engine_ref(),
+            info_buffer: self.get_info_buffer_raw(ent),
+            entity: unsafe {
+                EntityHandle::new_unchecked(self.engine_ref(), ent.as_entity_handle())
+            },
+            phantom: PhantomData,
+        }
+    }
+
+    pub fn info_buffer_get(&self, info_buffer: *const c_char, key: impl ToEngineStr) -> &CStrThin {
+        let key = key.to_engine_str();
+        let value = unsafe { unwrap!(self, pfnInfoKeyValue)(info_buffer, key.as_ptr()) };
+        // SAFETY: the engine never return a null pointer
+        unsafe { CStrThin::from_ptr(value) }
+    }
+
+    pub fn info_buffer_set(
+        &self,
+        info_buffer: *mut c_char,
+        key: impl ToEngineStr,
+        value: impl ToEngineStr,
+    ) {
+        let key = key.to_engine_str();
+        let value = value.to_engine_str();
+        unsafe {
+            // FIXME: ffi: why key and value are mutable?
+            unwrap!(self, pfnSetKeyValue)(
+                info_buffer,
+                key.as_ptr().cast_mut(),
+                value.as_ptr().cast_mut(),
+            )
+        }
+    }
+
+    pub fn info_buffer_client_set(
+        &self,
+        client: EntityIndex,
+        info_buffer: *mut c_char,
+        key: impl ToEngineStr,
+        value: impl ToEngineStr,
+    ) {
+        let key = key.to_engine_str();
+        let value = value.to_engine_str();
+        unsafe {
+            // FIXME: ffi: why key and value are mutable?
+            unwrap!(self, pfnSetClientKeyValue)(
+                client.to_i32(),
+                info_buffer,
+                key.as_ptr().cast_mut(),
+                value.as_ptr().cast_mut(),
+            )
+        }
+    }
+
+    pub fn info_buffer_remove(&self, info_buffer: *mut c_char, key: impl ToEngineStr) {
+        let key = key.to_engine_str();
+        unsafe { unwrap!(self, pfnInfo_RemoveKey)(info_buffer, key.as_ptr()) }
+    }
+
+    pub fn is_map_valid(&self, filename: impl ToEngineStr) -> bool {
+        let filename = filename.to_engine_str();
+        // FIXME: ffi: why filename is mutable?
+        unsafe { unwrap!(self, pfnIsMapValid)(filename.as_ptr().cast_mut()) != 0 }
+    }
 
     pub fn static_decal(
         &self,
@@ -1401,8 +2085,21 @@ impl ServerEngine {
         }
     }
 
-    // pub pfnPrecacheGeneric: Option<unsafe extern "C" fn(s: *const c_char) -> c_int>,
-    // pub pfnGetPlayerUserId: Option<unsafe extern "C" fn(e: *mut edict_t) -> c_int>,
+    pub fn precache_generic(&self, filename: impl ToEngineStr) -> i32 {
+        let filename = filename.to_engine_str();
+        unsafe { unwrap!(self, pfnPrecacheGeneric)(filename.as_ptr()) }
+    }
+
+    pub fn get_player_user_id(&self, ent: &impl AsEntityHandle) -> Option<i32> {
+        let ent = ent.as_entity_handle();
+        let id = unsafe { unwrap!(self, pfnGetPlayerUserId)(ent) };
+        if id != -1 {
+            Some(id)
+        } else {
+            None
+        }
+    }
+
     // pub pfnBuildSoundMsg: Option<
     //     unsafe extern "C" fn(
     //         entity: *mut edict_t,
@@ -1429,8 +2126,7 @@ impl ServerEngine {
         CVarPtr::from_ptr(ptr.cast())
     }
 
-    // pub pfnGetPlayerWONId: Option<unsafe extern "C" fn(e: *mut edict_t) -> c_uint>,
-    // pub pfnInfo_RemoveKey: Option<unsafe extern "C" fn(s: *mut c_char, key: *const c_char)>,
+    // pfnGetPlayerWONId is obsolete and not implemented in the engine
 
     pub fn get_physics_key_value(
         &self,
@@ -1463,24 +2159,64 @@ impl ServerEngine {
         unsafe { CStr::from_ptr(info) }
     }
 
-    // pub pfnPrecacheEvent:
-    //     Option<unsafe extern "C" fn(type_: c_int, psz: *const c_char) -> c_ushort>,
-    // pub pfnPlaybackEvent: Option<
-    //     unsafe extern "C" fn(
-    //         flags: c_int,
-    //         pInvoker: *const edict_t,
-    //         eventindex: c_ushort,
-    //         delay: f32,
-    //         origin: *mut f32,
-    //         angles: *mut f32,
-    //         fparam1: f32,
-    //         fparam2: f32,
-    //         iparam1: c_int,
-    //         iparam2: c_int,
-    //         bparam1: c_int,
-    //         bparam2: c_int,
-    //     ),
-    // >,
+    pub fn precache_event(&self, filename: impl ToEngineStr) -> EventIndex {
+        let filename = filename.to_engine_str();
+        let index = unsafe { unwrap!(self, pfnPrecacheEvent)(1, filename.as_ptr()) };
+        EventIndex(index)
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn playback_event(
+        &self,
+        flags: c_int,
+        invoker: &impl AsEntityHandle,
+        event_index: EventIndex,
+        delay: f32,
+        origin: vec3_t,
+        angles: vec3_t,
+        fparam1: f32,
+        fparam2: f32,
+        iparam1: c_int,
+        iparam2: c_int,
+        bparam1: c_int,
+        bparam2: c_int,
+    ) {
+        let mut origin = origin;
+        let mut angles = angles;
+        unsafe {
+            // FIXME: ffi: why origin and angles are mutable?
+            unwrap!(self, pfnPlaybackEvent)(
+                flags,
+                invoker.as_entity_handle(),
+                event_index.to_u16(),
+                delay,
+                origin.as_mut().as_mut_ptr(),
+                angles.as_mut().as_mut_ptr(),
+                fparam1,
+                fparam2,
+                iparam1,
+                iparam2,
+                bparam1,
+                bparam2,
+            );
+        }
+    }
+
+    pub fn build_playback_event(&self) -> PlaybackEventBuilder {
+        PlaybackEventBuilder {
+            engine: self.engine_ref(),
+            flags: PlaybackEventFlags::NONE,
+            delay: 0.0,
+            origin: vec3_t::ZERO,
+            angles: vec3_t::ZERO,
+            fparam1: 0.0,
+            fparam2: 0.0,
+            iparam1: 0,
+            iparam2: 0,
+            bparam1: 0,
+            bparam2: 0,
+        }
+    }
 
     pub fn set_pvs(&self, org: vec3_t) -> *mut c_uchar {
         unsafe { unwrap!(self, pfnSetFatPVS)(org.as_ref().as_ptr()) }
@@ -1511,35 +2247,127 @@ impl ServerEngine {
     //         >,
     //     ),
     // >,
-    // pub pfnGetCurrentPlayer: Option<unsafe extern "C" fn() -> c_int>,
-    // pub pfnCanSkipPlayer: Option<unsafe extern "C" fn(player: *const edict_t) -> c_int>,
     // pub pfnDeltaFindField:
     //     Option<unsafe extern "C" fn(pFields: *mut delta_s, fieldname: *const c_char) -> c_int>,
     // pub pfnDeltaSetFieldByIndex:
     //     Option<unsafe extern "C" fn(pFields: *mut delta_s, fieldNumber: c_int)>,
     // pub pfnDeltaUnsetFieldByIndex:
     //     Option<unsafe extern "C" fn(pFields: *mut delta_s, fieldNumber: c_int)>,
-    // pub pfnSetGroupMask: Option<unsafe extern "C" fn(mask: c_int, op: c_int)>,
-    // pub pfnCreateInstancedBaseline:
-    //     Option<unsafe extern "C" fn(classname: c_int, baseline: *mut entity_state_s) -> c_int>,
+
+    pub fn get_current_player(&self) -> Option<i32> {
+        let index = unsafe { unwrap!(self, pfnGetCurrentPlayer)() };
+        if index != -1 {
+            Some(index)
+        } else {
+            None
+        }
+    }
+
+    pub fn can_skip_player(&self, ent: &impl AsEntityHandle) -> bool {
+        unsafe { unwrap!(self, pfnCanSkipPlayer)(ent.as_entity_handle()) != 0 }
+    }
+
+    pub fn set_group_mask(&self, mask: i32, op: GroupOp) {
+        unsafe { unwrap!(self, pfnSetGroupMask)(mask, op as i32) }
+    }
+
+    pub fn set_group_mask_and(&self, mask: i32) {
+        self.set_group_mask(mask, GroupOp::And)
+    }
+
+    pub fn set_group_mask_nand(&self, mask: i32) {
+        self.set_group_mask(mask, GroupOp::Nand)
+    }
+
+    pub fn create_instanced_baseline(
+        &self,
+        classname: MapString,
+        baseline: &entity_state_s,
+    ) -> Option<i32> {
+        let index = unsafe {
+            // FIXME: ffi: why baseline is mutable?
+            unwrap!(self, pfnCreateInstancedBaseline)(
+                classname.index(),
+                (baseline as *const entity_state_s).cast_mut(),
+            )
+        };
+        if index != 0 {
+            Some(index)
+        } else {
+            None
+        }
+    }
+
     // pub pfnCvar_DirectSet: Option<unsafe extern "C" fn(var: *mut cvar_s, value: *const c_char)>,
-    // pub pfnForceUnmodified: Option<
-    //     unsafe extern "C" fn(
-    //         type_: FORCE_TYPE,
-    //         mins: *mut f32,
-    //         maxs: *mut f32,
-    //         filename: *const c_char,
-    //     ),
-    // >,
-    // pub pfnGetPlayerStats: Option<
-    //     unsafe extern "C" fn(pClient: *const edict_t, ping: *mut c_int, packet_loss: *mut c_int),
-    // >,
-    // pub pfnVoice_GetClientListening:
-    //     Option<unsafe extern "C" fn(iReceiver: c_int, iSender: c_int) -> qboolean>,
-    // pub pfnVoice_SetClientListening: Option<
-    //     unsafe extern "C" fn(iReceiver: c_int, iSender: c_int, bListen: qboolean) -> qboolean,
-    // >,
-    // pub pfnGetPlayerAuthId: Option<unsafe extern "C" fn(e: *mut edict_t) -> *const c_char>,
+
+    pub fn force_unmodified(
+        &self,
+        ty: ForceType,
+        mins: Option<vec3_t>,
+        maxs: Option<vec3_t>,
+        filename: impl ToEngineStr,
+    ) {
+        let mut mins = mins;
+        let mut maxs = maxs;
+        let filename = filename.to_engine_str();
+        unsafe {
+            // FIXME: ffi: why mins and maxs are mutable?
+            unwrap!(self, pfnForceUnmodified)(
+                ty as u32,
+                mins.as_mut()
+                    .map_or(ptr::null_mut(), |v| v.as_mut().as_mut_ptr()),
+                maxs.as_mut()
+                    .map_or(ptr::null_mut(), |v| v.as_mut().as_mut_ptr()),
+                filename.as_ptr(),
+            );
+        }
+    }
+
+    pub fn get_player_stats(&self, client: &impl AsEntityHandle) -> PlayerStats {
+        let client = client.as_entity_handle();
+        let mut ping = MaybeUninit::uninit();
+        let mut packet_loss = MaybeUninit::uninit();
+        unsafe {
+            unwrap!(self, pfnGetPlayerStats)(client, ping.as_mut_ptr(), packet_loss.as_mut_ptr());
+            PlayerStats {
+                ping: ping.assume_init(),
+                packet_loss: packet_loss.assume_init(),
+            }
+        }
+    }
+
+    pub fn voice_get_client_listening(&self, receiver: i32, sender: i32) -> bool {
+        unsafe { unwrap!(self, pfnVoice_GetClientListening)(receiver, sender) != 0 }
+    }
+
+    pub fn voice_set_client_listening(&self, receiver: i32, sender: i32, listen: bool) -> bool {
+        unsafe { unwrap!(self, pfnVoice_SetClientListening)(receiver, sender, listen as i32) != 0 }
+    }
+
+    pub fn get_player_auth_id(&self, ent: &impl AsEntityHandle) -> &CStrThin {
+        let ent = ent.as_entity_handle();
+        let id = unsafe { unwrap!(self, pfnGetPlayerAuthId)(ent) };
+        // SAFETY: the engine never returns a null pointer
+        unsafe { CStrThin::from_ptr(id) }
+    }
+
+    pub fn get_file_size(&self, filename: impl ToEngineStr) -> Option<i32> {
+        let filename = filename.to_engine_str();
+        let size = unsafe { unwrap!(self, pfnGetFileSize)(filename.as_ptr()) };
+        if size != -1 {
+            Some(size)
+        } else {
+            None
+        }
+    }
+
+    pub fn get_approx_wav_duration(&self, filepath: impl ToEngineStr) -> Duration {
+        let filepath = filepath.to_engine_str();
+        let msec = unsafe { unwrap!(self, pfnGetApproxWavePlayLen)(filepath.as_ptr()) };
+        Duration::from_millis(msec as u64)
+    }
+
+    // used by CS:CZ (client stub)
     // pub pfnSequenceGet: Option<
     //     unsafe extern "C" fn(fileName: *const c_char, entryName: *const c_char) -> *mut c_void,
     // >,
@@ -1550,16 +2378,12 @@ impl ServerEngine {
     //         picked: *mut c_int,
     //     ) -> *mut c_void,
     // >,
-    // pub pfnGetFileSize: Option<unsafe extern "C" fn(filename: *const c_char) -> c_int>,
-
-    pub fn get_approx_wav_duration(&self, filepath: impl ToEngineStr) -> Duration {
-        let filepath = filepath.to_engine_str();
-        let msec = unsafe { unwrap!(self, pfnGetApproxWavePlayLen)(filepath.as_ptr()) };
-        Duration::from_millis(msec as u64)
-    }
-
     // pub pfnIsCareerMatch: Option<unsafe extern "C" fn() -> c_int>,
+
+    // extended iface stubs
     // pub pfnGetLocalizedStringLength: Option<unsafe extern "C" fn(label: *const c_char) -> c_int>,
+
+    // only exists in PlayStation version
     // pub pfnRegisterTutorMessageShown: Option<unsafe extern "C" fn(mid: c_int)>,
     // pub pfnGetTimesTutorMessageShown: Option<unsafe extern "C" fn(mid: c_int) -> c_int>,
     // pub pfnProcessTutorMessageDecayBuffer:
@@ -1567,6 +2391,7 @@ impl ServerEngine {
     // pub pfnConstructTutorMessageDecayBuffer:
     //     Option<unsafe extern "C" fn(buffer: *mut c_int, bufferLength: c_int)>,
     // pub pfnResetTutorMessageDecayData: Option<unsafe extern "C" fn()>,
+
     // pub pfnQueryClientCvarValue:
     //     Option<unsafe extern "C" fn(player: *const edict_t, cvarName: *const c_char)>,
     // pub pfnQueryClientCvarValue2: Option<
@@ -1742,6 +2567,10 @@ pub struct Entities<'a> {
 impl<'a> Entities<'a> {
     fn new(engine: &'a ServerEngine) -> Self {
         Self { engine }
+    }
+
+    pub fn count(&self) -> usize {
+        self.engine.number_of_entities()
     }
 
     pub fn by_string<F: ToEngineStr, V: ToEngineStr>(
