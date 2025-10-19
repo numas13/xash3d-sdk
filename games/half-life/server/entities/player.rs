@@ -298,7 +298,6 @@ impl EntityPlayer for TestPlayer {
         if pressed.intersects(Buttons::ATTACK | Buttons::ATTACK2) {
             use xash3d_server::color::RGB;
             use xash3d_server::engine::TraceIgnore;
-            use xash3d_server::global_state::decals::DefaultDecals;
             use xash3d_server::user_message;
 
             let engine = self.engine();
@@ -312,7 +311,11 @@ impl EntityPlayer for TestPlayer {
             let decal_index = if pressed.intersects(Buttons::ATTACK) {
                 decals.get_random_blood()
             } else {
-                let decals: &DefaultDecals = <dyn core::any::Any>::downcast_ref(&*decals).unwrap();
+                // not supported by MSRV
+                // use xash3d_server::global_state::decals::DefaultDecals;
+                // let decals: &DefaultDecals = <dyn core::any::Any>::downcast_ref(&*decals).unwrap();
+                // decals.get_random_yellow_blood()
+
                 decals.get_random_yellow_blood()
             };
             utils::decal_trace(&engine, &trace, decal_index);
