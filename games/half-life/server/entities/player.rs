@@ -7,8 +7,8 @@ use xash3d_hl_shared::user_message;
 use xash3d_server::{
     entities::player::Player as BasePlayer,
     entity::{
-        delegate_entity, delegate_player, impl_entity_cast, BaseEntity, CreateEntity, Effects,
-        Entity, EntityPlayer, EntityVars, UseType,
+        delegate_entity, delegate_player, impl_entity_cast, BaseEntity, Buttons, CreateEntity,
+        Effects, Entity, EntityPlayer, EntityVars, UseType,
     },
     prelude::*,
     save::{Restore, Save},
@@ -293,6 +293,38 @@ impl EntityPlayer for TestPlayer {
         self.client_update_data();
 
         self.check_suit_update();
+
+        let pressed = self.base.input.pressed();
+        if pressed.intersects(Buttons::ATTACK | Buttons::ATTACK2) {
+            use xash3d_server::color::RGB;
+            use xash3d_server::engine::TraceIgnore;
+            use xash3d_server::global_state::decals::DefaultDecals;
+            use xash3d_server::user_message;
+
+            let engine = self.engine();
+            let global_state = engine.global_state_ref();
+            let v = self.vars();
+            let start = v.origin() + v.view_ofs();
+            let forward = v.view_angle().angle_vectors().forward();
+            let end = start + forward * 1000.0;
+            let trace = engine.trace_line(start, end, TraceIgnore::MONSTERS, Some(v));
+            let decals = global_state.decals();
+            let decal_index = if pressed.intersects(Buttons::ATTACK) {
+                decals.get_random_blood()
+            } else {
+                let decals: &DefaultDecals = <dyn core::any::Any>::downcast_ref(&*decals).unwrap();
+                decals.get_random_yellow_blood()
+            };
+            utils::decal_trace(&engine, &trace, decal_index);
+
+            let msg = user_message::Line {
+                start: (v.origin() + v.view_ofs() * 0.5).into(),
+                end: trace.end_position().into(),
+                duration: 3.0.into(),
+                color: RGB::GREEN,
+            };
+            engine.msg_one(v, &msg);
+        }
     }
 
     fn post_think(&self) {

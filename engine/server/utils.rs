@@ -5,9 +5,11 @@ pub use xash3d_shared::utils::*;
 use xash3d_shared::{entity::EdictFlags, ffi::common::vec3_t};
 
 use crate::{
-    engine::ServerEngine,
+    engine::TraceResult,
     entity::{Entity, GetPrivateData, ObjectCaps, UseType},
+    prelude::*,
     str::MapString,
+    user_message,
 };
 
 /// Used for view cone checking.
@@ -124,4 +126,35 @@ pub fn clamp_vector_to_box(mut v: vec3_t, clamp_size: vec3_t) -> vec3_t {
     }
 
     v.normalize()
+}
+
+pub fn decal_trace(engine: &ServerEngine, trace: &TraceResult, decal_index: u16) {
+    if trace.fraction() == 1.0 {
+        return;
+    }
+
+    let mut entity_index = trace.hit_entity().entity_index();
+    if !entity_index.is_world_spawn() {
+        if let Some(entity) = trace.hit_entity().get_entity() {
+            if !entity.is_bsp_model() {
+                return;
+            }
+            entity_index = engine.get_entity_index(&entity);
+        }
+    }
+
+    if entity_index.is_world_spawn() {
+        let msg = user_message::WorldDecal {
+            position: trace.end_position().into(),
+            texture_index: decal_index,
+        };
+        engine.msg_broadcast(&msg);
+    } else {
+        let msg = user_message::Decal {
+            position: trace.end_position().into(),
+            texture_index: decal_index,
+            entity: entity_index,
+        };
+        engine.msg_broadcast(&msg);
+    }
 }

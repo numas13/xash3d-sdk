@@ -4,7 +4,7 @@ use bitflags::bitflags;
 
 use crate::{
     entity::{delegate_entity, impl_entity_cast, BaseEntity, Entity, KeyValue},
-    global_state::GlobalStateRef,
+    global_state::{decals::DefaultDecals, GlobalStateRef},
     prelude::*,
 };
 
@@ -73,12 +73,12 @@ impl Entity for World {
         engine.set_cvar(c"sv_stepsize", c"18");
         engine.set_cvar(c"room_type", c"0");
 
-        (self.install_game_rules)(engine, self.global_state());
+        (self.install_game_rules)(engine, global_state);
 
         // TODO: spawn sound entity
         // TODO: init bodyque
 
-        self.global_state().sentence_init();
+        global_state.sentence_init();
 
         // TODO: precache weapons
 
@@ -153,7 +153,8 @@ impl Entity for World {
             engine.light_style(*style, *value);
         }
 
-        // TODO: init decals
+        global_state.set_decals(DefaultDecals::new(engine));
+
         // TODO: init world graph
 
         let v = self.vars();

@@ -8,5 +8,6 @@ pub use crate::{
 pub use crate::{
     engine::LevelListExt,
     entity::{AsEntityHandle, GetPrivateData},
+    global_state::decals::Decals,
     save::TypeDescriptionExt,
 };

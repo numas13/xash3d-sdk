@@ -1,3 +1,5 @@
+pub mod decals;
+
 use core::{
     cell::{Cell, Ref, RefCell, RefMut},
     ffi::{c_int, CStr},
@@ -18,6 +20,8 @@ use crate::{
     str::MapString,
     time::MapTime,
 };
+
+use self::decals::{Decals, StubDecals};
 
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
 #[repr(C)]
@@ -169,6 +173,7 @@ pub struct GlobalState {
     init_hud: Cell<bool>,
     sentences: RefCell<Option<Sentences>>,
     talk_wait_time: Cell<MapTime>,
+    decals: RefCell<Box<dyn Decals>>,
 }
 
 impl_unsync_global!(GlobalState);
@@ -183,6 +188,7 @@ impl GlobalState {
             init_hud: Cell::new(true),
             sentences: RefCell::new(None),
             talk_wait_time: Default::default(),
+            decals: RefCell::new(Box::new(StubDecals::new(engine))),
         }
     }
 
@@ -192,6 +198,14 @@ impl GlobalState {
 
     pub fn entities_mut(&self) -> RefMut<'_, Entities> {
         self.entities.borrow_mut()
+    }
+
+    pub fn decals(&self) -> Ref<'_, dyn Decals> {
+        Ref::map(self.decals.borrow(), |i| i.as_ref())
+    }
+
+    pub fn set_decals<T: Decals + 'static>(&self, decals: T) {
+        self.decals.replace(Box::new(decals));
     }
 
     pub fn game_rules(&self) -> Ref<'_, dyn GameRules> {
@@ -250,6 +264,7 @@ impl GlobalState {
     pub fn reset(&self) {
         self.entities_mut().clear();
         self.init_hud.set(true);
+        self.decals.replace(Box::new(StubDecals::new(self.engine)));
     }
 
     pub fn entity_state(&self, name: MapString) -> EntityState {

@@ -649,6 +649,16 @@ define_entity_trait! {
             self.remove_from_world();
         }
 
+        fn is_alive(&self) -> bool {
+            let v = self.vars();
+            v.dead() == Dead::No && v.health() > 0.0
+        }
+
+        fn is_bsp_model(&self) -> bool {
+            let v = self.vars();
+            v.solid() == Solid::Bsp || v.move_type() == MoveType::PushStep
+        }
+
         fn override_reset(&self) {}
 
         fn set_object_collision_box(&self) {
