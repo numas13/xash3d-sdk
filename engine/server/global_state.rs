@@ -2,12 +2,13 @@ pub mod decals;
 pub mod sprites;
 
 use core::{
+    any::{type_name, Any},
     cell::{Cell, Ref, RefCell, RefMut},
     ffi::{c_int, CStr},
     mem::MaybeUninit,
 };
 
-use alloc::{boxed::Box, collections::linked_list::LinkedList};
+use alloc::{boxed::Box, collections::linked_list::LinkedList, vec::Vec};
 use csz::{CStrArray, CStrThin};
 use xash3d_shared::{engine::EngineRef, export::impl_unsync_global, ffi::server::TYPEDESCRIPTION};
 
@@ -167,6 +168,10 @@ unsafe impl SaveFields for GlobalStateSave {
     const SAVE_FIELDS: &'static [TYPEDESCRIPTION] = &define_fields![list_count];
 }
 
+pub trait DefaultGlobal {
+    fn default_global(engine: ServerEngineRef) -> Self;
+}
+
 pub struct GlobalState {
     engine: ServerEngineRef,
     entities: RefCell<Entities>,
@@ -177,6 +182,7 @@ pub struct GlobalState {
     talk_wait_time: Cell<MapTime>,
     decals: RefCell<Box<dyn Decals>>,
     sprites: RefCell<Box<dyn Sprites>>,
+    custom: RefCell<Vec<Box<dyn Any>>>,
 }
 
 impl_unsync_global!(GlobalState);
@@ -193,6 +199,7 @@ impl GlobalState {
             talk_wait_time: Default::default(),
             decals: RefCell::new(Box::new(StubDecals::new(engine))),
             sprites: RefCell::new(Box::new(StubSprites::new(engine))),
+            custom: RefCell::default(),
         }
     }
 
@@ -277,6 +284,7 @@ impl GlobalState {
         self.entities_mut().clear();
         self.init_hud.set(true);
         self.decals.replace(Box::new(StubDecals::new(self.engine)));
+        self.custom.borrow_mut().clear();
     }
 
     pub fn entity_state(&self, name: MapString) -> EntityState {
@@ -328,6 +336,61 @@ impl GlobalState {
 
     pub fn set_talk_wait_time_from_now(&self, relative: f32) {
         self.set_talk_wait_time(self.engine.globals.map_time() + relative);
+    }
+
+    /// Returns a custom global state with type `T`.
+    pub fn try_get<T: Any>(&self) -> Option<Ref<'_, T>> {
+        Ref::filter_map(self.custom.borrow(), |list| {
+            list.iter().find_map(|i| i.as_ref().downcast_ref::<T>())
+        })
+        .ok()
+    }
+
+    /// Returns a custom global state with type `T`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the custom global state is not added.
+    pub fn get<T: Any>(&self) -> Ref<'_, T> {
+        match self.try_get() {
+            Some(custom) => custom,
+            None => {
+                panic!("custom({}) is not added to GlobalState", type_name::<T>());
+            }
+        }
+    }
+
+    pub fn get_or_insert<T: Any>(&self, with: impl FnOnce() -> T) -> Ref<'_, T> {
+        match self.try_get::<T>() {
+            Some(i) => i,
+            None => {
+                let custom = Box::new(with());
+                trace!("add custom({})", type_name::<T>());
+                self.custom.borrow_mut().push(custom);
+                Ref::map(self.custom.borrow(), |list| {
+                    list.last().unwrap().as_ref().downcast_ref::<T>().unwrap()
+                })
+            }
+        }
+    }
+
+    pub fn get_or_default<T: Any + DefaultGlobal>(&self) -> Ref<'_, T> {
+        self.get_or_insert::<T>(|| T::default_global(self.engine))
+    }
+
+    /// Add a custom global state with type `T`.
+    pub fn add<T: Any>(&self, custom: T) {
+        let mut list = self.custom.borrow_mut();
+        match list.iter_mut().find_map(|i| i.as_mut().downcast_mut::<T>()) {
+            Some(i) => {
+                trace!("replace custom({})", type_name::<T>());
+                *i = custom;
+            }
+            None => {
+                trace!("add custom({})", type_name::<T>());
+                list.push(Box::new(custom));
+            }
+        }
     }
 }
 
