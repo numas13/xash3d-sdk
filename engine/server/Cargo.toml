@@ -25,67 +25,29 @@ export-default-entities = []
 # exports stub for some unimplemented entities
 export-stubs = []
 
-#
-# Entities: world
-#
-
-export-infodecal = []
-
-#
-# Entities: func
-#
-
-export-func_friction = []
-export-func_ladder = []
-
-#
-# Entities: sound
-#
-
 export-ambient_generic = []
+export-env_debris = []
+export-env_glow = []
 export-env_sound = []
-export-speaker = []
-
-#
-# Entities: lights
-#
-
+export-env_spark = []
+export-func_door = []
+export-func_door_rotating = []
+export-func_friction = []
+export-func_illusionary = []
+export-func_ladder = []
+export-func_wall = []
+export-func_water = []
+export-info_landmark = []
+export-info_node = []
+export-info_node_air = []
+export-info_player_deathmatch = []
+export-info_player_start = []
+export-info_target = []
+export-infodecal = []
 export-light = []
 export-light_spot = []
-
-#
-# Entities: effects
-#
-
-export-env_glow = []
-
-#
-# Entities: bmodels
-#
-
-export-func_wall = []
-
-#
-# Entities: buttons
-#
-
-export-env_spark = []
-export-env_debris = []
-
-#
-# Entities: doors
-#
-
-export-func_door = []
-export-func_water = []
-export-func_door_rotating = []
-
-#
-# Entities: triggers
-#
-
 export-multi_manager = []
-
+export-speaker = []
 export-trigger_auto = []
 export-trigger_autosave = []
 export-trigger_changelevel = []
@@ -95,19 +57,6 @@ export-trigger_multiple = []
 export-trigger_once = []
 export-trigger_push = []
 export-trigger_transition = []
-
-#
-# Entities: subs
-#
-
-export-info_player_deathmatch = []
-export-info_player_start = []
-export-info_landmark = []
-export-info_target = []
-
-# Entities: nodes
-export-info_node = []
-export-info_node_air = []
 
 [lib]
 path = "lib.rs"

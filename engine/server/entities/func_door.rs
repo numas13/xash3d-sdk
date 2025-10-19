@@ -11,7 +11,7 @@ use xash3d_shared::{
 };
 
 use crate::{
-    entities::{buttons::button_sound_or_default, subs::DelayedUse},
+    entities::{delayed_use::DelayedUse, env_spark::button_sound_or_default},
     entity::{
         delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, EntityCast,
         EntityHandle, EntityVars, KeyValue, ObjectCaps, Solid, UseType,

@@ -2,14 +2,15 @@ use core::cell::Cell;
 
 use xash3d_shared::entity::MoveType;
 
-#[cfg(feature = "save")]
-use crate::save::{Restore, Save};
 use crate::{
-    entities::subs::PointEntity,
+    entities::point_entity::PointEntity,
     entity::{delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, Solid},
-    export::{export_entity_default, export_entity_stub},
+    export::export_entity_default,
     time::MapTime,
 };
+
+#[cfg(feature = "save")]
+use crate::save::{Restore, Save};
 
 #[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct Glow {
@@ -74,16 +75,3 @@ impl Entity for Glow {
 }
 
 export_entity_default!("export-env_glow", env_glow, Glow);
-
-export_entity_stub!(env_bubbles);
-export_entity_stub!(beam);
-export_entity_stub!(env_lightning);
-export_entity_stub!(env_beam);
-export_entity_stub!(env_laser);
-export_entity_stub!(env_sprite);
-export_entity_stub!(gibshooter);
-export_entity_stub!(env_shooter);
-export_entity_stub!(test_effect);
-export_entity_stub!(env_blood);
-export_entity_stub!(env_shake);
-export_entity_stub!(env_fade);

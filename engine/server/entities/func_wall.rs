@@ -3,15 +3,16 @@ use xash3d_shared::{
     ffi::common::vec3_t,
 };
 
-#[cfg(feature = "save")]
-use crate::save::{Restore, Save};
 use crate::{
     entity::{
         delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, ObjectCaps, Solid,
         UseType,
     },
-    export::{export_entity_default, export_entity_stub},
+    export::export_entity_default,
 };
+
+#[cfg(feature = "save")]
+use crate::save::{Restore, Save};
 
 #[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct FuncWall {
@@ -53,6 +54,3 @@ impl Entity for FuncWall {
 }
 
 export_entity_default!("export-func_wall", func_wall, FuncWall);
-
-export_entity_stub!(func_rotating);
-export_entity_stub!(func_illusionary);

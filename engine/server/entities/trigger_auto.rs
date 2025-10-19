@@ -1,0 +1,93 @@
+use crate::{
+    entities::delayed_use::DelayedUse,
+    entity::{
+        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, KeyValue, ObjectCaps,
+        UseType,
+    },
+    export::export_entity_default,
+    global_state::EntityState,
+    str::MapString,
+};
+
+#[cfg(feature = "save")]
+use crate::save::{Restore, Save};
+
+#[cfg_attr(feature = "save", derive(Save, Restore))]
+pub struct AutoTrigger {
+    base: BaseEntity,
+    delayed: DelayedUse,
+    global_state: Option<MapString>,
+    trigger_type: UseType,
+}
+
+impl AutoTrigger {
+    /// Remove this trigger after firing.
+    const SF_FIREONCE: u32 = 1 << 0;
+}
+
+impl_entity_cast!(AutoTrigger);
+
+impl CreateEntity for AutoTrigger {
+    fn create(base: BaseEntity) -> Self {
+        Self {
+            delayed: DelayedUse::new(base.engine()),
+            base,
+            global_state: None,
+            trigger_type: UseType::Off,
+        }
+    }
+}
+
+impl Entity for AutoTrigger {
+    delegate_entity!(base not { object_caps, key_value, precache, spawn, think });
+
+    fn object_caps(&self) -> ObjectCaps {
+        self.base
+            .object_caps()
+            .difference(ObjectCaps::ACROSS_TRANSITION)
+    }
+
+    fn key_value(&mut self, data: &mut KeyValue) {
+        match data.key_name().to_bytes() {
+            b"globalstate" => {
+                self.global_state = Some(self.engine().new_map_string(data.value()));
+            }
+            b"triggerstate" => match data.value().to_bytes() {
+                b"0" => self.trigger_type = UseType::Off,
+                b"2" => self.trigger_type = UseType::Toggle,
+                _ => self.trigger_type = UseType::On,
+            },
+            _ => {
+                if !self.delayed.key_value(data) {
+                    self.base.key_value(data);
+                }
+                return;
+            }
+        }
+        data.set_handled(true);
+    }
+
+    fn precache(&mut self) {
+        self.vars().set_next_think_time_from_now(0.1);
+    }
+
+    fn spawn(&mut self) {
+        self.precache();
+    }
+
+    fn think(&self) {
+        if !self.global_state.map_or(true, |name| {
+            self.global_state().entity_state(name) == EntityState::On
+        }) {
+            return;
+        }
+
+        self.delayed.use_targets(self.trigger_type, self);
+
+        if self.vars().spawn_flags() & Self::SF_FIREONCE != 0 {
+            self.remove_from_world();
+        }
+    }
+}
+
+export_entity_default!("export-trigger_auto", trigger_auto, AutoTrigger);

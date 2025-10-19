@@ -1,9 +1,9 @@
 use crate::{
     entity::{
         delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, EntityPlayer,
-        KeyValue, ObjectCaps, Private, Solid, UseType,
+        KeyValue, Private, UseType,
     },
-    export::{export_entity, export_entity_default},
+    export::export_entity,
     prelude::*,
     str::MapString,
     utils,
@@ -11,73 +11,6 @@ use crate::{
 
 #[cfg(feature = "save")]
 use crate::save::{Restore, Save};
-
-#[cfg_attr(feature = "save", derive(Save, Restore))]
-pub struct PointEntity {
-    base: BaseEntity,
-}
-
-impl_entity_cast!(PointEntity);
-
-impl CreateEntity for PointEntity {
-    fn create(base: BaseEntity) -> Self {
-        Self { base }
-    }
-}
-
-impl Entity for PointEntity {
-    delegate_entity!(base not { object_caps, spawn });
-
-    fn object_caps(&self) -> ObjectCaps {
-        self.base
-            .object_caps()
-            .difference(ObjectCaps::ACROSS_TRANSITION)
-    }
-
-    fn spawn(&mut self) {
-        let v = self.vars();
-        v.set_solid(Solid::Not);
-    }
-}
-
-#[cfg_attr(feature = "save", derive(Save, Restore))]
-pub struct DeathMatchStart {
-    base: PointEntity,
-}
-
-impl_entity_cast!(DeathMatchStart);
-
-impl CreateEntity for DeathMatchStart {
-    fn create(base: BaseEntity) -> Self {
-        Self {
-            base: PointEntity::create(base),
-        }
-    }
-}
-
-impl Entity for DeathMatchStart {
-    delegate_entity!(base not { key_value, is_triggered });
-
-    fn key_value(&mut self, data: &mut KeyValue) {
-        if data.key_name() == c"master" {
-            let engine = self.engine();
-            self.vars()
-                .set_net_name(engine.new_map_string(data.value()));
-            data.set_handled(true);
-        } else {
-            self.base.key_value(data);
-        }
-    }
-
-    fn is_triggered(&self, activator: &dyn Entity) -> bool {
-        let engine = self.engine();
-        if let Some(master) = self.vars().net_name() {
-            utils::is_master_triggered(&engine, master, activator)
-        } else {
-            true
-        }
-    }
-}
 
 #[cfg_attr(feature = "save", derive(Save, Restore))]
 struct DelayedUseEntity {
@@ -208,14 +141,4 @@ impl DelayedUse {
     }
 }
 
-export_entity!(DelayedUse, Private<DelayedUseEntity>);
-
-export_entity_default!(
-    "export-info_player_deathmatch",
-    info_player_deathmatch,
-    DeathMatchStart
-);
-export_entity_default!("export-info_player_start", info_player_start, PointEntity);
-export_entity_default!("export-info_landmark", info_landmark, PointEntity);
-// Lightning target, just alias landmark.
-export_entity_default!("export-info_target", info_target, PointEntity);
+export_entity!(delayed_use, Private<DelayedUseEntity>);

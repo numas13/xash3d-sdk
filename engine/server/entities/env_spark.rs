@@ -3,18 +3,19 @@ use core::{cell::Cell, ffi::CStr};
 use bitflags::bitflags;
 use xash3d_shared::ffi::common::vec3_t;
 
-#[cfg(feature = "save")]
-use crate::save::{self, Restore, Save};
 use crate::{
     engine::ServerEngineRef,
     entity::{
         delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, EntityVars, KeyValue,
-        ObjectCaps, StubEntity, TakeDamage, UseType,
+        UseType,
     },
-    export::{export_entity_default, export_entity_stub},
+    export::export_entity_default,
     prelude::*,
     user_message,
 };
+
+#[cfg(feature = "save")]
+use crate::save::{self, Restore, Save};
 
 // TODO: derive Save and Restore
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -162,36 +163,6 @@ impl Entity for EnvSpark {
     }
 }
 
-#[cfg_attr(feature = "save", derive(Save, Restore))]
-pub struct Button {
-    base: StubEntity,
-}
-
-impl_entity_cast!(Button);
-
-impl CreateEntity for Button {
-    fn create(base: BaseEntity) -> Self {
-        Self {
-            base: StubEntity::new(base, false),
-        }
-    }
-}
-
-impl Entity for Button {
-    delegate_entity!(base not { object_caps });
-
-    fn object_caps(&self) -> ObjectCaps {
-        self.base
-            .object_caps()
-            .difference(ObjectCaps::ACROSS_TRANSITION)
-            .union(if self.vars().take_damage() == TakeDamage::No {
-                ObjectCaps::IMPULSE_USE
-            } else {
-                ObjectCaps::NONE
-            })
-    }
-}
-
 const BUTTON_SOUNDS: &[&CStr] = &[
     res::valve::sound::common::NULL,
     res::valve::sound::buttons::BUTTON1,
@@ -253,11 +224,3 @@ fn do_spark(engine: ServerEngineRef, vars: &EntityVars, location: vec3_t) {
 }
 
 export_entity_default!("export-env_spark", env_spark, EnvSpark);
-export_entity_default!("export-env_debris", env_debris, EnvSpark);
-
-export_entity_stub!(button_target);
-export_entity_stub!(env_global);
-export_entity_stub!(func_button, Button);
-export_entity_stub!(func_rot_button, Button);
-export_entity_stub!(momentary_rot_button);
-export_entity_stub!(multisource);

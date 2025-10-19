@@ -29,7 +29,7 @@ use xash3d_shared::{
 
 use crate::{
     engine::ClientInfoBuffer,
-    entities::triggers,
+    entities::trigger_changelevel::build_change_list,
     entity::{
         BaseEntity, CreateEntity, Entity, EntityHandle, EntityPlayer, KeyValue, PrivateData,
         PrivateEntity, RestoreResult, UseType,
@@ -471,7 +471,7 @@ pub trait ServerDll: UnsyncGlobal {
         if let Some(mut save_data) = engine.globals.save_data() {
             let save_data = unsafe { save_data.as_mut() };
             save_data.connectionCount =
-                triggers::build_change_list(engine, &mut save_data.levelList) as c_int;
+                build_change_list(engine, &mut save_data.levelList) as c_int;
         }
     }
 
