@@ -299,29 +299,44 @@ impl EntityPlayer for TestPlayer {
             use xash3d_server::color::RGB;
             use xash3d_server::engine::TraceIgnore;
             use xash3d_server::user_message;
+            use xash3d_server::utils;
 
             let engine = self.engine();
             let global_state = engine.global_state_ref();
             let v = self.vars();
-            let start = v.origin() + v.view_ofs();
+            let start = v.origin() + v.view_ofs() * 0.5;
             let forward = v.view_angle().angle_vectors().forward();
             let end = start + forward * 1000.0;
             let trace = engine.trace_line(start, end, TraceIgnore::MONSTERS, Some(v));
-            let decals = global_state.decals();
-            let decal_index = if pressed.intersects(Buttons::ATTACK) {
-                decals.get_random_blood()
-            } else {
-                // not supported by MSRV
-                // use xash3d_server::global_state::decals::DefaultDecals;
-                // let decals: &DefaultDecals = <dyn core::any::Any>::downcast_ref(&*decals).unwrap();
-                // decals.get_random_yellow_blood()
 
-                decals.get_random_yellow_blood()
-            };
-            utils::decal_trace(&engine, &trace, decal_index);
+            if true {
+                let decals = global_state.decals();
+                let decal_index = if pressed.intersects(Buttons::ATTACK) {
+                    decals.get_random_blood()
+                } else {
+                    // not supported by MSRV
+                    // use xash3d_server::global_state::decals::DefaultDecals;
+                    // let decals: &DefaultDecals = <dyn core::any::Any>::downcast_ref(&*decals).unwrap();
+                    // decals.get_random_yellow_blood()
+
+                    decals.get_random_yellow_blood()
+                };
+                utils::decal_trace(&engine, &trace, decal_index);
+            }
+
+            if true {
+                let blood = utils::Blood::Red;
+                let end = trace.end_position();
+                if pressed.intersects(Buttons::ATTACK) {
+                    blood.emit_blood_drips(&engine, end, 10);
+                } else {
+                    let amount = engine.random_int(50, 150) as u8;
+                    blood.emit_blood_stream(&engine, end, -forward, amount);
+                }
+            }
 
             let msg = user_message::Line {
-                start: (v.origin() + v.view_ofs() * 0.5).into(),
+                start: start.into(),
                 end: trace.end_position().into(),
                 duration: 3.0.into(),
                 color: RGB::GREEN,

@@ -133,6 +133,88 @@ pub fn clamp_vector_to_box(mut v: vec3_t, clamp_size: vec3_t) -> vec3_t {
     v.normalize()
 }
 
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
+pub enum Blood {
+    #[default]
+    Red,
+    Yellow,
+}
+
+impl Blood {
+    pub fn should_show(&self, engine: &ServerEngine) -> bool {
+        match self {
+            Self::Red => engine.get_cvar(c"violence_hblood"),
+            Self::Yellow => engine.get_cvar(c"violence_ablood"),
+        }
+    }
+
+    pub fn color_index(&self) -> u8 {
+        match self {
+            Self::Red => 247,
+            Self::Yellow => 195,
+        }
+    }
+
+    pub fn emit_blood_stream(
+        &self,
+        engine: &ServerEngine,
+        origin: vec3_t,
+        direction: vec3_t,
+        amount: u8,
+    ) {
+        if !self.should_show(engine) {
+            return;
+        }
+        let msg = user_message::BloodStream {
+            start: origin.into(),
+            direction: direction.into(),
+            color: self.color_index(),
+            speed: amount,
+        };
+        engine.msg_pvs(origin, &msg);
+    }
+
+    pub fn emit_blood_drips(&self, engine: &ServerEngine, origin: vec3_t, mut amount: u8) {
+        if !self.should_show(engine) || amount == 0 {
+            return;
+        }
+        let global_state = engine.global_state_ref();
+        if global_state.game_rules().is_multiplayer() {
+            amount = amount.saturating_mul(2);
+        }
+        let sprites = global_state.sprites();
+        let msg = user_message::BloodSprite {
+            position: origin.into(),
+            initial_sprite_index: sprites.blood_spray(),
+            droplet_sprite_index: sprites.blood_drop(),
+            color: self.color_index(),
+            scale: (amount / 10).clamp(3, 16),
+        };
+        engine.msg_pvs(origin, &msg);
+    }
+
+    pub fn decal_trace(&self, engine: &ServerEngine, trace: &TraceResult) {
+        if !self.should_show(engine) {
+            return;
+        }
+        let global_state = engine.global_state_ref();
+        let decals = global_state.decals();
+        let decal_index = match self {
+            Self::Red => decals.get_random_blood(),
+            Self::Yellow => decals.get_random_yellow_blood(),
+        };
+        decal_trace(engine, trace, decal_index);
+    }
+
+    pub fn random_direction(engine: &ServerEngine) -> vec3_t {
+        vec3_t::new(
+            engine.random_float(-1.0, 1.0),
+            engine.random_float(-1.0, 1.0),
+            engine.random_float(0.0, 1.0),
+        )
+    }
+}
+
 pub fn decal_trace(engine: &ServerEngine, trace: &TraceResult, decal_index: u16) {
     if trace.fraction() == 1.0 {
         return;

@@ -4,7 +4,7 @@ use bitflags::bitflags;
 
 use crate::{
     entity::{delegate_entity, impl_entity_cast, BaseEntity, Entity, KeyValue},
-    global_state::{decals::DefaultDecals, GlobalStateRef},
+    global_state::{decals::DefaultDecals, sprites::DefaultSprites, GlobalStateRef},
     prelude::*,
 };
 
@@ -81,6 +81,7 @@ impl Entity for World {
         global_state.sentence_init();
 
         // TODO: precache weapons
+        global_state.set_sprites(DefaultSprites::new(engine));
 
         client_precache(engine);
 

@@ -1,4 +1,5 @@
 pub mod decals;
+pub mod sprites;
 
 use core::{
     cell::{Cell, Ref, RefCell, RefMut},
@@ -15,6 +16,7 @@ use crate::{
     engine::ServerEngineRef,
     entity::EntityHandle,
     game_rules::{GameRules, StubGameRules},
+    global_state::sprites::{Sprites, StubSprites},
     save::{FieldType, SaveFields, SaveReader, SaveRestoreData, SaveResult, SaveWriter},
     sound::Sentences,
     str::MapString,
@@ -174,6 +176,7 @@ pub struct GlobalState {
     sentences: RefCell<Option<Sentences>>,
     talk_wait_time: Cell<MapTime>,
     decals: RefCell<Box<dyn Decals>>,
+    sprites: RefCell<Box<dyn Sprites>>,
 }
 
 impl_unsync_global!(GlobalState);
@@ -189,6 +192,7 @@ impl GlobalState {
             sentences: RefCell::new(None),
             talk_wait_time: Default::default(),
             decals: RefCell::new(Box::new(StubDecals::new(engine))),
+            sprites: RefCell::new(Box::new(StubSprites::new(engine))),
         }
     }
 
@@ -206,6 +210,14 @@ impl GlobalState {
 
     pub fn set_decals<T: Decals + 'static>(&self, decals: T) {
         self.decals.replace(Box::new(decals));
+    }
+
+    pub fn sprites(&self) -> Ref<'_, dyn Sprites> {
+        Ref::map(self.sprites.borrow(), |i| i.as_ref())
+    }
+
+    pub fn set_sprites<T: Sprites + 'static>(&self, sprites: T) {
+        self.sprites.replace(Box::new(sprites));
     }
 
     pub fn game_rules(&self) -> Ref<'_, dyn GameRules> {
