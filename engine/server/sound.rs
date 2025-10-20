@@ -1,4 +1,4 @@
-use core::{cell::RefCell, cmp, fmt::Write};
+use core::{cell::RefCell, cmp, ffi::CStr, fmt::Write};
 
 use alloc::vec::Vec;
 use csz::{CStrArray, CStrSlice, CStrThin};
@@ -300,4 +300,66 @@ impl LockSounds {
             self.play_unlock(v, Self::BUTTON_SOUND_WAIT);
         }
     }
+}
+
+pub const LOCK_SENTENCES: &[&CStr] = &[
+    c"NA",    // access denied
+    c"ND",    // security lockout
+    c"NF",    // blast door
+    c"NFIRE", // fire door
+    c"NCHEM", // chemical door
+    c"NRAD",  // radiation door
+    c"NCON",  // gen containment
+    c"NH",    // maintenance door
+    c"NG",    // broken door
+];
+
+pub const UNLOCK_SENTENCES: &[&CStr] = &[
+    c"EA",    // access granted
+    c"ED",    // security door
+    c"EF",    // blast door
+    c"EFIRE", // fire door
+    c"ECHEM", // chemical door
+    c"ERAD",  // radiation door
+    c"ECON",  // gen containment
+    c"EH",    // maintenance door
+];
+
+const BUTTON_SOUNDS: &[&CStr] = &[
+    res::valve::sound::common::NULL,
+    res::valve::sound::buttons::BUTTON1,
+    res::valve::sound::buttons::BUTTON2,
+    res::valve::sound::buttons::BUTTON3,
+    res::valve::sound::buttons::BUTTON4,
+    res::valve::sound::buttons::BUTTON5,
+    res::valve::sound::buttons::BUTTON6,
+    res::valve::sound::buttons::BUTTON7,
+    res::valve::sound::buttons::BUTTON8,
+    res::valve::sound::buttons::BUTTON9,
+    res::valve::sound::buttons::BUTTON10,
+    res::valve::sound::buttons::BUTTON11,
+    res::valve::sound::buttons::LATCHLOCKED1,
+    res::valve::sound::buttons::LATCHUNLOCKED1,
+    res::valve::sound::buttons::LIGHTSWITCH2,
+    res::valve::sound::buttons::BUTTON9, // reserved
+    res::valve::sound::buttons::BUTTON9, // reserved
+    res::valve::sound::buttons::BUTTON9, // reserved
+    res::valve::sound::buttons::BUTTON9, // reserved
+    res::valve::sound::buttons::BUTTON9, // reserved
+    res::valve::sound::buttons::BUTTON9, // reserved
+    res::valve::sound::buttons::LEVER1,
+    res::valve::sound::buttons::LEVER2,
+    res::valve::sound::buttons::LEVER3,
+    res::valve::sound::buttons::LEVER4,
+    res::valve::sound::buttons::LEVER5,
+];
+
+const BUTTON_DEFAULT_SOUND: &CStr = res::valve::sound::buttons::BUTTON9;
+
+pub fn button_sound(index: usize) -> Option<&'static CStr> {
+    BUTTON_SOUNDS.get(index).copied()
+}
+
+pub fn button_sound_or_default(index: usize) -> &'static CStr {
+    button_sound(index).unwrap_or(BUTTON_DEFAULT_SOUND)
 }

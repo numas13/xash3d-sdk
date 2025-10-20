@@ -11,7 +11,7 @@ use xash3d_shared::{
 };
 
 use crate::{
-    entities::{delayed_use::DelayedUse, env_spark::button_sound_or_default},
+    entities::delayed_use::DelayedUse,
     entity::{
         delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, EntityCast,
         EntityHandle, EntityVars, KeyValue, ObjectCaps, Solid, UseType,
@@ -19,7 +19,7 @@ use crate::{
     export::export_entity_default,
     prelude::*,
     save::{PositionVector, Restore, Save},
-    sound::LockSounds,
+    sound::{self, button_sound_or_default, LockSounds},
     str::MapString,
     utils,
 };
@@ -51,29 +51,6 @@ const STOP_SOUNDS: &[&CStr] = &[
     res::valve::sound::doors::DOORSTOP6,
     res::valve::sound::doors::DOORSTOP7,
     res::valve::sound::doors::DOORSTOP8,
-];
-
-const LOCK_SENTENCES: &[&CStr] = &[
-    c"NA",    // access denied
-    c"ND",    // security lockout
-    c"NF",    // blast door
-    c"NFIRE", // fire door
-    c"NCHEM", // chemical door
-    c"NRAD",  // radiation door
-    c"NCON",  // gen containment
-    c"NH",    // maintenance door
-    c"NG",    // broken door
-];
-
-const UNLOCK_SENTENCES: &[&CStr] = &[
-    c"EA",    // access granted
-    c"ED",    // security door
-    c"EF",    // blast door
-    c"EFIRE", // fire door
-    c"ECHEM", // chemical door
-    c"ERAD",  // radiation door
-    c"ECON",  // gen containment
-    c"EH",    // maintenance door
 ];
 
 pub trait Move: Save + Restore + 'static {
@@ -648,13 +625,13 @@ impl<T: Move> Entity for BaseDoor<T> {
         lock_sounds.locked_sentence = self
             .locked_sentence
             .checked_sub(1)
-            .and_then(|index| LOCK_SENTENCES.get(index as usize))
+            .and_then(|index| sound::LOCK_SENTENCES.get(index as usize))
             .map(|&s| engine.new_map_string(s));
 
         lock_sounds.unlocked_sentence = self
             .unlocked_sentence
             .checked_sub(1)
-            .and_then(|index| UNLOCK_SENTENCES.get(index as usize))
+            .and_then(|index| sound::UNLOCK_SENTENCES.get(index as usize))
             .map(|&s| engine.new_map_string(s));
     }
 
