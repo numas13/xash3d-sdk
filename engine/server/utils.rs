@@ -9,12 +9,13 @@ use crate::{
     entity::{Entity, EntityVars, GetPrivateData, KeyValue, ObjectCaps, UseType},
     prelude::*,
     save::PositionVector,
+    save::{Restore, Save},
     str::MapString,
     user_message,
 };
 
 #[cfg(feature = "save")]
-use crate::save::{self, Restore, Save};
+use crate::save;
 
 /// Used for view cone checking.
 #[derive(Copy, Clone, PartialEq)]

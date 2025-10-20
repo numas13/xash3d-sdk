@@ -17,11 +17,13 @@ use crate::{
     },
     export::export_entity_default,
     prelude::*,
-    save::{Restore, Save},
     sound::{self, button_sound_or_default, LockSounds},
     str::MapString,
     utils::{self, AngularMove, LinearMove, Move, MoveState},
 };
+
+#[cfg(feature = "save")]
+use crate::save::{Restore, Save};
 
 const MOVE_SOUNDS: &[&CStr] = &[
     res::valve::sound::common::NULL,
