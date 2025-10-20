@@ -314,11 +314,8 @@ impl EntityPlayer for TestPlayer {
                 let decal_index = if pressed.intersects(Buttons::ATTACK) {
                     decals.get_random_blood()
                 } else {
-                    // not supported by MSRV
-                    // use xash3d_server::global_state::decals::DefaultDecals;
-                    // let decals: &DefaultDecals = <dyn core::any::Any>::downcast_ref(&*decals).unwrap();
-                    // decals.get_random_yellow_blood()
-
+                    use xash3d_server::global_state::decals::DefaultDecals;
+                    let decals: &DefaultDecals = decals.as_any().downcast_ref().unwrap();
                     decals.get_random_yellow_blood()
                 };
                 utils::decal_trace(&engine, &trace, decal_index);

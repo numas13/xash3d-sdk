@@ -1,8 +1,10 @@
-use core::{any::Any, ffi::CStr};
+use core::ffi::CStr;
+
+use xash3d_shared::utils::AsAny;
 
 use crate::prelude::*;
 
-pub trait Decals: Any {
+pub trait Decals: AsAny {
     fn get_random_gunshot(&self) -> u16;
 
     fn get_random_bigshot(&self) -> u16;

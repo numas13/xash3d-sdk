@@ -1,6 +1,8 @@
+use xash3d_shared::utils::AsAny;
+
 use crate::prelude::*;
 
-pub trait Sprites {
+pub trait Sprites: AsAny {
     fn laser(&self) -> u16;
 
     fn laser_dot(&self) -> u16;

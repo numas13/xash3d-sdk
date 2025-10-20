@@ -1,4 +1,4 @@
-use core::{ffi::c_char, slice};
+use core::{any::Any, ffi::c_char, slice};
 
 use csz::CStrThin;
 
@@ -47,5 +47,15 @@ pub unsafe fn cstr_or_none<'a>(ptr: *const c_char) -> Option<&'a CStrThin> {
         Some(unsafe { CStrThin::from_ptr(ptr) })
     } else {
         None
+    }
+}
+
+pub trait AsAny {
+    fn as_any(&self) -> &dyn Any;
+}
+
+impl<T: Any> AsAny for T {
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }
