@@ -410,15 +410,13 @@ impl<T: Move> BaseDoor<T> {
             }
         }
 
-        if let Some(activator) = self.activator.get().get_entity() {
-            if let Some(net_name) = v.net_name() {
-                if spawn_flags.intersects(DoorSpawnFlags::START_OPEN) {
-                    utils::fire_targets(&net_name, UseType::Toggle, Some(activator), self);
-                }
+        let activator = self.activator.get().get_entity();
+        if let Some(net_name) = v.net_name() {
+            if spawn_flags.intersects(DoorSpawnFlags::START_OPEN) {
+                utils::fire_targets(&net_name, UseType::Toggle, activator, self);
             }
-
-            self.delayed.use_targets(UseType::Toggle, activator);
         }
+        self.delayed.use_targets(UseType::Toggle, activator, self);
     }
 
     fn door_hit_bottom(&self) {
@@ -443,15 +441,13 @@ impl<T: Move> BaseDoor<T> {
         self.enable_touch
             .set(!spawn_flags.intersects(DoorSpawnFlags::USE_ONLY));
 
-        if let Some(activator) = self.activator.get().get_entity() {
-            self.delayed.use_targets(UseType::Toggle, activator);
-
-            if let Some(net_name) = v.net_name() {
-                if !spawn_flags.intersects(DoorSpawnFlags::START_OPEN) {
-                    utils::fire_targets(&net_name, UseType::Toggle, Some(activator), self);
-                }
+        let activator = self.activator.get().get_entity();
+        if let Some(net_name) = v.net_name() {
+            if !spawn_flags.intersects(DoorSpawnFlags::START_OPEN) {
+                utils::fire_targets(&net_name, UseType::Toggle, activator, self);
             }
         }
+        self.delayed.use_targets(UseType::Toggle, activator, self);
     }
 
     fn on_move_done(&self) {

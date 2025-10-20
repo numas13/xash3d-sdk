@@ -82,7 +82,8 @@ impl Entity for AutoTrigger {
             return;
         }
 
-        self.delayed.use_targets(self.trigger_type, self);
+        self.delayed
+            .use_targets(self.trigger_type, Some(self), self);
 
         if self.vars().spawn_flags() & Self::SF_FIREONCE != 0 {
             self.remove_from_world();

@@ -65,7 +65,7 @@ impl TriggerMultiple {
             engine.build_sound().channel_voice().emit(noise, self);
         }
 
-        self.delayed.use_targets(UseType::Toggle, self);
+        self.delayed.use_targets(UseType::Toggle, Some(other), self);
 
         if let Some(_message) = v.message() {
             // TODO: need HudText user message defined in xash3d-hl-shared =\

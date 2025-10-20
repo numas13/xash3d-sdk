@@ -125,7 +125,12 @@ impl DelayedUse {
         }
     }
 
-    pub fn use_targets(&self, use_type: UseType, caller: &dyn Entity) {
+    pub fn use_targets(
+        &self,
+        use_type: UseType,
+        activator: Option<&dyn Entity>,
+        caller: &dyn Entity,
+    ) {
         if self.delay != 0.0 {
             DelayedUseEntity::spawn_new(
                 self.engine,
@@ -133,10 +138,10 @@ impl DelayedUse {
                 caller.vars().target(),
                 use_type,
                 self.kill_target,
-                Some(caller),
+                activator,
             );
         } else {
-            utils::use_targets(self.kill_target, use_type, None, caller);
+            utils::use_targets(self.kill_target, use_type, activator, caller);
         }
     }
 }

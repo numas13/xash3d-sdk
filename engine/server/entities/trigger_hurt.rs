@@ -149,7 +149,7 @@ impl Entity for TriggerHurt {
             if spawn_flags.intersects(TriggerHurtSpawnFlags::CLIENT_ONLY_FIRE) && !is_player {
                 return;
             }
-            self.delayed.use_targets(UseType::Toggle, self);
+            self.delayed.use_targets(UseType::Toggle, Some(other), self);
             if spawn_flags.intersects(TriggerHurtSpawnFlags::TARGET_ONCE) {
                 self.vars().set_target(None);
             }
