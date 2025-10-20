@@ -1,17 +1,14 @@
 use core::{cell::Cell, ffi::CStr};
 
 use bitflags::bitflags;
-use xash3d_shared::ffi::common::vec3_t;
 
 use crate::{
-    engine::ServerEngineRef,
     entity::{
-        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, EntityVars, KeyValue,
-        UseType,
+        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, KeyValue, UseType,
     },
     export::export_entity_default,
     prelude::*,
-    user_message,
+    utils::Sparks,
 };
 
 #[cfg(feature = "save")]
@@ -111,9 +108,7 @@ impl Entity for EnvSpark {
 
     fn precache(&mut self) {
         let engine = self.engine();
-        for &i in SPARK_SOUNDS {
-            engine.precache_sound(i);
-        }
+        Sparks::new(engine).precache();
     }
 
     fn spawn(&mut self) {
@@ -145,7 +140,7 @@ impl Entity for EnvSpark {
             self.set_next_think_time();
             let engine = self.engine();
             let v = self.vars();
-            do_spark(engine, v, v.origin());
+            Sparks::new(engine).emit(v.origin(), v);
         }
     }
 
@@ -200,27 +195,6 @@ pub fn button_sound(index: usize) -> Option<&'static CStr> {
 
 pub fn button_sound_or_default(index: usize) -> &'static CStr {
     button_sound(index).unwrap_or(BUTTON_DEFAULT_SOUND)
-}
-
-const SPARK_SOUNDS: &[&CStr] = &[
-    res::valve::sound::buttons::SPARK1,
-    res::valve::sound::buttons::SPARK2,
-    res::valve::sound::buttons::SPARK3,
-    res::valve::sound::buttons::SPARK4,
-    res::valve::sound::buttons::SPARK5,
-    res::valve::sound::buttons::SPARK6,
-];
-
-fn do_spark(engine: ServerEngineRef, vars: &EntityVars, location: vec3_t) {
-    let pos = location + vars.size() * 0.5;
-    engine.msg_pvs(pos, &user_message::Sparks::new(pos));
-    let volume = engine.random_float(0.25, 0.75) * 0.4;
-    let index = (engine.random_float(0.0, 1.0) * SPARK_SOUNDS.len() as f32) as usize;
-    engine
-        .build_sound()
-        .channel_voice()
-        .volume(volume)
-        .emit(SPARK_SOUNDS[index], vars);
 }
 
 export_entity_default!("export-env_spark", env_spark, EnvSpark);

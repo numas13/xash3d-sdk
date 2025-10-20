@@ -6,11 +6,14 @@ use xash3d_shared::{entity::EdictFlags, ffi::common::vec3_t};
 
 use crate::{
     engine::TraceResult,
-    entity::{Entity, GetPrivateData, ObjectCaps, UseType},
+    entity::{Entity, EntityVars, GetPrivateData, ObjectCaps, UseType},
     prelude::*,
     str::MapString,
     user_message,
 };
+
+#[cfg(feature = "save")]
+use crate::save::{Restore, Save};
 
 /// Used for view cone checking.
 #[derive(Copy, Clone, PartialEq)]
@@ -156,5 +159,49 @@ pub fn decal_trace(engine: &ServerEngine, trace: &TraceResult, decal_index: u16)
             entity: entity_index,
         };
         engine.msg_broadcast(&msg);
+    }
+}
+
+#[cfg_attr(feature = "save", derive(Save, Restore))]
+pub struct Sparks {
+    #[cfg_attr(feature = "save", save(skip))]
+    engine: ServerEngineRef,
+}
+
+impl Sparks {
+    const SOUNDS: [&'static CStr; 6] = [
+        res::valve::sound::buttons::SPARK1,
+        res::valve::sound::buttons::SPARK2,
+        res::valve::sound::buttons::SPARK3,
+        res::valve::sound::buttons::SPARK4,
+        res::valve::sound::buttons::SPARK5,
+        res::valve::sound::buttons::SPARK6,
+    ];
+
+    pub fn new(engine: ServerEngineRef) -> Self {
+        Self { engine }
+    }
+
+    pub fn get_random_sound(&self) -> &CStr {
+        let max = Self::SOUNDS.len() - 1;
+        let index = self.engine.random_int(0, max as i32);
+        Self::SOUNDS[index as usize]
+    }
+
+    pub fn precache(&self) {
+        for sound in Self::SOUNDS {
+            self.engine.precache_sound(sound);
+        }
+    }
+
+    pub fn emit(&self, location: vec3_t, vars: &EntityVars) {
+        let engine = self.engine;
+        let pos = location + vars.size() * 0.5;
+        engine.msg_pvs(pos, &user_message::Sparks::new(pos));
+        engine
+            .build_sound()
+            .channel_voice()
+            .volume(engine.random_float(0.25, 0.75) * 0.4)
+            .emit(self.get_random_sound(), vars);
     }
 }
