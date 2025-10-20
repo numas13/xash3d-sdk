@@ -1,7 +1,6 @@
 use core::{
     cell::{Cell, RefCell},
     ffi::CStr,
-    mem,
 };
 
 use bitflags::bitflags;
@@ -18,14 +17,11 @@ use crate::{
     },
     export::export_entity_default,
     prelude::*,
-    save::{PositionVector, Restore, Save},
+    save::{Restore, Save},
     sound::{self, button_sound_or_default, LockSounds},
     str::MapString,
-    utils,
+    utils::{self, AngularMove, LinearMove, Move, MoveState},
 };
-
-#[cfg(feature = "save")]
-use crate::save;
 
 const MOVE_SOUNDS: &[&CStr] = &[
     res::valve::sound::common::NULL,
@@ -52,150 +48,6 @@ const STOP_SOUNDS: &[&CStr] = &[
     res::valve::sound::doors::DOORSTOP7,
     res::valve::sound::doors::DOORSTOP8,
 ];
-
-pub trait Move: Save + Restore + 'static {
-    fn is_reversable(&self) -> bool {
-        false
-    }
-
-    fn swap(&mut self, v: &EntityVars);
-
-    fn realign_to(&self, v: &EntityVars, other: &EntityVars);
-
-    /// Returns `true` if movement is finished.
-    fn move_done(&self, v: &EntityVars) -> bool;
-
-    /// Returns `true` if movement is finished.
-    fn move_up(&self, v: &EntityVars, speed: f32, reverse: bool) -> bool;
-
-    /// Returns `true` if movement is finished.
-    fn move_down(&self, v: &EntityVars, speed: f32) -> bool;
-}
-
-#[derive(Default)]
-#[cfg_attr(feature = "save", derive(Save, Restore))]
-struct LinearMove {
-    start: PositionVector,
-    end: PositionVector,
-    dest: Cell<PositionVector>,
-}
-
-impl LinearMove {
-    fn start_move(&self, v: &EntityVars, speed: f32, dest: vec3_t) -> bool {
-        assert_ne!(speed, 0.0, "linear_move: speed is zero");
-
-        self.dest.set(dest.into());
-        if dest == v.origin() {
-            return self.move_done(v);
-        }
-
-        let dest_delta = dest - v.origin();
-        let travel_time = dest_delta.length() / speed;
-        v.set_velocity(dest_delta / travel_time);
-        v.set_next_think_time_from_last(travel_time);
-        false
-    }
-}
-
-impl Move for LinearMove {
-    fn swap(&mut self, v: &EntityVars) {
-        mem::swap(&mut self.start, &mut self.end);
-        v.set_origin_and_link(self.start);
-    }
-
-    fn realign_to(&self, v: &EntityVars, other: &EntityVars) {
-        if v.velocity() == other.velocity() {
-            v.set_origin(other.origin());
-            v.set_velocity(vec3_t::ZERO);
-        }
-    }
-
-    fn move_done(&self, v: &EntityVars) -> bool {
-        let dest = self.dest.get().to_vec();
-        let delta = dest - v.origin();
-        let error = delta.length();
-        if error > 0.03125 {
-            self.start_move(v, 100.0, dest);
-            return false;
-        }
-
-        v.set_origin_and_link(dest);
-        v.set_velocity(vec3_t::ZERO);
-        v.stop_thinking();
-        true
-    }
-
-    fn move_up(&self, v: &EntityVars, speed: f32, _: bool) -> bool {
-        self.start_move(v, speed, self.end.into())
-    }
-
-    fn move_down(&self, v: &EntityVars, speed: f32) -> bool {
-        self.start_move(v, speed, self.start.into())
-    }
-}
-
-#[derive(Default)]
-#[cfg_attr(feature = "save", derive(Save, Restore))]
-struct AngularMove {
-    start: vec3_t,
-    end: vec3_t,
-    dest: Cell<vec3_t>,
-}
-
-impl AngularMove {
-    fn start_move(&self, v: &EntityVars, speed: f32, dest: vec3_t) -> bool {
-        assert_ne!(speed, 0.0, "angular_move: speed is zero");
-
-        self.dest.set(dest);
-        if dest == v.angles() {
-            return self.move_done(v);
-        }
-
-        let delta = dest - v.angles();
-        let travel_time = delta.length() / speed;
-        v.set_angular_velocity(delta / travel_time);
-        v.set_next_think_time_from_last(travel_time);
-        false
-    }
-}
-
-impl Move for AngularMove {
-    fn is_reversable(&self) -> bool {
-        true
-    }
-
-    fn swap(&mut self, v: &EntityVars) {
-        mem::swap(&mut self.start, &mut self.end);
-        v.set_angles(self.start);
-        v.with_move_dir(|x| -x);
-    }
-
-    fn realign_to(&self, v: &EntityVars, other: &EntityVars) {
-        if v.angular_velocity() == other.angular_velocity() {
-            v.set_angles(other.angles());
-            v.set_angular_velocity(vec3_t::ZERO);
-        }
-    }
-
-    fn move_done(&self, v: &EntityVars) -> bool {
-        v.set_angles(self.dest.get());
-        v.set_angular_velocity(vec3_t::ZERO);
-        v.stop_thinking();
-        true
-    }
-
-    fn move_up(&self, v: &EntityVars, speed: f32, reverse: bool) -> bool {
-        if reverse {
-            self.start_move(v, speed, -self.end)
-        } else {
-            self.start_move(v, speed, self.end)
-        }
-    }
-
-    fn move_down(&self, v: &EntityVars, speed: f32) -> bool {
-        self.start_move(v, speed, self.start)
-    }
-}
 
 trait EntityVarsExt {
     fn noise_moving(&self) -> Option<MapString>;
@@ -250,44 +102,6 @@ impl DoorSpawnFlags {
     }
 }
 
-#[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
-#[repr(u8)]
-enum DoorState {
-    #[default]
-    Bottom = 0,
-    Top,
-    GoingDown,
-    GoingUp,
-}
-
-impl DoorState {
-    fn is_moving(&self) -> bool {
-        matches!(self, Self::GoingUp | Self::GoingDown)
-    }
-}
-
-#[cfg(feature = "save")]
-impl Save for DoorState {
-    fn save(&self, _: &mut save::SaveState, cur: &mut save::CursorMut) -> save::SaveResult<()> {
-        cur.write_u8(*self as u8)?;
-        Ok(())
-    }
-}
-
-#[cfg(feature = "save")]
-impl Restore for DoorState {
-    fn restore(&mut self, _: &save::RestoreState, cur: &mut save::Cursor) -> save::SaveResult<()> {
-        *self = match cur.read_u8()? {
-            0 => Self::Bottom,
-            1 => Self::Top,
-            2 => Self::GoingDown,
-            3 => Self::GoingUp,
-            _ => return Err(save::SaveError::InvalidEnum),
-        };
-        Ok(())
-    }
-}
-
 #[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct BaseDoor<T> {
     base: BaseEntity,
@@ -295,7 +109,7 @@ pub struct BaseDoor<T> {
     wait: f32,
     master: Option<MapString>,
 
-    state: Cell<DoorState>,
+    state: Cell<MoveState>,
     enable_touch: Cell<bool>,
     think: Cell<u8>,
     on_move_done: Cell<u8>,
@@ -371,8 +185,8 @@ impl<T: Move> BaseDoor<T> {
             }
         }
 
-        assert_eq!(self.state.get(), DoorState::GoingUp);
-        self.state.set(DoorState::Top);
+        assert_eq!(self.state.get(), MoveState::GoingUp);
+        self.state.set(MoveState::Top);
 
         if spawn_flags.intersects(DoorSpawnFlags::NO_AUTO_RETURN) {
             if !spawn_flags.intersects(DoorSpawnFlags::USE_ONLY) {
@@ -413,8 +227,8 @@ impl<T: Move> BaseDoor<T> {
             }
         }
 
-        assert_eq!(self.state.get(), DoorState::GoingDown);
-        self.state.set(DoorState::Bottom);
+        assert_eq!(self.state.get(), MoveState::GoingDown);
+        self.state.set(MoveState::Bottom);
         self.enable_touch
             .set(!spawn_flags.intersects(DoorSpawnFlags::USE_ONLY));
 
@@ -450,7 +264,7 @@ impl<T: Move> BaseDoor<T> {
             }
         }
 
-        self.state.set(DoorState::GoingUp);
+        self.state.set(MoveState::GoingUp);
         self.on_move_done.set(Self::DOOR_HIT_TOP);
 
         let mut reverse = false;
@@ -486,7 +300,7 @@ impl<T: Move> BaseDoor<T> {
             }
         }
 
-        self.state.set(DoorState::GoingDown);
+        self.state.set(MoveState::GoingDown);
         self.on_move_done.set(Self::DOOR_HIT_BOTTOM);
 
         let v = self.base.vars();
@@ -509,7 +323,7 @@ impl<T: Move> BaseDoor<T> {
 
         let spawn_flags = self.spawn_flags();
         if spawn_flags.intersects(DoorSpawnFlags::NO_AUTO_RETURN)
-            && self.state.get() == DoorState::Top
+            && self.state.get() == MoveState::Top
         {
             self.door_go_down();
         } else {
@@ -538,7 +352,7 @@ impl<T: Move> BaseDoor<T> {
             }
         }
 
-        if self.state.get() == DoorState::GoingDown {
+        if self.state.get() == MoveState::GoingDown {
             self.door_go_up();
         } else {
             self.door_go_down();
@@ -552,7 +366,7 @@ impl<T: Move> EntityCast for BaseDoor<T> {
 
 impl<T: Move> Entity for BaseDoor<T> {
     delegate_entity!(base not {
-        object_caps, key_value, precache, used, touched, blocked, think
+        object_caps, key_value, precache, spawn, used, touched, blocked, think
     });
 
     fn object_caps(&self) -> ObjectCaps {
@@ -580,9 +394,13 @@ impl<T: Move> Entity for BaseDoor<T> {
                 self.master = Some(self.engine().new_map_string(data.value()));
             }
             _ => {
-                if !self.delayed.key_value(data) {
-                    self.base.key_value(data);
+                if self.door_move.key_value(data) {
+                    return;
                 }
+                if self.delayed.key_value(data) {
+                    return;
+                }
+                self.base.key_value(data);
                 return;
             }
         }
@@ -635,13 +453,35 @@ impl<T: Move> Entity for BaseDoor<T> {
             .map(|&s| engine.new_map_string(s));
     }
 
+    fn spawn(&mut self) {
+        let spawn_flags = self.spawn_flags();
+        let v = self.base.vars();
+
+        v.set_move_type(MoveType::Push);
+        v.link();
+        v.reload_model();
+
+        if v.speed() == 0.0 {
+            v.set_speed(100.0);
+        }
+
+        self.door_move.init(v);
+        if spawn_flags.intersects(DoorSpawnFlags::START_OPEN) {
+            self.door_move.swap(v);
+        }
+
+        self.state.set(MoveState::Bottom);
+        self.enable_touch
+            .set(!spawn_flags.intersects(DoorSpawnFlags::USE_ONLY));
+    }
+
     fn used(&self, _: UseType, activator: Option<&dyn Entity>, _: &dyn Entity) {
         let spawn_flags = self.spawn_flags();
         match self.state.get() {
-            DoorState::Bottom => {
+            MoveState::Bottom => {
                 self.door_activate(activator);
             }
-            DoorState::Top => {
+            MoveState::Top => {
                 if spawn_flags.intersects(DoorSpawnFlags::NO_AUTO_RETURN) {
                     self.door_activate(activator);
                 }
@@ -693,7 +533,7 @@ impl<T: Move> Entity for BaseDoor<T> {
                 }
             }
 
-            if self.state.get() == DoorState::GoingDown {
+            if self.state.get() == MoveState::GoingDown {
                 self.door_go_up();
             } else {
                 self.door_go_down();
@@ -735,7 +575,6 @@ impl<T: Move> Entity for BaseDoor<T> {
 #[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct Door {
     base: BaseDoor<LinearMove>,
-    lip: f32,
 }
 
 impl_entity_cast!(Door);
@@ -744,22 +583,12 @@ impl CreateEntity for Door {
     fn create(base: BaseEntity) -> Self {
         Self {
             base: BaseDoor::create(base),
-            lip: 0.0,
         }
     }
 }
 
 impl Entity for Door {
-    delegate_entity!(base not { key_value, spawn });
-
-    fn key_value(&mut self, data: &mut KeyValue) {
-        if data.key_name() == c"lip" {
-            self.lip = data.parse_or_default();
-            data.set_handled(true);
-        } else {
-            self.base.key_value(data);
-        }
-    }
+    delegate_entity!(base not { spawn });
 
     fn spawn(&mut self) {
         self.precache();
@@ -781,36 +610,13 @@ impl Entity for Door {
             v.with_spawn_flags(|f| f | DoorSpawnFlags::SILENT.bits());
         }
 
-        v.set_move_type(MoveType::Push);
-        v.link();
-        v.reload_model();
-
-        if v.speed() == 0.0 {
-            v.set_speed(100.0);
-        }
-
-        let start = v.origin();
-        let tmp = (v.move_dir() * (v.size() - 2.0)).abs();
-        let end = start + (v.move_dir() * (tmp.element_sum() - self.lip));
-        self.base.door_move.start = start.into();
-        self.base.door_move.end = end.into();
-
-        if spawn_flags.intersects(DoorSpawnFlags::START_OPEN) {
-            self.base.door_move.swap(self.base.base.vars());
-        }
-
-        self.base.state.set(DoorState::Bottom);
-        self.base
-            .enable_touch
-            .set(!spawn_flags.intersects(DoorSpawnFlags::USE_ONLY));
+        self.base.spawn();
     }
 }
 
 #[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct RotatingDoor {
     base: BaseDoor<AngularMove>,
-
-    move_distance: f32,
 }
 
 impl RotatingDoor {
@@ -833,23 +639,12 @@ impl CreateEntity for RotatingDoor {
     fn create(base: BaseEntity) -> Self {
         Self {
             base: BaseDoor::create(base),
-
-            move_distance: Default::default(),
         }
     }
 }
 
 impl Entity for RotatingDoor {
-    delegate_entity!(base not { key_value, spawn });
-
-    fn key_value(&mut self, data: &mut KeyValue) {
-        if data.key_name() == c"distance" {
-            self.move_distance = data.parse_or_default();
-            data.set_handled(true);
-        } else {
-            self.base.key_value(data);
-        }
-    }
+    delegate_entity!(base not { spawn });
 
     fn spawn(&mut self) {
         self.precache();
@@ -862,15 +657,6 @@ impl Entity for RotatingDoor {
             v.with_move_dir(|x| -x);
         }
 
-        let start_angle = v.angles();
-        let move_dir = v.move_dir();
-        self.base.door_move.start = start_angle;
-        self.base.door_move.end = start_angle + move_dir * self.move_distance;
-        assert_ne!(
-            self.base.door_move.start, self.base.door_move.end,
-            "rotating door start and end angles are equal"
-        );
-
         let v = self.base.vars();
         if spawn_flags.intersects(DoorSpawnFlags::PASSABLE) {
             v.set_solid(Solid::Not);
@@ -878,21 +664,7 @@ impl Entity for RotatingDoor {
             v.set_solid(Solid::Bsp);
         }
 
-        v.set_move_type(MoveType::Push);
-        v.link();
-        v.reload_model();
-
-        if v.speed() == 0.0 {
-            v.set_speed(100.0);
-        }
-
-        if spawn_flags.intersects(DoorSpawnFlags::START_OPEN) {
-            self.base.door_move.swap(self.base.base.vars());
-        }
-        self.base.state.set(DoorState::Bottom);
-        self.base
-            .enable_touch
-            .set(!spawn_flags.intersects(DoorSpawnFlags::USE_ONLY));
+        self.base.spawn();
     }
 }
 
