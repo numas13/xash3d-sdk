@@ -81,12 +81,18 @@ pub fn use_targets(
     caller: &dyn Entity,
 ) {
     if let Some(kill_target) = kill_target {
-        let engine = caller.engine();
-        trace!("KillTarget: {kill_target}");
-        for target in engine.entities().by_target_name(&kill_target) {
-            if let Some(target) = target.get_entity() {
-                trace!("killing {}", target.classname());
-                target.remove_from_world();
+        if !kill_target.is_empty() {
+            let engine = caller.engine();
+            let mut first = true;
+            for target in engine.entities().by_target_name(&kill_target) {
+                if first {
+                    first = false;
+                    trace!("KillTarget: {kill_target}");
+                }
+                if let Some(target) = target.get_entity() {
+                    trace!("killing {}", target.classname());
+                    target.remove_from_world();
+                }
             }
         }
     }

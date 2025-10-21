@@ -104,6 +104,26 @@ impl DoorSpawnFlags {
     }
 }
 
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
+#[cfg_attr(feature = "save", derive(Save, Restore))]
+#[repr(u8)]
+enum DoorThink {
+    #[default]
+    None = 0,
+    MoveDone,
+    DoorGoDown,
+}
+
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
+#[cfg_attr(feature = "save", derive(Save, Restore))]
+#[repr(u8)]
+enum OnMoveDone {
+    #[default]
+    None = 0,
+    DoorHitTop,
+    DoorHitBottom,
+}
+
 #[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct BaseDoor<T> {
     base: BaseEntity,
@@ -113,8 +133,8 @@ pub struct BaseDoor<T> {
 
     state: Cell<MoveState>,
     enable_touch: Cell<bool>,
-    think: Cell<u8>,
-    on_move_done: Cell<u8>,
+    think: Cell<DoorThink>,
+    on_move_done: Cell<OnMoveDone>,
     activator: Cell<Option<EntityHandle>>,
 
     door_move: T,
@@ -160,12 +180,6 @@ impl<T: Move + Default> CreateEntity for BaseDoor<T> {
 }
 
 impl<T: Move> BaseDoor<T> {
-    const THINK_MOVE_DONE: u8 = 1;
-    const THINK_DOOR_GO_DOWN: u8 = 2;
-
-    const DOOR_HIT_TOP: u8 = 1;
-    const DOOR_HIT_BOTTOM: u8 = 2;
-
     fn spawn_flags(&self) -> DoorSpawnFlags {
         DoorSpawnFlags::from_bits_retain(self.vars().spawn_flags())
     }
@@ -196,7 +210,7 @@ impl<T: Move> BaseDoor<T> {
             }
         } else {
             v.set_next_think_time_from_last(self.wait);
-            self.think.set(Self::THINK_DOOR_GO_DOWN);
+            self.think.set(DoorThink::DoorGoDown);
 
             if self.wait == -1.0 {
                 v.stop_thinking();
@@ -245,11 +259,9 @@ impl<T: Move> BaseDoor<T> {
 
     fn on_move_done(&self) {
         match self.on_move_done.get() {
-            Self::DOOR_HIT_TOP => self.door_hit_top(),
-            Self::DOOR_HIT_BOTTOM => self.door_hit_bottom(),
-            kind => {
-                warn!("{}: unimplemented move done {kind}", self.classname())
-            }
+            OnMoveDone::None => {}
+            OnMoveDone::DoorHitTop => self.door_hit_top(),
+            OnMoveDone::DoorHitBottom => self.door_hit_bottom(),
         }
     }
 
@@ -267,7 +279,7 @@ impl<T: Move> BaseDoor<T> {
         }
 
         self.state.set(MoveState::GoingUp);
-        self.on_move_done.set(Self::DOOR_HIT_TOP);
+        self.on_move_done.set(OnMoveDone::DoorHitTop);
 
         let mut reverse = false;
         if self.door_move.is_reversable() {
@@ -285,7 +297,7 @@ impl<T: Move> BaseDoor<T> {
         if self.door_move.move_up(v, v.speed(), reverse) {
             self.on_move_done();
         } else {
-            self.think.set(Self::THINK_MOVE_DONE);
+            self.think.set(DoorThink::MoveDone);
         }
     }
 
@@ -303,13 +315,13 @@ impl<T: Move> BaseDoor<T> {
         }
 
         self.state.set(MoveState::GoingDown);
-        self.on_move_done.set(Self::DOOR_HIT_BOTTOM);
+        self.on_move_done.set(OnMoveDone::DoorHitBottom);
 
         let v = self.base.vars();
         if self.door_move.move_down(v, v.speed()) {
             self.on_move_done();
         } else {
-            self.think.set(Self::THINK_MOVE_DONE);
+            self.think.set(DoorThink::MoveDone);
         }
     }
 
@@ -559,16 +571,14 @@ impl<T: Move> Entity for BaseDoor<T> {
 
     fn think(&self) {
         match self.think.take() {
-            Self::THINK_MOVE_DONE => {
+            DoorThink::None => {}
+            DoorThink::MoveDone => {
                 if self.door_move.move_done(self.base.vars()) {
                     self.on_move_done();
                 }
             }
-            Self::THINK_DOOR_GO_DOWN => {
+            DoorThink::DoorGoDown => {
                 self.door_go_down();
-            }
-            think => {
-                warn!("{}: unimplemented think kind {think}", self.classname());
             }
         }
     }

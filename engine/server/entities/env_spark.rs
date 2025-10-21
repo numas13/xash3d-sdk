@@ -12,37 +12,15 @@ use crate::{
 };
 
 #[cfg(feature = "save")]
-use crate::save::{self, Restore, Save};
+use crate::save::{Restore, Save};
 
-// TODO: derive Save and Restore
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-#[non_exhaustive]
+#[cfg_attr(feature = "save", derive(Save, Restore))]
 #[repr(u8)]
 enum EnvSparkState {
     Off = 0,
     On,
     AlwaysOn,
-}
-
-#[cfg(feature = "save")]
-impl Save for EnvSparkState {
-    fn save(&self, _: &mut save::SaveState, cur: &mut save::CursorMut) -> save::SaveResult<()> {
-        cur.write_u8(*self as u8)?;
-        Ok(())
-    }
-}
-
-#[cfg(feature = "save")]
-impl Restore for EnvSparkState {
-    fn restore(&mut self, _: &save::RestoreState, cur: &mut save::Cursor) -> save::SaveResult<()> {
-        match cur.read_u8()? {
-            0 => *self = Self::Off,
-            1 => *self = Self::On,
-            2 => *self = Self::AlwaysOn,
-            _ => return Err(save::SaveError::InvalidEnum),
-        }
-        Ok(())
-    }
 }
 
 bitflags! {

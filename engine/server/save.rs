@@ -111,6 +111,27 @@ impl PositionVector {
     }
 }
 
+#[cfg(feature = "save")]
+impl Save for PositionVector {
+    fn save(&self, state: &mut SaveState, cur: &mut CursorMut) -> SaveResult<()> {
+        match state.use_landmark_offset() {
+            Some(offset) => (self.0 - offset).save(state, cur),
+            None => self.0.save(state, cur),
+        }
+    }
+}
+
+#[cfg(feature = "save")]
+impl Restore for PositionVector {
+    fn restore(&mut self, state: &RestoreState, cur: &mut Cursor) -> SaveResult<()> {
+        self.0.restore(state, cur)?;
+        if let Some(offset) = state.use_landmark_offset() {
+            self.0 += offset;
+        }
+        Ok(())
+    }
+}
+
 impl From<vec3_t> for PositionVector {
     fn from(value: vec3_t) -> Self {
         Self(value)

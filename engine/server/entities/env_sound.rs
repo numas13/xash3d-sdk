@@ -7,82 +7,17 @@ use crate::{
     },
     export::export_entity_default,
     prelude::*,
-    user_message,
+    user_message::{self, RoomType},
 };
 
 #[cfg(feature = "save")]
 use crate::save::{Restore, Save};
 
-// TODO: enum derive(Save, Restore)
-// #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
-// #[repr(u16)]
-// pub enum RoomType {
-//     #[default]
-//     /// The default, echo-less sound style.
-//     Normal = 0,
-//     /// A slightly more closed in sound than default.
-//     Generic = 1,
-//     /// Quite similar to Generic, with slightly more ring.
-//     MetalSmall = 2,
-//     /// As above, but with slightly longer echo.
-//     MetalMedium = 3,
-//     /// As above, but with longer echo.
-//     MetalLarge = 4,
-//     /// A drawn out, tinny sound.
-//     TunnelSmall = 5,
-//     /// As above, by with more drawn out echo.
-//     TunnelMedium = 6,
-//     /// As above, but with a very drawn out echo.
-//     TunnelLarge = 7,
-//     /// Similar to Generic, but with more echo.
-//     ChamberSmall = 8,
-//     /// As above, but with slightly longer echo.
-//     ChamberMedium = 9,
-//     /// As above, but with a long echo.
-//     ChamberLarge = 10,
-//     /// Very similar to Generic.
-//     BrightSmall = 11,
-//     /// As above, but more open-sounding.
-//     BrightMedium = 12,
-//     /// As above, but more open-sounding.
-//     BrightLarge = 13,
-//     /// A claustrophobic, muffled sound.
-//     Water1 = 14,
-//     /// As above, but with an echo.
-//     Water2 = 15,
-//     /// As above, but with a longer, ringing echo.
-//     Water3 = 16,
-//     /// Similar to Generic, but with a short echo.
-//     ConcreteSmall = 17,
-//     /// As above, but with a longer echo.
-//     ConcreteMedium = 18,
-//     /// As above, but with a longer echo.
-//     ConcreteLarge = 19,
-//     /// An open sound with a spaced out, ringing echo.
-//     Big1 = 20,
-//     /// As above, but with a longer-lingering echo.
-//     Big2 = 21,
-//     /// As above, but with a much longer-lingering echo.
-//     Big3 = 22,
-//     /// A closed in sound with a fast-ringing echo.
-//     CavernSmall = 23,
-//     /// As above, but with a longer-lingering echo.
-//     CavernMedium = 24,
-//     /// As above, but with a much longer-lingering echo.
-//     CavernLarge = 25,
-//     /// Similar to Generic, but with a sharper sound.
-//     Weirdo1 = 26,
-//     /// As above, but with a high, ringing echo.
-//     Weirdo2 = 27,
-//     /// As above, but with a strange, high-pitched echo.
-//     Weirdo3 = 28,
-// }
-
 #[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct EnvSound {
     base: PointEntity,
     radius: f32,
-    room_type: f32,
+    room_type: RoomType,
 }
 
 impl EnvSound {
@@ -121,7 +56,7 @@ impl CreateEntity for EnvSound {
         Self {
             base: PointEntity::create(base),
             radius: 0.0,
-            room_type: 0.0,
+            room_type: RoomType::default(),
         }
     }
 }
@@ -132,7 +67,10 @@ impl Entity for EnvSound {
     fn key_value(&mut self, data: &mut KeyValue) {
         match data.key_name().to_bytes() {
             b"radius" => self.radius = data.parse_or_default(),
-            b"roomtype" => self.room_type = data.parse_or_default(),
+            b"roomtype" => {
+                let value = data.parse_or_default();
+                self.room_type = RoomType::from_raw(value).unwrap_or_default();
+            }
             _ => return self.base.key_value(data),
         }
         data.set_handled(true);
@@ -175,7 +113,8 @@ impl Entity for EnvSound {
             if player.env_sound().map_or(true, |i| i.range() < range) {
                 player.set_env_sound(Some(LastSound::new(self.entity_handle(), range)));
 
-                let msg = user_message::RoomType::new(self.room_type as u16);
+                trace!("set room type {:?}", self.room_type);
+                let msg = user_message::SetRoomType::new(self.room_type);
                 engine.msg_one_reliable(player.vars(), &msg);
             }
         }

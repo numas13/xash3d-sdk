@@ -10,6 +10,9 @@ use xash3d_shared::{
     render::RenderMode,
 };
 
+#[cfg(feature = "save")]
+use crate::save::{Restore, Save};
+
 pub use xash3d_shared::user_message::*;
 
 define_enum_for_primitive! {
@@ -982,15 +985,124 @@ define_user_message! {
     } = ffi::common::svc_weaponanim
 }
 
-define_user_message! {
-    pub struct RoomType {
-        pub room_type: u16,
-    } = ffi::common::svc_roomtype
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
+#[cfg_attr(feature = "save", derive(Save, Restore))]
+#[repr(u16)]
+pub enum RoomType {
+    #[default]
+    /// The default, echo-less sound style.
+    Normal = 0,
+    /// A slightly more closed in sound than default.
+    Generic = 1,
+    /// Quite similar to Generic, with slightly more ring.
+    MetalSmall = 2,
+    /// As above, but with slightly longer echo.
+    MetalMedium = 3,
+    /// As above, but with longer echo.
+    MetalLarge = 4,
+    /// A drawn out, tinny sound.
+    TunnelSmall = 5,
+    /// As above, by with more drawn out echo.
+    TunnelMedium = 6,
+    /// As above, but with a very drawn out echo.
+    TunnelLarge = 7,
+    /// Similar to Generic, but with more echo.
+    ChamberSmall = 8,
+    /// As above, but with slightly longer echo.
+    ChamberMedium = 9,
+    /// As above, but with a long echo.
+    ChamberLarge = 10,
+    /// Very similar to Generic.
+    BrightSmall = 11,
+    /// As above, but more open-sounding.
+    BrightMedium = 12,
+    /// As above, but more open-sounding.
+    BrightLarge = 13,
+    /// A claustrophobic, muffled sound.
+    Water1 = 14,
+    /// As above, but with an echo.
+    Water2 = 15,
+    /// As above, but with a longer, ringing echo.
+    Water3 = 16,
+    /// Similar to Generic, but with a short echo.
+    ConcreteSmall = 17,
+    /// As above, but with a longer echo.
+    ConcreteMedium = 18,
+    /// As above, but with a longer echo.
+    ConcreteLarge = 19,
+    /// An open sound with a spaced out, ringing echo.
+    Big1 = 20,
+    /// As above, but with a longer-lingering echo.
+    Big2 = 21,
+    /// As above, but with a much longer-lingering echo.
+    Big3 = 22,
+    /// A closed in sound with a fast-ringing echo.
+    CavernSmall = 23,
+    /// As above, but with a longer-lingering echo.
+    CavernMedium = 24,
+    /// As above, but with a much longer-lingering echo.
+    CavernLarge = 25,
+    /// Similar to Generic, but with a sharper sound.
+    Weirdo1 = 26,
+    /// As above, but with a high, ringing echo.
+    Weirdo2 = 27,
+    /// As above, but with a strange, high-pitched echo.
+    Weirdo3 = 28,
 }
 
 impl RoomType {
-    pub const fn new(room_type: u16) -> Self {
-        Self { room_type }
+    pub fn from_raw(raw: u16) -> Option<Self> {
+        let ret = match raw {
+            0 => Self::Normal,
+            1 => Self::Generic,
+            2 => Self::MetalSmall,
+            3 => Self::MetalMedium,
+            4 => Self::MetalLarge,
+            5 => Self::TunnelSmall,
+            6 => Self::TunnelMedium,
+            7 => Self::TunnelLarge,
+            8 => Self::ChamberSmall,
+            9 => Self::ChamberMedium,
+            10 => Self::ChamberLarge,
+            11 => Self::BrightSmall,
+            12 => Self::BrightMedium,
+            13 => Self::BrightLarge,
+            14 => Self::Water1,
+            15 => Self::Water2,
+            16 => Self::Water3,
+            17 => Self::ConcreteSmall,
+            18 => Self::ConcreteMedium,
+            19 => Self::ConcreteLarge,
+            20 => Self::Big1,
+            21 => Self::Big2,
+            22 => Self::Big3,
+            23 => Self::CavernSmall,
+            24 => Self::CavernMedium,
+            25 => Self::CavernLarge,
+            26 => Self::Weirdo1,
+            27 => Self::Weirdo2,
+            28 => Self::Weirdo3,
+            _ => return None,
+        };
+        Some(ret)
+    }
+}
+
+define_user_message! {
+    pub struct SetRoomType {
+        pub room_type_raw: u16,
+    } = ffi::common::svc_roomtype
+}
+
+impl SetRoomType {
+    pub const fn new(room_type: RoomType) -> Self {
+        Self {
+            room_type_raw: room_type as u16,
+        }
+    }
+
+    pub fn room_type(&self) -> Option<RoomType> {
+        RoomType::from_raw(self.room_type_raw)
     }
 }
 

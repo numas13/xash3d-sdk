@@ -3,8 +3,6 @@ use core::cell::{Cell, RefCell};
 use alloc::{ffi::CString, string::String, vec::Vec};
 use xash3d_shared::{entity::EntityIndex, sound::Attenuation};
 
-use crate::{entity::UseType, str::MapString, time::MapTime};
-
 use super::*;
 
 pub use xash3d_server_derive::{Restore, Save};
@@ -91,41 +89,6 @@ impl_save_restore_for_num! {
 
     f32 = write_f32, read_f32;
     f64 = write_f64_le, read_f64_le;
-}
-
-impl Save for MapTime {
-    fn save(&self, state: &mut SaveState, cur: &mut CursorMut) -> SaveResult<()> {
-        cur.write_f32(self.as_secs_f32() - state.time())?;
-        Ok(())
-    }
-}
-
-impl Restore for MapTime {
-    fn restore(&mut self, state: &RestoreState, cur: &mut Cursor) -> SaveResult<()> {
-        *self = MapTime::from_secs_f32(cur.read_f32()? + state.time());
-        Ok(())
-    }
-}
-
-impl Save for Option<MapString> {
-    fn save(&self, _: &mut SaveState, cur: &mut CursorMut) -> SaveResult<()> {
-        let bytes = self.as_ref().map_or(&[0][..], |s| s.to_bytes_with_nul());
-        cur.write_bytes_with_size(bytes)?;
-        Ok(())
-    }
-}
-
-impl Restore for Option<MapString> {
-    fn restore(&mut self, state: &RestoreState, cur: &mut Cursor) -> SaveResult<()> {
-        let bytes = cur.read_bytes_with_size()?;
-        if !bytes.is_empty() {
-            let s = CStr::from_bytes_with_nul(bytes).map_err(|_| SaveError::InvalidString)?;
-            *self = Some(state.engine().new_map_string(s));
-        } else {
-            *self = None;
-        }
-        Ok(())
-    }
 }
 
 impl<T: Save> Save for Option<T> {
@@ -290,40 +253,6 @@ impl Restore for Attenuation {
     }
 }
 
-impl Save for UseType {
-    fn save(&self, _: &mut SaveState, cur: &mut CursorMut) -> SaveResult<()> {
-        match self {
-            Self::Off => {
-                cur.write_u8(0)?;
-            }
-            Self::On => {
-                cur.write_u8(1)?;
-            }
-            Self::Set(value) => {
-                cur.write_u8(2)?;
-                cur.write_f32(*value)?;
-            }
-            Self::Toggle => {
-                cur.write_u8(3)?;
-            }
-        };
-        Ok(())
-    }
-}
-
-impl Restore for UseType {
-    fn restore(&mut self, _: &RestoreState, cur: &mut Cursor) -> SaveResult<()> {
-        *self = match cur.read_u8()? {
-            0 => Self::Off,
-            1 => Self::On,
-            2 => Self::Set(cur.read_f32()?),
-            3 => Self::Toggle,
-            _ => return Err(SaveError::InvalidEnum),
-        };
-        Ok(())
-    }
-}
-
 #[doc(hidden)]
 #[macro_export]
 macro_rules! impl_save_restore_for_bitflags {
@@ -379,25 +308,6 @@ impl Restore for vec3_t {
         self.x = cur.read_f32()?;
         self.y = cur.read_f32()?;
         self.z = cur.read_f32()?;
-        Ok(())
-    }
-}
-
-impl Save for PositionVector {
-    fn save(&self, state: &mut SaveState, cur: &mut CursorMut) -> SaveResult<()> {
-        match state.use_landmark_offset() {
-            Some(offset) => (self.0 - offset).save(state, cur),
-            None => self.0.save(state, cur),
-        }
-    }
-}
-
-impl Restore for PositionVector {
-    fn restore(&mut self, state: &RestoreState, cur: &mut Cursor) -> SaveResult<()> {
-        self.0.restore(state, cur)?;
-        if let Some(offset) = state.use_landmark_offset() {
-            self.0 += offset;
-        }
         Ok(())
     }
 }

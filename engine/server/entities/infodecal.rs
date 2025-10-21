@@ -14,18 +14,36 @@ use crate::{
 #[cfg(feature = "save")]
 use crate::save::{Restore, Save};
 
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
+#[cfg_attr(feature = "save", derive(Save, Restore))]
+#[repr(u8)]
+enum DecalState {
+    #[default]
+    None = 0,
+    Static,
+    Trigger,
+    Remove,
+}
+
 #[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct Decal {
     base: BaseEntity,
-    state: Cell<u8>,
+    state: Cell<DecalState>,
+}
+
+impl_entity_cast!(Decal);
+
+impl CreateEntity for Decal {
+    fn create(base: BaseEntity) -> Self {
+        Self {
+            base,
+            state: Cell::default(),
+        }
+    }
 }
 
 impl Decal {
     const SF_NOTINDEATHMATCH: u32 = 1 << 11;
-
-    const STATE_STATIC: u8 = 1;
-    const STATE_TRIGGER: u8 = 2;
-    const STATE_REMOVE: u8 = 3;
 
     fn static_decal(&self) {
         let engine = self.engine();
@@ -43,17 +61,6 @@ impl Decal {
             0
         };
         engine.static_decal(v.origin(), v.skin() as u16, entity, model_index as u16);
-    }
-}
-
-impl_entity_cast!(Decal);
-
-impl CreateEntity for Decal {
-    fn create(base: BaseEntity) -> Self {
-        Self {
-            base,
-            state: Cell::new(0),
-        }
     }
 }
 
@@ -85,23 +92,23 @@ impl Entity for Decal {
         }
 
         if v.target_name().map_or(true, |s| s.is_empty()) {
-            self.state.set(Self::STATE_STATIC);
+            self.state.set(DecalState::Static);
             // spawn the decal as soon as the world is done spawning
             v.set_next_think_time_from_now(0.0);
         } else {
-            self.state.set(Self::STATE_TRIGGER);
+            self.state.set(DecalState::Trigger);
         }
     }
 
     fn think(&self) {
         match self.state.get() {
-            Self::STATE_STATIC => {
-                self.state.set(0);
+            DecalState::Static => {
+                self.state.take();
                 self.static_decal();
                 self.remove_from_world();
             }
-            Self::STATE_REMOVE => {
-                self.state.set(0);
+            DecalState::Remove => {
+                self.state.take();
                 self.remove_from_world();
             }
             _ => {}
@@ -110,7 +117,7 @@ impl Entity for Decal {
 
     #[allow(unused_variables)]
     fn used(&self, use_type: UseType, activator: Option<&dyn Entity>, caller: &dyn Entity) {
-        if self.state.get() != Self::STATE_TRIGGER {
+        if self.state.get() != DecalState::Trigger {
             return;
         }
 
@@ -139,7 +146,7 @@ impl Entity for Decal {
         //     engine.msg_broadcast(&msg);
         // }
 
-        self.state.set(Self::STATE_REMOVE);
+        self.state.set(DecalState::Remove);
         self.vars().set_next_think_time_from_now(0.1);
     }
 }

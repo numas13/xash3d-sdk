@@ -277,7 +277,7 @@ impl<'a> From<&'a EntityHandle> for EntityHandleRef<'a> {
 }
 
 #[cfg(feature = "save")]
-impl save::Save for EntityHandle {
+impl Save for EntityHandle {
     fn save(&self, state: &mut save::SaveState, cur: &mut save::CursorMut) -> save::SaveResult<()> {
         self.entity_index().save(state, cur)
     }
@@ -291,7 +291,7 @@ impl save::RestoreWithDefault for EntityHandle {
 }
 
 #[cfg(feature = "save")]
-impl save::Restore for EntityHandle {
+impl Restore for EntityHandle {
     fn restore(
         &mut self,
         state: &save::RestoreState,
@@ -461,9 +461,11 @@ impl ObjectCaps {
 }
 
 #[derive(Copy, Clone, Debug, Default, PartialEq)]
+#[cfg_attr(feature = "save", derive(Save, Restore))]
+#[repr(u8)]
 pub enum UseType {
     #[default]
-    Off,
+    Off = 0,
     On,
     Set(f32),
     Toggle,
