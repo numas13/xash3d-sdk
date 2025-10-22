@@ -2607,6 +2607,10 @@ impl<'a> Entities<'a> {
         self.by_string(c"targetname", value)
     }
 
+    pub fn by_target<V: ToEngineStr>(&self, value: V) -> EntitiesByString<'a, &'static CStr, V> {
+        self.by_string(c"target", value)
+    }
+
     pub fn in_pvs(&self, player: &impl AsEntityHandle) -> EntitiesInPvs<'a> {
         EntitiesInPvs {
             last: self.engine.entities_in_pvs_impl(player),
