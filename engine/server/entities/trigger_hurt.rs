@@ -115,7 +115,7 @@ impl Entity for TriggerHurt {
         let global_state = self.base.global_state();
         let spawn_flags = self.spawn_flags();
 
-        let is_player = other.downcast_ref::<dyn EntityPlayer>().is_some();
+        let is_player = other.is_player();
         if spawn_flags.intersects(TriggerHurtSpawnFlags::NO_CLIENTS) && is_player {
             return;
         }

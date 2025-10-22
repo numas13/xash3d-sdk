@@ -691,6 +691,11 @@ define_entity_trait! {
             v.solid() == Solid::Bsp || v.move_type() == MoveType::PushStep
         }
 
+        /// Returns `true` if it is a player entity.
+        fn is_player(&self) -> bool {
+            self.as_player().is_some()
+        }
+
         fn override_reset(&self) {}
 
         fn set_object_collision_box(&self) {

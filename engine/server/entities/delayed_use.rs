@@ -1,7 +1,7 @@
 use crate::{
     entity::{
-        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, EntityPlayer,
-        KeyValue, Private, UseType,
+        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, KeyValue, Private,
+        UseType,
     },
     export::export_entity,
     prelude::*,
@@ -54,7 +54,7 @@ impl DelayedUseEntity {
             .build();
 
         if let Some(activator) = activator {
-            if activator.downcast_ref::<dyn EntityPlayer>().is_some() {
+            if activator.is_player() {
                 temp.vars().set_owner(&activator);
             }
         }

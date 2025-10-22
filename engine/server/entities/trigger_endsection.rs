@@ -2,8 +2,8 @@ use core::cell::Cell;
 
 use crate::{
     entity::{
-        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, EntityPlayer,
-        KeyValue, ObjectCaps, UseType,
+        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, KeyValue, ObjectCaps,
+        UseType,
     },
     export::export_entity_default,
 };
@@ -25,7 +25,7 @@ impl TriggerEndSection {
 
     fn end_section(&self, activator: &dyn Entity) {
         // TODO: add is_net_client method to Entity/EntityPlayer???
-        if activator.downcast_ref::<dyn EntityPlayer>().is_none() {
+        if !activator.is_player() {
             return;
         }
         if let Some(message) = self.vars().message() {

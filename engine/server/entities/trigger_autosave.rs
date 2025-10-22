@@ -1,7 +1,6 @@
 use crate::{
     entity::{
-        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, EntityPlayer,
-        KeyValue, ObjectCaps,
+        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, KeyValue, ObjectCaps,
     },
     export::export_entity_default,
     str::MapString,
@@ -61,7 +60,7 @@ impl Entity for TriggerSave {
             return;
         }
 
-        if other.downcast_ref::<dyn EntityPlayer>().is_some() {
+        if other.is_player() {
             self.remove_from_world();
             engine.server_command(c"autosave\n");
         }
