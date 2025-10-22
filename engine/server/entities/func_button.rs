@@ -1,7 +1,7 @@
 use crate::{
+    entities::stub::StubEntity,
     entity::{
-        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, ObjectCaps,
-        StubEntity, TakeDamage,
+        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, ObjectCaps, TakeDamage,
     },
     export::export_entity_stub,
 };

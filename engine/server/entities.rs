@@ -22,6 +22,7 @@ pub mod multi_manager;
 pub mod player;
 pub mod point_entity;
 pub mod speaker;
+pub mod stub;
 pub mod trigger_auto;
 pub mod trigger_autosave;
 pub mod trigger_changelevel;

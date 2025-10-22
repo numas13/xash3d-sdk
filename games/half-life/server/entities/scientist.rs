@@ -1,7 +1,4 @@
-use xash3d_server::{
-    entity::{Private, StubEntity},
-    export::export_entity,
-};
+use xash3d_server::{entities::stub::StubEntity, entity::Private, export::export_entity};
 
 export_entity!(monster_scientist, Private<StubEntity>);
 export_entity!(monster_scientist_dead, Private<StubEntity>);

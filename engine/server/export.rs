@@ -1875,7 +1875,7 @@ macro_rules! export_entity_stub {
         $crate::export::export_entity!($name, $crate::entity::Private<$entity>);
     };
     ($name:ident $(,)?) => {
-        $crate::export::export_entity_stub!($name, $crate::entity::StubEntity);
+        $crate::export::export_entity_stub!($name, $crate::entities::stub::StubEntity);
     };
 }
 pub use export_entity_stub;
