@@ -93,9 +93,24 @@ impl ServerDll for Dll {
         c"Half-Life"
     }
 
-    fn client_command(&self, _ent: EntityHandle) {
-        if let Some(args) = self.engine.cmd_args_raw() {
-            trace!("client command {args}");
+    fn client_command(&self, ent: EntityHandle) {
+        use xash3d_server::{entity::UseType, utils};
+        let engine = self.engine();
+        match engine.cmd_argv(0).to_bytes() {
+            b"fire_targets" => {
+                let target = engine.cmd_argv(1);
+                if target.is_empty() {
+                    info!("usage: fire_targets target");
+                    return;
+                }
+                let player = ent.get_entity().unwrap();
+                utils::fire_targets(target, UseType::Toggle, Some(player), player);
+            }
+            _ => {
+                if let Some(args) = self.engine.cmd_args_raw() {
+                    warn!("unimplemented client command {args}");
+                }
+            }
         }
     }
 }

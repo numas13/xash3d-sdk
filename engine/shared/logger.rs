@@ -79,20 +79,17 @@ struct ConsoleLogger<T>(PhantomData<T>);
 
 impl<T: EngineConsoleLogger> ConsoleLogger<T> {
     fn write<W: Write>(&self, record: &Record, f: &mut W) -> fmt::Result {
-        f.write_char('[')?;
         match record.level() {
-            Level::Trace => f.write_str("^6TRACE")?,
-            Level::Debug => f.write_str("^4DEBUG")?,
-            Level::Info => f.write_str("^2INFO")?,
-            Level::Warn => f.write_str("^3WARNING")?,
-            Level::Error => f.write_str("^1ERROR")?,
+            Level::Trace => f.write_str("[^6TRACE")?,
+            Level::Debug => f.write_str("[^4DEBUG")?,
+            Level::Info => {}
+            Level::Warn => f.write_str("[^3WARNING")?,
+            Level::Error => f.write_str("[^1ERROR")?,
         };
         if record.level() != Level::Info {
             f.write_str(" ^7")?;
             f.write_str(record.target())?;
             f.write_str("] ")?;
-        } else {
-            f.write_str("^7] ")?;
         }
         f.write_fmt(*record.args())?;
         f.write_char('\n')?;
