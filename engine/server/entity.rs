@@ -595,7 +595,7 @@ define_entity_trait! {
         fn blocked(&self, other: &dyn ::xash3d_server::entity::Entity) {}
 
         #[allow(unused_variables)]
-        fn is_triggered(&self, activator: &dyn ::xash3d_server::entity::Entity) -> bool {
+        fn is_triggered(&self, activator: Option<&dyn ::xash3d_server::entity::Entity>) -> bool {
             true
         }
 

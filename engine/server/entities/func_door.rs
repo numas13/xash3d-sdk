@@ -327,10 +327,8 @@ impl<T: Move> BaseDoor<T> {
 
     fn door_activate(&self, activator: Option<&dyn Entity>) -> bool {
         let engine = self.engine();
-        if let Some((master, activator)) = self.master.zip(activator) {
-            if !utils::is_master_triggered(&engine, master, activator) {
-                return false;
-            }
+        if !utils::is_master_triggered(&engine, self.master, activator) {
+            return false;
         }
 
         self.activator.set(activator.map(|i| i.entity_handle()));
@@ -512,10 +510,8 @@ impl<T: Move> Entity for BaseDoor<T> {
         let engine = self.engine();
         let v = self.base.vars();
 
-        if let Some(master) = self.master {
-            if !utils::is_master_triggered(&engine, master, other) {
-                self.lock_sounds.borrow_mut().play_door(true, v);
-            }
+        if !utils::is_master_triggered(&engine, self.master, Some(other)) {
+            self.lock_sounds.borrow_mut().play_door(true, v);
         }
 
         if v.target_name().is_some() {

@@ -55,10 +55,8 @@ impl TriggerMultiple {
             return;
         }
 
-        if let Some(master) = self.master {
-            if !utils::is_master_triggered(&engine, master, other) {
-                return;
-            }
+        if !utils::is_master_triggered(&engine, self.master, Some(other)) {
+            return;
         }
 
         if let Some(noise) = v.noise() {

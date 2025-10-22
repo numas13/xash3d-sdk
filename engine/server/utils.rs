@@ -45,15 +45,19 @@ impl ViewField {
 
 pub fn is_master_triggered(
     engine: &ServerEngine,
-    master: MapString,
-    activator: &dyn Entity,
+    master: Option<MapString>,
+    activator: Option<&dyn Entity>,
 ) -> bool {
-    engine
-        .entities()
-        .by_target_name(&master)
-        .filter_map(|ent| ent.get_entity())
-        .find(|ent| ent.object_caps().intersects(ObjectCaps::MASTER))
-        .map_or(true, |ent| ent.is_triggered(activator))
+    if let Some(master) = master {
+        if let Some(master) = engine.entities().by_target_name(master.as_thin()).first() {
+            if let Some(master) = master.get_entity() {
+                if master.object_caps().intersects(ObjectCaps::MASTER) {
+                    return master.is_triggered(activator);
+                }
+            }
+        }
+    }
+    true
 }
 
 pub fn fire_targets(

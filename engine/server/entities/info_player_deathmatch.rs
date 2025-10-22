@@ -38,13 +38,9 @@ impl Entity for DeathMatchStart {
         }
     }
 
-    fn is_triggered(&self, activator: &dyn Entity) -> bool {
+    fn is_triggered(&self, activator: Option<&dyn Entity>) -> bool {
         let engine = self.engine();
-        if let Some(master) = self.vars().net_name() {
-            utils::is_master_triggered(&engine, master, activator)
-        } else {
-            true
-        }
+        utils::is_master_triggered(&engine, self.vars().net_name(), activator)
     }
 }
 

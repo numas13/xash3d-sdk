@@ -57,10 +57,8 @@ impl Entity for TriggerSave {
     fn touched(&self, other: &dyn Entity) {
         let engine = self.engine();
 
-        if let Some(master) = self.master {
-            if !utils::is_master_triggered(&engine, master, other) {
-                return;
-            }
+        if !utils::is_master_triggered(&engine, self.master, Some(other)) {
+            return;
         }
 
         if other.downcast_ref::<dyn EntityPlayer>().is_some() {
