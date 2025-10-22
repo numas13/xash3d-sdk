@@ -244,7 +244,7 @@ impl Player {
 
     pub fn player_use_with(&self, search_radius: f32, view_field: ViewField) {
         self.player_use_with_custom(search_radius, view_field, |target, use_type| {
-            target.used(use_type, None, self);
+            target.used(use_type, Some(self), self);
         });
     }
 
