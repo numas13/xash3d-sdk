@@ -1,4 +1,5 @@
 use core::{
+    cmp,
     ffi::{c_int, CStr},
     fmt,
     num::NonZero,
@@ -15,7 +16,7 @@ use crate::save::{self, Restore, Save};
 pub use xash3d_shared::str::ToEngineStr;
 
 /// A string that valid until the end of the current map.
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone)]
 pub struct MapString {
     engine: ServerEngineRef,
     index: NonZero<c_int>,
@@ -65,6 +66,50 @@ impl Deref for MapString {
 impl AsRef<CStrThin> for MapString {
     fn as_ref(&self) -> &CStrThin {
         self.as_thin()
+    }
+}
+
+impl PartialOrd for MapString {
+    fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for MapString {
+    fn cmp(&self, other: &Self) -> cmp::Ordering {
+        self.as_thin().cmp(other.as_thin())
+    }
+}
+
+impl PartialEq for MapString {
+    fn eq(&self, other: &Self) -> bool {
+        self.as_thin() == other.as_thin()
+    }
+}
+
+impl Eq for MapString {}
+
+impl PartialEq<&CStrThin> for MapString {
+    fn eq(&self, other: &&CStrThin) -> bool {
+        self.as_thin() == *other
+    }
+}
+
+impl PartialEq<&CStr> for MapString {
+    fn eq(&self, other: &&CStr) -> bool {
+        self.as_thin() == <&CStrThin>::from(*other)
+    }
+}
+
+impl PartialEq<MapString> for &CStrThin {
+    fn eq(&self, other: &MapString) -> bool {
+        *self == other.as_thin()
+    }
+}
+
+impl PartialEq<MapString> for &CStr {
+    fn eq(&self, other: &MapString) -> bool {
+        <&CStrThin>::from(*self) == other.as_thin()
     }
 }
 
