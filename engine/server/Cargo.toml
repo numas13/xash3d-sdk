@@ -57,6 +57,7 @@ export-trigger_hurt = []
 export-trigger_multiple = []
 export-trigger_once = []
 export-trigger_push = []
+export-trigger_relay = []
 export-trigger_transition = []
 
 [lib]

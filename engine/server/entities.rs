@@ -32,6 +32,7 @@ pub mod trigger_hurt;
 pub mod trigger_multiple;
 pub mod trigger_once;
 pub mod trigger_push;
+pub mod trigger_relay;
 pub mod trigger_transition;
 pub mod world;
 
@@ -87,6 +88,5 @@ export_entity_stub!(trigger_changetarget);
 export_entity_stub!(trigger_counter);
 export_entity_stub!(trigger_gravity);
 export_entity_stub!(trigger_monsterjump);
-export_entity_stub!(trigger_relay);
 export_entity_stub!(trigger_teleport);
 export_entity_stub!(world_items);
