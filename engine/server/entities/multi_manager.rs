@@ -2,7 +2,7 @@ use core::{cell::Cell, ptr};
 
 use alloc::vec::Vec;
 use bitflags::bitflags;
-use csz::CStrArray;
+use csz::{CStrArray, CStrThin};
 
 use crate::{
     entity::{
@@ -84,6 +84,13 @@ impl MultiManager {
         v.with_spawn_flags(|f| f | MultiManagerSpawnFlags::CLONE.bits());
         multi.targets = self.targets.clone();
         multi
+    }
+
+    pub fn has_target(&self, target: &CStrThin) -> bool {
+        self.targets
+            .iter()
+            .filter_map(|i| i.name)
+            .any(|i| i.as_thin() == target)
     }
 }
 
