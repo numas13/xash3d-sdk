@@ -280,7 +280,7 @@ impl crate::save::OnRestore for Player {
 }
 
 impl Entity for Player {
-    delegate_entity!(base not { object_caps, restore, spawn });
+    delegate_entity!(base not { object_caps, restore, spawn, is_player });
 
     fn object_caps(&self) -> ObjectCaps {
         self.base
@@ -318,6 +318,10 @@ impl Entity for Player {
 
         let v = self.vars();
         v.set_model(res::valve::models::PLAYER);
+    }
+
+    fn is_player(&self) -> bool {
+        true
     }
 }
 
