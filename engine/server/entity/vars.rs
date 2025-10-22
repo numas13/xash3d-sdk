@@ -351,6 +351,10 @@ impl EntityVars {
         self.engine().get_entity_offset(self)
     }
 
+    pub fn pretty_name(&self) -> super::PrettyName<'_> {
+        super::PrettyName::new(self)
+    }
+
     field!(get classname, fn classname() -> Option<MapString>);
     field!(set classname, fn set_classname(s: Option<MapString>));
 

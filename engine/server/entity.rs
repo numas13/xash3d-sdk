@@ -4,6 +4,7 @@ mod vars;
 
 use core::{
     ffi::{c_int, c_void},
+    fmt,
     marker::PhantomData,
     ptr::{self, NonNull},
     str::FromStr,
@@ -491,6 +492,35 @@ pub enum Gib {
     Always,
 }
 
+pub struct PrettyName<'a> {
+    vars: &'a EntityVars,
+}
+
+impl<'a> PrettyName<'a> {
+    pub fn new(vars: &'a EntityVars) -> Self {
+        Self { vars }
+    }
+}
+
+impl fmt::Debug for PrettyName<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fmt::Display::fmt(self, f)
+    }
+}
+
+impl fmt::Display for PrettyName<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self.vars.classname() {
+            Some(classname) => write!(f, "{classname}")?,
+            None => write!(f, "unknown")?,
+        }
+        if let Some(target_name) = self.vars.target_name() {
+            write!(f, "({target_name})")?;
+        }
+        Ok(())
+    }
+}
+
 pub trait EntityCast: 'static {
     fn as_player(&self) -> Option<&dyn EntityPlayer>;
 }
@@ -529,6 +559,10 @@ define_entity_trait! {
             self.engine().get_entity_offset(self.vars())
         }
 
+        fn pretty_name(&self) -> ::xash3d_server::entity::PrettyName<'_> {
+            PrettyName::new(self.vars())
+        }
+
         fn globalname(&self) -> Option<::xash3d_server::str::MapString> {
             self.vars().globalname()
         }
@@ -543,10 +577,6 @@ define_entity_trait! {
 
         fn is_classname(&self, name: &::csz::CStrThin) -> bool {
             name == self.classname().as_thin()
-        }
-
-        fn name(&self) -> ::xash3d_server::str::MapString {
-            self.vars().target_name().unwrap_or_else(|| self.classname())
         }
 
         fn target(&self) -> Option<::xash3d_server::str::MapString> {
@@ -921,7 +951,7 @@ impl Entity for StubEntity {
         self.base.key_value(data);
 
         if self.dump_key_value && !data.handled() {
-            let name = self.name();
+            let name = self.pretty_name();
             let key = data.key_name();
             let value = data.value();
             trace!("{name}: key={key} value={value}");
@@ -929,10 +959,9 @@ impl Entity for StubEntity {
     }
 
     fn spawn(&mut self) {
-        let classname = self.classname();
-        let name = self.vars().target_name();
+        let name = self.pretty_name();
         let target = self.vars().target();
-        trace!("spawn {classname}({name:?}), target={target:?}");
+        trace!("spawn {name}, target={target:?}");
 
         let v = self.vars();
         v.set_move_dir_from_angles();
@@ -942,32 +971,18 @@ impl Entity for StubEntity {
     }
 
     fn touched(&self, other: &dyn Entity) {
-        let classname = self.classname();
-        if let Some(name) = self.vars().target_name() {
-            trace!("{classname}({name}) touched by {}", other.name());
-        } else {
-            trace!("{classname} touched by {}", other.name());
-        }
+        let name = self.pretty_name();
+        trace!("{name} touched by {}", other.pretty_name());
     }
 
-    fn used(&self, use_type: UseType, _activator: Option<&dyn Entity>, caller: &dyn Entity) {
-        let classname = self.classname();
-        if let Some(name) = self.vars().target_name() {
-            trace!(
-                "{classname}({name}) used({use_type:?}) by {}",
-                caller.name()
-            );
-        } else {
-            trace!("{classname} used({use_type:?} by {}", caller.name());
-        }
+    fn used(&self, use_type: UseType, activator: Option<&dyn Entity>, caller: &dyn Entity) {
+        let name = self.pretty_name();
+        let caller_name = caller.pretty_name();
+        let activator_name = activator.map(|i| i.pretty_name());
+        trace!("{name} used({use_type:?}) by {caller_name}, activator {activator_name:?}");
     }
 
     fn blocked(&self, other: &dyn Entity) {
-        let classname = self.classname();
-        if let Some(name) = self.vars().target_name() {
-            trace!("{classname}({name}) blocked by {}", other.name());
-        } else {
-            trace!("{classname} blocked by {}", other.name());
-        }
+        trace!("{} blocked by {}", self.pretty_name(), other.pretty_name());
     }
 }

@@ -204,10 +204,9 @@ impl Player {
         }
 
         if let Some(i) = target {
-            let classname = i.entity.classname();
-            let name = i.entity.name();
+            let name = i.entity.pretty_name();
             let use_type = i.use_type;
-            trace!("player use target {classname}({name}) type {use_type:?}");
+            trace!("player use target {name} type {use_type:?}");
             f(i.entity, i.use_type);
         }
     }
