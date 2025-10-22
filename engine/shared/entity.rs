@@ -38,6 +38,8 @@ impl EntityIndex {
     /// The world spawn entity index.
     pub const WORLD_SPAWN: Self = Self(0);
 
+    pub const SINGLE_PLAYER: Self = Self(1);
+
     pub const fn new(index: u16) -> Option<Self> {
         if index < 0x1000 {
             Some(Self(index))

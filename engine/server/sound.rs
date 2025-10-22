@@ -2,7 +2,7 @@ use core::{cell::RefCell, cmp, ffi::CStr, fmt::Write};
 
 use alloc::vec::Vec;
 use csz::{CStrArray, CStrSlice, CStrThin};
-use xash3d_shared::str::ByteSliceExt;
+use xash3d_shared::{entity::EntityIndex, str::ByteSliceExt};
 
 use crate::{entity::EntityVars, prelude::*, str::MapString, time::MapTime};
 
@@ -362,4 +362,22 @@ pub fn button_sound(index: usize) -> Option<&'static CStr> {
 
 pub fn button_sound_or_default(index: usize) -> &'static CStr {
     button_sound(index).unwrap_or(BUTTON_DEFAULT_SOUND)
+}
+
+pub fn play_cd_track(engine: &ServerEngine, track: i32) {
+    let Some(client) = engine.get_entity_by_index(EntityIndex::SINGLE_PLAYER) else {
+        return;
+    };
+
+    match track {
+        -1 => {
+            engine.client_command(&client, c"cd stop\n");
+        }
+        0..=30 => {
+            engine.client_command(&client, format_args!("cd play {track}\n"));
+        }
+        _ => {
+            warn!("play_cd_track: track {track} is out of range");
+        }
+    }
 }
