@@ -3,7 +3,7 @@ mod private_data;
 mod vars;
 
 use core::{
-    ffi::{c_int, c_void},
+    ffi::{c_int, c_void, CStr},
     fmt,
     marker::PhantomData,
     ptr::{self, NonNull},
@@ -23,7 +23,9 @@ use xash3d_shared::{
 
 use crate::{
     engine::ServerEngineRef,
+    export::dispatch_spawn,
     global_state::{EntityState, GlobalStateRef},
+    prelude::*,
     save::{Restore, Save},
 };
 
@@ -922,3 +924,37 @@ pub fn create_baseline(
 
 #[deprecated(note = "moved to entities::stub::StubEntity")]
 pub type StubEntity = crate::entities::stub::StubEntity;
+
+pub struct CreateError(());
+
+impl fmt::Debug for CreateError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_tuple("CreateError").finish()
+    }
+}
+
+impl fmt::Display for CreateError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.write_str("failed to create a named entity")
+    }
+}
+
+pub fn create_entity(
+    engine: &ServerEngine,
+    class_name: &CStr,
+    origin: vec3_t,
+    angles: vec3_t,
+    owner: Option<EntityHandle>,
+) -> Result<EntityHandle, CreateError> {
+    let Some(mut entity) = engine.create_named_entity(class_name) else {
+        return Err(CreateError(()));
+    };
+    let v = entity.vars();
+    v.set_owner(owner.as_ref());
+    v.set_origin(origin);
+    v.set_angles(angles);
+    if let Some(entity) = unsafe { entity.get_entity_mut() } {
+        dispatch_spawn(entity);
+    }
+    Ok(entity)
+}
