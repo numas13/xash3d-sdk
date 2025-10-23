@@ -208,7 +208,7 @@ impl GlobalState {
         Ref::map(self.decals.borrow(), |i| i.as_ref())
     }
 
-    pub fn set_decals<T: Decals + 'static>(&self, decals: T) {
+    pub fn set_decals<T: Decals>(&self, decals: T) {
         self.decals.replace(Box::new(decals));
     }
 
@@ -216,7 +216,7 @@ impl GlobalState {
         Ref::map(self.sprites.borrow(), |i| i.as_ref())
     }
 
-    pub fn set_sprites<T: Sprites + 'static>(&self, sprites: T) {
+    pub fn set_sprites<T: Sprites>(&self, sprites: T) {
         self.sprites.replace(Box::new(sprites));
     }
 

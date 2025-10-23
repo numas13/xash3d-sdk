@@ -1,6 +1,6 @@
 use core::{any::Any, ffi::CStr};
 
-use xash3d_shared::ffi::common::vec3_t;
+use xash3d_shared::{ffi::common::vec3_t, utils::AsAny};
 
 use crate::{
     engine::ServerEngineRef,
@@ -8,9 +8,7 @@ use crate::{
     global_state::GlobalStateRef,
 };
 
-pub trait GameRules: Any {
-    fn as_any(&self) -> &dyn Any;
-
+pub trait GameRules: AsAny {
     fn engine(&self) -> ServerEngineRef;
 
     fn is_multiplayer(&self) -> bool {
@@ -81,10 +79,6 @@ impl StubGameRules {
 }
 
 impl GameRules for StubGameRules {
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-
     fn engine(&self) -> ServerEngineRef {
         self.engine
     }

@@ -50,7 +50,7 @@ pub unsafe fn cstr_or_none<'a>(ptr: *const c_char) -> Option<&'a CStrThin> {
     }
 }
 
-pub trait AsAny {
+pub trait AsAny: Any {
     fn as_any(&self) -> &dyn Any;
 }
 
