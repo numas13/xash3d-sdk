@@ -419,7 +419,7 @@ impl KeyValue {
     }
 }
 
-pub trait CreateEntity: Entity {
+pub trait CreateEntity {
     fn create(base: BaseEntity) -> Self;
 }
 
