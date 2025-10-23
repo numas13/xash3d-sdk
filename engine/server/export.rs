@@ -60,6 +60,41 @@ impl From<SpawnResult> for c_int {
     }
 }
 
+pub fn dispatch_spawn(entity: &mut dyn Entity) -> SpawnResult {
+    let engine = entity.engine();
+    let global_state = engine.global_state_ref();
+    let v = entity.vars();
+    v.set_abs_min(v.origin() - vec3_t::splat(1.0));
+    v.set_abs_max(v.origin() + vec3_t::splat(1.0));
+
+    entity.spawn();
+
+    if !global_state.game_rules().is_allowed_to_spawn(entity) {
+        return SpawnResult::Delete;
+    }
+
+    if entity.vars().flags().intersects(EdictFlags::KILLME) {
+        return SpawnResult::Delete;
+    }
+
+    if let Some(globalname) = entity.globalname() {
+        let mut entities = global_state.entities_mut();
+        let map_name = engine.globals.map_name().unwrap();
+        if let Some(global) = entities.find(globalname) {
+            if global.is_dead() {
+                return SpawnResult::Delete;
+            }
+            if map_name.as_thin() != global.map_name() {
+                entity.make_dormant();
+            }
+        } else {
+            entities.add(globalname, map_name, EntityState::On);
+        }
+    }
+
+    SpawnResult::Ok
+}
+
 #[allow(unused_variables)]
 #[allow(clippy::missing_safety_doc)]
 pub trait ServerDll: UnsyncGlobal {
@@ -81,44 +116,16 @@ pub trait ServerDll: UnsyncGlobal {
         true
     }
 
-    fn dispatch_spawn(&self, mut ent: EntityHandle) -> SpawnResult {
-        let engine = self.engine();
-        let global_state = self.global_state();
-
-        let Some(ent) = (unsafe { ent.get_entity_mut() }) else {
-            return SpawnResult::Delete;
-        };
-
-        let v = ent.vars();
-        v.set_abs_min(v.origin() - vec3_t::splat(1.0));
-        v.set_abs_max(v.origin() + vec3_t::splat(1.0));
-
-        ent.spawn();
-
-        if !global_state.game_rules().is_allowed_to_spawn(ent) {
-            return SpawnResult::Delete;
+    /// Dispatch spawn event to the entity.
+    ///
+    /// # Safety
+    ///
+    /// The behaviour is undefined if the entity is mutable borrowed somewhere else.
+    unsafe fn dispatch_spawn(&self, mut entity: EntityHandle) -> SpawnResult {
+        match unsafe { entity.get_entity_mut() } {
+            Some(entity) => dispatch_spawn(entity),
+            None => SpawnResult::Delete,
         }
-
-        if ent.vars().flags().intersects(EdictFlags::KILLME) {
-            return SpawnResult::Delete;
-        }
-
-        if let Some(globalname) = ent.globalname() {
-            let mut entities = global_state.entities_mut();
-            let map_name = engine.globals.map_name().unwrap();
-            if let Some(global) = entities.find(globalname) {
-                if global.is_dead() {
-                    return SpawnResult::Delete;
-                }
-                if map_name.as_thin() != global.map_name() {
-                    ent.make_dormant();
-                }
-            } else {
-                entities.add(globalname, map_name, EntityState::On);
-            }
-        }
-
-        SpawnResult::Ok
     }
 
     fn dispatch_think(&self, ent: EntityHandle) {
