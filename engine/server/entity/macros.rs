@@ -121,6 +121,10 @@ pub use impl_cast;
 #[macro_export]
 macro_rules! impl_entity_cast {
     (cast $ty:ty) => {
+        fn as_entity(&self) -> &dyn $crate::entity::Entity {
+            $crate::entity::static_trait_cast!($ty, $crate::entity::Entity, self).unwrap()
+        }
+
         $crate::entity::impl_cast! {
             $ty {
                 as_player -> $crate::entity::EntityPlayer;

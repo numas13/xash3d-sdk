@@ -524,6 +524,8 @@ impl fmt::Display for PrettyName<'_> {
 }
 
 pub trait EntityCast: 'static {
+    fn as_entity(&self) -> &dyn Entity;
+
     fn as_player(&self) -> Option<&dyn EntityPlayer>;
 }
 
