@@ -96,11 +96,17 @@ impl ServerDll for Dll {
     fn client_command(&self, ent: EntityHandle) {
         use xash3d_server::{entity::UseType, utils};
         let engine = self.engine();
-        match engine.cmd_argv(0).to_bytes() {
-            b"fire_targets" => {
+        let name = engine.cmd_argv(0);
+        match name.to_bytes() {
+            b"fullupdate" => {
+                if let Some(player) = ent.downcast_ref::<TestPlayer>() {
+                    player.force_update_client_data();
+                }
+            }
+            b"fire" => {
                 let target = engine.cmd_argv(1);
                 if target.is_empty() {
-                    info!("usage: fire_targets target");
+                    info!("usage: fire target");
                     return;
                 }
                 let player = ent.get_entity().unwrap();
@@ -108,7 +114,7 @@ impl ServerDll for Dll {
             }
             _ => {
                 if let Some(args) = self.engine.cmd_args_raw() {
-                    warn!("unimplemented client command {args}");
+                    warn!("unimplemented client command \"{name} {args}\"");
                 }
             }
         }

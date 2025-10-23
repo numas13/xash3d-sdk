@@ -79,6 +79,12 @@ struct Flashlight {
     battery: u8,
 }
 
+#[derive(Default)]
+struct ClientState {
+    health: Cell<f32>,
+    battery: Cell<f32>,
+}
+
 #[derive(Save, Restore)]
 pub struct TestPlayer {
     base: BasePlayer,
@@ -89,6 +95,30 @@ pub struct TestPlayer {
 
     #[save(skip)]
     geiger: RefCell<Geiger>,
+
+    #[save(skip)]
+    client: ClientState,
+}
+
+impl_entity_cast!(TestPlayer);
+
+impl CreateEntity for TestPlayer {
+    fn create(base: BaseEntity) -> Self {
+        Self {
+            base: BasePlayer::create(base),
+            init_hud: Cell::new(true),
+            game_hud_initialized: Cell::new(false),
+
+            flashlight: RefCell::new(Flashlight {
+                time: MapTime::ZERO,
+                battery: 100,
+            }),
+
+            geiger: Default::default(),
+
+            client: ClientState::default(),
+        }
+    }
 }
 
 impl TestPlayer {
@@ -163,29 +193,47 @@ impl TestPlayer {
         // }
     }
 
-    fn client_update_data(&self) {
+    fn update_client_data(&self) {
         let engine = self.engine();
         let global_state = self.global_state();
+        let v = self.vars();
         let time = engine.globals.map_time();
 
         if self.init_hud.get() {
             self.init_hud.set(false);
             global_state.set_init_hud(false);
 
-            engine.msg_one(self, &user_message::ResetHUD::default());
+            engine.msg_one_reliable(self, &user_message::ResetHUD::default());
 
             if !self.game_hud_initialized.get() {
                 self.game_hud_initialized.set(true);
-                engine.msg_one(self, &user_message::InitHUD::default());
+                engine.msg_one_reliable(self, &user_message::InitHUD::default());
             }
 
             utils::fire_targets(c"game_playerspawn".into(), UseType::Toggle, None, self);
 
             let flashlight = self.flashlight.borrow();
             let msg = user_message::Flashlight::new(self.is_flashlight_on(), flashlight.battery);
-            engine.msg_one(self, &msg);
+            engine.msg_one_reliable(self, &msg);
 
-            engine.msg_one(self, &user_message::Geiger::default());
+            engine.msg_one_reliable(self, &user_message::Geiger::default());
+        }
+
+        if v.health() != self.client.health.get() {
+            let health = if v.health() > 0.0 && v.health() < 1.0 {
+                1
+            } else {
+                v.health() as u8
+            };
+            let msg = user_message::Health::new(health);
+            engine.msg_one_reliable(v, &msg);
+            self.client.health.set(v.health());
+        }
+
+        if v.armor_value() != self.client.battery.get() {
+            let msg = user_message::Battery::new(v.armor_value() as i16);
+            engine.msg_one_reliable(v, &msg);
+            self.client.battery.set(v.armor_value());
         }
 
         // update flashlight
@@ -208,27 +256,16 @@ impl TestPlayer {
 
             trace!("send flashlight battery {}%", flashlight.battery);
             let msg = user_message::FlashBat::new(flashlight.battery);
-            self.engine().msg_one(self, &msg);
+            self.engine().msg_one_reliable(self, &msg);
         }
     }
-}
 
-impl_entity_cast!(TestPlayer);
+    pub fn force_update_client_data(&self) {
+        self.client.health.set(-1.0);
+        self.client.battery.set(1.0);
+        self.init_hud.set(true);
 
-impl CreateEntity for TestPlayer {
-    fn create(base: BaseEntity) -> Self {
-        Self {
-            base: BasePlayer::create(base),
-            init_hud: Cell::new(true),
-            game_hud_initialized: Cell::new(false),
-
-            flashlight: RefCell::new(Flashlight {
-                time: MapTime::ZERO,
-                battery: 100,
-            }),
-
-            geiger: Default::default(),
-        }
+        self.update_client_data();
     }
 }
 
@@ -290,7 +327,7 @@ impl EntityPlayer for TestPlayer {
             });
         }
 
-        self.client_update_data();
+        self.update_client_data();
 
         self.check_suit_update();
 
