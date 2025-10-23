@@ -157,6 +157,10 @@ pub trait EngineRng {
         assert!(min <= max, "min must be less than or equal to max");
         unsafe { self.fn_random_int()(min, max) }
     }
+
+    fn random_bool(&self) -> bool {
+        self.random_int(0, 1) != 0
+    }
 }
 
 /// Engine API to print messages to the console.
