@@ -1,7 +1,6 @@
 use crate::{
-    entity::{
-        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, ObjectCaps, UseType,
-    },
+    entities::trigger::Trigger,
+    entity::{delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, UseType},
     export::export_entity_default,
     sound::play_cd_track,
 };
@@ -9,18 +8,18 @@ use crate::{
 #[cfg(feature = "save")]
 use crate::save::{Restore, Save};
 
-use super::triggers::init_trigger;
-
 #[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct TriggerCdAudio {
-    base: BaseEntity,
+    base: Trigger,
 }
 
 impl_entity_cast!(TriggerCdAudio);
 
 impl CreateEntity for TriggerCdAudio {
     fn create(base: BaseEntity) -> Self {
-        Self { base }
+        Self {
+            base: Trigger::create(base),
+        }
     }
 }
 
@@ -34,17 +33,7 @@ impl TriggerCdAudio {
 }
 
 impl Entity for TriggerCdAudio {
-    delegate_entity!(base not { object_caps, spawn, used, touched });
-
-    fn object_caps(&self) -> ObjectCaps {
-        self.base
-            .object_caps()
-            .difference(ObjectCaps::ACROSS_TRANSITION)
-    }
-
-    fn spawn(&mut self) {
-        init_trigger(&self.engine(), self.vars());
-    }
+    delegate_entity!(base not { used, touched });
 
     fn used(&self, _: UseType, _: Option<&dyn Entity>, _: &dyn Entity) {
         self.play_track();

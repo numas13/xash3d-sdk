@@ -4,10 +4,9 @@ use bitflags::bitflags;
 use xash3d_shared::entity::EdictFlags;
 
 use crate::{
-    entities::delayed_use::DelayedUse,
+    entities::{delayed_use::DelayedUse, trigger::Trigger},
     entity::{
-        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, KeyValue, ObjectCaps,
-        UseType,
+        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, KeyValue, UseType,
     },
     export::export_entity_default,
     str::MapString,
@@ -17,8 +16,6 @@ use crate::{
 
 #[cfg(feature = "save")]
 use crate::save::{Restore, Save};
-
-use super::triggers::init_trigger;
 
 bitflags! {
     #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
@@ -34,7 +31,7 @@ bitflags! {
 
 #[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct TriggerMultiple {
-    base: BaseEntity,
+    base: Trigger,
     delayed: DelayedUse,
 
     master: Option<MapString>,
@@ -43,6 +40,23 @@ pub struct TriggerMultiple {
 
     /// The time when this trigger can be re-triggered.
     reset_time: Cell<MapTime>,
+}
+
+impl_entity_cast!(TriggerMultiple);
+
+impl CreateEntity for TriggerMultiple {
+    fn create(base: BaseEntity) -> Self {
+        let engine = base.engine();
+        Self {
+            base: Trigger::create(base),
+            delayed: DelayedUse::new(engine),
+
+            master: None,
+            wait: 0.2,
+
+            reset_time: Cell::default(),
+        }
+    }
 }
 
 impl TriggerMultiple {
@@ -81,30 +95,8 @@ impl TriggerMultiple {
     }
 }
 
-impl_entity_cast!(TriggerMultiple);
-
-impl CreateEntity for TriggerMultiple {
-    fn create(base: BaseEntity) -> Self {
-        Self {
-            delayed: DelayedUse::new(base.engine()),
-            base,
-
-            master: None,
-            wait: 0.2,
-
-            reset_time: Cell::default(),
-        }
-    }
-}
-
 impl Entity for TriggerMultiple {
-    delegate_entity!(base not { object_caps, key_value, spawn, touched, think });
-
-    fn object_caps(&self) -> ObjectCaps {
-        self.base
-            .object_caps()
-            .difference(ObjectCaps::ACROSS_TRANSITION)
-    }
+    delegate_entity!(base not { key_value, touched, think });
 
     fn key_value(&mut self, data: &mut KeyValue) {
         match data.key_name().to_bytes() {
@@ -118,10 +110,6 @@ impl Entity for TriggerMultiple {
             }
         }
         data.set_handled(true);
-    }
-
-    fn spawn(&mut self) {
-        init_trigger(&self.engine(), self.vars());
     }
 
     fn touched(&self, other: &dyn Entity) {

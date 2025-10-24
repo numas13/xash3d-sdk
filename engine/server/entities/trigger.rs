@@ -1,0 +1,69 @@
+use xash3d_shared::{
+    entity::{Effects, MoveType},
+    ffi::common::vec3_t,
+};
+
+use crate::{
+    entity::{
+        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, ObjectCaps, Solid,
+    },
+    export::export_entity_default,
+    prelude::*,
+};
+
+#[cfg(feature = "save")]
+use crate::save::{Restore, Save};
+
+#[cfg_attr(feature = "save", derive(Save, Restore))]
+pub struct Trigger {
+    base: BaseEntity,
+}
+
+impl_entity_cast!(Trigger);
+
+impl CreateEntity for Trigger {
+    fn create(base: BaseEntity) -> Self {
+        Self { base }
+    }
+}
+
+impl Trigger {
+    pub fn toggle_use(&self) {
+        let v = self.vars();
+        match v.solid() {
+            Solid::Not => {
+                v.set_solid(Solid::Trigger);
+                self.engine().globals.force_retouch();
+            }
+            _ => {
+                v.set_solid(Solid::Not);
+            }
+        }
+        v.link();
+    }
+}
+
+impl Entity for Trigger {
+    delegate_entity!(base not { object_caps, spawn });
+
+    fn object_caps(&self) -> ObjectCaps {
+        self.base
+            .object_caps()
+            .difference(ObjectCaps::ACROSS_TRANSITION)
+    }
+
+    fn spawn(&mut self) {
+        let v = self.vars();
+        if v.angles() != vec3_t::ZERO {
+            v.set_move_dir_from_angles();
+        }
+        v.set_solid(Solid::Trigger);
+        v.set_move_type(MoveType::None);
+        v.reload_model();
+        if !self.engine().get_cvar::<bool>(c"showtriggers") {
+            v.with_effects(|f| f | Effects::NODRAW);
+        }
+    }
+}
+
+export_entity_default!("export-trigger", trigger, Trigger);

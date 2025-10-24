@@ -1,8 +1,7 @@
 use crate::{
-    entities::delayed_use::DelayedUse,
+    entities::{delayed_use::DelayedUse, trigger::Trigger},
     entity::{
-        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, KeyValue, ObjectCaps,
-        UseType,
+        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, KeyValue, UseType,
     },
     export::export_entity_default,
     global_state::EntityState,
@@ -14,10 +13,24 @@ use crate::save::{Restore, Save};
 
 #[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct AutoTrigger {
-    base: BaseEntity,
+    base: Trigger,
     delayed: DelayedUse,
     global_state: Option<MapString>,
     trigger_type: UseType,
+}
+
+impl_entity_cast!(AutoTrigger);
+
+impl CreateEntity for AutoTrigger {
+    fn create(base: BaseEntity) -> Self {
+        let engine = base.engine();
+        Self {
+            base: Trigger::create(base),
+            delayed: DelayedUse::new(engine),
+            global_state: None,
+            trigger_type: UseType::Off,
+        }
+    }
 }
 
 impl AutoTrigger {
@@ -25,27 +38,8 @@ impl AutoTrigger {
     const SF_FIREONCE: u32 = 1 << 0;
 }
 
-impl_entity_cast!(AutoTrigger);
-
-impl CreateEntity for AutoTrigger {
-    fn create(base: BaseEntity) -> Self {
-        Self {
-            delayed: DelayedUse::new(base.engine()),
-            base,
-            global_state: None,
-            trigger_type: UseType::Off,
-        }
-    }
-}
-
 impl Entity for AutoTrigger {
-    delegate_entity!(base not { object_caps, key_value, precache, spawn, think });
-
-    fn object_caps(&self) -> ObjectCaps {
-        self.base
-            .object_caps()
-            .difference(ObjectCaps::ACROSS_TRANSITION)
-    }
+    delegate_entity!(base not { key_value, precache, spawn, think });
 
     fn key_value(&mut self, data: &mut KeyValue) {
         match data.key_name().to_bytes() {

@@ -5,17 +5,13 @@ use xash3d_shared::{
 };
 
 use crate::{
-    entity::{
-        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, ObjectCaps, Solid,
-        UseType,
-    },
+    entities::trigger::Trigger,
+    entity::{delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, Solid, UseType},
     export::export_entity_default,
 };
 
 #[cfg(feature = "save")]
 use crate::save::{Restore, Save};
-
-use super::triggers::{init_trigger, toggle_use};
 
 bitflags! {
     #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
@@ -29,35 +25,30 @@ bitflags! {
 
 #[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct TriggerPush {
-    base: BaseEntity,
+    base: Trigger,
 }
 
 impl_entity_cast!(TriggerPush);
 
 impl CreateEntity for TriggerPush {
     fn create(base: BaseEntity) -> Self {
-        Self { base }
+        Self {
+            base: Trigger::create(base),
+        }
     }
 }
 
 impl Entity for TriggerPush {
-    delegate_entity!(base not { object_caps, spawn, used, touched });
-
-    fn object_caps(&self) -> ObjectCaps {
-        self.base
-            .object_caps()
-            .difference(ObjectCaps::ACROSS_TRANSITION)
-    }
+    delegate_entity!(base not { spawn, used, touched });
 
     fn spawn(&mut self) {
-        let engine = self.base.engine();
         let v = self.base.vars();
-
         if v.angles() == vec3_t::ZERO {
             v.with_angles(|v| v.with_y(360.0));
         }
-        init_trigger(&engine, v);
+        self.base.spawn();
 
+        let v = self.base.vars();
         if v.speed() == 0.0 {
             v.set_speed(100.0);
         }
@@ -71,7 +62,7 @@ impl Entity for TriggerPush {
     }
 
     fn used(&self, _: UseType, _: Option<&dyn Entity>, _: &dyn Entity) {
-        toggle_use(self);
+        self.base.toggle_use();
     }
 
     fn touched(&self, other: &dyn Entity) {

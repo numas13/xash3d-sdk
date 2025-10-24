@@ -2,10 +2,8 @@ use bitflags::bitflags;
 use xash3d_shared::{entity::EdictFlags, ffi::common::vec3_t};
 
 use crate::{
-    entities::point_entity::PointEntity,
-    entity::{
-        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, KeyValue, ObjectCaps,
-    },
+    entities::{point_entity::PointEntity, trigger::Trigger},
+    entity::{delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, KeyValue},
     export::export_entity_default,
     str::MapString,
     utils,
@@ -13,8 +11,6 @@ use crate::{
 
 #[cfg(feature = "save")]
 use crate::save::{Restore, Save};
-
-use super::triggers::init_trigger;
 
 bitflags! {
     #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
@@ -28,7 +24,7 @@ bitflags! {
 
 #[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct TriggerTeleport {
-    base: BaseEntity,
+    base: Trigger,
     master: Option<MapString>,
 }
 
@@ -36,7 +32,10 @@ impl_entity_cast!(TriggerTeleport);
 
 impl CreateEntity for TriggerTeleport {
     fn create(base: BaseEntity) -> Self {
-        Self { base, master: None }
+        Self {
+            base: Trigger::create(base),
+            master: None,
+        }
     }
 }
 
@@ -47,13 +46,7 @@ impl TriggerTeleport {
 }
 
 impl Entity for TriggerTeleport {
-    delegate_entity!(base not { object_caps, key_value, spawn, touched });
-
-    fn object_caps(&self) -> ObjectCaps {
-        self.base
-            .object_caps()
-            .difference(ObjectCaps::ACROSS_TRANSITION)
-    }
+    delegate_entity!(base not { key_value, touched });
 
     fn key_value(&mut self, data: &mut KeyValue) {
         if data.key_name() == c"master" {
@@ -62,10 +55,6 @@ impl Entity for TriggerTeleport {
         } else {
             self.base.key_value(data);
         }
-    }
-
-    fn spawn(&mut self) {
-        init_trigger(&self.engine(), self.vars());
     }
 
     fn touched(&self, other: &dyn Entity) {

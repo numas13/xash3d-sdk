@@ -31,6 +31,7 @@ pub mod spark_shower;
 pub mod speaker;
 pub mod stub;
 pub mod target_cdaudio;
+pub mod trigger;
 pub mod trigger_auto;
 pub mod trigger_autosave;
 pub mod trigger_cdaudio;
@@ -46,8 +47,6 @@ pub mod trigger_teleport;
 pub mod trigger_transition;
 pub mod world;
 pub mod world_items;
-
-mod triggers;
 
 use crate::export::export_entity_stub;
 
@@ -83,7 +82,6 @@ export_entity_stub!(monster_furniture);
 export_entity_stub!(scripted_sentence);
 export_entity_stub!(scripted_sequence);
 export_entity_stub!(test_effect);
-export_entity_stub!(trigger);
 export_entity_stub!(trigger_camera);
 export_entity_stub!(trigger_changetarget);
 export_entity_stub!(trigger_counter);

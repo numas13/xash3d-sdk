@@ -2,10 +2,10 @@ use bitflags::bitflags;
 use xash3d_shared::{entity::DamageFlags, ffi::common::vec3_t};
 
 use crate::{
-    entities::delayed_use::DelayedUse,
+    entities::{delayed_use::DelayedUse, trigger::Trigger},
     entity::{
         delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Dead, Entity, EntityPlayer,
-        KeyValue, ObjectCaps, Solid, TakeDamage, UseType,
+        KeyValue, Solid, TakeDamage, UseType,
     },
     export::export_entity_default,
     prelude::*,
@@ -13,8 +13,6 @@ use crate::{
 
 #[cfg(feature = "save")]
 use crate::save::{Restore, Save};
-
-use super::triggers::{init_trigger, toggle_use};
 
 bitflags! {
     #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
@@ -35,9 +33,22 @@ bitflags! {
 
 #[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct TriggerHurt {
-    base: BaseEntity,
+    base: Trigger,
     delayed: DelayedUse,
     damage_type: DamageFlags,
+}
+
+impl_entity_cast!(TriggerHurt);
+
+impl CreateEntity for TriggerHurt {
+    fn create(base: BaseEntity) -> Self {
+        let engine = base.engine();
+        Self {
+            base: Trigger::create(base),
+            delayed: DelayedUse::new(engine),
+            damage_type: DamageFlags::default(),
+        }
+    }
 }
 
 impl TriggerHurt {
@@ -46,26 +57,8 @@ impl TriggerHurt {
     }
 }
 
-impl_entity_cast!(TriggerHurt);
-
-impl CreateEntity for TriggerHurt {
-    fn create(base: BaseEntity) -> Self {
-        Self {
-            delayed: DelayedUse::new(base.engine()),
-            base,
-            damage_type: DamageFlags::default(),
-        }
-    }
-}
-
 impl Entity for TriggerHurt {
-    delegate_entity!(base not { object_caps, key_value, spawn, used, touched, think });
-
-    fn object_caps(&self) -> ObjectCaps {
-        self.base
-            .object_caps()
-            .difference(ObjectCaps::ACROSS_TRANSITION)
-    }
+    delegate_entity!(base not { key_value, spawn, used, touched, think });
 
     fn key_value(&mut self, data: &mut KeyValue) {
         match data.key_name().to_bytes() {
@@ -84,10 +77,11 @@ impl Entity for TriggerHurt {
     }
 
     fn spawn(&mut self) {
+        self.base.spawn();
+
         let spawn_flags = self.spawn_flags();
         let engine = self.base.engine();
         let v = self.base.vars();
-        init_trigger(&engine, v);
 
         if self.damage_type.intersects(DamageFlags::RADIATION) {
             v.set_next_think_time_from_now(engine.random_float(0.0, 0.5));
@@ -102,7 +96,7 @@ impl Entity for TriggerHurt {
 
     fn used(&self, _: UseType, _: Option<&dyn Entity>, _: &dyn Entity) {
         if self.vars().target_name().is_some() {
-            toggle_use(self);
+            self.base.toggle_use();
         }
     }
 

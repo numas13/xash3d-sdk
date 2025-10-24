@@ -7,6 +7,7 @@ use xash3d_shared::{
 };
 
 use crate::{
+    entities::trigger::Trigger,
     entity::{
         delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, EntityHandle,
         KeyValue, ObjectCaps,
@@ -20,17 +21,29 @@ use crate::{
 #[cfg(feature = "save")]
 use crate::save::{Restore, Save};
 
-use super::triggers::init_trigger;
-
 const MAP_NAME_MAX: usize = 32;
 
 #[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct ChangeLevel {
-    base: BaseEntity,
+    base: Trigger,
     map_name: CStrArray<MAP_NAME_MAX>,
     landmark_name: CStrArray<MAP_NAME_MAX>,
     target: Option<MapString>,
     change_target_delay: f32,
+}
+
+impl_entity_cast!(ChangeLevel);
+
+impl CreateEntity for ChangeLevel {
+    fn create(base: BaseEntity) -> Self {
+        Self {
+            base: Trigger::create(base),
+            map_name: Default::default(),
+            landmark_name: Default::default(),
+            target: None,
+            change_target_delay: 0.0,
+        }
+    }
 }
 
 impl ChangeLevel {
@@ -65,28 +78,8 @@ impl ChangeLevel {
     }
 }
 
-impl_entity_cast!(ChangeLevel);
-
-impl CreateEntity for ChangeLevel {
-    fn create(base: BaseEntity) -> Self {
-        Self {
-            base,
-            map_name: Default::default(),
-            landmark_name: Default::default(),
-            target: None,
-            change_target_delay: 0.0,
-        }
-    }
-}
-
 impl Entity for ChangeLevel {
-    delegate_entity!(base not { object_caps, key_value, spawn, touched });
-
-    fn object_caps(&self) -> ObjectCaps {
-        self.base
-            .object_caps()
-            .difference(ObjectCaps::ACROSS_TRANSITION)
-    }
+    delegate_entity!(base not { key_value, spawn, touched });
 
     fn key_value(&mut self, data: &mut KeyValue) {
         let engine = self.base.engine();
@@ -130,7 +123,7 @@ impl Entity for ChangeLevel {
             // TODO: use target name
         }
 
-        init_trigger(&self.engine(), self.vars());
+        self.base.spawn();
 
         if self.vars().spawn_flags() & Self::SF_USE_ONLY != 0 {
             // TODO: set touch

@@ -1,7 +1,6 @@
 use crate::{
-    entity::{
-        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, KeyValue, ObjectCaps,
-    },
+    entities::trigger::Trigger,
+    entity::{delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, KeyValue},
     export::export_entity_default,
     str::MapString,
     utils,
@@ -10,11 +9,9 @@ use crate::{
 #[cfg(feature = "save")]
 use crate::save::{Restore, Save};
 
-use super::triggers::init_trigger;
-
 #[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct TriggerSave {
-    base: BaseEntity,
+    base: Trigger,
     master: Option<MapString>,
 }
 
@@ -22,18 +19,15 @@ impl_entity_cast!(TriggerSave);
 
 impl CreateEntity for TriggerSave {
     fn create(base: BaseEntity) -> Self {
-        Self { base, master: None }
+        Self {
+            base: Trigger::create(base),
+            master: None,
+        }
     }
 }
 
 impl Entity for TriggerSave {
-    delegate_entity!(base not { object_caps, key_value, spawn, touched });
-
-    fn object_caps(&self) -> ObjectCaps {
-        self.base
-            .object_caps()
-            .difference(ObjectCaps::ACROSS_TRANSITION)
-    }
+    delegate_entity!(base not { key_value, spawn, touched });
 
     fn key_value(&mut self, data: &mut KeyValue) {
         if data.key_name() == c"master" {
@@ -50,7 +44,7 @@ impl Entity for TriggerSave {
             return;
         }
 
-        init_trigger(&self.engine(), self.vars());
+        self.base.spawn();
     }
 
     fn touched(&self, other: &dyn Entity) {

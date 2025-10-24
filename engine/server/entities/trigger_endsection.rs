@@ -1,9 +1,9 @@
 use core::cell::Cell;
 
 use crate::{
+    entities::trigger::Trigger,
     entity::{
-        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, KeyValue, ObjectCaps,
-        UseType,
+        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, KeyValue, UseType,
     },
     export::export_entity_default,
 };
@@ -11,13 +11,23 @@ use crate::{
 #[cfg(feature = "save")]
 use crate::save::{Restore, Save};
 
-use super::triggers::init_trigger;
-
 #[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct TriggerEndSection {
-    base: BaseEntity,
+    base: Trigger,
     enable_used: Cell<bool>,
     enable_touched: Cell<bool>,
+}
+
+impl_entity_cast!(TriggerEndSection);
+
+impl CreateEntity for TriggerEndSection {
+    fn create(base: BaseEntity) -> Self {
+        Self {
+            base: Trigger::create(base),
+            enable_used: Cell::new(false),
+            enable_touched: Cell::new(false),
+        }
+    }
 }
 
 impl TriggerEndSection {
@@ -35,26 +45,8 @@ impl TriggerEndSection {
     }
 }
 
-impl_entity_cast!(TriggerEndSection);
-
-impl CreateEntity for TriggerEndSection {
-    fn create(base: BaseEntity) -> Self {
-        Self {
-            base,
-            enable_used: Cell::new(false),
-            enable_touched: Cell::new(false),
-        }
-    }
-}
-
 impl Entity for TriggerEndSection {
-    delegate_entity!(base not { object_caps, key_value, spawn, used, touched });
-
-    fn object_caps(&self) -> ObjectCaps {
-        self.base
-            .object_caps()
-            .difference(ObjectCaps::ACROSS_TRANSITION)
-    }
+    delegate_entity!(base not { key_value, spawn, used, touched });
 
     fn key_value(&mut self, data: &mut KeyValue) {
         if data.key_name() == c"section" {
@@ -67,7 +59,6 @@ impl Entity for TriggerEndSection {
     }
 
     fn spawn(&mut self) {
-        let engine = self.engine();
         let global_state = self.global_state();
         let v = self.base.vars();
 
@@ -76,11 +67,11 @@ impl Entity for TriggerEndSection {
             return;
         }
 
-        init_trigger(&engine, v);
-
         self.enable_used.set(true);
         self.enable_touched
             .set(v.spawn_flags() & Self::SF_USEONLY == 0);
+
+        self.base.spawn();
     }
 
     fn used(&self, _: UseType, activator: Option<&dyn Entity>, caller: &dyn Entity) {
