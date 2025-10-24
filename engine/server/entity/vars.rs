@@ -543,6 +543,10 @@ impl EntityVars {
     field!(set size, fn set_size(v: vec3_t));
     field!(mut size, fn with_size(vec3_t));
 
+    pub fn set_size_and_link(&self, min: vec3_t, max: vec3_t) {
+        self.engine.set_size(self, min, max);
+    }
+
     pub fn bmodel_origin(&self) -> vec3_t {
         self.abs_min() + self.size() * 0.5
     }

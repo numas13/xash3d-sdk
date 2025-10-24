@@ -373,6 +373,13 @@ impl EntityPlayer for TestPlayer {
                 }
             }
 
+            for _ in 0..engine.random_int(1, 3) {
+                use xash3d_server::entity::create_entity;
+                let pos = trace.end_position();
+                let angles = trace.plane_normal();
+                create_entity(&engine, c"spark_shower", pos, angles, None).ok();
+            }
+
             let msg = user_message::Line {
                 start: start.into(),
                 end: trace.end_position().into(),

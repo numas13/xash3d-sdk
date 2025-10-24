@@ -531,6 +531,18 @@ impl<const N: u32> FixedU8<N> {
     }
 }
 
+impl<const N: u32> From<u8> for FixedU8<N> {
+    fn from(value: u8) -> Self {
+        Self::from_u32(value as u32)
+    }
+}
+
+impl<const N: u32> From<u16> for FixedU8<N> {
+    fn from(value: u16) -> Self {
+        Self::from_u32(value as u32)
+    }
+}
+
 impl<const N: u32> From<u32> for FixedU8<N> {
     fn from(value: u32) -> Self {
         Self::from_u32(value)
