@@ -1057,6 +1057,11 @@ impl ServerEngine {
             .map(|i| i.into())
     }
 
+    /// Returns an iterator over spawned and connected players.
+    pub fn players(&self) -> PlayerIter<'_> {
+        PlayerIter::new(self)
+    }
+
     pub fn get_entity_illum(&self, ent: &impl AsEntityHandle) -> c_int {
         unsafe { unwrap!(self, pfnGetEntityIllum)(ent.as_entity_handle()) }
     }
@@ -2682,6 +2687,37 @@ impl<'a> Iterator for EntitiesInSphere<'a> {
             .find_entity_in_sphere_impl(start, self.origin, self.radius);
         self.last = result.map(|i| i.as_ptr());
         result
+    }
+}
+
+pub struct PlayerIter<'a> {
+    engine: &'a ServerEngine,
+    index: u16,
+}
+
+impl<'a> PlayerIter<'a> {
+    fn new(engine: &'a ServerEngine) -> Self {
+        Self { engine, index: 0 }
+    }
+}
+
+impl<'a> Iterator for PlayerIter<'a> {
+    type Item = &'a dyn Entity;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        while (self.index as i32) < self.engine.globals.max_clients() {
+            self.index += 1;
+            let index = unsafe { EntityIndex::new_unchecked(self.index) };
+            if let Some(entity) = self.engine.get_entity_by_index(index) {
+                if entity.is_free() {
+                    continue;
+                }
+                if let Some(player) = entity.get_entity() {
+                    return Some(player);
+                }
+            }
+        }
+        None
     }
 }
 

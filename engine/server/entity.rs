@@ -158,6 +158,11 @@ impl<'a> EntityHandleRef<'a> {
         self.as_handle().is_world_spawn()
     }
 
+    /// Returns `true` if this entity is freed.
+    pub fn is_free(&self) -> bool {
+        unsafe { (*self.as_ptr()).free != 0 }
+    }
+
     /// Returns a next entity in the same PVS as this entity.
     pub fn next(&self) -> Option<EntityHandleRef<'a>> {
         unsafe { Self::new_not_world_spawn(self.engine, self.raw.as_ref().v.chain) }
@@ -236,6 +241,11 @@ impl EntityHandle {
     /// Returns `true` if this is the world spawn entity.
     pub fn is_world_spawn(&self) -> bool {
         self.engine.get_entity_offset(self).is_world_spawn()
+    }
+
+    /// Returns `true` if this entity is freed.
+    pub fn is_free(&self) -> bool {
+        unsafe { (*self.as_ptr()).free != 0 }
     }
 
     /// Returns a next entity in the same PVS as this entity.
