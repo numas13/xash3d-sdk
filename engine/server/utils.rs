@@ -545,3 +545,79 @@ impl Move for AngularMove {
         self.start_move(v, speed, self.start)
     }
 }
+
+#[derive(Copy, Clone)]
+pub struct ScreenShake<'a> {
+    engine: &'a ServerEngine,
+    amplitude: f32,
+    frequency: f32,
+    duration: f32,
+    radius: f32,
+    in_air: bool,
+}
+
+impl<'a> ScreenShake<'a> {
+    pub fn new(engine: &'a ServerEngine) -> Self {
+        Self {
+            engine,
+            amplitude: 8.0,
+            frequency: 40.0,
+            duration: 1.0,
+            radius: 0.0,
+            in_air: false,
+        }
+    }
+
+    pub fn amplitude(mut self, amplitude: f32) -> Self {
+        self.amplitude = amplitude;
+        self
+    }
+
+    pub fn frequency(mut self, frequency: f32) -> Self {
+        self.frequency = frequency;
+        self
+    }
+
+    pub fn duration(mut self, duration: f32) -> Self {
+        self.duration = duration;
+        self
+    }
+
+    pub fn radius(mut self, radius: f32) -> Self {
+        self.radius = radius;
+        self
+    }
+
+    pub fn in_air(mut self, in_air: bool) -> Self {
+        self.in_air = in_air;
+        self
+    }
+
+    pub fn emit(self, center: vec3_t) {
+        for player in self.engine.players() {
+            let v = player.vars();
+            if !self.in_air && !v.flags().intersects(EdictFlags::ONGROUND) {
+                continue;
+            }
+
+            let mut local_amplitude = 0.0;
+            if self.radius <= 0.0 {
+                local_amplitude = self.amplitude;
+            } else {
+                let distance = (center - v.origin()).length();
+                if distance < self.radius {
+                    local_amplitude = self.amplitude;
+                }
+            }
+
+            if local_amplitude != 0.0 {
+                let msg = user_message::ScreenShake {
+                    amplitude: local_amplitude.into(),
+                    duration: self.duration.into(),
+                    frequence: self.frequency.into(),
+                };
+                self.engine.msg_one_reliable(v, &msg);
+            }
+        }
+    }
+}

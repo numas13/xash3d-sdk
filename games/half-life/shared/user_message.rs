@@ -215,9 +215,6 @@ define_user_message! {
     }
 }
 
-// TODO: define_user_message!(ScreenShake);
-// TODO: define_user_message!(ScreenFade);
-
 define_user_message! {
     pub struct AmmoX {
         pub ty: u8,

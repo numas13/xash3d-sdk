@@ -13,6 +13,7 @@ mod entities;
 mod export;
 mod game_rules;
 mod sound;
+mod user_message;
 
 #[cfg(not(feature = "std"))]
 #[cfg(not(test))]

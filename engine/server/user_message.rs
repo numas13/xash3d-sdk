@@ -1108,6 +1108,16 @@ impl SetRoomType {
 
 // TODO: define user message for svc_director
 
+define_user_message! {
+    pub struct ScreenShake {
+        pub amplitude: FixedU16_4_12,
+        pub duration: FixedU16_4_12,
+        pub frequence: FixedU16_8_8,
+    }
+}
+
+// TODO: define_user_message!(ScreenFade);
+
 /// Take the last path component and convert it to a CStr.
 #[doc(hidden)]
 #[macro_export]

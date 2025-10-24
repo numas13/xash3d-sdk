@@ -10,7 +10,7 @@ use xash3d_server::{
     user_message::register_user_message,
 };
 
-use crate::{entities::player::TestPlayer, game_rules::install_game_rules};
+use crate::{entities::player::TestPlayer, game_rules::install_game_rules, user_message};
 
 struct Dll {
     engine: ServerEngineRef,
@@ -21,8 +21,6 @@ impl_unsync_global!(Dll);
 
 impl Dll {
     fn register_user_messages(engine: ServerEngineRef) -> Result<(), RegisterUserMessageError> {
-        use xash3d_hl_shared::user_message;
-
         register_user_message!(engine, user_message::SelAmmo)?;
         register_user_message!(engine, user_message::CurWeapon)?;
         register_user_message!(engine, user_message::Geiger)?;
@@ -51,7 +49,7 @@ impl Dll {
         register_user_message!(engine, user_message::ItemPickup)?;
         register_user_message!(engine, user_message::HideWeapon)?;
         register_user_message!(engine, user_message::SetFOV)?;
-        // register_user_message!(engine, user_message::ScreenShake)?;
+        register_user_message!(engine, user_message::ScreenShake)?;
         // register_user_message!(engine, user_message::ScreenFade)?;
         register_user_message!(engine, user_message::AmmoX)?;
         // register_user_message!(engine, user_message::TeamNames)?;

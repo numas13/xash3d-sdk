@@ -572,6 +572,9 @@ impl<const N: u32> UserMessageValue<'_> for FixedU8<N> {
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct FixedU16<const N: u32 = 256>(u16);
 
+pub type FixedU16_8_8 = FixedU16<0x100>;
+pub type FixedU16_4_12 = FixedU16<0x1000>;
+
 impl<const N: u32> FixedU16<N> {
     pub const ZERO: Self = Self(0);
 
