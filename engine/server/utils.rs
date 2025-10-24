@@ -48,8 +48,11 @@ pub fn is_master_triggered(
     master: Option<MapString>,
     activator: Option<&dyn Entity>,
 ) -> bool {
-    if let Some(master) = master {
-        if let Some(master) = engine.entities().by_target_name(master.as_thin()).first() {
+    if let Some(master) = master.as_deref() {
+        if master.is_empty() {
+            return true;
+        }
+        if let Some(master) = engine.entities().by_target_name(master).first() {
             if let Some(master) = master.get_entity() {
                 if master.object_caps().intersects(ObjectCaps::MASTER) {
                     return master.is_triggered(activator);
