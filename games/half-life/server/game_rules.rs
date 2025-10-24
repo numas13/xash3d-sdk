@@ -1,6 +1,13 @@
 use core::{ffi::CStr, fmt};
 
-use xash3d_server::{game_rules::GameRules, global_state::GlobalStateRef, prelude::*};
+use xash3d_server::{
+    entity::{Entity, EntityPlayer},
+    ffi::common::vec3_t,
+    game_rules::GameRules,
+    global_state::GlobalStateRef,
+    prelude::*,
+    time::MapTime,
+};
 
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub enum SkillLevel {
@@ -391,6 +398,22 @@ impl GameRules for HalfLifeRules {
 
     fn allow_flashlight(&self) -> bool {
         true
+    }
+
+    fn can_have_item(&self, _: &dyn EntityPlayer, _: &dyn Entity) -> bool {
+        true
+    }
+
+    fn player_got_item(&self, player: &dyn EntityPlayer, item: &dyn Entity) {
+        trace!(
+            "{} got an item {}",
+            player.pretty_name(),
+            item.pretty_name()
+        );
+    }
+
+    fn item_respawn(&self, _: &dyn Entity) -> Option<(MapTime, vec3_t)> {
+        None
     }
 }
 

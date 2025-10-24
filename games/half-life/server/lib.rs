@@ -12,6 +12,7 @@ mod cvar;
 mod entities;
 mod export;
 mod game_rules;
+mod sound;
 
 #[cfg(not(feature = "std"))]
 #[cfg(not(test))]

@@ -3,7 +3,7 @@ use core::ffi::{c_int, CStr};
 use xash3d_server::{
     engine::RegisterUserMessageError,
     entities::world::World,
-    entity::{BaseEntity, EntityHandle, Private},
+    entity::{BaseEntity, EntityHandle, EntityPlayer, Private},
     export::{export_dll, impl_unsync_global, ServerDll},
     global_state::GlobalStateRef,
     prelude::*,
@@ -111,6 +111,13 @@ impl ServerDll for Dll {
                 }
                 let player = ent.get_entity().unwrap();
                 utils::fire_targets(target, UseType::Toggle, Some(player), player);
+            }
+            b"give" => {
+                if let Some(player) = ent.downcast_ref::<dyn EntityPlayer>() {
+                    for item_name in engine.cmd_args().skip(1) {
+                        player.give_named_item(item_name);
+                    }
+                }
             }
             _ => {
                 if let Some(args) = self.engine.cmd_args_raw() {

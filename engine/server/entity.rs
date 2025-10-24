@@ -23,6 +23,7 @@ use xash3d_shared::{
 
 use crate::{
     engine::ServerEngineRef,
+    entities::item::SF_ITEM_NO_RESPAWN,
     export::dispatch_spawn,
     global_state::{EntityState, GlobalStateRef},
     prelude::*,
@@ -533,6 +534,8 @@ pub trait EntityCast: 'static {
     fn as_entity(&self) -> &dyn Entity;
 
     fn as_player(&self) -> Option<&dyn EntityPlayer>;
+
+    fn as_item(&self) -> Option<&dyn EntityItem>;
 }
 
 #[cfg(not(feature = "save"))]
@@ -815,6 +818,13 @@ impl Entity for BaseEntity {
     }
 }
 
+pub trait EntityItem: Entity {
+    /// Tries to give this item to an entity.
+    ///
+    /// Remove self from the world if it is successful.
+    fn try_give(&self, other: &dyn Entity) -> bool;
+}
+
 #[derive(Copy, Clone)]
 pub struct LastSound {
     /// A last sound entity that modified the player room type.
@@ -862,6 +872,32 @@ define_entity_trait! {
 
         #[allow(unused_variables)]
         fn set_env_sound(&self, last: Option<::xash3d_server::entity::LastSound>) {}
+
+        fn give_named_item(&self, name: &::csz::CStrThin) -> bool {
+            let engine = self.engine();
+            let Some(mut item) = engine.create_named_entity(name) else {
+                warn!("{}: failed to create named item {name}", self.pretty_name());
+                return false;
+            };
+
+            let item_v = item.vars();
+            item_v.set_origin(self.vars().origin());
+            item_v.with_spawn_flags(|f| f | SF_ITEM_NO_RESPAWN);
+
+            if let Some(item) = unsafe { item.downcast_mut::<dyn EntityItem>() } {
+                item.spawn();
+                if item.try_give(self.as_entity()) {
+                    return true;
+                }
+            } else {
+                warn!("{}: {name} is not an item entity", self.pretty_name());
+            }
+
+            // failed to give the item, manually remove from the world
+            item.remove_from_world();
+
+            false
+        }
     }
 }
 

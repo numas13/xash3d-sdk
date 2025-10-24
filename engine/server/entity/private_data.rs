@@ -41,6 +41,7 @@ impl<T: Entity> PrivateDataVtable<T> {
             t.downcast::<P::Entity>(|i| Some(i))
                 || t.downcast::<dyn Entity>(|i| Some(i))
                 || t.downcast::<dyn super::EntityPlayer>(|i| i.as_player())
+                || t.downcast::<dyn super::EntityItem>(|i| i.as_item())
                 || P::downcast(&t)
         }
 

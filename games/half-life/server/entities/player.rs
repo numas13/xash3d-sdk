@@ -16,7 +16,8 @@ use xash3d_server::{
     utils,
 };
 
-const WEAPON_SUIT: u32 = 1_u32 << 31;
+pub const WEAPON_SUIT: u32 = 1_u32 << 31;
+pub const MAX_NORMAL_BATTERY: f32 = 100.0;
 
 const SOUND_FLASHLIGHT_ON: &CStr = res::valve::sound::items::FLASHLIGHT1;
 const SOUND_FLASHLIGHT_OFF: &CStr = res::valve::sound::items::FLASHLIGHT1;
@@ -175,6 +176,9 @@ impl TestPlayer {
                     self.flashlight_turn_off();
                 }
             }
+            101 => {
+                self.give_named_item(c"item_suit".into());
+            }
             impulse => {
                 warn!("unimplemented impulse command {impulse}");
             }
@@ -300,7 +304,7 @@ impl Entity for TestPlayer {
 
         // enable suit
         // TODO: move Weapons type to shared crate
-        self.vars().with_weapons(|f| f | WEAPON_SUIT);
+        //self.vars().with_weapons(|f| f | WEAPON_SUIT);
 
         self.precache();
 

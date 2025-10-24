@@ -6,6 +6,7 @@ use crate::{
     engine::ServerEngineRef,
     entity::{Entity, EntityHandle, EntityPlayer},
     global_state::GlobalStateRef,
+    time::MapTime,
 };
 
 pub trait GameRules: AsAny {
@@ -53,6 +54,12 @@ pub trait GameRules: AsAny {
     fn allow_flashlight(&self) -> bool {
         false
     }
+
+    fn can_have_item(&self, player: &dyn EntityPlayer, item: &dyn Entity) -> bool;
+
+    fn player_got_item(&self, player: &dyn EntityPlayer, item: &dyn Entity);
+
+    fn item_respawn(&self, item: &dyn Entity) -> Option<(MapTime, vec3_t)>;
 }
 
 impl dyn GameRules {
@@ -78,6 +85,7 @@ impl StubGameRules {
     }
 }
 
+#[allow(unused_variables)]
 impl GameRules for StubGameRules {
     fn engine(&self) -> ServerEngineRef {
         self.engine
@@ -85,5 +93,15 @@ impl GameRules for StubGameRules {
 
     fn get_game_description(&self) -> &'static CStr {
         c"Stub"
+    }
+
+    fn can_have_item(&self, player: &dyn EntityPlayer, item: &dyn Entity) -> bool {
+        false
+    }
+
+    fn player_got_item(&self, player: &dyn EntityPlayer, item: &dyn Entity) {}
+
+    fn item_respawn(&self, item: &dyn Entity) -> Option<(MapTime, vec3_t)> {
+        None
     }
 }

@@ -128,6 +128,7 @@ macro_rules! impl_entity_cast {
         $crate::entity::impl_cast! {
             $ty {
                 as_player -> $crate::entity::EntityPlayer;
+                as_item -> $crate::entity::EntityItem;
             }
         }
     };
