@@ -50,7 +50,7 @@ impl Dll {
         register_user_message!(engine, user_message::HideWeapon)?;
         register_user_message!(engine, user_message::SetFOV)?;
         register_user_message!(engine, user_message::ScreenShake)?;
-        // register_user_message!(engine, user_message::ScreenFade)?;
+        register_user_message!(engine, user_message::ScreenFade)?;
         register_user_message!(engine, user_message::AmmoX)?;
         // register_user_message!(engine, user_message::TeamNames)?;
         // register_user_message!(engine, user_message::StatusText)?;

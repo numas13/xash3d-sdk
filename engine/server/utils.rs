@@ -2,7 +2,7 @@ use core::{cell::Cell, ffi::CStr, mem};
 
 use csz::{CStrSlice, CStrThin};
 pub use xash3d_shared::utils::*;
-use xash3d_shared::{entity::EdictFlags, ffi::common::vec3_t};
+use xash3d_shared::{color::RGBA, entity::EdictFlags, ffi::common::vec3_t};
 
 use crate::{
     engine::TraceResult,
@@ -618,6 +618,33 @@ impl<'a> ScreenShake<'a> {
                 };
                 self.engine.msg_one_reliable(v, &msg);
             }
+        }
+    }
+}
+
+pub use crate::user_message::ScreenFadeFlags;
+
+pub struct ScreenFade {
+    pub color: RGBA,
+    pub duration: f32,
+    pub hold_time: f32,
+    pub flags: ScreenFadeFlags,
+}
+
+impl ScreenFade {
+    pub fn emit_one(&self, v: &EntityVars) {
+        let msg = user_message::ScreenFade {
+            duration: self.duration.into(),
+            hold_time: self.hold_time.into(),
+            flags: self.flags,
+            color: self.color,
+        };
+        v.engine().msg_one_reliable(v, &msg);
+    }
+
+    pub fn emit_all(&self, engine: &ServerEngine) {
+        for player in engine.players() {
+            self.emit_one(player.vars());
         }
     }
 }

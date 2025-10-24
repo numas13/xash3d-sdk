@@ -876,6 +876,10 @@ define_entity_trait! {
             self.vars().iuser1() != 0
         }
 
+        fn is_net_client(&self) -> bool {
+            true
+        }
+
         fn env_sound(&self) -> Option<::xash3d_server::entity::LastSound> {
             None
         }

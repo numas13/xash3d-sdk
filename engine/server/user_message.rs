@@ -1116,7 +1116,28 @@ define_user_message! {
     }
 }
 
-// TODO: define_user_message!(ScreenFade);
+bitflags! {
+    #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
+    #[repr(transparent)]
+    pub struct ScreenFadeFlags: u16 {
+        const IN        = 0;
+        const OUT       = 1 << 0;
+        const MODULATE  = 1 << 1;
+        const STAYOUT   = 1 << 2;
+        const LONG_FADE = 1 << 3;
+    }
+}
+
+impl_message_value_for_bitflags!(ScreenFadeFlags, u16, write_u16, read_u16);
+
+define_user_message! {
+    pub struct ScreenFade {
+        pub duration: FixedU16_4_12,
+        pub hold_time: FixedU16_4_12,
+        pub flags: ScreenFadeFlags = ScreenFadeFlags::IN,
+        pub color: RGBA = RGBA::WHITE,
+    }
+}
 
 /// Take the last path component and convert it to a CStr.
 #[doc(hidden)]
