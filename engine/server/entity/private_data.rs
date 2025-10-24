@@ -308,6 +308,16 @@ pub trait GetPrivateData<'a> {
     fn downcast_ref<U: Entity + ?Sized>(&self) -> Option<&'a U> {
         self.get_private().and_then(|i| i.downcast_ref())
     }
+
+    /// Tries to downcast this entity to some mutable reference.
+    ///
+    /// # Safety
+    ///
+    /// Undefined behaviour if Rust aliasing rules are violated.
+    unsafe fn downcast_mut<U: Entity + ?Sized>(&mut self) -> Option<&'a mut U> {
+        let private = unsafe { self.get_private_mut()? };
+        private.downcast_mut()
+    }
 }
 
 impl<'a, T: 'a + AsEntityHandle> GetPrivateData<'a> for T {

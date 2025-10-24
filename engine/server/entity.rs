@@ -540,6 +540,8 @@ define_entity_trait! {
     pub trait Entity(delegate_entity): (Save + Restore + EntityCast + AsEntityHandle) {
         fn private(&self) -> &::xash3d_server::entity::PrivateData;
 
+        fn private_mut(&mut self) -> &mut ::xash3d_server::entity::PrivateData;
+
         /// Returns a reference to the server engine.
         fn engine(&self) -> ::xash3d_server::engine::ServerEngineRef;
 
@@ -753,6 +755,10 @@ impl dyn Entity {
     pub fn downcast_ref<U: Entity + ?Sized + 'static>(&self) -> Option<&U> {
         self.private().downcast_ref::<U>()
     }
+
+    pub fn downcast_mut<U: Entity + ?Sized + 'static>(&mut self) -> Option<&mut U> {
+        self.private_mut().downcast_mut::<U>()
+    }
 }
 
 /// Base type for all entities.
@@ -783,6 +789,11 @@ impl Entity for BaseEntity {
     fn private(&self) -> &PrivateData {
         let edict = unsafe { &*self.as_entity_handle() };
         PrivateData::from_edict(edict).unwrap()
+    }
+
+    fn private_mut(&mut self) -> &mut PrivateData {
+        let edict = unsafe { &mut *self.as_entity_handle() };
+        PrivateData::from_edict_mut(edict).unwrap()
     }
 
     fn engine(&self) -> ServerEngineRef {
