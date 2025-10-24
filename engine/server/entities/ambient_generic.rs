@@ -232,19 +232,21 @@ impl DynamicPitchVolume {
     fn init(&mut self, health: f32) {
         self.volrun = ((health * 10.0) as i32).clamp(0, 100);
 
-        if let Some(preset) = DPV_PRESET.get(self.preset as usize) {
-            self.clone_from(preset);
-            self.spindown = self.spindown.fixup();
-            self.spinup = self.spinup.fixup();
-            self.volstart *= 10;
-            self.volrun *= 10;
-            self.fadein = self.fadein.fixup();
-            self.fadeout = self.fadeout.fixup();
-            self.lforate *= 256;
-            self.fadeinsav = self.fadein;
-            self.fadeoutsav = self.fadeout;
-            self.spinupsav = self.spinup;
-            self.spindownsav = self.spindown;
+        if self.preset > 0 {
+            if let Some(preset) = DPV_PRESET.get(self.preset as usize - 1) {
+                self.clone_from(preset);
+                self.spindown = self.spindown.fixup();
+                self.spinup = self.spinup.fixup();
+                self.volstart *= 10;
+                self.volrun *= 10;
+                self.fadein = self.fadein.fixup();
+                self.fadeout = self.fadeout.fixup();
+                self.lforate *= 256;
+                self.fadeinsav = self.fadein;
+                self.fadeoutsav = self.fadeout;
+                self.spinupsav = self.spinup;
+                self.spindownsav = self.spindown;
+            }
         }
 
         self.fadein = self.fadeinsav;
