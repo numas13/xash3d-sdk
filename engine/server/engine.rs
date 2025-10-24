@@ -1148,8 +1148,8 @@ impl ServerEngine {
     ///
     /// **VERY DANGEROUS**
     ///
-    /// Any access to [edict_s], [entvars_s](crate::ffi::server::entvars_s) or the associated
-    /// private data after this function will result in an undefined behaviour.
+    /// Any access to [edict_s], [entvars_s] or the associated private data after this function
+    /// will result in an undefined behaviour.
     ///
     /// </div>
     pub unsafe fn remove_entity_now(&self, ent: &impl AsEntityHandle) {

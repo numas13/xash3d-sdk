@@ -24,6 +24,7 @@ use crate::{
     engine::ServerEngineRef,
     entity::{AsEntityHandle, EntityHandle, EntityOffset, KeyValue},
     global_state::GlobalStateRef,
+    prelude::*,
     save::{FieldType, SaveFields},
     str::MapString,
     time::MapTime,
@@ -920,6 +921,16 @@ impl EntityVars {
     pub fn delayed_remove(&self) {
         self.with_flags(|f| f | EdictFlags::KILLME);
         self.set_target_name(None);
+    }
+
+    /// Call [Entity::remove_from_world](super::Entity::remove_from_world) if this entity vars have
+    /// private data or call [EntityVars::delayed_remove] if not.
+    pub fn remove_from_world(&self) {
+        if let Some(entity) = self.get_entity() {
+            entity.remove_from_world();
+        } else {
+            self.delayed_remove();
+        }
     }
 
     pub(crate) unsafe fn key_value(&self, data: &mut KeyValue) {

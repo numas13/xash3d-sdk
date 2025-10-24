@@ -271,6 +271,12 @@ impl EntityHandle {
     pub fn entity_offset(&self) -> EntityOffset {
         self.engine.get_entity_offset(self)
     }
+
+    /// Call [Entity::remove_from_world] if this entity handle have private data
+    /// or call [EntityVars::delayed_remove] if not.
+    pub fn remove_from_world(&self) {
+        self.vars().remove_from_world();
+    }
 }
 
 impl<'a> From<&'a EntityHandle> for EntityHandleRef<'a> {
