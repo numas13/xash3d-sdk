@@ -234,7 +234,7 @@ define_temp_entity_msg! {
     /// * Flickering particles
     /// * An explosion sound
     /// * Move vertically 8 pps
-    pub struct Explosion(ffi::common::svc_temp_entity) {
+    pub struct Explosion(ffi::common::TE_EXPLOSION) {
         pub position: Coord<vec3_t>,
         pub sprite_index: u16,
         pub scale: FixedU8 = FixedU8::from_u32(1),
