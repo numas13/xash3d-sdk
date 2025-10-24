@@ -1,7 +1,4 @@
-use core::{
-    cell::{Cell, RefCell},
-    ffi::CStr,
-};
+use core::{cell::Cell, ffi::CStr};
 
 use bitflags::bitflags;
 use xash3d_shared::{
@@ -17,7 +14,7 @@ use crate::{
     },
     export::export_entity_default,
     prelude::*,
-    sound::{self, button_sound_or_default, LockSounds},
+    sound::LockSounds,
     str::MapString,
     utils::{self, AngularMove, LinearMove, Move, MoveState},
 };
@@ -141,13 +138,8 @@ pub struct BaseDoor<T> {
 
     move_sound: u8,
     stop_sound: u8,
-    locked_sound: u8,
-    locked_sentence: u8,
-    unlocked_sound: u8,
-    unlocked_sentence: u8,
 
-    #[cfg_attr(feature = "save", save(skip))]
-    lock_sounds: RefCell<LockSounds>,
+    lock_sounds: LockSounds,
 }
 
 impl<T: Move + Default> CreateEntity for BaseDoor<T> {
@@ -169,12 +161,8 @@ impl<T: Move + Default> CreateEntity for BaseDoor<T> {
 
             move_sound: 0,
             stop_sound: 0,
-            locked_sound: 0,
-            locked_sentence: 0,
-            unlocked_sound: 0,
-            unlocked_sentence: 0,
 
-            lock_sounds: RefCell::default(),
+            lock_sounds: LockSounds::new(engine),
         }
     }
 }
@@ -340,9 +328,7 @@ impl<T: Move> BaseDoor<T> {
             self.door_go_down();
         } else {
             // TODO: give health to player???
-            self.lock_sounds
-                .borrow_mut()
-                .play_door(false, self.base.vars());
+            self.lock_sounds.play_door(false, self.base.vars());
             self.door_go_up();
         }
 
@@ -395,17 +381,16 @@ impl<T: Move> Entity for BaseDoor<T> {
 
     fn key_value(&mut self, data: &mut KeyValue) {
         match data.key_name().to_bytes() {
-            b"movesnd" => self.move_sound = data.parse_or_default(),
-            b"stopsnd" => self.stop_sound = data.parse_or_default(),
-            b"locked_sound" => self.locked_sound = data.parse_or_default(),
-            b"locked_sentence" => self.locked_sentence = data.parse_or_default(),
-            b"unlocked_sound" => self.unlocked_sound = data.parse_or_default(),
-            b"unlocked_sentence" => self.unlocked_sentence = data.parse_or_default(),
-            b"wait" => self.wait = data.parse_or_default(),
             b"master" => {
                 self.master = Some(self.engine().new_map_string(data.value()));
             }
+            b"wait" => self.wait = data.parse_or_default(),
+            b"movesnd" => self.move_sound = data.parse_or_default(),
+            b"stopsnd" => self.stop_sound = data.parse_or_default(),
             _ => {
+                if self.lock_sounds.key_value(data) {
+                    return;
+                }
                 if self.door_move.key_value(data) {
                     return;
                 }
@@ -434,35 +419,7 @@ impl<T: Move> Entity for BaseDoor<T> {
         v.set_noise_moving(get_sound(MOVE_SOUNDS, MOVE_SOUNDS[0], self.move_sound));
         v.set_noise_arrived(get_sound(STOP_SOUNDS, STOP_SOUNDS[0], self.stop_sound));
 
-        let mut lock_sounds = self.lock_sounds.borrow_mut();
-
-        lock_sounds.locked_sound = if self.locked_sound != 0 {
-            let sound = button_sound_or_default(self.locked_sound as usize);
-            engine.precache_sound(sound);
-            Some(engine.new_map_string(sound))
-        } else {
-            None
-        };
-
-        lock_sounds.unlocked_sound = if self.unlocked_sound != 0 {
-            let sound = button_sound_or_default(self.unlocked_sound as usize);
-            engine.precache_sound(sound);
-            Some(engine.new_map_string(sound))
-        } else {
-            None
-        };
-
-        lock_sounds.locked_sentence = self
-            .locked_sentence
-            .checked_sub(1)
-            .and_then(|index| sound::LOCK_SENTENCES.get(index as usize))
-            .map(|&s| engine.new_map_string(s));
-
-        lock_sounds.unlocked_sentence = self
-            .unlocked_sentence
-            .checked_sub(1)
-            .and_then(|index| sound::UNLOCK_SENTENCES.get(index as usize))
-            .map(|&s| engine.new_map_string(s));
+        self.lock_sounds.precache();
     }
 
     fn spawn(&mut self) {
@@ -503,7 +460,7 @@ impl<T: Move> Entity for BaseDoor<T> {
     }
 
     fn touched(&self, other: &dyn Entity) {
-        if !self.enable_touch.get() {
+        if !self.enable_touch.get() || !other.is_player() {
             return;
         }
 
@@ -511,12 +468,13 @@ impl<T: Move> Entity for BaseDoor<T> {
         let v = self.base.vars();
 
         if !utils::is_master_triggered(&engine, self.master, Some(other)) {
-            self.lock_sounds.borrow_mut().play_door(true, v);
+            self.lock_sounds.play_door(true, v);
+            return;
         }
 
         if v.target_name().is_some() {
             // touching does nothing if the door is somebody's target
-            self.lock_sounds.borrow_mut().play_door(true, v);
+            self.lock_sounds.play_door(true, v);
             return;
         }
 

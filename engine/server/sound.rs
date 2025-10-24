@@ -4,7 +4,15 @@ use alloc::vec::Vec;
 use csz::{CStrArray, CStrSlice, CStrThin};
 use xash3d_shared::{entity::EntityIndex, str::ByteSliceExt};
 
-use crate::{entity::EntityVars, prelude::*, str::MapString, time::MapTime};
+use crate::{
+    entity::{EntityVars, KeyValue},
+    prelude::*,
+    str::MapString,
+    time::MapTime,
+};
+
+#[cfg(feature = "save")]
+use crate::save::{Restore, Save};
 
 pub use xash3d_shared::sound::*;
 
@@ -202,26 +210,24 @@ impl Sentences {
     }
 }
 
-#[derive(Copy, Clone, Debug, Default)]
-pub struct LockSounds {
-    pub locked_sound: Option<MapString>,
-    pub locked_sentence: Option<MapString>,
-    pub unlocked_sound: Option<MapString>,
-    pub unlocked_sentence: Option<MapString>,
+#[derive(Default)]
+struct LockSoundsState {
+    locked_sound: Option<MapString>,
+    locked_sentence: Option<MapString>,
+    unlocked_sound: Option<MapString>,
+    unlocked_sentence: Option<MapString>,
 
-    pub locked_sentence_index: u16,
-    pub unlocked_sentence_index: u16,
+    locked_sentence_index: u16,
+    unlocked_sentence_index: u16,
 
-    pub wait_sound: MapTime,
-    pub wait_sentence: MapTime,
-    pub eof_locked: bool,
-    pub eof_unlocked: bool,
+    wait_sound: MapTime,
+    wait_sentence: MapTime,
+    eof_locked: bool,
+    eof_unlocked: bool,
 }
 
-impl LockSounds {
+impl LockSoundsState {
     const DOOR_SENTENCE_WAIT: f32 = 6.0;
-    const DOOR_SOUND_WAIT: f32 = 3.0;
-    const BUTTON_SOUND_WAIT: f32 = 0.5;
 
     fn play_lock(&mut self, v: &EntityVars, sound_wait: f32) {
         let engine = v.engine();
@@ -284,20 +290,103 @@ impl LockSounds {
             self.wait_sentence = now + Self::DOOR_SENTENCE_WAIT;
         }
     }
+}
 
-    pub fn play_door(&mut self, locked: bool, v: &EntityVars) {
-        if locked {
-            self.play_lock(v, Self::DOOR_SOUND_WAIT);
-        } else {
-            self.play_unlock(v, Self::DOOR_SOUND_WAIT);
+#[cfg_attr(feature = "save", derive(Save, Restore))]
+pub struct LockSounds {
+    #[cfg_attr(feature = "save", save(skip))]
+    engine: ServerEngineRef,
+
+    locked_sound: u8,
+    locked_sentence: u8,
+    unlocked_sound: u8,
+    unlocked_sentence: u8,
+
+    #[cfg_attr(feature = "save", save(skip))]
+    state: RefCell<LockSoundsState>,
+}
+
+impl LockSounds {
+    const DOOR_SOUND_WAIT: f32 = 3.0;
+    const BUTTON_SOUND_WAIT: f32 = 0.5;
+
+    pub fn new(engine: ServerEngineRef) -> Self {
+        Self {
+            engine,
+
+            locked_sound: 0,
+            locked_sentence: 0,
+            unlocked_sound: 0,
+            unlocked_sentence: 0,
+
+            state: Default::default(),
         }
     }
 
-    pub fn play_button(&mut self, locked: bool, v: &EntityVars) {
-        if locked {
-            self.play_lock(v, Self::BUTTON_SOUND_WAIT);
+    pub fn key_value(&mut self, data: &mut KeyValue) -> bool {
+        match data.key_name().to_bytes() {
+            b"locked_sound" => self.locked_sound = data.parse_or_default(),
+            b"locked_sentence" => self.locked_sentence = data.parse_or_default(),
+            b"unlocked_sound" => self.unlocked_sound = data.parse_or_default(),
+            b"unlocked_sentence" => self.unlocked_sentence = data.parse_or_default(),
+            _ => return false,
+        }
+        data.set_handled(true);
+        true
+    }
+
+    pub fn precache(&mut self) {
+        let engine = self.engine;
+        let state = self.state.get_mut();
+
+        state.locked_sound = if self.locked_sound > 0 {
+            let sound = button_sound_or_default(self.locked_sound as usize);
+            engine.precache_sound(sound);
+            Some(engine.new_map_string(sound))
         } else {
-            self.play_unlock(v, Self::BUTTON_SOUND_WAIT);
+            None
+        };
+
+        state.unlocked_sound = if self.unlocked_sound > 0 {
+            let sound = button_sound_or_default(self.unlocked_sound as usize);
+            engine.precache_sound(sound);
+            Some(engine.new_map_string(sound))
+        } else {
+            None
+        };
+
+        state.locked_sentence = if self.locked_sentence > 0 {
+            LOCK_SENTENCES
+                .get(self.locked_sentence as usize - 1)
+                .map(|&s| engine.new_map_string(s))
+        } else {
+            None
+        };
+
+        state.unlocked_sentence = if self.unlocked_sentence > 0 {
+            UNLOCK_SENTENCES
+                .get(self.unlocked_sentence as usize - 1)
+                .map(|&s| engine.new_map_string(s))
+        } else {
+            None
+        };
+    }
+
+    pub fn play_door(&self, locked: bool, v: &EntityVars) {
+        let mut state = self.state.borrow_mut();
+        if locked {
+            state.play_lock(v, Self::DOOR_SOUND_WAIT);
+        } else {
+            state.play_unlock(v, Self::DOOR_SOUND_WAIT);
+        }
+    }
+
+    pub fn play_button(&self, locked: bool, v: &EntityVars) {
+        let mut state = self.state.borrow_mut();
+        if locked {
+            state.play_lock(v, Self::BUTTON_SOUND_WAIT);
+        } else {
+            state.play_unlock(v, Self::BUTTON_SOUND_WAIT);
         }
     }
 }
