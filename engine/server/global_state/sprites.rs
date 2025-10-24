@@ -54,14 +54,14 @@ pub struct DefaultSprites {
 impl DefaultSprites {
     pub fn new(engine: ServerEngineRef) -> Self {
         Self {
-            laser: engine.precache_model(c"sprites/laserbeam.spr") as u16,
-            laser_dot: engine.precache_model(c"sprites/laserdot.spr") as u16,
-            fireball: engine.precache_model(c"sprites/zerogxplode.spr") as u16,
-            smoke: engine.precache_model(c"sprites/steam1.spr") as u16,
-            wexplosion: engine.precache_model(c"sprites/WXplo1.spr") as u16,
-            bubbles: engine.precache_model(c"sprites/bubble.spr") as u16,
-            blood_drop: engine.precache_model(c"sprites/blood.spr") as u16,
-            blood_spray: engine.precache_model(c"sprites/bloodspray.spr") as u16,
+            laser: engine.precache_model(res::valve::sprites::LASERBEAM) as u16,
+            laser_dot: engine.precache_model(res::valve::sprites::LASERDOT) as u16,
+            fireball: engine.precache_model(res::valve::sprites::ZEROGXPLODE) as u16,
+            smoke: engine.precache_model(res::valve::sprites::STEAM1) as u16,
+            wexplosion: engine.precache_model(res::valve::sprites::WXPLO1) as u16,
+            bubbles: engine.precache_model(res::valve::sprites::BUBBLE) as u16,
+            blood_drop: engine.precache_model(res::valve::sprites::BLOOD) as u16,
+            blood_spray: engine.precache_model(res::valve::sprites::BLOODSPRAY) as u16,
         }
     }
 }
