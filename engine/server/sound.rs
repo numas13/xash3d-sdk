@@ -134,6 +134,11 @@ impl Sentences {
         self.groups.shrink_to_fit();
     }
 
+    fn get_name(&self, offset: usize) -> &CStrThin {
+        let ptr = &self.strings[offset] as *const u8;
+        unsafe { CStrThin::from_ptr(ptr as *const i8) }
+    }
+
     pub fn find_sentence_index(&self, name: &CStrThin) -> Option<u16> {
         if !matches!(name.bytes().next(), Some(b'!')) {
             return None;
@@ -141,10 +146,7 @@ impl Sentences {
 
         let name = unsafe { CStrThin::from_ptr(name.as_ptr().wrapping_add(1)) };
         self.names
-            .binary_search_by_key(&name, |i| {
-                let ptr = &self.strings[i.name_offset as usize] as *const u8;
-                unsafe { CStrThin::from_ptr(ptr as *const i8) }
-            })
+            .binary_search_by(|i| self.get_name(i.name_offset as usize).cmp_ignore_case(name))
             .map(|index| self.names[index].index)
             .ok()
     }
@@ -163,10 +165,7 @@ impl Sentences {
         }
 
         self.groups
-            .binary_search_by_key(&name, |i| {
-                let ptr = &self.strings[i.name_offset as usize] as *const u8;
-                unsafe { CStrThin::from_ptr(ptr as *const i8) }
-            })
+            .binary_search_by(|i| self.get_name(i.name_offset as usize).cmp_ignore_case(name))
             .map(|index| &self.groups[index])
             .ok()
     }
