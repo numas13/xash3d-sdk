@@ -3,6 +3,7 @@ mod private_data;
 mod vars;
 
 use core::{
+    any::type_name,
     ffi::{c_int, c_void, CStr},
     fmt,
     marker::PhantomData,
@@ -417,7 +418,9 @@ impl KeyValue {
     }
 
     pub fn parse<T: FromStr>(&self) -> Result<T, T::Err> {
-        self.value_str().parse()
+        self.value_str().parse().inspect_err(|_| {
+            self.on_error(type_name::<T>());
+        })
     }
 
     pub fn parse_or<T: FromStr>(&self, or: T) -> T {
@@ -428,6 +431,20 @@ impl KeyValue {
         self.parse().unwrap_or_default()
     }
 
+    pub fn parse_vec3(&self) -> Result<vec3_t, ParseVectorError> {
+        parse_vec3_c_str(self.value().into()).inspect_err(|_| {
+            self.on_error("vec3");
+        })
+    }
+
+    pub fn parse_vec3_or(&self, or: vec3_t) -> vec3_t {
+        self.parse_vec3().unwrap_or(or)
+    }
+
+    pub fn parse_vec3_or_default(&self) -> vec3_t {
+        self.parse_vec3_or(vec3_t::default())
+    }
+
     /// Returns `true` if the server DLL knows the key name.
     pub fn handled(&self) -> bool {
         self.raw.fHandled != 0
@@ -436,6 +453,30 @@ impl KeyValue {
     pub fn set_handled(&mut self, handled: bool) {
         self.raw.fHandled = handled.into();
     }
+
+    fn on_error(&self, ty: &str) {
+        let class_name = self.class_name().unwrap_or(c"unknown".into());
+        let key = self.key_name();
+        let value = self.value();
+        debug!("{class_name}: failed to parse {ty}, key={key:?} value={value:?}");
+    }
+}
+
+pub struct ParseVectorError(());
+
+fn parse_vec3(s: &str) -> Result<vec3_t, ParseVectorError> {
+    let mut ret = vec3_t::ZERO;
+    let mut iter = s.split(|c: char| c.is_ascii_whitespace());
+    for i in 0..3 {
+        let chunk = iter.next().ok_or(ParseVectorError(()))?;
+        ret[i] = chunk.parse().map_err(|_| ParseVectorError(()))?;
+    }
+    Ok(ret)
+}
+
+fn parse_vec3_c_str(s: &CStr) -> Result<vec3_t, ParseVectorError> {
+    let s = core::str::from_utf8(s.to_bytes()).map_err(|_| ParseVectorError(()))?;
+    parse_vec3(s)
 }
 
 pub trait CreateEntity {
