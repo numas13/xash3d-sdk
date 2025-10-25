@@ -98,6 +98,20 @@ impl Pitch {
     pub const LOW: Self = Self(ffi::common::PITCH_LOW);
     pub const NORM: Self = Self(ffi::common::PITCH_NORM);
     pub const HIGH: Self = Self(ffi::common::PITCH_HIGH);
+
+    pub const fn from_i32(pitch: i32) -> Self {
+        if pitch < 0 {
+            Self(0)
+        } else if pitch > 255 {
+            Self(255)
+        } else {
+            Self(pitch)
+        }
+    }
+
+    pub const fn to_i32(self) -> i32 {
+        self.0
+    }
 }
 
 impl From<c_int> for Pitch {

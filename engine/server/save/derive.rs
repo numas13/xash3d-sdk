@@ -1,7 +1,10 @@
 use core::cell::{Cell, RefCell};
 
 use alloc::{ffi::CString, string::String, vec::Vec};
-use xash3d_shared::{entity::EntityIndex, sound::Attenuation};
+use xash3d_shared::{
+    entity::EntityIndex,
+    sound::{Attenuation, Pitch},
+};
 
 use super::*;
 
@@ -249,6 +252,19 @@ impl Save for Attenuation {
 impl Restore for Attenuation {
     fn restore(&mut self, _: &RestoreState, cur: &mut Cursor) -> SaveResult<()> {
         *self = cur.read_f32()?.into();
+        Ok(())
+    }
+}
+
+impl Save for Pitch {
+    fn save(&self, _: &mut SaveState, cur: &mut CursorMut) -> SaveResult<()> {
+        cur.write_leb_i32(self.to_i32())
+    }
+}
+
+impl Restore for Pitch {
+    fn restore(&mut self, _: &RestoreState, cur: &mut Cursor) -> SaveResult<()> {
+        *self = Pitch::from(cur.read_leb_i32()?);
         Ok(())
     }
 }
