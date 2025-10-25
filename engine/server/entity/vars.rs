@@ -493,6 +493,12 @@ impl EntityVars {
         engine.set_model(self, name)
     }
 
+    pub fn precache_model(&self) {
+        if let Some(model_name) = self.model_name() {
+            self.engine.precache_model(model_name);
+        }
+    }
+
     pub fn set_model_with_precache(&self, name: impl ToEngineStr) {
         let engine = self.engine;
         let name = name.to_engine_str();
