@@ -376,6 +376,22 @@ pub struct LinearMove {
 }
 
 impl LinearMove {
+    pub fn start(&self) -> vec3_t {
+        self.start.to_vec()
+    }
+
+    pub fn set_start(&mut self, start: vec3_t) {
+        self.start = start.into();
+    }
+
+    pub fn end(&self) -> vec3_t {
+        self.end.to_vec()
+    }
+
+    pub fn set_end(&mut self, end: vec3_t) {
+        self.end = end.into();
+    }
+
     pub fn lip(&self) -> f32 {
         self.lip
     }

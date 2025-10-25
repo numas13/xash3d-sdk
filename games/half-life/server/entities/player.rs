@@ -326,7 +326,6 @@ impl EntityPlayer for TestPlayer {
 
         if self.base.check_player_use() {
             self.base.player_use_custom(|target, use_type| {
-                trace!("custom use");
                 target.used(use_type, Some(self), self);
             });
         }

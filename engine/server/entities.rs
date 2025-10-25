@@ -14,7 +14,6 @@ pub mod func_door;
 pub mod func_friction;
 pub mod func_illusionary;
 pub mod func_ladder;
-pub mod func_rot_button;
 pub mod func_wall;
 pub mod info_landmark;
 pub mod info_node;

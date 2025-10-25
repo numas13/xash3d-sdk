@@ -161,7 +161,6 @@ impl Player {
 
         if let Some(i) = &target {
             // check if there is something between the player and the target
-            trace!("player use target {}", i.entity.classname());
             let tv = i.entity.vars();
             let start = pv.origin() + pv.view_ofs();
             let end = tv.bmodel_origin();
@@ -172,8 +171,8 @@ impl Player {
                     trace.hit_entity().vars().containing_entity_raw(),
                 )
             {
-                let classname = trace.hit_entity().get_entity().map(|e| e.classname());
-                trace!("player use trace hit {classname:?} ({})", trace.fraction());
+                let name = trace.hit_entity().get_entity().map(|e| e.pretty_name());
+                trace!("player use trace hit {name:?} ({})", trace.fraction());
                 target = None;
             }
 
@@ -206,7 +205,7 @@ impl Player {
         if let Some(i) = target {
             let name = i.entity.pretty_name();
             let use_type = i.use_type;
-            trace!("player use target {name} type {use_type:?}");
+            trace!("player use({use_type:?}) {name}");
             f(i.entity, i.use_type);
         }
     }
