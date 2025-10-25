@@ -2,7 +2,7 @@ use core::{cell::Cell, ffi::CStr, mem};
 
 use csz::{CStrSlice, CStrThin};
 pub use xash3d_shared::utils::*;
-use xash3d_shared::{color::RGBA, entity::EdictFlags, ffi::common::vec3_t};
+use xash3d_shared::{color::RGBA, entity::EdictFlags, ffi::common::vec3_t, str::ToEngineStr};
 
 use crate::{
     engine::TraceResult,
@@ -646,5 +646,21 @@ impl ScreenFade {
         for player in engine.players() {
             self.emit_one(player.vars());
         }
+    }
+}
+
+pub fn precache_other(engine: &ServerEngine, class_name: impl ToEngineStr) {
+    let class_name = class_name.to_engine_str();
+    let Some(mut entity) = engine.create_named_entity(class_name.as_ref()) else {
+        let class_name = class_name.as_ref();
+        error!("precache_other: failed to create entity {class_name}");
+        return;
+    };
+    if let Some(entity) = unsafe { entity.get_entity_mut() } {
+        entity.precache();
+    }
+    // SAFETY: entity is not used
+    unsafe {
+        engine.remove_entity_now(&entity);
     }
 }
