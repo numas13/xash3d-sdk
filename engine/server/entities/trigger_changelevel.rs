@@ -188,8 +188,8 @@ fn in_transition_volume(
     if ent.object_caps().intersects(ObjectCaps::FORCE_TRANSITION) {
         return true;
     }
-    if let (MoveType::Follow, Some(mut aim)) = (ent.vars().move_type(), ent.vars().aim_entity()) {
-        ent = unsafe { aim.as_mut() }.get_entity().unwrap();
+    if let (MoveType::Follow, Some(aim)) = (ent.vars().move_type(), ent.vars().aim_entity()) {
+        ent = aim.get_entity().unwrap();
     }
 
     for i in engine.entities().by_target_name(volume_name) {

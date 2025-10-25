@@ -75,12 +75,14 @@ impl MultiManager {
     fn clone_me(&self) -> *mut Self {
         let engine = self.engine();
         let multi = engine.new_entity::<Private<Self>>().build();
-        let edict = multi.vars().containing_entity();
+        let edict = multi.vars().containing_entity_raw();
         unsafe {
             ptr::copy_nonoverlapping(self.vars().as_ptr(), multi.vars().as_mut_ptr(), 1);
         }
         let v = multi.vars();
-        v.set_containing_entity(edict.map(|e| unsafe { e.as_ref() }));
+        unsafe {
+            v.set_containing_entity_raw(edict);
+        }
         v.with_spawn_flags(|f| f | MultiManagerSpawnFlags::CLONE.bits());
         multi.targets = self.targets.clone();
         multi

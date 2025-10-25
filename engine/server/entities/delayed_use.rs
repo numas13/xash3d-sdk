@@ -78,7 +78,7 @@ impl Entity for DelayedUseEntity {
 
     fn think(&self) {
         let mut activator = None;
-        if let Some(owner) = self.vars().owner().map(|e| unsafe { e.as_ref() }) {
+        if let Some(owner) = self.vars().owner() {
             activator = owner.get_entity();
         }
         utils::use_targets(self.kill_target, self.use_type, activator, self);

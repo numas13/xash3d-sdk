@@ -142,6 +142,16 @@ macro_rules! field {
             <$ty>::from_bits_retain(value)
         }
     };
+    // get optional entity handle
+    (get $field:ident, $( #[$attr:meta] )* fn $meth:ident() -> Option<EntityHandle>) => {
+        $( #[$attr] )*
+        pub fn $meth(&self) -> Option<EntityHandle> {
+            unsafe {
+                let value = (*self.as_ptr()).$field;
+                EntityHandle::new(self.engine, value)
+            }
+        }
+    };
     // get optional map string
     (get $field:ident, $( #[$attr:meta] )* fn $meth:ident() -> Option<MapString>) => {
         $( #[$attr] )*
@@ -691,22 +701,22 @@ impl EntityVars {
     field!(set bitflags impulse, fn set_impulse(v: u32));
     field!(mut bitflags impulse, fn with_impulse(u32));
 
-    field!(get chain, fn chain() -> Option<NonNull<edict_s>>);
+    field!(get chain, fn chain() -> Option<EntityHandle>);
     field!(set entity chain, fn set_chain(chain));
 
-    field!(get dmg_inflictor, fn damage_inflictor() -> Option<NonNull<edict_s>>);
+    field!(get dmg_inflictor, fn damage_inflictor() -> Option<EntityHandle>);
     field!(set entity dmg_inflictor, fn set_damage_inflictor(entity));
 
-    field!(get enemy, fn enemy() -> Option<NonNull<edict_s>>);
+    field!(get enemy, fn enemy() -> Option<EntityHandle>);
     field!(set entity enemy, fn set_enemy(enemy));
 
-    field!(get aiment, fn aim_entity() -> Option<NonNull<edict_s>>);
+    field!(get aiment, fn aim_entity() -> Option<EntityHandle>);
     field!(set entity aiment, fn set_aim_entity(owner));
 
-    field!(get owner, fn owner() -> Option<NonNull<edict_s>>);
+    field!(get owner, fn owner() -> Option<EntityHandle>);
     field!(set entity owner, fn set_owner(owner));
 
-    field!(get groundentity, fn ground_entity() -> Option<NonNull<edict_s>>);
+    field!(get groundentity, fn ground_entity() -> Option<EntityHandle>);
     field!(set entity groundentity, fn set_ground_entity(ground));
 
     field!(get bitflags spawnflags, fn spawn_flags() -> u32);
@@ -802,10 +812,12 @@ impl EntityVars {
     field!(set radsuit_finished, fn set_radsuit_finished_time(v: MapTime));
 
     field!(get pContainingEntity, fn containing_entity_raw() -> *mut edict_s);
-    field!(set pContainingEntity, fn set_containing_entity_raw(v: *mut edict_s));
+    field!(set pContainingEntity,
+        #[allow(clippy::missing_safety_doc)]
+        unsafe fn set_containing_entity_raw(v: *mut edict_s));
 
-    field!(get pContainingEntity, fn containing_entity() -> Option<NonNull<edict_s>>);
-    field!(set entity pContainingEntity, fn set_containing_entity(owner));
+    field!(get pContainingEntity, #[deprecated] fn containing_entity() -> Option<NonNull<edict_s>>);
+    field!(set entity pContainingEntity, #[deprecated] fn set_containing_entity(owner));
 
     field!(get playerclass, fn player_class() -> i32);
     field!(set playerclass, fn set_player_class(v: i32));
@@ -904,27 +916,35 @@ impl EntityVars {
     field!(mut vuser4, fn with_vuser4(vec3_t));
 
     field!(get euser1, fn euser1_raw() -> *mut edict_s);
-    field!(set euser1, fn set_euser1_raw(ent: *mut edict_s));
+    field!(set euser1,
+        #[allow(clippy::missing_safety_doc)]
+        unsafe fn set_euser1_raw(ent: *mut edict_s));
 
     field!(get euser2, fn euser2_raw() -> *mut edict_s);
-    field!(set euser2, fn set_euser2_raw(ent: *mut edict_s));
+    field!(set euser2,
+        #[allow(clippy::missing_safety_doc)]
+        unsafe fn set_euser2_raw(ent: *mut edict_s));
 
     field!(get euser3, fn euser3_raw() -> *mut edict_s);
-    field!(set euser3, fn set_euser3_raw(ent: *mut edict_s));
+    field!(set euser3,
+        #[allow(clippy::missing_safety_doc)]
+        unsafe fn set_euser3_raw(ent: *mut edict_s));
 
     field!(get euser4, fn euser4_raw() -> *mut edict_s);
-    field!(set euser4, fn set_euser4_raw(ent: *mut edict_s));
+    field!(set euser4,
+        #[allow(clippy::missing_safety_doc)]
+        unsafe fn set_euser4_raw(ent: *mut edict_s));
 
-    field!(get euser1, fn euser1() -> Option<NonNull<edict_s>>);
+    field!(get euser1, fn euser1() -> Option<EntityHandle>);
     field!(set entity euser1, fn set_euser1(ent));
 
-    field!(get euser2, fn euser2() -> Option<NonNull<edict_s>>);
+    field!(get euser2, fn euser2() -> Option<EntityHandle>);
     field!(set entity euser2, fn set_euser2(ent));
 
-    field!(get euser3, fn euser3() -> Option<NonNull<edict_s>>);
+    field!(get euser3, fn euser3() -> Option<EntityHandle>);
     field!(set entity euser3, fn set_euser3(ent));
 
-    field!(get euser4, fn euser4() -> Option<NonNull<edict_s>>);
+    field!(get euser4, fn euser4() -> Option<EntityHandle>);
     field!(set entity euser4, fn set_euser4(ent));
 
     /// Ask the engine to remove this entity at the appropriate time.

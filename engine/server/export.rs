@@ -694,14 +694,14 @@ pub trait ServerDll: UnsyncGlobal {
         state.rendercolor.b = ev.render_color()[2] as u8;
 
         state.aiment = if let Some(aiment) = ev.aim_entity() {
-            engine.get_entity_index(unsafe { aiment.as_ref() }).to_i32()
+            engine.get_entity_index(&aiment).to_i32()
         } else {
             0
         };
 
         state.owner = 0;
         if let Some(owner) = ev.owner() {
-            let owner = engine.get_entity_index(unsafe { owner.as_ref() }).to_i32();
+            let owner = engine.get_entity_index(&owner).to_i32();
             if owner >= 1 && owner <= engine.globals.max_clients() {
                 state.owner = owner;
             }
