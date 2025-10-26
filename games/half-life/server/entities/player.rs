@@ -79,9 +79,9 @@ impl Geiger {
 #[derive(Default, Save, Restore)]
 struct Flashlight {
     /// Time until next battery draw/Recharge.
-    time: MapTime,
+    time: Cell<MapTime>,
     /// Flashlight battery draw.
-    battery: u8,
+    battery: Cell<u8>,
 }
 
 #[derive(Default)]
@@ -96,7 +96,7 @@ pub struct TestPlayer {
     init_hud: Cell<bool>,
     game_hud_initialized: Cell<bool>,
 
-    flashlight: RefCell<Flashlight>,
+    flashlight: Flashlight,
 
     #[save(skip)]
     geiger: RefCell<Geiger>,
@@ -116,10 +116,10 @@ impl CreateEntity for TestPlayer {
             init_hud: Cell::new(true),
             game_hud_initialized: Cell::new(false),
 
-            flashlight: RefCell::new(Flashlight {
-                time: MapTime::ZERO,
-                battery: 100,
-            }),
+            flashlight: Flashlight {
+                time: Cell::default(),
+                battery: Cell::new(100),
+            },
 
             geiger: Default::default(),
 
@@ -151,10 +151,11 @@ impl TestPlayer {
             .channel_weapon()
             .emit_dyn(SOUND_FLASHLIGHT_ON, self);
         self.vars().with_effects(|f| f | Effects::DIMLIGHT);
-        let mut flashlight = self.flashlight.borrow_mut();
-        let msg = user_message::Flashlight::new(true, flashlight.battery);
+        let msg = user_message::Flashlight::new(true, self.flashlight.battery.get());
         engine.msg_one(self, &msg);
-        flashlight.time = engine.globals.map_time() + FLASH_DRAIN_TIME;
+        self.flashlight
+            .time
+            .set(engine.globals.map_time() + FLASH_DRAIN_TIME);
     }
 
     fn flashlight_turn_off(&self) {
@@ -165,10 +166,11 @@ impl TestPlayer {
             .emit_dyn(SOUND_FLASHLIGHT_OFF, self);
         self.vars()
             .with_effects(|f| f.difference(Effects::DIMLIGHT));
-        let mut flashlight = self.flashlight.borrow_mut();
-        let msg = user_message::Flashlight::new(false, flashlight.battery);
+        let msg = user_message::Flashlight::new(false, self.flashlight.battery.get());
         engine.msg_one(self, &msg);
-        flashlight.time = engine.globals.map_time() + FLASH_CHARGE_TIME;
+        self.flashlight
+            .time
+            .set(engine.globals.map_time() + FLASH_CHARGE_TIME);
     }
 
     fn impulse_commands(&self) {
@@ -224,8 +226,10 @@ impl TestPlayer {
 
             utils::fire_targets(c"game_playerspawn".into(), UseType::Toggle, None, self);
 
-            let flashlight = self.flashlight.borrow();
-            let msg = user_message::Flashlight::new(self.is_flashlight_on(), flashlight.battery);
+            let msg = user_message::Flashlight::new(
+                self.is_flashlight_on(),
+                self.flashlight.battery.get(),
+            );
             engine.msg_one_reliable(self, &msg);
 
             engine.msg_one_reliable(self, &user_message::Geiger::default());
@@ -249,25 +253,25 @@ impl TestPlayer {
         }
 
         // update flashlight
-        let mut flashlight = self.flashlight.borrow_mut();
-        if flashlight.time != 0.0 && flashlight.time <= time {
+        let flashlight = &self.flashlight;
+        if flashlight.time.get() != 0.0 && flashlight.time.get() <= time {
             if self.is_flashlight_on() {
-                if flashlight.battery != 0 {
-                    flashlight.time = time + FLASH_DRAIN_TIME;
-                    flashlight.battery -= 1;
-                    if flashlight.battery == 0 {
+                if flashlight.battery.get() != 0 {
+                    flashlight.time.set(time + FLASH_DRAIN_TIME);
+                    flashlight.battery.set(flashlight.battery.get() - 1);
+                    if flashlight.battery.get() == 0 {
                         self.flashlight_turn_off();
                     }
                 }
-            } else if flashlight.battery < 100 {
-                flashlight.time = time + FLASH_CHARGE_TIME;
-                flashlight.battery += 1;
+            } else if flashlight.battery.get() < 100 {
+                flashlight.time.set(time + FLASH_CHARGE_TIME);
+                flashlight.battery.set(flashlight.battery.get() + 1);
             } else {
-                flashlight.time = MapTime::ZERO;
+                flashlight.time.set(MapTime::ZERO);
             }
 
-            trace!("send flashlight battery {}%", flashlight.battery);
-            let msg = user_message::FlashBat::new(flashlight.battery);
+            trace!("send flashlight battery {}%", flashlight.battery.get());
+            let msg = user_message::FlashBat::new(flashlight.battery.get());
             self.engine().msg_one_reliable(self, &msg);
         }
     }
@@ -307,7 +311,7 @@ impl Entity for TestPlayer {
         engine.precache_sound(SOUND_FLASHLIGHT_OFF);
 
         // force message after level change
-        self.flashlight.borrow_mut().time = MapTime::from_secs_f32(1.0);
+        self.flashlight.time.set(MapTime::from_secs_f32(1.0));
 
         if self.global_state().init_hud() {
             self.init_hud.set(true);
