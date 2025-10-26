@@ -235,6 +235,12 @@ pub trait ServerDll: UnsyncGlobal {
         }
 
         let location = save_data.offset();
+        if log_enabled!(target: "dispatch_save", log::Level::Trace) {
+            let index = entity.entity_index();
+            let name = entity.pretty_name();
+            trace!(target: "dispatch_save", "save {index}:{name} to {location:#x}");
+        }
+
         let (buffer, data) = save_data.split_mut();
         let mut state = save::SaveState::new(engine, data);
         let mut cur = save::CursorMut::new(buffer.as_slice_mut());
@@ -242,8 +248,8 @@ pub trait ServerDll: UnsyncGlobal {
         let res = cur.write_field(&mut state, ENTITY_SAVE_NAME, entity);
         let size = cur.offset() - start_offset;
         if let Err(err) = res {
-            let classname = entity.classname();
-            error!("dispatch_save: failed to save an entity {classname}, {err}");
+            let name = entity.pretty_name();
+            error!("dispatch_save: failed to save {name}, {err}");
         } else if let Err(err) = buffer.advance(size) {
             error!("dispatch_save: failed to advance the save buffer by {size} bytes, {err}");
         }
@@ -319,6 +325,13 @@ pub trait ServerDll: UnsyncGlobal {
             return RestoreResult::Ok;
         };
 
+        if log_enabled!(target: "dispatch_restore", log::Level::Trace) {
+            let index = entity.entity_index();
+            let name = entity.pretty_name();
+            let location = save_data.offset();
+            trace!(target: "dispatch_restore", "restore {index}:{name} from {location:#x}");
+        }
+
         let (buffer, data) = save_data.split_mut();
         let mut state = save::RestoreState::new(engine, data);
         state.set_global(global_mode);
@@ -331,7 +344,8 @@ pub trait ServerDll: UnsyncGlobal {
         });
         let size = cur.offset() - start_offset;
         if let Err(err) = result {
-            error!("dispatch_restore: failed to restore an entity, {err}");
+            let name = entity.pretty_name();
+            error!("dispatch_restore: failed to restore {name}, {err}",);
         }
         if let Err(err) = buffer.advance(size) {
             error!("dispatch_restore: failed to advance restore buffer by {size} bytes, {err}");

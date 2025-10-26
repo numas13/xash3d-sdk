@@ -1,4 +1,4 @@
-use core::{ffi::c_int, mem};
+use core::{ffi::c_int, fmt, mem};
 
 use bitflags::bitflags;
 use xash3d_ffi::common::entity_state_s;
@@ -79,6 +79,12 @@ impl EntityIndex {
 impl From<BeamEntity> for EntityIndex {
     fn from(value: BeamEntity) -> Self {
         value.index()
+    }
+}
+
+impl fmt::Display for EntityIndex {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fmt::Display::fmt(&self.to_u16(), f)
     }
 }
 

@@ -320,13 +320,16 @@ impl Restore for EntityHandle {
     ) -> save::SaveResult<()> {
         let mut index = EntityIndex::default();
         index.restore(state, cur)?;
-
-        *self = state
-            .engine()
-            .get_entity_by_index(index)
-            .ok_or(save::SaveError::InvalidEntityHandle)?;
-
-        Ok(())
+        match state.engine().get_entity_by_index(index) {
+            Some(entity) => {
+                *self = entity;
+                Ok(())
+            }
+            None => {
+                error!("failed to get entity by index({index})");
+                Err(save::SaveError::InvalidEntityHandle)
+            }
+        }
     }
 }
 
