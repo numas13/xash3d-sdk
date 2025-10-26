@@ -161,6 +161,20 @@ pub trait EngineRng {
     fn random_bool(&self) -> bool {
         self.random_int(0, 1) != 0
     }
+
+    /// Returns a random element from a given slice if the slice is not empty.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the slice length is greater than [i32::MAX].
+    fn random_element<'a, T>(&self, slice: &'a [T]) -> Option<&'a T> {
+        let max = slice
+            .len()
+            .checked_sub(1)?
+            .try_into()
+            .expect("length must be less than or equal to i32::MAX");
+        slice.get(self.random_int(0, max) as usize)
+    }
 }
 
 /// Engine API to print messages to the console.
