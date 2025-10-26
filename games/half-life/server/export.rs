@@ -117,6 +117,11 @@ impl ServerDll for Dll {
                     }
                 }
             }
+            b"find" => {
+                if let Some(player) = ent.downcast_ref::<TestPlayer>() {
+                    player.find_class_name(engine.cmd_argv(1));
+                }
+            }
             _ => {
                 if let Some(args) = self.engine.cmd_args_raw() {
                     warn!("unimplemented client command \"{name} {args}\"");

@@ -3,8 +3,9 @@ use core::{
     ffi::CStr,
 };
 
-use xash3d_hl_shared::user_message;
+use csz::CStrThin;
 use xash3d_server::{
+    color::RGB,
     entities::player::Player as BasePlayer,
     entity::{
         delegate_entity, delegate_player, impl_entity_cast, BaseEntity, Buttons, CreateEntity,
@@ -12,9 +13,12 @@ use xash3d_server::{
     },
     prelude::*,
     save::{Restore, Save},
+    str::MapString,
     time::MapTime,
     utils,
 };
+
+use crate::user_message;
 
 pub const WEAPON_SUIT: u32 = 1_u32 << 31;
 pub const MAX_NORMAL_BATTERY: f32 = 100.0;
@@ -99,6 +103,8 @@ pub struct TestPlayer {
 
     #[save(skip)]
     client: ClientState,
+
+    find: Cell<Option<MapString>>,
 }
 
 impl_entity_cast!(TestPlayer);
@@ -118,6 +124,8 @@ impl CreateEntity for TestPlayer {
             geiger: Default::default(),
 
             client: ClientState::default(),
+
+            find: Cell::default(),
         }
     }
 }
@@ -271,6 +279,19 @@ impl TestPlayer {
 
         self.update_client_data();
     }
+
+    pub fn find_class_name(&self, class_name: &CStrThin) {
+        let v = self.vars();
+        if class_name.is_empty() {
+            v.stop_thinking();
+            self.find.set(None);
+            return;
+        }
+        info!("searching {class_name}");
+        self.find
+            .set(Some(self.engine().new_map_string(class_name)));
+        v.set_next_think_time_from_now(0.1)
+    }
 }
 
 impl Entity for TestPlayer {
@@ -308,13 +329,33 @@ impl Entity for TestPlayer {
 
         self.precache();
 
-        self.vars().set_next_think_time_from_now(0.1);
-
         self.init_hud.set(true);
+
+        if self.find.get().is_some() {
+            self.vars().set_next_think_time_from_now(0.1);
+        }
     }
 
     fn think(&self) {
-        // self.vars().set_next_think_time_from_now(0.1);
+        if let Some(classname) = self.find.get() {
+            let engine = self.engine();
+            let v = self.vars();
+            let start = v.origin() + v.view_ofs() * 0.5;
+            for i in engine.entities().by_class_name(classname) {
+                let end = i.vars().bmodel_origin();
+                if (start - end).length() > 1000.0 {
+                    continue;
+                }
+                let msg = user_message::Line {
+                    start: start.into(),
+                    end: end.into(),
+                    duration: 0.2.into(),
+                    color: RGB::GREEN,
+                };
+                engine.msg_one_reliable(v, &msg)
+            }
+            v.set_next_think_time_from_now(0.2);
+        }
     }
 }
 
