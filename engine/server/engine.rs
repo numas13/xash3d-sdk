@@ -824,6 +824,7 @@ impl ServerEngine {
         unsafe { GlobalStateRef::new() }
     }
 
+    // TODO: create newtype wrapper for model index
     pub fn precache_model(&self, name: impl ToEngineStr) -> c_int {
         let name = name.to_engine_str();
         unsafe { unwrap!(self, pfnPrecacheModel)(name.as_ptr()) }

@@ -1,5 +1,6 @@
 pub mod ambient_generic;
 pub mod delayed_use;
+pub mod env_bubbles;
 pub mod env_debris;
 pub mod env_explosion;
 pub mod env_fade;
@@ -57,7 +58,6 @@ export_entity_stub!(beam);
 export_entity_stub!(button_target);
 export_entity_stub!(env_beam);
 export_entity_stub!(env_blood);
-export_entity_stub!(env_bubbles);
 export_entity_stub!(env_global);
 export_entity_stub!(env_laser);
 export_entity_stub!(env_lightning);

@@ -26,6 +26,7 @@ export-default-entities = []
 export-stubs = []
 
 export-ambient_generic = []
+export-env_bubbles = []
 export-env_debris = []
 export-env_explosion = []
 export-env_fade = []
