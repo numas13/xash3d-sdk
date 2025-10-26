@@ -112,7 +112,7 @@ impl Entity for Fade {
             fade.emit_all(&self.engine());
         }
 
-        utils::use_targets(None, UseType::Toggle, Some(self), self);
+        utils::use_targets(UseType::Toggle, Some(self), self);
     }
 }
 

@@ -629,8 +629,7 @@ impl Entity for AmbientGeneric {
             .set_next_think_time_from_now(engine.globals.map_time_f32() + 0.2);
     }
 
-    #[allow(unused_variables)]
-    fn used(&self, use_type: UseType, activator: Option<&dyn Entity>, caller: &dyn Entity) {
+    fn used(&self, use_type: UseType, _: Option<&dyn Entity>, _: &dyn Entity) {
         let Some(sound_file) = self.vars().message() else {
             return;
         };

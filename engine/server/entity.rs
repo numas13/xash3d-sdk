@@ -589,12 +589,6 @@ pub trait EntityCast: 'static {
     fn as_item(&self) -> Option<&dyn EntityItem>;
 }
 
-#[cfg(not(feature = "save"))]
-pub trait EntitySaveRestore {}
-
-#[cfg(not(feature = "save"))]
-impl<T> EntitySaveRestore for T {}
-
 define_entity_trait! {
     /// The base trait for all entities.
     pub trait Entity(delegate_entity): (Save + Restore + EntityCast + AsEntityHandle) {

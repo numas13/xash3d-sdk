@@ -63,49 +63,47 @@ pub fn is_master_triggered(
     true
 }
 
+/// Fire targets by the given target name.
 pub fn fire_targets(
     target_name: &CStrThin,
     use_type: UseType,
     activator: Option<&dyn Entity>,
     caller: &dyn Entity,
 ) {
+    if target_name.is_empty() {
+        return;
+    }
     let engine = caller.engine();
-    trace!("Firing: ({target_name})");
+    trace!(target: "fire_targets", "Fire targets {target_name} by {}", caller.pretty_name());
     for target in engine.entities().by_target_name(target_name) {
+        if target.is_free() {
+            continue;
+        }
         if let Some(target) = target.get_entity() {
-            if !target.vars().flags().intersects(EdictFlags::KILLME) {
-                trace!("Found: {}, firing ({target_name})", target.classname());
-                target.used(use_type, activator, caller);
-            }
+            trace!(target: "fire_targets", "Firing {}", target.pretty_name());
+            target.used(use_type, activator, caller);
         }
     }
 }
 
-pub fn use_targets(
-    kill_target: Option<MapString>,
-    use_type: UseType,
-    activator: Option<&dyn Entity>,
-    caller: &dyn Entity,
-) {
-    if let Some(kill_target) = kill_target {
-        if !kill_target.is_empty() {
-            let engine = caller.engine();
-            let mut first = true;
-            for target in engine.entities().by_target_name(&kill_target) {
-                if first {
-                    first = false;
-                    trace!("KillTarget: {kill_target}");
-                }
-                if let Some(target) = target.get_entity() {
-                    trace!("killing {}", target.classname());
-                    target.remove_from_world();
-                }
-            }
-        }
-    }
-
+/// Fire targets by a target from the caller.
+pub fn use_targets(use_type: UseType, activator: Option<&dyn Entity>, caller: &dyn Entity) {
     if let Some(target) = caller.vars().target() {
         fire_targets(&target, use_type, activator, caller);
+    }
+}
+
+/// Kill entities by the given target name.
+pub fn kill_targets(engine: &ServerEngine, kill_target: &CStrThin) {
+    if kill_target.is_empty() {
+        return;
+    }
+    trace!(target: "kill_targets", "Kill targets {kill_target}");
+    for target in engine.entities().by_target_name(kill_target) {
+        if let Some(target) = target.get_entity() {
+            trace!(target: "kill_targets", "Killing {}", target.pretty_name());
+            target.remove_from_world();
+        }
     }
 }
 

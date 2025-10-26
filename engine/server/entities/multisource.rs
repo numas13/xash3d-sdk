@@ -162,7 +162,7 @@ impl Entity for MultiSource {
             } else {
                 UseType::Toggle
             };
-            utils::use_targets(None, use_type, None, self);
+            utils::use_targets(use_type, None, self);
         }
     }
 

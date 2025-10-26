@@ -88,7 +88,7 @@ impl BaseItem {
         }
 
         if give(player) {
-            utils::use_targets(None, UseType::Toggle, Some(player.as_entity()), item);
+            utils::use_targets(UseType::Toggle, Some(player.as_entity()), item);
             game_rules.player_got_item(player, item);
             if let Some((time, origin)) = game_rules.item_respawn(item) {
                 self.respawn(time, origin);

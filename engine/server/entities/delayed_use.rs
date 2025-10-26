@@ -81,7 +81,10 @@ impl Entity for DelayedUseEntity {
         if let Some(owner) = self.vars().owner() {
             activator = owner.get_entity();
         }
-        utils::use_targets(self.kill_target, self.use_type, activator, self);
+        if let Some(kill_target) = self.kill_target {
+            utils::kill_targets(&self.engine(), &kill_target);
+        }
+        utils::use_targets(self.use_type, activator, self);
         self.remove_from_world();
     }
 }
@@ -141,7 +144,10 @@ impl DelayedUse {
                 activator,
             );
         } else {
-            utils::use_targets(self.kill_target, use_type, activator, caller);
+            if let Some(kill_target) = self.kill_target {
+                utils::kill_targets(&self.engine, &kill_target);
+            }
+            utils::use_targets(use_type, activator, caller);
         }
     }
 }
