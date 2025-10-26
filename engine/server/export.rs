@@ -245,9 +245,16 @@ pub trait ServerDll: UnsyncGlobal {
         let mut state = save::SaveState::new(engine, data);
         let mut cur = save::CursorMut::new(buffer.as_slice_mut());
         let start_offset = cur.offset();
-        let res = cur.write_field(&mut state, ENTITY_SAVE_NAME, entity);
+
+        // NOTE: Entity vars must be written at known location because we and the engine want
+        // to read it for global entities.
+        let result = save::write_fields(&mut state, &mut cur, unsafe { &*entity.vars().as_ptr() });
+
+        // save other data
+        let result = result.and_then(|_| cur.write_field(&mut state, ENTITY_SAVE_NAME, entity));
+
         let size = cur.offset() - start_offset;
-        if let Err(err) = res {
+        if let Err(err) = result {
             let name = entity.pretty_name();
             error!("dispatch_save: failed to save {name}, {err}");
         } else if let Err(err) = buffer.advance(size) {
@@ -337,11 +344,21 @@ pub trait ServerDll: UnsyncGlobal {
         state.set_global(global_mode);
         let mut cur = save::Cursor::new(buffer.as_slice());
         let start_offset = cur.offset();
-        let result = cur.read_field().and_then(|field| {
-            let name = state.token_str(field.token());
-            assert_eq!(name, Some(ENTITY_SAVE_NAME.into()));
-            entity.restore(&state, &mut field.cursor())
+
+        // restore entity variables from known location
+        let result = save::read_fields(&state, &mut cur, unsafe {
+            &mut *entity.vars().as_mut_ptr()
         });
+
+        // restore other data
+        let result = result.and_then(|_| {
+            cur.read_field().and_then(|field| {
+                let name = state.token_str(field.token());
+                assert_eq!(name, Some(ENTITY_SAVE_NAME.into()));
+                entity.restore(&state, &mut field.cursor())
+            })
+        });
+
         let size = cur.offset() - start_offset;
         if let Err(err) = result {
             let name = entity.pretty_name();
@@ -491,8 +508,9 @@ pub trait ServerDll: UnsyncGlobal {
         let engine = self.engine();
         if let Some(mut save_data) = engine.globals.save_data() {
             let save_data = unsafe { save_data.as_mut() };
-            save_data.connectionCount =
-                build_change_list(engine, &mut save_data.levelList) as c_int;
+            let count = build_change_list(engine, &mut save_data.levelList);
+            save_data.connectionCount = count as c_int;
+            trace!("parms_change_level: connections {count}");
         }
     }
 

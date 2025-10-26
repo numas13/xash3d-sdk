@@ -30,9 +30,6 @@ use crate::{
     time::MapTime,
 };
 
-#[cfg(feature = "save")]
-use crate::save::{self, SaveResult};
-
 trait RawBitflags<T> {
     fn from_bits_retain(bits: T) -> Self;
 
@@ -1020,20 +1017,6 @@ impl EntityVars {
             }
             data.set_handled(true);
         }
-    }
-}
-
-#[cfg(feature = "save")]
-impl save::Save for EntityVars {
-    fn save(&self, state: &mut save::SaveState, cur: &mut save::CursorMut) -> SaveResult<()> {
-        save::write_fields(state, cur, unsafe { &*self.as_ptr() })
-    }
-}
-
-#[cfg(feature = "save")]
-impl save::Restore for EntityVars {
-    fn restore(&mut self, state: &save::RestoreState, cur: &mut save::Cursor) -> SaveResult<()> {
-        save::read_fields(state, cur, unsafe { &mut *self.as_mut_ptr() })
     }
 }
 

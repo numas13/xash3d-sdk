@@ -822,6 +822,8 @@ impl dyn Entity {
 #[derive(Debug)]
 #[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct BaseEntity {
+    // save/restore is handled in dispatch_save/dispatch_restore
+    #[cfg_attr(feature = "save", save(skip))]
     pub vars: EntityVars,
 }
 

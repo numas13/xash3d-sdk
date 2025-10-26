@@ -179,28 +179,33 @@ fn find_landmark(engine: ServerEngineRef, landmark_name: &CStrThin) -> Option<En
         .map(|ent| ent.into())
 }
 
-fn in_transition_volume(
-    engine: ServerEngineRef,
-    ent: *mut edict_s,
-    volume_name: &CStrThin,
-) -> bool {
-    let mut ent = unsafe { &mut *ent }.get_entity().unwrap();
+fn in_transition_volume(engine: &ServerEngine, ent: &edict_s, volume_name: &CStrThin) -> bool {
+    let Some(mut ent) = ent.get_entity() else {
+        warn!("in_transition_volume: failed to get entity");
+        return false;
+    };
+
     if ent.object_caps().intersects(ObjectCaps::FORCE_TRANSITION) {
         return true;
     }
-    if let (MoveType::Follow, Some(aim)) = (ent.vars().move_type(), ent.vars().aim_entity()) {
-        ent = aim.get_entity().unwrap();
-    }
 
-    for i in engine.entities().by_target_name(volume_name) {
-        if let Some(volume) = i.get_entity() {
-            if volume.is_classname(c"trigger_transition".into()) && volume.intersects(ent) {
-                return true;
-            }
+    if ent.vars().move_type() == MoveType::Follow {
+        if let Some(aim) = ent.vars().aim_entity().get_entity() {
+            ent = aim;
         }
     }
 
-    false
+    let mut found_volume = false;
+    engine
+        .entities()
+        .by_target_name(volume_name)
+        .filter_map(|i| i.get_entity())
+        .filter(|i| i.is_classname(c"trigger_transition".into()))
+        .any(|i| {
+            found_volume = true;
+            i.intersects(ent)
+        })
+        || !found_volume
 }
 
 pub fn build_change_list(engine: ServerEngineRef, level_list: &mut [LEVELLIST]) -> usize {
@@ -263,9 +268,12 @@ pub fn build_change_list(engine: ServerEngineRef, level_list: &mut [LEVELLIST]) 
                 }
 
                 for j in 0..ent_count {
+                    if ent_flags[j] == 0 {
+                        continue;
+                    }
                     let landmark_name = level.landmark_name();
-                    if ent_flags[j] != 0 && in_transition_volume(engine, ent_list[j], landmark_name)
-                    {
+                    let ent = unsafe { &*ent_list[j] };
+                    if in_transition_volume(&engine, ent, landmark_name) {
                         if let Some(index) = save_data.entity_index(ent_list[j]) {
                             save_data.entity_flags_set(index, ent_flags[j] | (1 << i));
                         }
