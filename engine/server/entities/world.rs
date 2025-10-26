@@ -3,6 +3,7 @@ use core::ffi::CStr;
 use bitflags::bitflags;
 
 use crate::{
+    entities::env_message::Message,
     entity::{delegate_entity, impl_entity_cast, BaseEntity, Entity, KeyValue},
     global_state::{decals::DefaultDecals, sprites::DefaultSprites, GlobalStateRef},
     prelude::*,
@@ -35,11 +36,11 @@ pub struct World {
 
 impl World {
     /// Fade from black at startup.
-    pub const SF_DARK: i32 = 1 << 0;
+    pub const SF_DARK: u32 = 1 << 0;
     /// Display game title at startup.
-    pub const SF_TITLE: i32 = 1 << 1;
+    pub const SF_TITLE: u32 = 1 << 1;
     /// Force teams.
-    pub const SF_FORCE_TEAM: i32 = 1 << 2;
+    pub const SF_FORCE_TEAM: u32 = 1 << 2;
 
     pub fn create(base: BaseEntity, install_game_rules: InstallGameRulesFn) -> Self {
         Self {
@@ -55,11 +56,42 @@ impl Entity for World {
     delegate_entity!(base not { key_value, precache, spawn });
 
     fn key_value(&mut self, data: &mut KeyValue) {
-        let class_name = data.class_name();
-        let key_name = data.key_name();
-        let value = data.value();
-        let handled = data.handled();
-        debug!("World::key_value({class_name:?}, {key_name}, {value}, {handled})");
+        let engine = self.engine();
+        let v = self.base.vars();
+        match data.key_name().to_bytes() {
+            b"skyname" => engine.set_cvar(c"skyname", data.value()),
+            // b"sounds" => todo!(),
+            b"WaveHeight" => v.set_scale(data.parse_or_default::<f32>() * (1.0 / 8.0)),
+            b"MaxRange" => v.set_speed(data.parse_or_default()),
+            b"chaptertitle" => v.set_net_name(engine.new_map_string(data.value())),
+            b"startdark" => {
+                if data.parse_or_default::<i32>() != 0 {
+                    v.with_spawn_flags(|f| f | Self::SF_DARK);
+                }
+            }
+            b"newunit" => {
+                if data.parse_or_default::<i32>() != 0 {
+                    engine.set_cvar(c"sv_newunit", true);
+                }
+            }
+            b"gametitle" => {
+                if data.parse_or_default::<i32>() != 0 {
+                    v.with_spawn_flags(|f| f | Self::SF_TITLE);
+                }
+            }
+            // b"mapteams" => todo!(),
+            // b"defaultteam" => todo!(),
+            _ => {
+                self.base.key_value(data);
+                if !data.handled() {
+                    let name = self.pretty_name();
+                    let key = data.key_name();
+                    let value = data.value();
+                    debug!("{name}: unimplemented key={key:?} value={value:?}");
+                }
+                return;
+            }
+        }
         data.set_handled(true);
     }
 
@@ -163,7 +195,11 @@ impl Entity for World {
         engine.set_cvar(c"sv_zmax", zmax);
         engine.set_cvar(c"sv_wateramp", v.scale());
 
-        // TODO: if ev.netname
+        if let Some(title) = v.net_name() {
+            info!("Chapter title: {title}");
+            Message::show_once(&engine, title);
+            v.set_net_name(None);
+        }
 
         let mut spawn_flags = WorldSpawnFlags::from_bits_retain(v.spawn_flags());
         engine.set_cvar(c"v_dark", spawn_flags.intersects(WorldSpawnFlags::DARK));

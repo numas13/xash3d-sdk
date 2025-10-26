@@ -982,6 +982,7 @@ macro_rules! define_user_message {
                     &self,
                     writer: &mut T,
                 ) {
+                    #[allow(unused_imports)]
                     use $crate::user_message::UserMessageWrite;
                     $( self.$field.msg_write(writer); )*
                 }
@@ -989,6 +990,7 @@ macro_rules! define_user_message {
                 fn msg_read(
                     msg: &mut $crate::user_message::UserMessageBuffer $(<$lifetime>)?,
                 ) -> Result<Self, $crate::user_message::UserMessageError> {
+                    #[allow(unused_imports)]
                     use $crate::user_message::UserMessageValue;
                     let mut ret = Self::default();
                     $( ret.$field = <$field_ty>::msg_read(msg)?; )*
@@ -1037,6 +1039,18 @@ macro_rules! define_user_message {
 }
 #[doc(inline)]
 pub use define_user_message;
+
+define_user_message! {
+    pub struct HudText<'a> {
+        pub text: &'a CStr,
+    }
+}
+
+impl<'a> HudText<'a> {
+    pub const fn new(text: &'a CStr) -> Self {
+        Self { text }
+    }
+}
 
 #[cfg(test)]
 mod tests {

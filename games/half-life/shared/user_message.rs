@@ -5,6 +5,8 @@ use xash3d_shared::{
     user_message::{define_user_message, Coord},
 };
 
+pub use xash3d_shared::user_message::HudText;
+
 define_user_message! {
     pub struct SelAmmo {
         pub ammo1_type: u8,
@@ -101,12 +103,6 @@ define_user_message! {
 impl Train {
     pub const fn new(pos: u8) -> Self {
         Self { pos }
-    }
-}
-
-define_user_message! {
-    pub struct HudText<'a> {
-        pub text: &'a CStr,
     }
 }
 

@@ -5,6 +5,7 @@ pub mod env_debris;
 pub mod env_explosion;
 pub mod env_fade;
 pub mod env_glow;
+pub mod env_message;
 pub mod env_render;
 pub mod env_shake;
 pub mod env_sound;

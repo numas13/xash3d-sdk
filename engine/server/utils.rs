@@ -6,10 +6,9 @@ use xash3d_shared::{color::RGBA, entity::EdictFlags, ffi::common::vec3_t, str::T
 
 use crate::{
     engine::TraceResult,
-    entity::{Entity, EntityVars, GetPrivateData, KeyValue, ObjectCaps, UseType},
+    entity::{Entity, EntityPlayer, EntityVars, GetPrivateData, KeyValue, ObjectCaps, UseType},
     prelude::*,
-    save::PositionVector,
-    save::{Restore, Save},
+    save::{PositionVector, Restore, Save},
     str::MapString,
     user_message,
 };
@@ -673,5 +672,21 @@ pub fn precache_other(engine: &ServerEngine, class_name: impl ToEngineStr) {
     // SAFETY: entity is not used
     unsafe {
         engine.remove_entity_now(&entity);
+    }
+}
+
+pub fn show_message(player: &dyn EntityPlayer, msg: &CStr) {
+    if !player.is_net_client() {
+        return;
+    }
+    trace!("show_message: send {msg:?} to {}", player.pretty_name());
+    let msg = user_message::HudText::new(msg);
+    player.engine().msg_one_reliable(player.vars(), &msg);
+}
+
+pub fn show_message_all(engine: &ServerEngine, msg: &CStr) {
+    trace!("show_message_all: send {msg:?}");
+    for player in engine.players().filter_map(|i| i.as_player()) {
+        show_message(player, msg);
     }
 }
