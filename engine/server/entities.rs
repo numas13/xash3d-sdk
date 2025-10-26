@@ -18,6 +18,7 @@ pub mod func_ladder;
 pub mod func_pendulum;
 pub mod func_rotating;
 pub mod func_wall;
+pub mod func_wall_toggle;
 pub mod info_landmark;
 pub mod info_node;
 pub mod info_player_deathmatch;
