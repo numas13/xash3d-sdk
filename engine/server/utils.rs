@@ -110,12 +110,9 @@ pub fn use_targets(
 }
 
 pub fn strip_token(key: &CStr, dest: &mut CStrSlice) -> Result<(), csz::CursorError> {
-    if let Some(head) = key.to_bytes().split(|i| *i == b'#').next() {
-        dest.cursor().write_bytes(head)
-    } else {
-        dest.clear();
-        Ok(())
-    }
+    let bytes = key.to_bytes();
+    let head = bytes.split(|i| *i == b'#').next().unwrap_or(bytes);
+    dest.cursor().write_bytes(head)
 }
 
 pub fn clamp_vector_to_box(mut v: vec3_t, clamp_size: vec3_t) -> vec3_t {
