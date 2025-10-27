@@ -1,10 +1,7 @@
 use core::{cell::Cell, ffi::CStr};
 
 use bitflags::bitflags;
-use xash3d_shared::{
-    entity::{DamageFlags, MoveType},
-    ffi::common::vec3_t,
-};
+use xash3d_shared::entity::{DamageFlags, MoveType};
 
 use crate::{
     entities::delayed_use::DelayedUse,
@@ -585,20 +582,6 @@ pub struct RotatingDoor {
     base: BaseDoor<AngularMove>,
 }
 
-impl RotatingDoor {
-    fn set_move_dir_from_spawn_flags(&self) {
-        let v = self.vars();
-        let flags = self.base.spawn_flags();
-        if flags.intersects(DoorSpawnFlags::ROTATE_Z) {
-            v.set_move_dir(vec3_t::Z);
-        } else if flags.intersects(DoorSpawnFlags::ROTATE_X) {
-            v.set_move_dir(vec3_t::X);
-        } else {
-            v.set_move_dir(vec3_t::Y);
-        }
-    }
-}
-
 impl_entity_cast!(RotatingDoor);
 
 impl CreateEntity for RotatingDoor {
@@ -615,16 +598,19 @@ impl Entity for RotatingDoor {
     fn spawn(&mut self) {
         self.precache();
 
-        self.set_move_dir_from_spawn_flags();
-
+        let sf = self.base.spawn_flags();
         let v = self.base.vars();
-        let spawn_flags = self.base.spawn_flags();
-        if spawn_flags.intersects(DoorSpawnFlags::ROTATE_BACKWARDS) {
+
+        v.set_move_dir_from_spawn_flags(
+            DoorSpawnFlags::ROTATE_X.bits(),
+            DoorSpawnFlags::ROTATE_Z.bits(),
+        );
+
+        if sf.intersects(DoorSpawnFlags::ROTATE_BACKWARDS) {
             v.with_move_dir(|x| -x);
         }
 
-        let v = self.base.vars();
-        if spawn_flags.intersects(DoorSpawnFlags::PASSABLE) {
+        if sf.intersects(DoorSpawnFlags::PASSABLE) {
             v.set_solid(Solid::Not);
         } else {
             v.set_solid(Solid::Bsp);

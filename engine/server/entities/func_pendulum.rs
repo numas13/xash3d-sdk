@@ -84,18 +84,6 @@ impl Pendulum {
         SpawnFlags::from_bits_retain(self.vars().spawn_flags())
     }
 
-    fn set_move_dir_from_spawn_flags(&self) {
-        let v = self.vars();
-        let sf = self.spawn_flags();
-        if sf.intersects(SpawnFlags::ROTATE_Z) {
-            v.set_move_dir(vec3_t::Z);
-        } else if sf.intersects(SpawnFlags::ROTATE_X) {
-            v.set_move_dir(vec3_t::X);
-        } else {
-            v.set_move_dir(vec3_t::Y);
-        }
-    }
-
     fn angles_delta(&self, target: vec3_t) -> f32 {
         let sf = self.spawn_flags();
         let angles = self.vars().angles();
@@ -198,9 +186,10 @@ impl Entity for Pendulum {
     }
 
     fn spawn(&mut self) {
-        self.set_move_dir_from_spawn_flags();
-
         let v = self.base.vars();
+
+        v.set_move_dir_from_spawn_flags(SpawnFlags::ROTATE_X.bits(), SpawnFlags::ROTATE_Z.bits());
+
         let sf = self.spawn_flags();
         if sf.intersects(SpawnFlags::PASSABLE) {
             v.set_solid(Solid::Not);

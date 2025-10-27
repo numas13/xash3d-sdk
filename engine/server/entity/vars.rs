@@ -431,6 +431,27 @@ impl EntityVars {
         ev.angles = vec3_t::ZERO;
     }
 
+    pub fn set_move_dir_from_axis(&self, x: bool, z: bool) {
+        if z {
+            self.set_move_dir(vec3_t::Z);
+        } else if x {
+            self.set_move_dir(vec3_t::X);
+        } else {
+            self.set_move_dir(vec3_t::Y);
+        }
+    }
+
+    pub fn set_move_dir_from_spawn_flags(&self, x_bit: u32, z_bit: u32) {
+        let sf = self.spawn_flags();
+        self.set_move_dir_from_axis(sf & x_bit != 0, sf & z_bit != 0);
+    }
+
+    // pub fn set_move_dir_from_spawn_flags_default(&self) {
+    //     const SF_ROTATE_Z: u32 = 1 << 6;
+    //     const SF_ROTATE_X: u32 = 1 << 7;
+    //     self.set_move_dir_from_spawn_flags(SF_ROTATE_X, SF_ROTATE_Z);
+    // }
+
     field!(get angles, fn angles() -> vec3_t);
     field!(set angles, fn set_angles(v: vec3_t));
     field!(mut angles, fn with_angles(vec3_t));
