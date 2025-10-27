@@ -186,8 +186,8 @@ impl<T: Move> BaseDoor<T> {
             }
         }
 
-        assert_eq!(self.state.get(), MoveState::GoingUp);
-        self.state.set(MoveState::Top);
+        assert_eq!(self.state.get(), MoveState::GoingToEnd);
+        self.state.set(MoveState::AtEnd);
 
         if spawn_flags.intersects(DoorSpawnFlags::NO_AUTO_RETURN) {
             if !spawn_flags.intersects(DoorSpawnFlags::USE_ONLY) {
@@ -228,8 +228,8 @@ impl<T: Move> BaseDoor<T> {
             }
         }
 
-        assert_eq!(self.state.get(), MoveState::GoingDown);
-        self.state.set(MoveState::Bottom);
+        assert_eq!(self.state.get(), MoveState::GoingToStart);
+        self.state.set(MoveState::AtStart);
         self.enable_touch
             .set(!spawn_flags.intersects(DoorSpawnFlags::USE_ONLY));
 
@@ -263,7 +263,7 @@ impl<T: Move> BaseDoor<T> {
             }
         }
 
-        self.state.set(MoveState::GoingUp);
+        self.state.set(MoveState::GoingToEnd);
         self.on_move_done.set(OnMoveDone::DoorHitTop);
 
         let mut reverse = false;
@@ -279,7 +279,7 @@ impl<T: Move> BaseDoor<T> {
             }
         }
 
-        if self.door_move.move_up(v, v.speed(), reverse) {
+        if self.door_move.move_to_end(v, v.speed(), reverse) {
             self.on_move_done();
         } else {
             self.think.set(DoorThink::MoveDone);
@@ -299,11 +299,11 @@ impl<T: Move> BaseDoor<T> {
             }
         }
 
-        self.state.set(MoveState::GoingDown);
+        self.state.set(MoveState::GoingToStart);
         self.on_move_done.set(OnMoveDone::DoorHitBottom);
 
         let v = self.base.vars();
-        if self.door_move.move_down(v, v.speed()) {
+        if self.door_move.move_to_start(v, v.speed()) {
             self.on_move_done();
         } else {
             self.think.set(DoorThink::MoveDone);
@@ -320,7 +320,7 @@ impl<T: Move> BaseDoor<T> {
 
         let spawn_flags = self.spawn_flags();
         if spawn_flags.intersects(DoorSpawnFlags::NO_AUTO_RETURN)
-            && self.state.get() == MoveState::Top
+            && self.state.get() == MoveState::AtEnd
         {
             self.door_go_down();
         } else {
@@ -347,7 +347,7 @@ impl<T: Move> BaseDoor<T> {
             }
         }
 
-        if self.state.get() == MoveState::GoingDown {
+        if self.state.get() == MoveState::GoingToStart {
             self.door_go_up();
         } else {
             self.door_go_down();
@@ -436,7 +436,7 @@ impl<T: Move> Entity for BaseDoor<T> {
             self.door_move.swap(v);
         }
 
-        self.state.set(MoveState::Bottom);
+        self.state.set(MoveState::AtStart);
         self.enable_touch
             .set(!spawn_flags.intersects(DoorSpawnFlags::USE_ONLY));
     }
@@ -444,10 +444,10 @@ impl<T: Move> Entity for BaseDoor<T> {
     fn used(&self, _: UseType, activator: Option<&dyn Entity>, _: &dyn Entity) {
         let spawn_flags = self.spawn_flags();
         match self.state.get() {
-            MoveState::Bottom => {
+            MoveState::AtStart => {
                 self.door_activate(activator);
             }
-            MoveState::Top => {
+            MoveState::AtEnd => {
                 if spawn_flags.intersects(DoorSpawnFlags::NO_AUTO_RETURN) {
                     self.door_activate(activator);
                 }
@@ -498,7 +498,7 @@ impl<T: Move> Entity for BaseDoor<T> {
                 }
             }
 
-            if self.state.get() == MoveState::GoingDown {
+            if self.state.get() == MoveState::GoingToStart {
                 self.door_go_up();
             } else {
                 self.door_go_down();

@@ -300,22 +300,38 @@ impl Sparks {
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
 pub enum MoveState {
     #[default]
-    Bottom = 0,
+    AtStart = 0,
+    AtEnd,
+    GoingToStart,
+    GoingToEnd,
+
+    #[deprecated(note = "use AtStart instead")]
+    Bottom,
+    #[deprecated(note = "use AtEnd instead")]
     Top,
+    #[deprecated(note = "use GoingToStart instead")]
     GoingDown,
+    #[deprecated(note = "use GoingToEnd instead")]
     GoingUp,
 }
 
 impl MoveState {
     pub fn is_moving(&self) -> bool {
-        matches!(self, Self::GoingUp | Self::GoingDown)
+        matches!(self, Self::GoingToEnd | Self::GoingToStart)
     }
 }
 
 #[cfg(feature = "save")]
 impl Save for MoveState {
     fn save(&self, _: &mut save::SaveState, cur: &mut save::CursorMut) -> save::SaveResult<()> {
-        cur.write_u8(*self as u8)?;
+        #[allow(deprecated)]
+        let id = match self {
+            Self::AtStart | Self::Bottom => 0,
+            Self::AtEnd | Self::Top => 1,
+            Self::GoingToStart | Self::GoingDown => 2,
+            Self::GoingToEnd | Self::GoingUp => 3,
+        };
+        cur.write_u8(id)?;
         Ok(())
     }
 }
@@ -324,10 +340,10 @@ impl Save for MoveState {
 impl Restore for MoveState {
     fn restore(&mut self, _: &save::RestoreState, cur: &mut save::Cursor) -> save::SaveResult<()> {
         *self = match cur.read_u8()? {
-            0 => Self::Bottom,
-            1 => Self::Top,
-            2 => Self::GoingDown,
-            3 => Self::GoingUp,
+            0 => Self::AtStart,
+            1 => Self::AtEnd,
+            2 => Self::GoingToStart,
+            3 => Self::GoingToEnd,
             _ => return Err(save::SaveError::InvalidEnum),
         };
         Ok(())
@@ -353,11 +369,21 @@ pub trait Move: Save + Restore + 'static {
     /// Returns `true` if movement is finished.
     fn move_done(&self, v: &EntityVars) -> bool;
 
-    /// Returns `true` if movement is finished.
-    fn move_up(&self, v: &EntityVars, speed: f32, reverse: bool) -> bool;
+    #[deprecated(note = "use move_to_end instead")]
+    fn move_up(&self, v: &EntityVars, speed: f32, reverse: bool) -> bool {
+        self.move_to_end(v, speed, reverse)
+    }
+
+    #[deprecated(note = "use move_to_start instead")]
+    fn move_down(&self, v: &EntityVars, speed: f32) -> bool {
+        self.move_to_start(v, speed)
+    }
 
     /// Returns `true` if movement is finished.
-    fn move_down(&self, v: &EntityVars, speed: f32) -> bool;
+    fn move_to_end(&self, v: &EntityVars, speed: f32, reverse: bool) -> bool;
+
+    /// Returns `true` if movement is finished.
+    fn move_to_start(&self, v: &EntityVars, speed: f32) -> bool;
 }
 
 #[derive(Default)]
@@ -456,11 +482,11 @@ impl Move for LinearMove {
         true
     }
 
-    fn move_up(&self, v: &EntityVars, speed: f32, _: bool) -> bool {
+    fn move_to_end(&self, v: &EntityVars, speed: f32, _: bool) -> bool {
         self.start_move(v, speed, self.end.into())
     }
 
-    fn move_down(&self, v: &EntityVars, speed: f32) -> bool {
+    fn move_to_start(&self, v: &EntityVars, speed: f32) -> bool {
         self.start_move(v, speed, self.start.into())
     }
 }
@@ -475,6 +501,22 @@ pub struct AngularMove {
 }
 
 impl AngularMove {
+    pub fn start(&self) -> vec3_t {
+        self.start
+    }
+
+    pub fn set_start(&mut self, start: vec3_t) {
+        self.start = start;
+    }
+
+    pub fn end(&self) -> vec3_t {
+        self.end
+    }
+
+    pub fn set_end(&mut self, end: vec3_t) {
+        self.end = end;
+    }
+
     pub fn distance(&self) -> f32 {
         self.distance
     }
@@ -543,7 +585,7 @@ impl Move for AngularMove {
         true
     }
 
-    fn move_up(&self, v: &EntityVars, speed: f32, reverse: bool) -> bool {
+    fn move_to_end(&self, v: &EntityVars, speed: f32, reverse: bool) -> bool {
         if reverse {
             self.start_move(v, speed, -self.end)
         } else {
@@ -551,7 +593,7 @@ impl Move for AngularMove {
         }
     }
 
-    fn move_down(&self, v: &EntityVars, speed: f32) -> bool {
+    fn move_to_start(&self, v: &EntityVars, speed: f32) -> bool {
         self.start_move(v, speed, self.start)
     }
 }

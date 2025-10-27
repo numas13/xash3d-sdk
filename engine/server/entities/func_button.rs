@@ -111,13 +111,13 @@ impl<T: Move> BaseButton<T> {
     }
 
     fn is_off(&self) -> bool {
-        self.state.get() == MoveState::Bottom
+        self.state.get() == MoveState::AtStart
     }
 
     fn move_done(&self) {
         match self.state.get() {
-            MoveState::GoingUp => self.button_activated(),
-            MoveState::GoingDown => self.button_returned(),
+            MoveState::GoingToEnd => self.button_activated(),
+            MoveState::GoingToStart => self.button_returned(),
             state => unreachable!("unexpected state {state:?}"),
         }
     }
@@ -136,10 +136,10 @@ impl<T: Move> BaseButton<T> {
             self.lock_sounds.play_button(false, v);
         }
 
-        assert_eq!(self.state.get(), MoveState::Bottom);
-        self.state.set(MoveState::GoingUp);
+        assert_eq!(self.state.get(), MoveState::AtStart);
+        self.state.set(MoveState::GoingToEnd);
 
-        if self.button_move.move_up(v, v.speed(), false) {
+        if self.button_move.move_to_end(v, v.speed(), false) {
             self.button_activated();
         } else {
             self.think.set(Think::MoveDone);
@@ -147,14 +147,14 @@ impl<T: Move> BaseButton<T> {
     }
 
     fn button_activated(&self) {
-        assert_eq!(self.state.get(), MoveState::GoingUp);
+        assert_eq!(self.state.get(), MoveState::GoingToEnd);
 
         let engine = self.engine();
         let activator = self.activator.get().get_entity();
         if !utils::is_master_triggered(&engine, self.master, activator) {
             return;
         }
-        self.state.set(MoveState::Top);
+        self.state.set(MoveState::AtEnd);
 
         let v = self.vars();
         let sf = self.spawn_flags();
@@ -172,10 +172,10 @@ impl<T: Move> BaseButton<T> {
     }
 
     fn button_return(&self) {
-        assert_eq!(self.state.get(), MoveState::Top);
-        self.state.set(MoveState::GoingDown);
+        assert_eq!(self.state.get(), MoveState::AtEnd);
+        self.state.set(MoveState::GoingToStart);
         let v = self.vars();
-        if self.button_move.move_down(v, v.speed()) {
+        if self.button_move.move_to_start(v, v.speed()) {
             self.button_returned();
         } else {
             self.think.set(Think::MoveDone);
@@ -185,8 +185,8 @@ impl<T: Move> BaseButton<T> {
     }
 
     fn button_returned(&self) {
-        assert_eq!(self.state.get(), MoveState::GoingDown);
-        self.state.set(MoveState::Bottom);
+        assert_eq!(self.state.get(), MoveState::GoingToStart);
+        self.state.set(MoveState::AtStart);
 
         let engine = self.engine();
         let sf = self.spawn_flags();
@@ -212,7 +212,7 @@ impl<T: Move> BaseButton<T> {
 
     fn response_to_touch(&self) -> ButtonCode {
         match self.state.get() {
-            MoveState::Top => {
+            MoveState::AtEnd => {
                 let sf = self.spawn_flags();
                 if sf.intersects(SpawnFlags::TOGGLE) && !self.stay_pushed() {
                     ButtonCode::Return
@@ -220,9 +220,8 @@ impl<T: Move> BaseButton<T> {
                     ButtonCode::None
                 }
             }
-            MoveState::GoingUp => ButtonCode::None,
-            MoveState::GoingDown => ButtonCode::None,
-            MoveState::Bottom => ButtonCode::Activate,
+            MoveState::AtStart => ButtonCode::Activate,
+            _ => ButtonCode::None,
         }
     }
 }
@@ -298,7 +297,7 @@ impl<T: Move> Entity for BaseButton<T> {
             return;
         }
         self.activator.set(activator.map(|e| e.entity_handle()));
-        if self.state.get() == MoveState::Top {
+        if self.state.get() == MoveState::AtEnd {
             if !self.stay_pushed() && sf.intersects(SpawnFlags::TOGGLE) {
                 let v = self.base.vars();
                 if let Some(noise) = v.noise() {
