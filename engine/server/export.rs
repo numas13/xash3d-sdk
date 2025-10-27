@@ -8,7 +8,7 @@ use core::{
 };
 
 use csz::{CStrArray, CStrSlice, CStrThin};
-use xash3d_player_move::{VEC_DUCK_HULL_MIN, VEC_HULL_MIN};
+use xash3d_player_move::{DUCK_HULL_MIN, HULL_MIN};
 use xash3d_shared::{
     consts::{EFLAG_SLERP, ENTITY_BEAM, ENTITY_NORMAL},
     engine::net::netadr_s,
@@ -563,7 +563,7 @@ pub trait ServerDll: UnsyncGlobal {
         let view = view_entity.unwrap_or(client);
         let mut org = view.vars().origin() + view.vars().view_ofs();
         if view.vars().flags().intersects(EdictFlags::DUCKING) {
-            org += VEC_HULL_MIN - VEC_DUCK_HULL_MIN;
+            org += HULL_MIN.z - DUCK_HULL_MIN.z;
         }
 
         let engine = self.engine();

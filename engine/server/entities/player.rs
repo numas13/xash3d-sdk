@@ -1,5 +1,6 @@
 use core::{cell::Cell, ffi::c_int, ptr};
 
+use csz::CStrThin;
 use xash3d_shared::{
     entity::{Buttons, EdictFlags, MoveType},
     ffi::common::vec3_t,
@@ -265,14 +266,33 @@ impl_entity_cast!(Player);
 #[cfg(feature = "save")]
 impl crate::save::OnRestore for Player {
     fn on_restore(&self) {
-        let engine = self.base.engine();
-
-        // TODO:
-
+        let engine = self.engine();
         let v = self.vars();
+
+        if let Some(save_data) = engine.globals.save_data() {
+            let save_data = unsafe { save_data.as_ref() };
+            if save_data.fUseLandmark == 0 {
+                let landmark_name =
+                    unsafe { CStrThin::from_ptr(save_data.szLandmarkName.as_ptr()) };
+                warn!("{}: no landmark {landmark_name}", self.pretty_name());
+                let spawn_spot = self.select_spawn_point();
+                v.set_origin(spawn_spot.vars().origin() + vec3_t::new(0.0, 0.0, 1.0));
+                v.set_angles(spawn_spot.vars().angles());
+            }
+        }
+
         v.with_view_angle(|v| v.with_z(0.0));
         v.set_angles(v.view_angle());
         v.set_fix_angle(1);
+
+        if v.flags().intersects(EdictFlags::DUCKING) {
+            v.set_size_and_link(
+                xash3d_player_move::DUCK_HULL_MIN,
+                xash3d_player_move::DUCK_HULL_MAX,
+            );
+        } else {
+            v.set_size_and_link(xash3d_player_move::HULL_MIN, xash3d_player_move::HULL_MAX);
+        }
 
         engine.set_physics_key_value(self, c"hl", c"1");
     }
@@ -288,7 +308,7 @@ impl Entity for Player {
     }
 
     fn spawn(&mut self) {
-        let engine = self.base.engine();
+        let engine = self.engine();
         let v = self.base.vars();
         v.set_classname(engine.try_alloc_map_string(c"player").unwrap());
         v.set_health(100.0);
@@ -308,15 +328,23 @@ impl Entity for Player {
         v.set_friction(1.0);
         v.set_gravity(1.0);
         v.set_fov(0.0);
-        v.set_view_ofs(xash3d_player_move::VEC_VIEW);
+        v.set_view_ofs(xash3d_player_move::VIEW_OFFSET);
 
         engine.set_physics_key_value(self, c"slj", c"0");
         engine.set_physics_key_value(self, c"hl", c"1");
 
         self.global_state().game_rules().get_player_spawn_spot(self);
 
-        let v = self.vars();
         v.set_model(res::valve::models::PLAYER);
+
+        if v.flags().intersects(EdictFlags::DUCKING) {
+            v.set_size_and_link(
+                xash3d_player_move::DUCK_HULL_MIN,
+                xash3d_player_move::DUCK_HULL_MAX,
+            );
+        } else {
+            v.set_size_and_link(xash3d_player_move::HULL_MIN, xash3d_player_move::HULL_MAX);
+        }
     }
 
     fn is_player(&self) -> bool {

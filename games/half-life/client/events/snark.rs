@@ -1,7 +1,7 @@
 use core::ffi::c_int;
 
 use xash3d_client::{consts::PM_NORMAL, engine::event::EventArgs, prelude::*};
-use xash3d_player_move::{VEC_DUCK_HULL_MIN, VEC_HULL_MIN};
+use xash3d_player_move::{DUCK_HULL_MIN, HULL_MIN};
 
 #[allow(dead_code)]
 #[derive(Copy, Clone)]
@@ -26,7 +26,7 @@ impl super::Events {
         let angles = args.angles();
         let mut src = origin;
         if args.ducking() {
-            src -= VEC_HULL_MIN - VEC_DUCK_HULL_MIN;
+            src -= HULL_MIN.z - DUCK_HULL_MIN.z;
         }
 
         let engine = self.engine;

@@ -37,18 +37,32 @@ use xash3d_shared::{
 };
 
 const TIME_TO_DUCK: f32 = 0.4;
-const VEC_DUCK_VIEW: f32 = 12.0;
 const PM_DEAD_VIEWHEIGHT: f32 = -8.0;
 const MAX_CLIMB_SPEED: f32 = 200.0;
 const STUCK_MOVEUP: c_int = 1;
 // const STUCK_MOVEDOWN: c_int = -1;
+#[deprecated(note = "use VIEW_OFFSET instead")]
 pub const VEC_VIEW_Z: f32 = 28.0;
-pub const VEC_VIEW: vec3_t = vec3_t::new(0.0, 0.0, VEC_VIEW_Z);
+#[deprecated(note = "use VIEW_OFFSET instead")]
+pub const VEC_VIEW: vec3_t = vec3_t::new(0.0, 0.0, 28.0);
 
+#[deprecated(note = "use DUCK_HULL_MIN instead")]
 pub const VEC_DUCK_HULL_MIN: f32 = -18.0;
+#[deprecated(note = "use DUCK_HULL_MAX instead")]
 pub const VEC_DUCK_HULL_MAX: f32 = 18.0;
+#[deprecated(note = "use HULL_MIN instead")]
 pub const VEC_HULL_MIN: f32 = -36.0;
+#[deprecated(note = "use HULL_MAX instead")]
 pub const VEC_HULL_MAX: f32 = 36.0;
+
+pub const DUCK_VIEW_OFFSET: vec3_t = vec3_t::new(0.0, 0.0, 12.0);
+pub const VIEW_OFFSET: vec3_t = vec3_t::new(0.0, 0.0, 28.0);
+
+pub const DUCK_HULL_MIN: vec3_t = vec3_t::new(-16.0, -16.0, -18.0);
+pub const DUCK_HULL_MAX: vec3_t = vec3_t::new(16.0, 16.0, 18.0);
+
+pub const HULL_MIN: vec3_t = vec3_t::new(-16.0, -16.0, -36.0);
+pub const HULL_MAX: vec3_t = vec3_t::new(16.0, 16.0, 36.0);
 
 // const OBS_NONE: c_int = 0;
 // const OBS_CHASE_LOCKED: c_int = 1;
@@ -1174,7 +1188,7 @@ impl<'a> PlayerMove<'a> {
             if self.raw.bInDuck != 0 {
                 if self.raw.flDuckTime / 1000.0 <= 1.0 - TIME_TO_DUCK || self.raw.onground == -1 {
                     self.raw.usehull = 1;
-                    self.raw.view_ofs[2] = VEC_DUCK_VIEW;
+                    self.raw.view_ofs[2] = DUCK_VIEW_OFFSET.z;
                     self.flags_mut().insert(Flags::DUCKING);
                     self.raw.bInDuck = false.into();
 
@@ -1184,11 +1198,11 @@ impl<'a> PlayerMove<'a> {
                         self.catagorize_position();
                     }
                 } else {
-                    let more = VEC_DUCK_HULL_MIN - VEC_HULL_MIN;
+                    let more = DUCK_HULL_MIN.z - HULL_MIN.z;
                     let time = fmaxf(0.0, 1.0 - self.raw.flDuckTime / 1000.0);
                     let duck_fraction = spline_fraction(time, 1.0 / TIME_TO_DUCK);
-                    self.raw.view_ofs[2] =
-                        (VEC_DUCK_VIEW - more) * duck_fraction + VEC_VIEW_Z * (1.0 - duck_fraction);
+                    self.raw.view_ofs[2] = (DUCK_VIEW_OFFSET.z - more) * duck_fraction
+                        + VIEW_OFFSET.z * (1.0 - duck_fraction);
                 }
             }
         } else if self.raw.bInDuck != 0 || self.flags().contains(Flags::DUCKING) {
@@ -1213,7 +1227,7 @@ impl<'a> PlayerMove<'a> {
 
             self.flags_mut().remove(EdictFlags::DUCKING);
             self.raw.bInDuck = false.into();
-            self.raw.view_ofs[2] = VEC_VIEW_Z;
+            self.raw.view_ofs[2] = VIEW_OFFSET.z;
             self.raw.flDuckTime = 0.0;
             self.raw.origin = new_origin;
 
@@ -1884,14 +1898,8 @@ pub fn get_hull_bounds(hullnumber: c_int) -> Option<(vec3_t, vec3_t)> {
     const POINT_BASED_HULL: c_int = 2;
 
     match hullnumber {
-        NORMAL_PLAYER_HULL => Some((
-            vec3_t::new(-16.0, -16.0, VEC_HULL_MIN),
-            vec3_t::new(16.0, 16.0, VEC_HULL_MAX),
-        )),
-        CROUCHED_PLAYER_HULL => Some((
-            vec3_t::new(-16.0, -16.0, VEC_DUCK_HULL_MIN),
-            vec3_t::new(16.0, 16.0, VEC_DUCK_HULL_MAX),
-        )),
+        NORMAL_PLAYER_HULL => Some((HULL_MIN, HULL_MAX)),
+        CROUCHED_PLAYER_HULL => Some((DUCK_HULL_MIN, DUCK_HULL_MAX)),
         POINT_BASED_HULL => Some((vec3_t::ZERO, vec3_t::ZERO)),
         _ => None,
     }
