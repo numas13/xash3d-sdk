@@ -31,6 +31,7 @@ pub mod light;
 pub mod light_environment;
 pub mod multi_manager;
 pub mod multisource;
+pub mod path_corner;
 pub mod player;
 pub mod point_entity;
 pub mod spark_shower;
