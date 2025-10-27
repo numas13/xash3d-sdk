@@ -108,16 +108,6 @@ enum DoorThink {
     DoorGoDown,
 }
 
-#[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
-#[cfg_attr(feature = "save", derive(Save, Restore))]
-#[repr(u8)]
-enum OnMoveDone {
-    #[default]
-    None = 0,
-    DoorHitTop,
-    DoorHitBottom,
-}
-
 #[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct BaseDoor<T> {
     base: BaseEntity,
@@ -128,7 +118,6 @@ pub struct BaseDoor<T> {
     state: Cell<MoveState>,
     enable_touch: Cell<bool>,
     think: Cell<DoorThink>,
-    on_move_done: Cell<OnMoveDone>,
     activator: Cell<Option<EntityHandle>>,
 
     door_move: T,
@@ -151,7 +140,6 @@ impl<T: Move + Default> CreateEntity for BaseDoor<T> {
             state: Default::default(),
             enable_touch: Default::default(),
             think: Default::default(),
-            on_move_done: Default::default(),
             activator: Cell::default(),
 
             door_move: Default::default(),
@@ -169,7 +157,42 @@ impl<T: Move> BaseDoor<T> {
         DoorSpawnFlags::from_bits_retain(self.vars().spawn_flags())
     }
 
-    fn door_hit_top(&self) {
+    fn go_end(&self) {
+        let engine = self.engine();
+        let v = self.base.vars();
+        let sf = self.spawn_flags();
+        if !sf.is_silent() && !self.state.get().is_moving() {
+            if let Some(noise_moving) = v.noise_moving() {
+                engine
+                    .build_sound()
+                    .channel_static()
+                    .emit_dyn(noise_moving, v);
+            }
+        }
+
+        self.state.set(MoveState::GoingToEnd);
+
+        let mut reverse = false;
+        if self.door_move.is_reversable() {
+            if let Some(activator) = self.activator.get() {
+                let av = activator.vars();
+                if !sf.intersects(DoorSpawnFlags::ONEWAY) && v.move_dir().y != 0.0 {
+                    let vec = av.origin() - v.origin();
+                    let forward = av.angles().angle_vectors().forward();
+                    let v_next = (av.origin() + forward * 10.0) - v.origin();
+                    reverse = vec.x * v_next.y - vec.y * v_next.x < 0.0;
+                }
+            }
+        }
+
+        if self.door_move.move_to_end(v, v.speed(), reverse) {
+            self.hit_end();
+        } else {
+            self.think.set(DoorThink::MoveDone);
+        }
+    }
+
+    fn hit_end(&self) {
         let spawn_flags = self.spawn_flags();
         let engine = self.engine();
         let v = self.base.vars();
@@ -211,7 +234,30 @@ impl<T: Move> BaseDoor<T> {
         self.delayed.use_targets(UseType::Toggle, activator, self);
     }
 
-    fn door_hit_bottom(&self) {
+    fn go_start(&self) {
+        let engine = self.engine();
+        let spawn_flags = self.spawn_flags();
+        if !spawn_flags.is_silent() && !self.state.get().is_moving() {
+            let v = self.base.vars();
+            if let Some(noise_moving) = v.noise_moving() {
+                engine
+                    .build_sound()
+                    .channel_static()
+                    .emit_dyn(noise_moving, v);
+            }
+        }
+
+        self.state.set(MoveState::GoingToStart);
+
+        let v = self.base.vars();
+        if self.door_move.move_to_start(v, v.speed()) {
+            self.hit_start();
+        } else {
+            self.think.set(DoorThink::MoveDone);
+        }
+    }
+
+    fn hit_start(&self) {
         let spawn_flags = self.spawn_flags();
         let engine = self.engine();
         let v = self.base.vars();
@@ -242,74 +288,6 @@ impl<T: Move> BaseDoor<T> {
         self.delayed.use_targets(UseType::Toggle, activator, self);
     }
 
-    fn on_move_done(&self) {
-        match self.on_move_done.get() {
-            OnMoveDone::None => {}
-            OnMoveDone::DoorHitTop => self.door_hit_top(),
-            OnMoveDone::DoorHitBottom => self.door_hit_bottom(),
-        }
-    }
-
-    fn door_go_up(&self) {
-        let engine = self.engine();
-        let v = self.base.vars();
-        let sf = self.spawn_flags();
-        if !sf.is_silent() && !self.state.get().is_moving() {
-            if let Some(noise_moving) = v.noise_moving() {
-                engine
-                    .build_sound()
-                    .channel_static()
-                    .emit_dyn(noise_moving, v);
-            }
-        }
-
-        self.state.set(MoveState::GoingToEnd);
-        self.on_move_done.set(OnMoveDone::DoorHitTop);
-
-        let mut reverse = false;
-        if self.door_move.is_reversable() {
-            if let Some(activator) = self.activator.get() {
-                let av = activator.vars();
-                if !sf.intersects(DoorSpawnFlags::ONEWAY) && v.move_dir().y != 0.0 {
-                    let vec = av.origin() - v.origin();
-                    let forward = av.angles().angle_vectors().forward();
-                    let v_next = (av.origin() + forward * 10.0) - v.origin();
-                    reverse = vec.x * v_next.y - vec.y * v_next.x < 0.0;
-                }
-            }
-        }
-
-        if self.door_move.move_to_end(v, v.speed(), reverse) {
-            self.on_move_done();
-        } else {
-            self.think.set(DoorThink::MoveDone);
-        }
-    }
-
-    fn door_go_down(&self) {
-        let engine = self.engine();
-        let spawn_flags = self.spawn_flags();
-        if !spawn_flags.is_silent() && !self.state.get().is_moving() {
-            let v = self.base.vars();
-            if let Some(noise_moving) = v.noise_moving() {
-                engine
-                    .build_sound()
-                    .channel_static()
-                    .emit_dyn(noise_moving, v);
-            }
-        }
-
-        self.state.set(MoveState::GoingToStart);
-        self.on_move_done.set(OnMoveDone::DoorHitBottom);
-
-        let v = self.base.vars();
-        if self.door_move.move_to_start(v, v.speed()) {
-            self.on_move_done();
-        } else {
-            self.think.set(DoorThink::MoveDone);
-        }
-    }
-
     fn door_activate(&self, activator: Option<&dyn Entity>) -> bool {
         let engine = self.engine();
         if !utils::is_master_triggered(&engine, self.master, activator) {
@@ -322,11 +300,11 @@ impl<T: Move> BaseDoor<T> {
         if spawn_flags.intersects(DoorSpawnFlags::NO_AUTO_RETURN)
             && self.state.get() == MoveState::AtEnd
         {
-            self.door_go_down();
+            self.go_start();
         } else {
             // TODO: give health to player???
             self.lock_sounds.play_door(false, self.base.vars());
-            self.door_go_up();
+            self.go_end();
         }
 
         true
@@ -348,9 +326,9 @@ impl<T: Move> BaseDoor<T> {
         }
 
         if self.state.get() == MoveState::GoingToStart {
-            self.door_go_up();
+            self.go_end();
         } else {
-            self.door_go_down();
+            self.go_start();
         }
     }
 }
@@ -499,9 +477,9 @@ impl<T: Move> Entity for BaseDoor<T> {
             }
 
             if self.state.get() == MoveState::GoingToStart {
-                self.door_go_up();
+                self.go_end();
             } else {
-                self.door_go_down();
+                self.go_start();
             }
         }
 
@@ -525,12 +503,14 @@ impl<T: Move> Entity for BaseDoor<T> {
             DoorThink::None => {}
             DoorThink::MoveDone => {
                 if self.door_move.move_done(self.base.vars()) {
-                    self.on_move_done();
+                    match self.state.get() {
+                        MoveState::GoingToStart => self.hit_start(),
+                        MoveState::GoingToEnd => self.hit_end(),
+                        state => unreachable!("think: unexpected start {state:?}"),
+                    }
                 }
             }
-            DoorThink::DoorGoDown => {
-                self.door_go_down();
-            }
+            DoorThink::DoorGoDown => self.go_start(),
         }
     }
 }
