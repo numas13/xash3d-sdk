@@ -28,6 +28,7 @@ pub mod info_target;
 pub mod infodecal;
 pub mod item;
 pub mod light;
+pub mod light_environment;
 pub mod multi_manager;
 pub mod multisource;
 pub mod player;
