@@ -3,7 +3,7 @@ use core::ffi::{c_int, CStr};
 use xash3d_server::{
     engine::RegisterUserMessageError,
     entities::world::World,
-    entity::{BaseEntity, EntityHandle, EntityPlayer, Private},
+    entity::{BaseEntity, Entity, EntityHandle, EntityPlayer, Private},
     export::{export_dll, impl_unsync_global, ServerDll},
     global_state::GlobalStateRef,
     prelude::*,
@@ -120,6 +120,15 @@ impl ServerDll for Dll {
             b"find" => {
                 if let Some(player) = ent.downcast_ref::<TestPlayer>() {
                     player.find_class_name(engine.cmd_argv(1));
+                }
+            }
+            b"health" => {
+                if let Some(player) = ent.downcast_ref::<TestPlayer>() {
+                    if let Ok(arg) = engine.cmd_argv(1).to_str() {
+                        if let Ok(health) = arg.parse() {
+                            player.vars().set_health(health);
+                        }
+                    }
                 }
             }
             _ => {

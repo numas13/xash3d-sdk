@@ -688,6 +688,7 @@ impl EntityVars {
 
     field!(get health, fn health() -> f32);
     field!(set health, fn set_health(v: f32));
+    field!(mut health, fn with_health(f32));
 
     field!(get frags, fn frags() -> f32);
     field!(set frags, fn set_frags(v: f32));
