@@ -1,6 +1,5 @@
 use core::{cell::Cell, ffi::c_int, ptr};
 
-use csz::CStrThin;
 use xash3d_shared::{
     entity::{Buttons, EdictFlags, MoveType},
     ffi::common::vec3_t,
@@ -266,6 +265,8 @@ impl_entity_cast!(Player);
 #[cfg(feature = "save")]
 impl crate::save::OnRestore for Player {
     fn on_restore(&self) {
+        use csz::CStrThin;
+
         let engine = self.engine();
         let v = self.vars();
 
