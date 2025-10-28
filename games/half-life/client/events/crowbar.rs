@@ -2,21 +2,7 @@ use core::ffi::c_int;
 
 use res::valve::sound;
 use xash3d_client::engine::event::EventArgs;
-
-#[allow(dead_code)]
-#[derive(Copy, Clone)]
-#[repr(C)]
-enum Crowbar {
-    Idle = 0,
-    Draw,
-    Holster,
-    Attack1Hit,
-    Attack1Miss,
-    Attack2Miss,
-    Attack2Hit,
-    Attack3Miss,
-    Attack3Hit,
-}
+use xash3d_hl_shared::weapons::crowbar::CrowbarAnimation;
 
 impl super::Events {
     pub(super) fn crowbar(&mut self, args: &mut EventArgs) {
@@ -31,9 +17,9 @@ impl super::Events {
         if self.utils.is_local(idx) {
             self.swing = self.swing.wrapping_add(1);
             let seq = match self.swing % 3 {
-                0 => Crowbar::Attack1Miss,
-                1 => Crowbar::Attack2Miss,
-                _ => Crowbar::Attack3Miss,
+                0 => CrowbarAnimation::Attack1Miss,
+                1 => CrowbarAnimation::Attack2Miss,
+                _ => CrowbarAnimation::Attack3Miss,
             };
             ev.weapon_animation(seq as c_int, 1);
         }

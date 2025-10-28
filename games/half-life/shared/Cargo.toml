@@ -13,5 +13,6 @@ workspace = true
 path = "lib.rs"
 
 [dependencies]
+bitflags.workspace = true
 csz.workspace = true
 xash3d-shared.workspace = true

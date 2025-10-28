@@ -1,21 +1,7 @@
 use core::ffi::c_int;
 
 use xash3d_client::{consts::PM_NORMAL, engine::event::EventArgs, prelude::*};
-
-#[allow(dead_code)]
-#[derive(Copy, Clone)]
-#[repr(C)]
-enum Tripmine {
-    Idle1 = 0,
-    Idle2,
-    Arm1,
-    Arm2,
-    Fidget,
-    Holster,
-    Draw,
-    World,
-    Ground,
-}
+use xash3d_hl_shared::weapons::tripmine::TripmineAnimation;
 
 impl super::Events {
     pub(super) fn fire_tripmine(&mut self, args: &mut EventArgs) {
@@ -41,7 +27,7 @@ impl super::Events {
         let tr = ev.player_trace(src, end, PM_NORMAL, -1);
 
         if tr.fraction < 1.0 {
-            ev.weapon_animation(Tripmine::Draw as c_int, 0);
+            ev.weapon_animation(TripmineAnimation::Draw as c_int, 0);
         }
 
         pm_states.pop();

@@ -9,26 +9,9 @@ use xash3d_client::{
     prelude::*,
     render::RenderMode,
 };
+use xash3d_hl_shared::weapons::crossbow::CrossbowAnimation;
 
 use crate::export::view_mut;
-
-#[allow(dead_code)]
-#[derive(Copy, Clone)]
-#[repr(C)]
-enum Crossbow {
-    Idle1 = 0,
-    Idle2,
-    Fidget1,
-    Fidget2,
-    Fire1,
-    Fire2,
-    Fire3,
-    Reload,
-    Draw1,
-    Draw2,
-    Holster1,
-    Holster2,
-}
 
 impl super::Events {
     pub(super) fn fire_crossbow(&mut self, args: &mut EventArgs) {
@@ -53,9 +36,9 @@ impl super::Events {
 
         if self.utils.is_local(idx) {
             if args.iparam1() != 0 {
-                ev.weapon_animation(Crossbow::Fire1 as c_int, 1);
+                ev.weapon_animation(CrossbowAnimation::Fire1 as c_int, 1);
             } else if args.iparam2() != 0 {
-                ev.weapon_animation(Crossbow::Fire3 as c_int, 1);
+                ev.weapon_animation(CrossbowAnimation::Fire3 as c_int, 1);
             }
 
             view_mut().punch_axis(PITCH, -2.0);
@@ -88,9 +71,9 @@ impl super::Events {
 
         if self.utils.is_local(idx) {
             if args.iparam1() != 0 {
-                ev.weapon_animation(Crossbow::Fire1 as c_int, 1);
+                ev.weapon_animation(CrossbowAnimation::Fire1 as c_int, 1);
             } else if args.iparam2() != 0 {
-                ev.weapon_animation(Crossbow::Fire3 as c_int, 1);
+                ev.weapon_animation(CrossbowAnimation::Fire3 as c_int, 1);
             }
         }
 

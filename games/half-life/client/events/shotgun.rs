@@ -6,26 +6,11 @@ use xash3d_client::{
     engine::event::EventArgs,
     prelude::*,
 };
+use xash3d_hl_shared::weapons::shotgun::ShotgunAnimation;
 
 use crate::export::view_mut;
 
 use super::Bullet;
-
-#[allow(dead_code)]
-#[derive(Copy, Clone)]
-#[repr(C)]
-enum Shotgun {
-    Idle = 0,
-    Fire,
-    Fire2,
-    Reload,
-    Pump,
-    StartReload,
-    Draw,
-    Holster,
-    Idle4,
-    IdleDeep,
-}
 
 impl super::Events {
     pub(super) fn fire_shotgun_single(&mut self, args: &mut EventArgs) {
@@ -40,7 +25,7 @@ impl super::Events {
 
         if self.utils.is_local(idx) {
             self.utils.muzzle_flash();
-            ev.weapon_animation(Shotgun::Fire as c_int, 2);
+            ev.weapon_animation(ShotgunAnimation::Fire as c_int, 2);
             view_mut().punch_axis(PITCH, -5.0);
         }
 
@@ -85,7 +70,7 @@ impl super::Events {
 
         if self.utils.is_local(idx) {
             self.utils.muzzle_flash();
-            ev.weapon_animation(Shotgun::Fire2 as c_int, 2);
+            ev.weapon_animation(ShotgunAnimation::Fire2 as c_int, 2);
             view_mut().punch_axis(PITCH, -10.0);
         }
 

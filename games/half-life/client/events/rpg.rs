@@ -2,24 +2,9 @@ use core::ffi::c_int;
 
 use res::valve::sound;
 use xash3d_client::{consts::PITCH, engine::event::EventArgs};
+use xash3d_hl_shared::weapons::rpg::RpgAnimation;
 
 use crate::export::view_mut;
-
-#[allow(dead_code)]
-#[derive(Copy, Clone)]
-#[repr(C)]
-enum Rpg {
-    Idle = 0,
-    Fidget,
-    Reload,
-    Fire2,
-    Holster1,
-    Draw1,
-    Holster2,
-    DrawUl,
-    IdleUl,
-    FidgetUl,
-}
 
 impl super::Events {
     pub(super) fn fire_rpg(&mut self, args: &mut EventArgs) {
@@ -42,7 +27,7 @@ impl super::Events {
             .play(sound::weapons::GLAUNCHER);
 
         if self.utils.is_local(idx) {
-            ev.weapon_animation(Rpg::Fire2 as c_int, 1);
+            ev.weapon_animation(RpgAnimation::Fire2 as c_int, 1);
 
             view_mut().punch_axis(PITCH, -5.0);
         }

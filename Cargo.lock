@@ -143,6 +143,7 @@ dependencies = [
 name = "xash3d-hl-shared"
 version = "0.1.0"
 dependencies = [
+ "bitflags",
  "csz",
  "xash3d-shared",
 ]

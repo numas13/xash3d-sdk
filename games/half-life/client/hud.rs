@@ -38,7 +38,7 @@ use xash3d_client::{
     sprite::SpriteHandle,
     user_message::{hook_user_message, hook_user_message_flag},
 };
-use xash3d_hl_shared::user_message;
+use xash3d_hl_shared::{user_message, weapons::Weapons};
 
 use crate::{
     export::{hud_mut, input, input_mut},
@@ -198,14 +198,6 @@ bitflags! {
         const ALL           = 1 << 2;
         /// Hide health.
         const HEALTH        = 1 << 3;
-    }
-}
-
-bitflags! {
-    #[derive(Copy, Clone, PartialEq, Eq)]
-    #[repr(transparent)]
-    pub struct Weapons: u32 {
-        const SUIT          = 1 << 31;
     }
 }
 

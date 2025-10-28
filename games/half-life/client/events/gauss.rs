@@ -10,25 +10,11 @@ use xash3d_client::{
     render::{RenderFx, RenderMode},
     sound::{Channel, SoundFlags},
 };
+use xash3d_hl_shared::weapons::gauss::GaussAnimation;
 
 use crate::export::view_mut;
 
 use super::Bullet;
-
-#[allow(dead_code)]
-#[derive(Copy, Clone)]
-#[repr(C)]
-enum Gauss {
-    Idle = 0,
-    Idle2,
-    Fidget,
-    Spinup,
-    Spin,
-    Fire,
-    Fire2,
-    Holster,
-    Draw,
-}
 
 impl super::Events {
     fn stop_previous_gauss(&self, ent: EntityIndex) {
@@ -59,7 +45,7 @@ impl super::Events {
         let balls = glow;
 
         if self.utils.is_local(idx) {
-            ev.weapon_animation(Gauss::Fire2 as c_int, 2);
+            ev.weapon_animation(GaussAnimation::Fire2 as c_int, 2);
             view_mut().punch_axis(PITCH, -2.0);
 
             if !primary_fire {

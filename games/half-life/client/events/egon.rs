@@ -2,23 +2,7 @@ use core::ffi::{c_int, CStr};
 
 use res::valve::sound;
 use xash3d_client::{engine::event::EventArgs, prelude::*, sound::Channel};
-
-#[allow(dead_code)]
-#[derive(Copy, Clone)]
-#[repr(C)]
-enum Egon {
-    Idle1 = 0,
-    FIDGET1,
-    AltFireOn,
-    AltFireCycle,
-    AltFireOff,
-    Fire1,
-    Fire2,
-    Fire3,
-    Fire4,
-    Draw,
-    Holster,
-}
+use xash3d_hl_shared::weapons::egon::EgonAnimation;
 
 const FIRE_WIDE: c_int = 1;
 // const EGON_BEAM_SPRITE: &CStr = sprites::XBEAM1;
@@ -72,10 +56,10 @@ impl super::Events {
 
         if self.utils.is_local(idx) {
             let seq = match engine.random_int(0, 3) {
-                0 => Egon::Fire1,
-                1 => Egon::Fire2,
-                2 => Egon::Fire3,
-                _ => Egon::Fire4,
+                0 => EgonAnimation::Fire1,
+                1 => EgonAnimation::Fire2,
+                2 => EgonAnimation::Fire3,
+                _ => EgonAnimation::Fire4,
             };
             ev.weapon_animation(seq as c_int, 1);
         }

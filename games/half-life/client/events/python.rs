@@ -2,24 +2,11 @@ use core::ffi::c_int;
 
 use res::valve::sound;
 use xash3d_client::{consts::PITCH, engine::event::EventArgs, prelude::*};
+use xash3d_hl_shared::weapons::python::PythonAnimation;
 
 use crate::export::view_mut;
 
 use super::Bullet;
-
-#[allow(dead_code)]
-#[derive(Copy, Clone)]
-#[repr(C)]
-enum Python {
-    Idle1 = 0,
-    Fidget,
-    Fire1,
-    Reload,
-    Holster,
-    Draw,
-    Idle2,
-    Idle3,
-}
 
 impl super::Events {
     pub(super) fn fire_python(&mut self, args: &mut EventArgs) {
@@ -32,7 +19,7 @@ impl super::Events {
 
         if self.utils.is_local(idx) {
             let body = if engine.is_singleplayer() { 0 } else { 1 };
-            ev.weapon_animation(Python::Fire1 as c_int, body);
+            ev.weapon_animation(PythonAnimation::Fire1 as c_int, body);
             view_mut().punch_axis(PITCH, -10.0);
         }
 

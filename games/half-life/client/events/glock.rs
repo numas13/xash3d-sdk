@@ -6,26 +6,11 @@ use xash3d_client::{
     engine::event::EventArgs,
     prelude::*,
 };
+use xash3d_hl_shared::weapons::glock::GlockAnimation;
 
 use crate::export::view_mut;
 
 use super::Bullet;
-
-#[allow(dead_code)]
-#[derive(Copy, Clone)]
-#[repr(C)]
-enum Glock {
-    Idle1 = 0,
-    Idle2,
-    Idle3,
-    Shoot,
-    ShootEmpty,
-    Reload,
-    ReloadNotEmpty,
-    Draw,
-    Holster,
-    AddSilencer,
-}
 
 impl super::Events {
     pub(super) fn fire_glock1(&mut self, args: &mut EventArgs) {
@@ -41,9 +26,9 @@ impl super::Events {
         if self.utils.is_local(idx) {
             self.utils.muzzle_flash();
             let seq = if args.bparam1() {
-                Glock::ShootEmpty
+                GlockAnimation::ShootEmpty
             } else {
-                Glock::Shoot
+                GlockAnimation::Shoot
             };
             ev.weapon_animation(seq as c_int, 2);
             view_mut().punch_axis(PITCH, -2.0);
@@ -83,7 +68,7 @@ impl super::Events {
 
         if self.utils.is_local(idx) {
             self.utils.muzzle_flash();
-            ev.weapon_animation(Glock::Shoot as c_int, 2);
+            ev.weapon_animation(GlockAnimation::Shoot as c_int, 2);
             view_mut().punch_axis(PITCH, -2.0);
         }
 

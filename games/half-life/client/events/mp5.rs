@@ -6,24 +6,11 @@ use xash3d_client::{
     engine::event::EventArgs,
     prelude::*,
 };
+use xash3d_hl_shared::weapons::mp5::Mp5Animation;
 
 use crate::export::view_mut;
 
 use super::Bullet;
-
-#[allow(dead_code)]
-#[derive(Copy, Clone)]
-#[repr(C)]
-enum Mp5 {
-    Longidle = 0,
-    Idle1,
-    Launch,
-    Reload,
-    Deploy,
-    Fire1,
-    Fire2,
-    Fire3,
-}
 
 impl super::Events {
     pub(super) fn fire_mp5(&mut self, args: &mut EventArgs) {
@@ -39,7 +26,7 @@ impl super::Events {
         if self.utils.is_local(idx) {
             self.utils.muzzle_flash();
             let rand = engine.random_int(0, 2);
-            ev.weapon_animation(Mp5::Fire1 as c_int + rand, 2);
+            ev.weapon_animation(Mp5Animation::Fire1 as c_int + rand, 2);
             let pitch = engine.random_float(-2.0, 2.0);
             view_mut().punch_axis(PITCH, pitch);
         }
@@ -77,7 +64,7 @@ impl super::Events {
         let ev = engine.event_api();
 
         if self.utils.is_local(idx) {
-            ev.weapon_animation(Mp5::Launch as c_int, 2);
+            ev.weapon_animation(Mp5Animation::Launch as c_int, 2);
             view_mut().punch_axis(PITCH, -10.0);
         }
 
