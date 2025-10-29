@@ -1,3 +1,5 @@
+use bitflags::bitflags;
+
 use crate::{
     entities::point_entity::PointEntity,
     entity::{delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, KeyValue},
@@ -7,11 +9,36 @@ use crate::{
 #[cfg(feature = "save")]
 use crate::save::{Restore, Save};
 
+bitflags! {
+    #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
+    pub struct SpawnFlags: u32 {
+        const WAIT_FOR_RETRIGGER    = 1 << 0;
+        const TELEPORT              = 1 << 1;
+        const FIRE_ONCE             = 1 << 2;
+    }
+}
+
+impl SpawnFlags {
+    pub fn has_wait_for_retrigger(&self) -> bool {
+        self.intersects(Self::WAIT_FOR_RETRIGGER)
+    }
+
+    pub fn has_teleport(&self) -> bool {
+        self.intersects(Self::TELEPORT)
+    }
+
+    pub fn has_fire_once(&self) -> bool {
+        self.intersects(Self::FIRE_ONCE)
+    }
+}
+
 #[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct PathCorner {
     base: PointEntity,
     wait: f32,
 }
+
+impl_entity_cast!(PathCorner);
 
 impl CreateEntity for PathCorner {
     fn create(base: BaseEntity) -> Self {
@@ -22,7 +49,15 @@ impl CreateEntity for PathCorner {
     }
 }
 
-impl_entity_cast!(PathCorner);
+impl PathCorner {
+    pub fn spawn_flags(&self) -> SpawnFlags {
+        SpawnFlags::from_bits_retain(self.vars().spawn_flags())
+    }
+
+    pub fn delay(&self) -> f32 {
+        self.wait
+    }
+}
 
 impl Entity for PathCorner {
     delegate_entity!(base not { key_value, spawn });
