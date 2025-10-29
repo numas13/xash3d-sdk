@@ -8,42 +8,16 @@ use xash3d_shared::{
 use crate::{
     entity::{
         delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, EntityHandle,
-        EntityVars, KeyValue, ObjectCaps, Private, Solid, UseType,
+        KeyValue, ObjectCaps, Private, Solid, UseType,
     },
     export::export_entity_default,
     prelude::*,
-    str::MapString,
+    sound::PlatformSounds,
     utils::{LinearMove, Move, MoveState},
 };
 
 #[cfg(feature = "save")]
 use crate::save::{Restore, Save};
-
-trait EntityVarsExt {
-    fn vars(&self) -> &EntityVars;
-
-    fn moving_noise(&self) -> Option<MapString> {
-        self.vars().noise()
-    }
-
-    fn set_moving_noise(&self, sound: MapString) {
-        self.vars().set_noise(Some(sound));
-    }
-
-    fn moving_stop_noise(&self) -> Option<MapString> {
-        self.vars().noise1()
-    }
-
-    fn set_moving_stop_noise(&self, sound: MapString) {
-        self.vars().set_noise1(Some(sound));
-    }
-}
-
-impl EntityVarsExt for EntityVars {
-    fn vars(&self) -> &EntityVars {
-        self
-    }
-}
 
 #[cfg_attr(feature = "save", derive(Save, Restore))]
 struct PlatformTrigger {
@@ -109,9 +83,7 @@ enum Think {
 pub struct Platform {
     base: BaseEntity,
 
-    volume: f32,
-    movesnd: u8,
-    stopsnd: u8,
+    platform_sounds: PlatformSounds,
     wait: f32,
 
     height: f32,
@@ -131,9 +103,7 @@ impl CreateEntity for Platform {
         Self {
             base,
 
-            volume: 0.0,
-            movesnd: 0,
-            stopsnd: 0,
+            platform_sounds: Default::default(),
             wait: 0.0,
 
             height: 0.0,
@@ -157,35 +127,6 @@ impl Platform {
         self.vars().spawn_flags() & Self::SF_TOGGLE != 0
     }
 
-    fn emit_moving_noise(&self) {
-        let v = self.vars();
-        if let Some(sound) = v.moving_noise() {
-            self.engine()
-                .build_sound()
-                .channel_static()
-                .volume(self.volume)
-                .emit_dyn(sound, v);
-        }
-    }
-
-    fn stop_moving_noise(&self) {
-        let v = self.vars();
-        if let Some(sound) = v.moving_noise() {
-            self.engine().build_sound().channel_static().stop(sound, v);
-        }
-    }
-
-    fn emit_moving_stop_noise(&self) {
-        let v = self.vars();
-        if let Some(sound) = v.moving_stop_noise() {
-            self.engine()
-                .build_sound()
-                .channel_static()
-                .volume(self.volume)
-                .emit_dyn(sound, v);
-        }
-    }
-
     fn rot_move(&self, dest: vec3_t) {
         let v = self.vars();
         let delta = dest - v.angles();
@@ -199,7 +140,8 @@ impl Platform {
     }
 
     fn go_start(&self) {
-        self.emit_moving_noise();
+        let v = self.vars();
+        self.platform_sounds.emit_moving_noise(v);
 
         assert!(matches!(
             self.state.get(),
@@ -207,7 +149,6 @@ impl Platform {
         ));
         self.state.set(MoveState::GoingToStart);
 
-        let v = self.vars();
         if self.linear.move_to_start(v, v.speed()) {
             self.hit_start();
         } else {
@@ -220,13 +161,12 @@ impl Platform {
     }
 
     fn hit_start(&self) {
-        self.stop_moving_noise();
-        self.emit_moving_stop_noise();
+        let v = self.vars();
+        self.platform_sounds.emit_moving_stop_noise(v);
 
         assert_eq!(self.state.get(), MoveState::GoingToStart);
         self.state.set(MoveState::AtStart);
 
-        let v = self.vars();
         v.set_velocity(vec3_t::ZERO);
 
         if self.rotation != 0.0 {
@@ -243,7 +183,8 @@ impl Platform {
     }
 
     fn go_end(&self) {
-        self.emit_moving_noise();
+        let v = self.vars();
+        self.platform_sounds.emit_moving_noise(v);
 
         assert!(matches!(
             self.state.get(),
@@ -251,7 +192,6 @@ impl Platform {
         ));
         self.state.set(MoveState::GoingToEnd);
 
-        let v = self.vars();
         if self.linear.move_to_end(v, v.speed(), false) {
             self.hit_end();
         } else {
@@ -264,8 +204,8 @@ impl Platform {
     }
 
     fn hit_end(&self) {
-        self.stop_moving_noise();
-        self.emit_moving_stop_noise();
+        let v = self.vars();
+        self.platform_sounds.emit_moving_stop_noise(v);
 
         assert_eq!(self.state.get(), MoveState::GoingToEnd);
         self.state.set(MoveState::AtEnd);
@@ -275,7 +215,6 @@ impl Platform {
             self.vars().set_next_think_time_from_last(self.wait);
         }
 
-        let v = self.vars();
         v.set_velocity(vec3_t::ZERO);
 
         if self.rotation != 0.0 {
@@ -328,68 +267,18 @@ impl Entity for Platform {
         match data.key_name().to_bytes() {
             b"wait" => self.wait = data.parse_or_default(),
             b"height" => self.height = data.parse_or_default(),
-            b"volume" => self.volume = data.parse_or_default(),
-            b"movesnd" => self.movesnd = data.parse_or_default(),
-            b"stopsnd" => self.stopsnd = data.parse_or_default(),
-            _ => return self.base.key_value(data),
+            _ => {
+                if self.platform_sounds.key_value(data) {
+                    return;
+                }
+                return self.base.key_value(data);
+            }
         }
         data.set_handled(true);
     }
 
     fn precache(&mut self) {
-        let engine = self.engine();
-        let v = self.base.vars();
-
-        let move_sounds = &[
-            res::valve::sound::common::NULL,
-            res::valve::sound::plats::BIGMOVE1,
-            res::valve::sound::plats::BIGMOVE2,
-            res::valve::sound::plats::ELEVMOVE1,
-            res::valve::sound::plats::ELEVMOVE2,
-            res::valve::sound::plats::ELEVMOVE3,
-            res::valve::sound::plats::FREIGHTMOVE1,
-            res::valve::sound::plats::FREIGHTMOVE2,
-            res::valve::sound::plats::HEAVYMOVE1,
-            res::valve::sound::plats::RACKMOVE1,
-            res::valve::sound::plats::RAILMOVE1,
-            res::valve::sound::plats::SQUEEKMOVE1,
-            res::valve::sound::plats::TALKMOVE1,
-            res::valve::sound::plats::TALKMOVE2,
-        ];
-
-        let move_sound = move_sounds
-            .get(self.movesnd as usize)
-            .inspect(|&&sound| {
-                if self.movesnd != 0 {
-                    engine.precache_sound(sound);
-                }
-            })
-            .unwrap_or(&move_sounds[0]);
-
-        v.set_moving_noise(engine.new_map_string(*move_sound));
-
-        let stop_sounds = &[
-            res::valve::sound::common::NULL,
-            res::valve::sound::plats::BIGSTOP1,
-            res::valve::sound::plats::BIGSTOP2,
-            res::valve::sound::plats::FREIGHTSTOP1,
-            res::valve::sound::plats::HEAVYSTOP2,
-            res::valve::sound::plats::RACKSTOP1,
-            res::valve::sound::plats::RAILSTOP1,
-            res::valve::sound::plats::SQUEEKSTOP1,
-            res::valve::sound::plats::TALKSTOP1,
-        ];
-
-        let stop_sound = stop_sounds
-            .get(self.stopsnd as usize)
-            .inspect(|&&sound| {
-                if self.stopsnd != 0 {
-                    engine.precache_sound(sound);
-                }
-            })
-            .unwrap_or(&move_sounds[0]);
-
-        v.set_moving_stop_noise(engine.new_map_string(*stop_sound));
+        self.platform_sounds.precache(self.base.vars());
 
         if !self.is_toggle_platform() {
             self.create_trigger();
@@ -409,9 +298,7 @@ impl Entity for Platform {
             v.set_speed(150.0);
         }
 
-        if self.volume == 0.0 {
-            self.volume = 0.85;
-        }
+        self.platform_sounds.init();
 
         if self.wait == 0.0 {
             self.wait = 3.0;
@@ -464,7 +351,7 @@ impl Entity for Platform {
         let v = self.vars();
         other.take_damage(1.0, DamageFlags::CRUSH, v, Some(v));
 
-        self.stop_moving_noise();
+        self.platform_sounds.stop_moving_noise(v);
 
         match self.state.get() {
             MoveState::GoingToStart => self.go_end(),

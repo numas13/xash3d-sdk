@@ -452,6 +452,146 @@ pub fn button_sound_or_default(index: usize) -> &'static CStr {
     button_sound(index).unwrap_or(BUTTON_DEFAULT_SOUND)
 }
 
+const PLATFORM_MOVE_SOUNDS: &[&CStr] = &[
+    res::valve::sound::plats::BIGMOVE1,
+    res::valve::sound::plats::BIGMOVE2,
+    res::valve::sound::plats::ELEVMOVE1,
+    res::valve::sound::plats::ELEVMOVE2,
+    res::valve::sound::plats::ELEVMOVE3,
+    res::valve::sound::plats::FREIGHTMOVE1,
+    res::valve::sound::plats::FREIGHTMOVE2,
+    res::valve::sound::plats::HEAVYMOVE1,
+    res::valve::sound::plats::RACKMOVE1,
+    res::valve::sound::plats::RAILMOVE1,
+    res::valve::sound::plats::SQUEEKMOVE1,
+    res::valve::sound::plats::TALKMOVE1,
+    res::valve::sound::plats::TALKMOVE2,
+];
+
+const PLATFORM_STOP_SOUNDS: &[&CStr] = &[
+    res::valve::sound::plats::BIGSTOP1,
+    res::valve::sound::plats::BIGSTOP2,
+    res::valve::sound::plats::FREIGHTSTOP1,
+    res::valve::sound::plats::HEAVYSTOP2,
+    res::valve::sound::plats::RACKSTOP1,
+    res::valve::sound::plats::RAILSTOP1,
+    res::valve::sound::plats::SQUEEKSTOP1,
+    res::valve::sound::plats::TALKSTOP1,
+];
+
+pub fn platform_move_sound(index: usize) -> Option<&'static CStr> {
+    let index = index.checked_sub(1)?;
+    PLATFORM_MOVE_SOUNDS.get(index).copied()
+}
+
+pub fn platform_stop_sound(index: usize) -> Option<&'static CStr> {
+    let index = index.checked_sub(1)?;
+    PLATFORM_STOP_SOUNDS.get(index).copied()
+}
+
+pub trait EntityVarsPlatformSounds {
+    fn moving_noise(&self) -> Option<MapString>;
+
+    fn set_moving_noise(&self, sound: MapString);
+
+    fn moving_stop_noise(&self) -> Option<MapString>;
+
+    fn set_moving_stop_noise(&self, sound: MapString);
+}
+
+impl EntityVarsPlatformSounds for EntityVars {
+    fn moving_noise(&self) -> Option<MapString> {
+        self.noise()
+    }
+
+    fn set_moving_noise(&self, sound: MapString) {
+        self.set_noise(Some(sound));
+    }
+
+    fn moving_stop_noise(&self) -> Option<MapString> {
+        self.noise1()
+    }
+
+    fn set_moving_stop_noise(&self, sound: MapString) {
+        self.set_noise1(Some(sound));
+    }
+}
+
+/// Platform moving sounds.
+///
+/// [EntityVars::noise] and [EntityVars::noise1] are used to store sound names.
+#[derive(Default)]
+#[cfg_attr(feature = "save", derive(Save, Restore))]
+pub struct PlatformSounds {
+    volume: f32,
+    move_sound: u8,
+    stop_sound: u8,
+}
+
+impl PlatformSounds {
+    pub fn key_value(&mut self, data: &mut KeyValue) -> bool {
+        match data.key_name().to_bytes() {
+            b"volume" => self.volume = data.parse_or_default(),
+            b"movesnd" => self.move_sound = data.parse_or_default(),
+            b"stopsnd" => self.stop_sound = data.parse_or_default(),
+            _ => return false,
+        }
+        data.set_handled(true);
+        true
+    }
+
+    pub fn precache(&mut self, v: &EntityVars) {
+        let engine = v.engine();
+
+        let move_sound = platform_move_sound(self.move_sound as usize)
+            .inspect(|&sound| {
+                engine.precache_sound(sound);
+            })
+            .unwrap_or(res::valve::sound::common::NULL);
+        v.set_moving_noise(engine.new_map_string(move_sound));
+
+        let stop_sound = platform_stop_sound(self.stop_sound as usize)
+            .inspect(|&sound| {
+                engine.precache_sound(sound);
+            })
+            .unwrap_or(res::valve::sound::common::NULL);
+        v.set_moving_stop_noise(engine.new_map_string(stop_sound));
+    }
+
+    pub fn init(&mut self) {
+        if self.volume == 0.0 {
+            self.volume = 0.85;
+        }
+    }
+
+    pub fn emit_moving_noise(&self, v: &EntityVars) {
+        if let Some(sound) = v.moving_noise() {
+            v.engine()
+                .build_sound()
+                .channel_static()
+                .volume(self.volume)
+                .emit_dyn(sound, v);
+        }
+    }
+
+    pub fn stop_moving_noise(&self, v: &EntityVars) {
+        if let Some(sound) = v.moving_noise() {
+            v.engine().build_sound().channel_static().stop(sound, v);
+        }
+    }
+
+    pub fn emit_moving_stop_noise(&self, v: &EntityVars) {
+        self.stop_moving_noise(v);
+        if let Some(sound) = v.moving_stop_noise() {
+            v.engine()
+                .build_sound()
+                .channel_static()
+                .volume(self.volume)
+                .emit_dyn(sound, v);
+        }
+    }
+}
+
 pub fn play_cd_track(engine: &ServerEngine, track: i32) {
     let Some(client) = engine.get_entity_by_index(EntityIndex::SINGLE_PLAYER) else {
         return;
