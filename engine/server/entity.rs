@@ -642,8 +642,18 @@ define_entity_trait! {
             name == self.classname().as_thin()
         }
 
+        /// Returns the target name.
         fn target(&self) -> Option<::xash3d_server::str::MapString> {
             self.vars().target()
+        }
+
+        /// Returns the target entity.
+        fn target_entity(&self) -> Option<&dyn ::xash3d_server::entity::Entity> {
+            self.engine()
+                .entities()
+                .by_target_name(self.target()?.as_thin())
+                .first()
+                .get_entity()
         }
 
         fn object_caps(&self) -> ::xash3d_server::entity::ObjectCaps {
