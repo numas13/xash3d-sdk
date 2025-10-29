@@ -671,6 +671,8 @@ define_entity_trait! {
 
         fn spawn(&mut self) {}
 
+        fn activate(&self) {}
+
         fn think(&self) {}
 
         #[allow(unused_variables)]

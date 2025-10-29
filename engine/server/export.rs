@@ -484,7 +484,25 @@ pub trait ServerDll: UnsyncGlobal {
 
     fn client_user_info_changed(&self, info_buffer: ClientInfoBuffer) {}
 
-    fn server_activate(&self, list: impl Iterator<Item = EntityHandle>, client_max: c_int) {}
+    fn server_activate(&self, list: impl Iterator<Item = EntityHandle>, client_max: c_int) {
+        for (i, entity) in list.enumerate() {
+            if entity.is_free() {
+                continue;
+            }
+
+            if (1..=client_max as usize).contains(&i) {
+                continue;
+            }
+
+            if let Some(entity) = entity.get_entity() {
+                if !entity.is_dormant() {
+                    entity.activate();
+                } else {
+                    error!("{}: failed to activate", entity.pretty_name());
+                }
+            }
+        }
+    }
 
     fn server_deactivate(&self) {}
 
