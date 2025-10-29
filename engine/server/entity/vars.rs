@@ -612,8 +612,13 @@ impl EntityVars {
     }
 
     pub fn stop_thinking(&self) {
-        // numas13: is there any difference between -1.0 and 0.0???
         self.set_next_think_time(MapTime::from_secs_f32(-1.0));
+    }
+
+    pub fn is_thinking(&self) -> bool {
+        //  0.0 think was not called (the default value)
+        // -1.0 called stop_thinking
+        self.next_think_time() > MapTime::ZERO
     }
 
     field!(get enum movetype, fn move_type() -> MoveType);
