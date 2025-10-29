@@ -420,7 +420,7 @@ impl LinearMove {
         self.lip = lip;
     }
 
-    fn start_move(&self, v: &EntityVars, speed: f32, dest: vec3_t) -> bool {
+    pub fn start_move(&self, v: &EntityVars, speed: f32, dest: vec3_t) -> bool {
         assert_ne!(speed, 0.0, "linear_move: speed is zero");
 
         self.dest.set(dest.into());

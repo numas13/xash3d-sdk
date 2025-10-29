@@ -573,6 +573,11 @@ impl EntityVars {
     field!(set maxs, fn set_max_size(v: vec3_t));
     field!(mut maxs, fn with_max_size(vec3_t));
 
+    /// Returns a center position in the entity coordinates.
+    pub fn center(&self) -> vec3_t {
+        (self.min_size() + self.max_size()) * 0.5
+    }
+
     field!(get size, fn size() -> vec3_t);
     field!(set size, fn set_size(v: vec3_t));
     field!(mut size, fn with_size(vec3_t));
