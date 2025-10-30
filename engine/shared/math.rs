@@ -200,3 +200,49 @@ pub fn calc_roll(angles: vec3_t, velocity: vec3_t, roll_angle: f32, roll_speed: 
 pub fn angle_mod(a: f32) -> f32 {
     (360.0 / 65536.0) * ((a * (65536.0 / 360.0)) as i32 & 65535) as f32
 }
+
+pub fn angle_distance(next: f32, cur: f32) -> f32 {
+    let delta = next - cur;
+    if delta < -180.0 {
+        delta + 360.0
+    } else if delta > 180.0 {
+        delta - 360.0
+    } else {
+        delta
+    }
+}
+
+pub fn approach(target: f32, value: f32, speed: f32) -> f32 {
+    let delta = target - value;
+    if delta > speed {
+        value + speed
+    } else if delta < -speed {
+        value - speed
+    } else {
+        target
+    }
+}
+
+pub fn approach_angle(target: f32, value: f32, mut speed: f32) -> f32 {
+    let target = angle_mod(target);
+    let value = angle_mod(value);
+
+    let mut delta = target - value;
+    if delta < -180.0 {
+        delta += 360.0;
+    } else if delta > 180.0 {
+        delta -= 360.0;
+    }
+
+    if speed < 0.0 {
+        speed = -speed;
+    }
+
+    if delta > speed {
+        value + speed
+    } else if delta < -speed {
+        value - speed
+    } else {
+        target
+    }
+}
