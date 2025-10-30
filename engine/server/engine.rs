@@ -45,6 +45,9 @@ use crate::{
     user_message::{MessageDest, ServerMessage},
 };
 
+#[cfg(feature = "save")]
+use crate::save::{self, Restore, Save};
+
 pub use xash3d_shared::engine::{AddCmdError, EngineRef};
 
 pub(crate) mod prelude {
@@ -622,6 +625,24 @@ pub struct EventIndex(u16);
 impl EventIndex {
     pub fn to_u16(self) -> u16 {
         self.0
+    }
+}
+
+#[cfg(feature = "save")]
+impl Save for EventIndex {
+    fn save(&self, state: &mut save::SaveState, cur: &mut save::CursorMut) -> save::SaveResult<()> {
+        self.0.save(state, cur)
+    }
+}
+
+#[cfg(feature = "save")]
+impl Restore for EventIndex {
+    fn restore(
+        &mut self,
+        state: &save::RestoreState,
+        cur: &mut save::Cursor,
+    ) -> save::SaveResult<()> {
+        self.0.restore(state, cur)
     }
 }
 
