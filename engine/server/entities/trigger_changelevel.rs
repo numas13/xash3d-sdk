@@ -10,12 +10,13 @@ use crate::{
     entities::trigger::Trigger,
     entity::{
         delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, EntityHandle,
-        KeyValue, ObjectCaps,
+        KeyValue, ObjectCaps, UseType,
     },
     export::export_entity_default,
     prelude::*,
     save::SaveRestoreData,
     str::MapString,
+    utils,
 };
 
 #[cfg(feature = "save")]
@@ -26,9 +27,10 @@ const MAP_NAME_MAX: usize = 32;
 #[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct ChangeLevel {
     base: Trigger,
+
     map_name: CStrArray<MAP_NAME_MAX>,
     landmark_name: CStrArray<MAP_NAME_MAX>,
-    target: Option<MapString>,
+    change_target: Option<MapString>,
     change_target_delay: f32,
 }
 
@@ -40,7 +42,7 @@ impl CreateEntity for ChangeLevel {
             base: Trigger::create(base),
             map_name: Default::default(),
             landmark_name: Default::default(),
-            target: None,
+            change_target: None,
             change_target_delay: 0.0,
         }
     }
@@ -49,28 +51,43 @@ impl CreateEntity for ChangeLevel {
 impl ChangeLevel {
     const SF_USE_ONLY: u32 = 1 << 1;
 
-    fn change_level_now(&self, _other: &dyn Entity) {
-        let engine = self.base.engine();
+    fn change_level_now(&self, activator: Option<&dyn Entity>) {
+        let name = self.pretty_name();
+        let engine = self.engine();
+        let v = self.vars();
+
         if self.map_name.is_empty() {
-            panic!("Detected problems with save/restore!!!");
+            panic!("{name}: Detected problems with save/restore!!!");
         }
 
         if self.global_state().game_rules().is_deathmatch() {
             return;
         }
 
-        let v = self.base.vars();
+        // do not fire multiple times per frame
         let now = engine.globals.map_time();
         if now == v.damage_time() {
             return;
         }
         v.set_damage_time(now);
 
+        let player = engine.get_single_player().expect("player entity");
+        if !in_transition_volume(&engine, unsafe { &*player.as_ptr() }, &self.landmark_name) {
+            let landmark = &self.landmark_name;
+            debug!("{name}: player is not in the transition volume {landmark}, aborting");
+            return;
+        }
+
+        if let Some(change_target) = self.change_target {
+            warn!("{name}: change target ({change_target}) is not implemented yet");
+        }
+
+        utils::use_targets(UseType::Toggle, activator, self);
+
         let mut next_spot = cstr!("");
-        if let Some(landmark) = find_landmark(engine, self.landmark_name.as_thin()) {
-            next_spot = self.landmark_name.as_thin();
-            let landmark_origin = landmark.vars().origin();
-            engine.globals.set_landmark_offset(landmark_origin);
+        if let Some(landmark) = find_landmark(engine, &self.landmark_name) {
+            next_spot = &self.landmark_name;
+            engine.globals.set_landmark_offset(landmark.vars().origin());
         }
 
         info!("CHANGE LEVEL: {:?} {next_spot:?}", self.map_name);
@@ -79,60 +96,55 @@ impl ChangeLevel {
 }
 
 impl Entity for ChangeLevel {
-    delegate_entity!(base not { key_value, spawn, touched });
+    delegate_entity!(base not { key_value, spawn, used, touched });
 
     fn key_value(&mut self, data: &mut KeyValue) {
-        let engine = self.base.engine();
+        let engine = self.engine();
         let value = data.value();
 
         match data.key_name().to_bytes() {
             b"map" => {
                 if self.map_name.cursor().write_c_str(value).is_err() {
-                    error!("Map name {value:?} too long ({MAP_NAME_MAX} chars)");
+                    let name = self.pretty_name();
+                    error!("{name}: map name is too long ({value:?})");
                 }
             }
             b"landmark" => {
                 if self.landmark_name.cursor().write_c_str(value).is_err() {
-                    error!("Landmark name {value:?} too long ({MAP_NAME_MAX} chars)");
+                    let name = self.pretty_name();
+                    error!("{name}: landmark name is too long ({value:?})");
                 }
             }
-            b"changetarget" => {
-                self.target = Some(engine.new_map_string(value));
-            }
-            b"changedelay" => {
-                self.change_target_delay = data.parse_or_default();
-            }
+            b"changetarget" => self.change_target = Some(engine.new_map_string(value)),
+            b"changedelay" => self.change_target_delay = data.parse_or_default(),
             _ => return self.base.key_value(data),
         }
         data.set_handled(true);
     }
 
     fn spawn(&mut self) {
+        let name = self.pretty_name();
         if self.map_name.is_empty() {
-            info!("A trigger_changelevel does not have a map");
+            warn!("{name}: map is empty");
         }
-
         if self.landmark_name.is_empty() {
-            info!(
-                "A trigger_changelevel to {:?} does not have a landmark",
-                self.map_name
-            );
+            info!("{name}: does not have a landmark to map {}", self.map_name);
         }
-
-        if let Some(_target) = self.target {
-            // TODO: use target name
-        }
-
         self.base.spawn();
+    }
 
-        if self.vars().spawn_flags() & Self::SF_USE_ONLY != 0 {
-            // TODO: set touch
+    fn used(&self, _: UseType, activator: Option<&dyn Entity>, _: &dyn Entity) {
+        if self.vars().target_name().is_some() {
+            self.change_level_now(activator);
         }
     }
 
     fn touched(&self, other: &dyn Entity) {
-        if other.vars().classname().unwrap().as_thin() == c"player" {
-            self.change_level_now(other);
+        if self.vars().spawn_flags() & Self::SF_USE_ONLY != 0 {
+            return;
+        }
+        if other.vars().is_class_name(c"player") {
+            self.change_level_now(Some(other));
         }
     }
 }
