@@ -2,7 +2,7 @@ use core::{cell::RefCell, cmp, ffi::CStr, fmt::Write};
 
 use alloc::vec::Vec;
 use csz::{CStrArray, CStrSlice, CStrThin};
-use xash3d_shared::{entity::EntityIndex, str::ByteSliceExt};
+use xash3d_shared::str::ByteSliceExt;
 
 use crate::{
     entity::{EntityVars, KeyValue},
@@ -593,7 +593,7 @@ impl PlatformSounds {
 }
 
 pub fn play_cd_track(engine: &ServerEngine, track: i32) {
-    let Some(client) = engine.get_entity_by_index(EntityIndex::SINGLE_PLAYER) else {
+    let Some(client) = engine.get_single_player() else {
         return;
     };
 

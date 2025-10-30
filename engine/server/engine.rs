@@ -1704,6 +1704,10 @@ impl ServerEngine {
             .expect("world spawn entity")
     }
 
+    pub fn get_single_player(&self) -> Option<EntityHandle> {
+        self.get_entity_by_index(EntityIndex::SINGLE_PLAYER)
+    }
+
     pub fn find_entity_by_vars(&self, vars: *mut entvars_s) -> *mut edict_s {
         unsafe { unwrap!(self, pfnFindEntityByVars)(vars) }
     }

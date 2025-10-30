@@ -1,4 +1,4 @@
-use xash3d_shared::entity::{EntityIndex, MoveType};
+use xash3d_shared::entity::MoveType;
 
 use crate::{
     entities::point_entity::PointEntity,
@@ -63,10 +63,7 @@ impl Entity for TargetCdAutio {
     }
 
     fn think(&self) {
-        let Some(player) = self
-            .engine()
-            .get_entity_by_index(EntityIndex::SINGLE_PLAYER)
-        else {
+        let Some(player) = self.engine().get_single_player() else {
             return;
         };
         let v = self.vars();

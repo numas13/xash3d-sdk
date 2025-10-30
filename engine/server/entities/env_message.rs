@@ -1,4 +1,4 @@
-use xash3d_shared::{entity::EntityIndex, sound::Attenuation};
+use xash3d_shared::sound::Attenuation;
 
 use crate::{
     entities::point_entity::PointEntity,
@@ -96,9 +96,7 @@ impl Entity for Message {
                 let player = if activator.is_some_and(|i| i.is_player()) {
                     activator
                 } else {
-                    engine
-                        .get_entity_by_index(EntityIndex::SINGLE_PLAYER)
-                        .get_entity()
+                    engine.get_single_player().get_entity()
                 };
 
                 if let Some(player) = player.and_then(|i| i.as_player()) {
