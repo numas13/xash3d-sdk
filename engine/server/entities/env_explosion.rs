@@ -141,4 +141,4 @@ impl Entity for Explosion {
     }
 }
 
-export_entity_default!("export-env_explosion", env_explosion, Explosion);
+export_entity_default!("export-env_explosion", env_explosion, Explosion {});

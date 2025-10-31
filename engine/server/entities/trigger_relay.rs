@@ -73,4 +73,4 @@ impl Entity for TriggerRelay {
     }
 }
 
-export_entity_default!("export-trigger_relay", trigger_relay, TriggerRelay);
+export_entity_default!("export-trigger_relay", trigger_relay, TriggerRelay {});

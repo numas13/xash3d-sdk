@@ -119,7 +119,11 @@ impl Entity for TriggerTeleport {
     }
 }
 
-export_entity_default!("export-trigger_teleport", trigger_teleport, TriggerTeleport);
+export_entity_default!(
+    "export-trigger_teleport",
+    trigger_teleport,
+    TriggerTeleport {}
+);
 export_entity_default!(
     "export-trigger_teleport",
     info_teleport_destination,

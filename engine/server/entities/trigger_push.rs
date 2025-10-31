@@ -92,4 +92,4 @@ impl Entity for TriggerPush {
     }
 }
 
-export_entity_default!("export-trigger_push", trigger_push, TriggerPush);
+export_entity_default!("export-trigger_push", trigger_push, TriggerPush {});

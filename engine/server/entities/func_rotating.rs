@@ -385,4 +385,4 @@ impl Entity for Rotating {
     }
 }
 
-export_entity_default!("export-func_rotating", func_rotating, Rotating);
+export_entity_default!("export-func_rotating", func_rotating, Rotating {});

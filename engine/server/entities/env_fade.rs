@@ -111,4 +111,4 @@ impl Entity for Fade {
     }
 }
 
-export_entity_default!("export-env_fade", env_fade, Fade);
+export_entity_default!("export-env_fade", env_fade, Fade {});

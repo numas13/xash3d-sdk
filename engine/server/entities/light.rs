@@ -91,5 +91,5 @@ impl Entity for Light {
     }
 }
 
-export_entity_default!("export-light", light, Light);
+export_entity_default!("export-light", light, Light {});
 export_entity_default!("export-light_spot", light_spot, Light);

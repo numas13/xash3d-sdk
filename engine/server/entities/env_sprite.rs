@@ -179,4 +179,4 @@ impl Entity for Sprite {
     }
 }
 
-export_entity_default!("export-env_sprite", env_sprite, Sprite);
+export_entity_default!("export-env_sprite", env_sprite, Sprite {});

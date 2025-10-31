@@ -37,4 +37,4 @@ impl Entity for Illusionary {
     }
 }
 
-export_entity_default!("export-func_illusionary", func_illusionary, Illusionary);
+export_entity_default!("export-func_illusionary", func_illusionary, Illusionary {});

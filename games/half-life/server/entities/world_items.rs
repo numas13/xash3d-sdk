@@ -4,7 +4,6 @@ use xash3d_server::{
     entities::world_items::{WorldItems, WorldItemsNames},
     export::export_entity,
     prelude::*,
-    private::Private,
     save::{Restore, Save},
 };
 
@@ -28,4 +27,4 @@ impl WorldItemsNames for Names {
     }
 }
 
-export_entity!(world_items, Private<WorldItems<Names>>);
+export_entity!(world_items, WorldItems<Names>);

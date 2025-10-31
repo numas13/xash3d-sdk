@@ -4,7 +4,6 @@ use xash3d_server::{
     },
     export::export_entity,
     prelude::*,
-    private::Private,
     save::{Restore, Save},
 };
 
@@ -68,4 +67,4 @@ impl Entity for Beverage {
     }
 }
 
-export_entity!(env_beverage, Private<Beverage>);
+export_entity!(env_beverage, Beverage {});

@@ -66,4 +66,4 @@ impl Entity for WallToggle {
     }
 }
 
-export_entity_default!("export-func_wall_toggle", func_wall_toggle, WallToggle);
+export_entity_default!("export-func_wall_toggle", func_wall_toggle, WallToggle {});

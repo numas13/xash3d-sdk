@@ -3,7 +3,6 @@ use xash3d_server::{
     entity::{delegate_entity, impl_entity_cast, BaseEntity, ObjectCaps},
     export::export_entity,
     prelude::*,
-    private::Private,
     save::{Restore, Save},
 };
 
@@ -33,5 +32,6 @@ impl Entity for WallHealthCharger {
     }
 }
 
-export_entity!(item_healthkit, Private<StubEntity>);
-export_entity!(func_healthcharger, Private<WallHealthCharger>);
+export_entity!(func_healthcharger, WallHealthCharger {});
+
+export_entity!(item_healthkit, StubEntity);

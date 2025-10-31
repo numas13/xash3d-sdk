@@ -7,7 +7,6 @@ use xash3d_server::{
     game_rules::StubGameRules,
     global_state::GlobalStateRef,
     prelude::*,
-    private::Private,
 };
 
 struct Dll {
@@ -18,8 +17,8 @@ struct Dll {
 impl_unsync_global!(Dll);
 
 impl ServerDll for Dll {
-    type World = Private<World>;
-    type Player = Private<Player>;
+    type World = World;
+    type Player = Player;
 
     fn new(engine: ServerEngineRef, global_state: GlobalStateRef) -> Self {
         Self {

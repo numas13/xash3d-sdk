@@ -157,4 +157,4 @@ impl Entity for Speaker {
     }
 }
 
-export_entity_default!("export-speaker", speaker, Speaker);
+export_entity_default!("export-speaker", speaker, Speaker {});

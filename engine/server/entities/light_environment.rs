@@ -80,4 +80,4 @@ impl Entity for EnvLight {
     }
 }
 
-export_entity_default!("export-light_environment", light_environment, EnvLight);
+export_entity_default!("export-light_environment", light_environment, EnvLight {});

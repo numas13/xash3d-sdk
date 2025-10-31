@@ -6,6 +6,7 @@ mod private_data {
     pub type PrivateData = crate::private::PrivateData;
 
     #[deprecated(note = "moved to private module")]
+    #[allow(deprecated)]
     pub type Private<T> = crate::private::Private<T>;
 
     #[deprecated(note = "moved to private module")]

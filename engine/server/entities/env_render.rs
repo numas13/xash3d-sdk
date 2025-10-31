@@ -58,4 +58,4 @@ impl Entity for Render {
     }
 }
 
-export_entity_default!("export-env_render", env_render, Render);
+export_entity_default!("export-env_render", env_render, Render {});

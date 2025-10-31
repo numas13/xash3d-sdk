@@ -11,7 +11,6 @@ use crate::{
     },
     export::export_entity_default,
     prelude::*,
-    private::Private,
     str::MapString,
     time::MapTime,
     utils,
@@ -72,7 +71,7 @@ impl MultiManager {
 
     fn clone_me(&self) -> *mut Self {
         let engine = self.engine();
-        let multi = engine.new_entity::<Private<Self>>().build();
+        let multi = engine.new_entity::<Self>().build();
         let edict = multi.vars().containing_entity_raw();
         unsafe {
             ptr::copy_nonoverlapping(self.vars().as_ptr(), multi.vars().as_mut_ptr(), 1);
@@ -201,4 +200,4 @@ impl Entity for MultiManager {
     }
 }
 
-export_entity_default!("export-multi_manager", multi_manager, MultiManager);
+export_entity_default!("export-multi_manager", multi_manager, MultiManager {});

@@ -177,4 +177,4 @@ impl Entity for TriggerHurt {
     }
 }
 
-export_entity_default!("export-trigger_hurt", trigger_hurt, TriggerHurt);
+export_entity_default!("export-trigger_hurt", trigger_hurt, TriggerHurt {});

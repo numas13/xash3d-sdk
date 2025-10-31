@@ -42,4 +42,4 @@ impl Entity for TriggerCdAudio {
     }
 }
 
-export_entity_default!("export-trigger_cdaudio", trigger_cdaudio, TriggerCdAudio);
+export_entity_default!("export-trigger_cdaudio", trigger_cdaudio, TriggerCdAudio {});

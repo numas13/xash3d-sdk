@@ -69,4 +69,4 @@ impl Entity for TargetCdAutio {
     }
 }
 
-export_entity_default!("export-target_cdaudio", target_cdaudio, TargetCdAutio);
+export_entity_default!("export-target_cdaudio", target_cdaudio, TargetCdAutio {});

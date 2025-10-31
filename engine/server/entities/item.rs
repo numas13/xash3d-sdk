@@ -7,8 +7,11 @@ use xash3d_shared::{
 
 use crate::{
     engine::DropToFloorResult,
-    entity::{delegate_entity, impl_entity_cast, BaseEntity, EntityPlayer, Solid, UseType},
+    entity::{
+        delegate_entity, impl_entity_cast, BaseEntity, EntityItem, EntityPlayer, Solid, UseType,
+    },
     prelude::*,
+    private::impl_private,
     time::MapTime,
     utils,
 };
@@ -129,3 +132,11 @@ impl Entity for BaseItem {
         }
     }
 }
+
+impl EntityItem for BaseItem {
+    fn try_give(&self, _: &dyn Entity) -> bool {
+        false
+    }
+}
+
+impl_private!(BaseItem { EntityItem });

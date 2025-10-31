@@ -354,8 +354,10 @@ impl PrivateData {
     }
 }
 
+#[deprecated(note = "impl PrivateEntity trait instead")]
 pub struct Private<T>(PhantomData<T>);
 
+#[allow(deprecated)]
 impl<T: Entity> PrivateEntity for Private<T> {
     type Entity = T;
 }

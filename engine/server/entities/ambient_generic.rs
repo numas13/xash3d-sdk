@@ -688,4 +688,4 @@ impl Entity for AmbientGeneric {
     }
 }
 
-export_entity_default!("export-ambient_generic", ambient_generic, AmbientGeneric);
+export_entity_default!("export-ambient_generic", ambient_generic, AmbientGeneric {});

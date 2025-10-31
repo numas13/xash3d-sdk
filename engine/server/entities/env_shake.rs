@@ -108,4 +108,4 @@ impl Entity for Shake {
     }
 }
 
-export_entity_default!("export-env_shake", env_shake, Shake);
+export_entity_default!("export-env_shake", env_shake, Shake {});

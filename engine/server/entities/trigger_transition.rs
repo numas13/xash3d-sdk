@@ -37,5 +37,5 @@ impl Entity for TriggerVolume {
 export_entity_default!(
     "export-trigger_transition",
     trigger_transition,
-    TriggerVolume
+    TriggerVolume {}
 );

@@ -30,4 +30,4 @@ impl Entity for TriggerOnce {
     }
 }
 
-export_entity_default!("export-trigger_once", trigger_once, TriggerOnce);
+export_entity_default!("export-trigger_once", trigger_once, TriggerOnce {});

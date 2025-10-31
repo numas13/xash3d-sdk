@@ -546,5 +546,5 @@ impl Entity for RotButton {
     }
 }
 
-export_entity_default!("export-func_button", func_button, Button);
-export_entity_default!("export-func_rot_button", func_rot_button, RotButton);
+export_entity_default!("export-func_button", func_button, Button {});
+export_entity_default!("export-func_rot_button", func_rot_button, RotButton {});

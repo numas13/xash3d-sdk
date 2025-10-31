@@ -59,4 +59,4 @@ impl Entity for TriggerSave {
     }
 }
 
-export_entity_default!("export-trigger_autosave", trigger_autosave, TriggerSave);
+export_entity_default!("export-trigger_autosave", trigger_autosave, TriggerSave {});

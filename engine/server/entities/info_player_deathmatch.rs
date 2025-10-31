@@ -45,5 +45,5 @@ impl Entity for DeathMatchStart {
 export_entity_default!(
     "export-info_player_deathmatch",
     info_player_deathmatch,
-    DeathMatchStart
+    DeathMatchStart {}
 );

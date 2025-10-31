@@ -61,4 +61,4 @@ impl Entity for Trigger {
     }
 }
 
-export_entity_default!("export-trigger", trigger, Trigger);
+export_entity_default!("export-trigger", trigger, Trigger {});

@@ -322,4 +322,4 @@ impl Entity for Train {
     }
 }
 
-export_entity_default!("export-func_train", func_train, Train);
+export_entity_default!("export-func_train", func_train, Train {});

@@ -297,5 +297,5 @@ pub fn build_change_list(engine: ServerEngineRef, level_list: &mut [LEVELLIST]) 
 export_entity_default!(
     "export-trigger_changelevel",
     trigger_changelevel,
-    ChangeLevel
+    ChangeLevel {}
 );

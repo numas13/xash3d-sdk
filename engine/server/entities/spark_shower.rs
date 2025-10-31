@@ -86,4 +86,4 @@ impl Entity for SparkShower {
     }
 }
 
-export_entity_default!("export-spark_shower", spark_shower, SparkShower);
+export_entity_default!("export-spark_shower", spark_shower, SparkShower {});

@@ -44,4 +44,4 @@ impl Entity for Ladder {
     }
 }
 
-export_entity_default!("export-func_ladder", func_ladder, Ladder);
+export_entity_default!("export-func_ladder", func_ladder, Ladder {});

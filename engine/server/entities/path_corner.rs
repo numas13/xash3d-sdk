@@ -76,4 +76,4 @@ impl Entity for PathCorner {
     }
 }
 
-export_entity_default!("export-path_corner", path_corner, PathCorner);
+export_entity_default!("export-path_corner", path_corner, PathCorner {});

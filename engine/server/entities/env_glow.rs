@@ -72,4 +72,4 @@ impl Entity for Glow {
     }
 }
 
-export_entity_default!("export-env_glow", env_glow, Glow);
+export_entity_default!("export-env_glow", env_glow, Glow {});

@@ -81,4 +81,4 @@ impl Entity for AutoTrigger {
     }
 }
 
-export_entity_default!("export-trigger_auto", trigger_auto, AutoTrigger);
+export_entity_default!("export-trigger_auto", trigger_auto, AutoTrigger {});

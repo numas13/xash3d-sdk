@@ -564,4 +564,4 @@ impl Entity for TrackTrain {
     }
 }
 
-export_entity_default!("export-func_tracktrain", func_tracktrain, TrackTrain);
+export_entity_default!("export-func_tracktrain", func_tracktrain, TrackTrain {});

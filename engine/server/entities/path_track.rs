@@ -323,4 +323,4 @@ impl Entity for PathTrack {
     }
 }
 
-export_entity_default!("export-path_track", path_track, PathTrack);
+export_entity_default!("export-path_track", path_track, PathTrack {});

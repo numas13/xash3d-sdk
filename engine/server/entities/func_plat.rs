@@ -12,7 +12,7 @@ use crate::{
     },
     export::export_entity_default,
     prelude::*,
-    private::Private,
+    private::impl_private,
     sound::PlatformSounds,
     utils::{LinearMove, Move, MoveState},
 };
@@ -65,6 +65,8 @@ impl Entity for PlatformTrigger {
         }
     }
 }
+
+impl_private!(PlatformTrigger {});
 
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
 #[cfg_attr(feature = "save", derive(Save, Restore))]
@@ -223,7 +225,7 @@ impl Platform {
 
     fn create_trigger(&self) {
         self.engine()
-            .new_entity_with::<Private<_>>(|base| PlatformTrigger {
+            .new_entity_with::<PlatformTrigger>(|base| PlatformTrigger {
                 base,
                 platform: self.entity_handle(),
             })
@@ -423,5 +425,5 @@ impl Entity for RotatingPlatform {
     }
 }
 
-export_entity_default!("export-func_plat", func_plat, Platform);
-export_entity_default!("export-func_platrot", func_platrot, RotatingPlatform);
+export_entity_default!("export-func_plat", func_plat, Platform {});
+export_entity_default!("export-func_platrot", func_platrot, RotatingPlatform {});

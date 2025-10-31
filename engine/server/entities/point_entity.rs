@@ -1,6 +1,7 @@
 use crate::{
     entity::{delegate_entity, impl_entity_cast, BaseEntity, ObjectCaps, Solid},
     prelude::*,
+    private::impl_private,
 };
 
 #[cfg_attr(feature = "save", derive(Save, Restore))]
@@ -30,3 +31,5 @@ impl Entity for PointEntity {
         v.set_solid(Solid::Not);
     }
 }
+
+impl_private!(PointEntity {});

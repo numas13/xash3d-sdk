@@ -3,6 +3,7 @@ use xash3d_shared::entity::MoveType;
 use crate::{
     entity::{delegate_entity, impl_entity_cast, BaseEntity, KeyValue, ObjectCaps, Solid, UseType},
     prelude::*,
+    private::impl_private,
 };
 
 #[cfg_attr(feature = "save", derive(Save, Restore))]
@@ -76,3 +77,5 @@ impl Entity for StubEntity {
         trace!("{} blocked by {}", self.pretty_name(), other.pretty_name());
     }
 }
+
+impl_private!(StubEntity {});

@@ -72,3 +72,7 @@ impl<T: WorldItemsNames> Entity for WorldItems<T> {
         v.delayed_remove();
     }
 }
+
+impl<T: WorldItemsNames> PrivateEntity for WorldItems<T> {
+    type Entity = Self;
+}

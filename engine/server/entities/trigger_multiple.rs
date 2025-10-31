@@ -130,4 +130,8 @@ impl Entity for TriggerMultiple {
     }
 }
 
-export_entity_default!("export-trigger_multiple", trigger_multiple, TriggerMultiple);
+export_entity_default!(
+    "export-trigger_multiple",
+    trigger_multiple,
+    TriggerMultiple {}
+);

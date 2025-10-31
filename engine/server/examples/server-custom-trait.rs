@@ -7,7 +7,7 @@ use xash3d_server::{
     game_rules::StubGameRules,
     global_state::GlobalStateRef,
     prelude::*,
-    private::{Downcast, Private},
+    private::Downcast,
 };
 
 // A custom interface to entities.
@@ -64,7 +64,7 @@ struct Dll {
 impl_unsync_global!(Dll);
 
 impl ServerDll for Dll {
-    type World = Private<World>;
+    type World = World;
     type Player = CustomPrivate<Player>;
 
     fn new(engine: ServerEngineRef, global_state: GlobalStateRef) -> Self {

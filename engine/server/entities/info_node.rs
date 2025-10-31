@@ -59,5 +59,5 @@ impl Entity for NodeEntity {
 
 // TODO: add the world graph
 
-export_entity_default!("export-info_node", info_node, NodeEntity);
+export_entity_default!("export-info_node", info_node, NodeEntity {});
 export_entity_default!("export-info_node_air", info_node_air, NodeEntity);

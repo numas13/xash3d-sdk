@@ -186,4 +186,4 @@ impl Entity for MultiSource {
     }
 }
 
-export_entity_default!("export-multisource", multisource, MultiSource);
+export_entity_default!("export-multisource", multisource, MultiSource {});

@@ -56,4 +56,4 @@ impl Entity for FrictionModifier {
     }
 }
 
-export_entity_default!("export-func_friction", func_friction, FrictionModifier);
+export_entity_default!("export-func_friction", func_friction, FrictionModifier {});

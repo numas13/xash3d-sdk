@@ -5,7 +5,6 @@ use crate::{
     entity::{delegate_entity, impl_entity_cast, BaseEntity, KeyValue, UseType},
     export::export_entity_default,
     prelude::*,
-    private::Private,
     str::MapString,
     utils,
 };
@@ -31,7 +30,7 @@ impl Message {
 
     pub fn show_once(engine: &ServerEngine, message: MapString) {
         engine
-            .new_entity::<Private<Self>>()
+            .new_entity::<Self>()
             .vars(|v| {
                 v.with_spawn_flags(|f| f | Message::SF_ONCE);
                 v.set_message(message);
@@ -121,4 +120,4 @@ impl Entity for Message {
     }
 }
 
-export_entity_default!("export-env_message", env_message, Message);
+export_entity_default!("export-env_message", env_message, Message {});

@@ -131,4 +131,4 @@ impl Entity for EnvSpark {
     }
 }
 
-export_entity_default!("export-env_spark", env_spark, EnvSpark);
+export_entity_default!("export-env_spark", env_spark, EnvSpark {});

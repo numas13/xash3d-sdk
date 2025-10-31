@@ -147,4 +147,4 @@ impl Entity for Decal {
     }
 }
 
-export_entity_default!("export-infodecal", infodecal, Decal);
+export_entity_default!("export-infodecal", infodecal, Decal {});

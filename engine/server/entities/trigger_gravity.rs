@@ -30,4 +30,4 @@ impl Entity for TriggerGravity {
     }
 }
 
-export_entity_default!("export-trigger_gravity", trigger_gravity, TriggerGravity);
+export_entity_default!("export-trigger_gravity", trigger_gravity, TriggerGravity {});

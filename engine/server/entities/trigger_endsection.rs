@@ -86,5 +86,5 @@ impl Entity for TriggerEndSection {
 export_entity_default!(
     "export-trigger_endsection",
     trigger_endsection,
-    TriggerEndSection
+    TriggerEndSection {}
 );

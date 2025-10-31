@@ -253,4 +253,4 @@ impl Entity for Pendulum {
     }
 }
 
-export_entity_default!("export-func_pendulum", func_pendulum, Pendulum);
+export_entity_default!("export-func_pendulum", func_pendulum, Pendulum {});

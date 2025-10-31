@@ -48,4 +48,4 @@ impl Entity for FuncWall {
     }
 }
 
-export_entity_default!("export-func_wall", func_wall, FuncWall);
+export_entity_default!("export-func_wall", func_wall, FuncWall {});

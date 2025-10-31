@@ -120,4 +120,4 @@ impl Entity for EnvSound {
     }
 }
 
-export_entity_default!("export-env_sound", env_sound, EnvSound);
+export_entity_default!("export-env_sound", env_sound, EnvSound {});

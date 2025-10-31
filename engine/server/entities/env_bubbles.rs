@@ -120,4 +120,4 @@ impl Entity for Bubbles {
     }
 }
 
-export_entity_default!("export-env_bubbles", env_bubbles, Bubbles);
+export_entity_default!("export-env_bubbles", env_bubbles, Bubbles {});

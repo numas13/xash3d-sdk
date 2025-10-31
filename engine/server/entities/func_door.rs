@@ -597,12 +597,12 @@ impl Entity for RotatingDoor {
     }
 }
 
-export_entity_default!("export-func_door", func_door, Door);
+export_entity_default!("export-func_door", func_door, Door {});
 // func_water is the same as a door.
 export_entity_default!("export-func_water", func_water, Door);
 
 export_entity_default!(
     "export-func_door_rotating",
     func_door_rotating,
-    RotatingDoor
+    RotatingDoor {}
 );
