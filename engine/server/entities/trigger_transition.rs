@@ -2,8 +2,9 @@ use xash3d_shared::entity::MoveType;
 
 use crate::{
     entities::point_entity::PointEntity,
-    entity::{delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, Solid},
+    entity::{delegate_entity, impl_entity_cast, BaseEntity, Solid},
     export::export_entity_default,
+    prelude::*,
 };
 
 #[cfg(feature = "save")]

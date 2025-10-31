@@ -1,5 +1,6 @@
-use crate::entity::{
-    delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, ObjectCaps, Solid,
+use crate::{
+    entity::{delegate_entity, impl_entity_cast, BaseEntity, ObjectCaps, Solid},
+    prelude::*,
 };
 
 #[cfg(feature = "save")]

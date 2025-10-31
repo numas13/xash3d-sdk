@@ -2,11 +2,12 @@ use core::ffi::{c_int, CStr};
 
 use xash3d_server::{
     entities::{player::Player, world::World},
-    entity::{BaseEntity, Downcast, Entity, EntityCast, EntityHandle, Private, PrivateEntity},
+    entity::{BaseEntity, EntityCast, EntityHandle},
     export::{export_dll, impl_unsync_global, ServerDll},
     game_rules::StubGameRules,
     global_state::GlobalStateRef,
     prelude::*,
+    private::{Downcast, Private},
 };
 
 // A custom interface to entities.

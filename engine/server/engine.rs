@@ -37,10 +37,11 @@ use crate::{
     cvar::CVarPtr,
     entity::{
         AsEntityHandle, BaseEntity, CreateEntity, Entity, EntityHandle, EntityHandleRef,
-        EntityOffset, EntityVars, GetPrivateData, KeyValue, PrivateData, PrivateEntity,
+        EntityOffset, EntityVars, GetPrivateData, KeyValue,
     },
     global_state::GlobalStateRef,
     globals::ServerGlobals,
+    private::{PrivateData, PrivateEntity},
     str::MapString,
     user_message::{MessageDest, ServerMessage},
 };

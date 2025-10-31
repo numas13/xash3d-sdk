@@ -2,11 +2,9 @@ use xash3d_shared::entity::MoveType;
 
 use crate::{
     entities::point_entity::PointEntity,
-    entity::{
-        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, KeyValue, Solid,
-        UseType,
-    },
+    entity::{delegate_entity, impl_entity_cast, BaseEntity, KeyValue, Solid, UseType},
     export::export_entity_default,
+    prelude::*,
     sound::play_cd_track,
 };
 

@@ -30,12 +30,10 @@ use xash3d_shared::{
 use crate::{
     engine::ClientInfoBuffer,
     entities::trigger_changelevel::build_change_list,
-    entity::{
-        BaseEntity, CreateEntity, Entity, EntityHandle, EntityPlayer, KeyValue, PrivateData,
-        PrivateEntity, RestoreResult, UseType,
-    },
+    entity::{BaseEntity, EntityHandle, EntityPlayer, KeyValue, RestoreResult, UseType},
     global_state::{EntityState, GlobalState, GlobalStateRef},
     prelude::*,
+    private::PrivateData,
     save::{SaveReader, SaveRestoreData, SaveWriter},
     utils::slice_from_raw_parts_or_empty_mut,
 };
@@ -1848,10 +1846,8 @@ pub use export_dll;
 ///
 /// use core::marker::PhantomData;
 /// use xash3d_server::{
-///     entity::{
-///         Entity, BaseEntity, CreateEntity, PrivateEntity, impl_entity_cast,
-///         delegate_entity,
-///     },
+///     prelude::*,
+///     entity::{BaseEntity, impl_entity_cast, delegate_entity},
 ///     export::export_entity,
 ///     save::{Save, Restore},
 /// };
@@ -1891,7 +1887,7 @@ macro_rules! export_entity {
         $crate::export::export_entity!(
             $name,
             $private,
-            <$private as $crate::entity::PrivateEntity>::Entity::create,
+            <$private as $crate::private::PrivateEntity>::Entity::create,
         );
     };
     ($name:ident, $private:ty, $init:expr $(,)?) => {
@@ -1900,8 +1896,9 @@ macro_rules! export_entity {
             #[allow(unused_imports)]
             use $crate::{
                 engine::ServerEngineRef,
-                entity::{CreateEntity, PrivateData, PrivateEntity},
+                entity::CreateEntity,
                 global_state::GlobalStateRef,
+                private::{PrivateData, PrivateEntity},
             };
             unsafe {
                 let engine = ServerEngineRef::new();
@@ -1919,7 +1916,7 @@ pub use export_entity;
 macro_rules! export_entity_default {
     ($feature:literal, $name:ident, $entity:ty $(, $init:expr)? $(,)?) => {
         #[cfg(any(feature = "export-default-entities", feature = $feature))]
-        $crate::export::export_entity!($name, $crate::entity::Private<$entity> $(, $init)?);
+        $crate::export::export_entity!($name, $crate::private::Private<$entity> $(, $init)?);
 
         #[cfg(not(any(feature = "export-default-entities", feature = $feature)))]
         #[allow(dead_code)]
@@ -1936,7 +1933,7 @@ pub use export_entity_default;
 macro_rules! export_entity_stub {
     ($name:ident, $entity:ty $(,)?) => {
         #[cfg(feature = "export-stubs")]
-        $crate::export::export_entity!($name, $crate::entity::Private<$entity>);
+        $crate::export::export_entity!($name, $crate::private::Private<$entity>);
 
         #[cfg(not(feature = "export-stubs"))]
         #[allow(dead_code)]

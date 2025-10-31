@@ -4,8 +4,8 @@ use xash3d_shared::{entity::DamageFlags, ffi::common::vec3_t};
 use crate::{
     entities::{delayed_use::DelayedUse, trigger::Trigger},
     entity::{
-        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Dead, Entity, EntityPlayer,
-        KeyValue, Solid, TakeDamage, UseType,
+        delegate_entity, impl_entity_cast, BaseEntity, Dead, EntityPlayer, KeyValue, Solid,
+        TakeDamage, UseType,
     },
     export::export_entity_default,
     prelude::*,

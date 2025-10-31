@@ -5,10 +5,9 @@ use xash3d_shared::entity::EdictFlags;
 
 use crate::{
     entities::{delayed_use::DelayedUse, trigger::Trigger},
-    entity::{
-        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, KeyValue, UseType,
-    },
+    entity::{delegate_entity, impl_entity_cast, BaseEntity, KeyValue, UseType},
     export::export_entity_default,
+    prelude::*,
     str::MapString,
     time::MapTime,
     utils,

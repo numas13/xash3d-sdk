@@ -2,12 +2,13 @@ use core::{cell::Cell, ffi::CStr};
 
 use xash3d_server::{
     entity::{
-        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, DamageFlags, Effects, Entity,
-        EntityItem, MoveType, Private, Solid,
+        delegate_entity, impl_entity_cast, BaseEntity, DamageFlags, Effects, EntityItem, MoveType,
+        Solid,
     },
     export::export_entity,
     ffi::common::vec3_t,
     prelude::*,
+    private::Private,
     save::{Restore, Save},
 };
 

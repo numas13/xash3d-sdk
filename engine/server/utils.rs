@@ -6,7 +6,7 @@ use xash3d_shared::{color::RGBA, entity::EdictFlags, ffi::common::vec3_t, str::T
 
 use crate::{
     engine::TraceResult,
-    entity::{Entity, EntityPlayer, EntityVars, GetPrivateData, KeyValue, ObjectCaps, UseType},
+    entity::{EntityPlayer, EntityVars, KeyValue, ObjectCaps, UseType},
     prelude::*,
     save::{PositionVector, Restore, Save},
     str::MapString,

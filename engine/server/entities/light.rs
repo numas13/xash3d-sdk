@@ -1,9 +1,8 @@
 use crate::{
     entities::point_entity::PointEntity,
-    entity::{
-        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, KeyValue, UseType,
-    },
+    entity::{delegate_entity, impl_entity_cast, BaseEntity, KeyValue, UseType},
     export::export_entity_default,
+    prelude::*,
     str::MapString,
 };
 

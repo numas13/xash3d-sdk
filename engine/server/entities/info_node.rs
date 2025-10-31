@@ -1,14 +1,13 @@
 use xash3d_shared::entity::MoveType;
 
+use crate::{
+    entity::{delegate_entity, impl_entity_cast, BaseEntity, KeyValue, ObjectCaps, Solid},
+    export::export_entity_default,
+    prelude::*,
+};
+
 #[cfg(feature = "save")]
 use crate::save::{Restore, Save};
-use crate::{
-    entity::{
-        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, KeyValue, ObjectCaps,
-        Solid,
-    },
-    export::export_entity_default,
-};
 
 #[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct NodeEntity {

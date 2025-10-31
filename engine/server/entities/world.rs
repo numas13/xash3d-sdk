@@ -4,7 +4,7 @@ use bitflags::bitflags;
 
 use crate::{
     entities::env_message::Message,
-    entity::{delegate_entity, impl_entity_cast, BaseEntity, Entity, KeyValue},
+    entity::{delegate_entity, impl_entity_cast, BaseEntity, KeyValue},
     global_state::{decals::DefaultDecals, sprites::DefaultSprites, GlobalStateRef},
     prelude::*,
 };

@@ -1,6 +1,19 @@
 mod macros;
-mod private_data;
 mod vars;
+
+mod private_data {
+    #[deprecated(note = "moved to private module")]
+    pub type PrivateData = crate::private::PrivateData;
+
+    #[deprecated(note = "moved to private module")]
+    pub type Private<T> = crate::private::Private<T>;
+
+    #[deprecated(note = "moved to private module")]
+    pub type Downcast<'a, T> = crate::private::Downcast<'a, T>;
+
+    pub use crate::private::GetPrivateData;
+    pub use crate::private::PrivateEntity;
+}
 
 use core::{
     any::type_name,
@@ -37,8 +50,10 @@ use crate::save;
 pub use xash3d_shared::entity::*;
 
 pub use self::macros::*;
-pub use self::private_data::*;
 pub use self::vars::*;
+
+// TODO: remove me
+pub use self::private_data::*;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum RestoreResult {
@@ -595,9 +610,9 @@ pub trait EntityCast: 'static {
 define_entity_trait! {
     /// The base trait for all entities.
     pub trait Entity(delegate_entity): (Save + Restore + EntityCast + AsEntityHandle) {
-        fn private(&self) -> &::xash3d_server::entity::PrivateData;
+        fn private(&self) -> &::xash3d_server::private::PrivateData;
 
-        fn private_mut(&mut self) -> &mut ::xash3d_server::entity::PrivateData;
+        fn private_mut(&mut self) -> &mut ::xash3d_server::private::PrivateData;
 
         /// Returns a reference to the server engine.
         fn engine(&self) -> ::xash3d_server::engine::ServerEngineRef;
@@ -857,14 +872,14 @@ impl save::OnRestore for BaseEntity {
 impl_entity_cast!(BaseEntity);
 
 impl Entity for BaseEntity {
-    fn private(&self) -> &PrivateData {
+    fn private(&self) -> &crate::private::PrivateData {
         let edict = unsafe { &*self.as_entity_handle() };
-        PrivateData::from_edict(edict).unwrap()
+        crate::private::PrivateData::from_edict(edict).unwrap()
     }
 
-    fn private_mut(&mut self) -> &mut PrivateData {
+    fn private_mut(&mut self) -> &mut crate::private::PrivateData {
         let edict = unsafe { &mut *self.as_entity_handle() };
-        PrivateData::from_edict_mut(edict).unwrap()
+        crate::private::PrivateData::from_edict_mut(edict).unwrap()
     }
 
     fn engine(&self) -> ServerEngineRef {

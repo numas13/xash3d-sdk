@@ -1,10 +1,8 @@
 use crate::{
-    entity::{
-        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, KeyValue, Private,
-        UseType,
-    },
+    entity::{delegate_entity, impl_entity_cast, BaseEntity, KeyValue, UseType},
     export::export_entity,
     prelude::*,
+    private::Private,
     str::MapString,
     utils,
 };

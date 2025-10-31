@@ -2,10 +2,10 @@ use core::ffi::CStr;
 
 use xash3d_server::{
     entities::item::BaseItem,
-    entity::{
-        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, EntityItem, Private,
-    },
+    entity::{delegate_entity, impl_entity_cast, BaseEntity, EntityItem},
     export::export_entity,
+    prelude::*,
+    private::Private,
     save::{Restore, Save},
 };
 

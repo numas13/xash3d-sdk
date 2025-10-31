@@ -6,11 +6,12 @@ use csz::{CStrArray, CStrThin};
 
 use crate::{
     entity::{
-        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, EntityHandle,
-        KeyValue, ObjectCaps, Private, Solid, UseType,
+        delegate_entity, impl_entity_cast, BaseEntity, EntityHandle, KeyValue, ObjectCaps, Solid,
+        UseType,
     },
     export::export_entity_default,
     prelude::*,
+    private::Private,
     str::MapString,
     time::MapTime,
     utils,

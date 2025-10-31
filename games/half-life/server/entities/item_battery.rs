@@ -4,11 +4,10 @@ use csz::CStrArray;
 use xash3d_hl_shared::user_message;
 use xash3d_server::{
     entities::item::BaseItem,
-    entity::{
-        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Dead, Entity, EntityItem,
-        Private,
-    },
+    entity::{delegate_entity, impl_entity_cast, BaseEntity, Dead, EntityItem},
     export::export_entity,
+    prelude::*,
+    private::Private,
     save::{Restore, Save},
 };
 

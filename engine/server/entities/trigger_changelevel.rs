@@ -9,8 +9,7 @@ use xash3d_shared::{
 use crate::{
     entities::trigger::Trigger,
     entity::{
-        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, EntityHandle,
-        KeyValue, ObjectCaps, UseType,
+        delegate_entity, impl_entity_cast, BaseEntity, EntityHandle, KeyValue, ObjectCaps, UseType,
     },
     export::export_entity_default,
     prelude::*,

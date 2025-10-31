@@ -2,9 +2,9 @@ use core::ffi::CStr;
 
 use xash3d_server::{
     entities::world_items::{WorldItems, WorldItemsNames},
-    entity::Private,
     export::export_entity,
     prelude::*,
+    private::Private,
     save::{Restore, Save},
 };
 

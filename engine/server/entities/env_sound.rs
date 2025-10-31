@@ -2,8 +2,8 @@ use crate::{
     engine::TraceIgnore,
     entities::point_entity::PointEntity,
     entity::{
-        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, EntityPlayer,
-        EntityVars, KeyValue, LastSound,
+        delegate_entity, impl_entity_cast, BaseEntity, EntityPlayer, EntityVars, KeyValue,
+        LastSound,
     },
     export::export_entity_default,
     prelude::*,

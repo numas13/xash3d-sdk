@@ -25,6 +25,7 @@ pub mod globals;
 pub mod instance;
 mod logger;
 pub mod prelude;
+pub mod private;
 pub mod save;
 pub mod sound;
 pub mod str;

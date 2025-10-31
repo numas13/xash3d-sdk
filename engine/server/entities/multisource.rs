@@ -6,8 +6,8 @@ use xash3d_shared::entity::MoveType;
 use crate::{
     entities::{multi_manager::MultiManager, point_entity::PointEntity},
     entity::{
-        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, EntityHandle,
-        KeyValue, ObjectCaps, Solid, UseType,
+        delegate_entity, impl_entity_cast, BaseEntity, EntityHandle, KeyValue, ObjectCaps, Solid,
+        UseType,
     },
     export::export_entity_default,
     global_state::EntityState,

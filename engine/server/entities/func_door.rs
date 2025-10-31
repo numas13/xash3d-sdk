@@ -6,8 +6,8 @@ use xash3d_shared::entity::{DamageFlags, MoveType};
 use crate::{
     entities::delayed_use::DelayedUse,
     entity::{
-        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, EntityCast,
-        EntityHandle, EntityVars, KeyValue, ObjectCaps, Solid, UseType,
+        delegate_entity, impl_entity_cast, BaseEntity, EntityCast, EntityHandle, EntityVars,
+        KeyValue, ObjectCaps, Solid, UseType,
     },
     export::export_entity_default,
     prelude::*,

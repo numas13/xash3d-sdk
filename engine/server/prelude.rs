@@ -6,8 +6,10 @@ pub use crate::{
 };
 
 pub use crate::{
-    engine::LevelListExt,
-    entity::{AsEntityHandle, GetPrivateData},
+    entity::{AsEntityHandle, CreateEntity, Entity},
     global_state::decals::Decals,
-    save::TypeDescriptionExt,
+    private::{GetPrivateData, PrivateEntity},
 };
+
+// TODO: remove me
+pub use crate::{engine::LevelListExt, save::TypeDescriptionExt};

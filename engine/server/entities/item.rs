@@ -7,10 +7,8 @@ use xash3d_shared::{
 
 use crate::{
     engine::DropToFloorResult,
-    entity::{
-        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, EntityPlayer, Solid,
-        UseType,
-    },
+    entity::{delegate_entity, impl_entity_cast, BaseEntity, EntityPlayer, Solid, UseType},
+    prelude::*,
     time::MapTime,
     utils,
 };

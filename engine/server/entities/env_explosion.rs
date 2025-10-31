@@ -7,8 +7,7 @@ use xash3d_shared::{
 use crate::{
     engine::TraceIgnore,
     entity::{
-        create_entity, delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity,
-        KeyValue, Solid, UseType,
+        create_entity, delegate_entity, impl_entity_cast, BaseEntity, KeyValue, Solid, UseType,
     },
     export::export_entity_default,
     prelude::*,

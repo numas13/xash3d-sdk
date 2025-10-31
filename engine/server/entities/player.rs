@@ -9,10 +9,10 @@ use xash3d_shared::{
 use crate::{
     engine::TraceIgnore,
     entity::{
-        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Dead, Entity, EntityHandle,
-        EntityPlayer, EntityVars, GetPrivateData, LastSound, ObjectCaps, Solid, TakeDamage,
-        UseType,
+        delegate_entity, impl_entity_cast, BaseEntity, Dead, EntityHandle, EntityPlayer,
+        EntityVars, LastSound, ObjectCaps, Solid, TakeDamage, UseType,
     },
+    prelude::*,
     utils::{self, ViewField},
 };
 

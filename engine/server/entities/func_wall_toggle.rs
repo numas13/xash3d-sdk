@@ -2,8 +2,9 @@ use xash3d_shared::entity::Effects;
 
 use crate::{
     entities::func_wall::FuncWall,
-    entity::{delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, Solid, UseType},
+    entity::{delegate_entity, impl_entity_cast, BaseEntity, Solid, UseType},
     export::export_entity_default,
+    prelude::*,
 };
 
 #[cfg(feature = "save")]

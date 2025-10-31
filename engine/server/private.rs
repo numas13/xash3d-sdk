@@ -9,11 +9,9 @@ use core::{
 use xash3d_shared::ffi::server::{edict_s, entvars_s};
 
 use crate::{
-    engine::ServerEngineRef,
-    entity::{
-        AsEntityHandle, BaseEntity, CreateEntity, Entity, EntityCast, EntityHandle, EntityVars,
-    },
+    entity::{BaseEntity, EntityCast, EntityHandle, EntityItem, EntityPlayer, EntityVars},
     global_state::GlobalStateRef,
+    prelude::*,
 };
 
 /// A virtual table for a private data type.
@@ -40,8 +38,8 @@ impl<T: Entity> PrivateDataVtable<T> {
             let t = unsafe { Downcast::new(value, type_id, ret) };
             t.downcast::<P::Entity>(|i| Some(i))
                 || t.downcast::<dyn Entity>(|i| Some(i))
-                || t.downcast::<dyn super::EntityPlayer>(|i| i.as_player())
-                || t.downcast::<dyn super::EntityItem>(|i| i.as_item())
+                || t.downcast::<dyn EntityPlayer>(|i| i.as_player())
+                || t.downcast::<dyn EntityItem>(|i| i.as_item())
                 || P::downcast(&t)
         }
 

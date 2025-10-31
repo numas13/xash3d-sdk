@@ -1,8 +1,8 @@
 use xash3d_shared::entity::MoveType;
 
-use crate::entity::{
-    delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, KeyValue, ObjectCaps,
-    Solid, UseType,
+use crate::{
+    entity::{delegate_entity, impl_entity_cast, BaseEntity, KeyValue, ObjectCaps, Solid, UseType},
+    prelude::*,
 };
 
 #[cfg(feature = "save")]

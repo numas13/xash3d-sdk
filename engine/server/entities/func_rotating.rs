@@ -11,10 +11,11 @@ use xash3d_shared::{
 
 use crate::{
     entity::{
-        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, EntityVars, KeyValue,
-        ObjectCaps, Solid, TakeDamage, UseType,
+        delegate_entity, impl_entity_cast, BaseEntity, EntityVars, KeyValue, ObjectCaps, Solid,
+        TakeDamage, UseType,
     },
     export::export_entity_default,
+    prelude::*,
     str::MapString,
 };
 

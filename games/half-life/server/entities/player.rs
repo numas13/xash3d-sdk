@@ -8,8 +8,8 @@ use xash3d_server::{
     color::RGB,
     entities::player::Player as BasePlayer,
     entity::{
-        delegate_entity, delegate_player, impl_entity_cast, BaseEntity, Buttons, CreateEntity,
-        Effects, Entity, EntityPlayer, EntityVars, UseType,
+        delegate_entity, delegate_player, impl_entity_cast, BaseEntity, Buttons, Effects,
+        EntityPlayer, EntityVars, UseType,
     },
     prelude::*,
     save::{Restore, Save},

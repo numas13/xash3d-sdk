@@ -2,7 +2,7 @@ use xash3d_shared::math::powf;
 
 use crate::{
     entities::light::Light,
-    entity::{delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, KeyValue},
+    entity::{delegate_entity, impl_entity_cast, BaseEntity, KeyValue},
     export::export_entity_default,
     prelude::*,
 };

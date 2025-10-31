@@ -6,8 +6,8 @@ use xash3d_shared::{entity::MoveType, ffi::common::vec3_t};
 use crate::{
     entities::delayed_use::DelayedUse,
     entity::{
-        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, DamageFlags, Entity,
-        EntityCast, EntityHandle, EntityVars, KeyValue, ObjectCaps, Solid, TakeDamage, UseType,
+        delegate_entity, impl_entity_cast, BaseEntity, DamageFlags, EntityCast, EntityHandle,
+        EntityVars, KeyValue, ObjectCaps, Solid, TakeDamage, UseType,
     },
     export::export_entity_default,
     prelude::*,

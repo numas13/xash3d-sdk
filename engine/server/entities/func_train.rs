@@ -8,8 +8,8 @@ use xash3d_shared::{
 use crate::{
     entities::path_corner::PathCorner,
     entity::{
-        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, EntityHandle,
-        KeyValue, ObjectCaps, Solid, UseType,
+        delegate_entity, impl_entity_cast, BaseEntity, EntityHandle, KeyValue, ObjectCaps, Solid,
+        UseType,
     },
     export::export_entity_default,
     prelude::*,

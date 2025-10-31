@@ -1,7 +1,8 @@
 use crate::{
     entities::trigger::Trigger,
-    entity::{delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity},
+    entity::{delegate_entity, impl_entity_cast, BaseEntity},
     export::export_entity_default,
+    prelude::*,
 };
 
 #[cfg(feature = "save")]

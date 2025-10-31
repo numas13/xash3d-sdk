@@ -3,8 +3,9 @@ use xash3d_shared::{entity::EdictFlags, ffi::common::vec3_t};
 
 use crate::{
     entities::{point_entity::PointEntity, trigger::Trigger},
-    entity::{delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, KeyValue},
+    entity::{delegate_entity, impl_entity_cast, BaseEntity, KeyValue},
     export::export_entity_default,
+    prelude::*,
     str::MapString,
     utils,
 };

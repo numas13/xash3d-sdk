@@ -11,8 +11,8 @@ use crate::{
     engine::EventIndex,
     entities::path_track::PathTrack,
     entity::{
-        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, EntityHandle,
-        KeyValue, ObjectCaps, Solid, UseType,
+        delegate_entity, impl_entity_cast, BaseEntity, EntityHandle, KeyValue, ObjectCaps, Solid,
+        UseType,
     },
     export::export_entity_default,
     prelude::*,

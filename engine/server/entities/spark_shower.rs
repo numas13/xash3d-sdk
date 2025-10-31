@@ -4,9 +4,7 @@ use xash3d_shared::{
 };
 
 use crate::{
-    entity::{
-        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, ObjectCaps, Solid,
-    },
+    entity::{delegate_entity, impl_entity_cast, BaseEntity, ObjectCaps, Solid},
     export::export_entity_default,
     prelude::*,
     user_message,

@@ -2,12 +2,10 @@ use xash3d_shared::sound::Attenuation;
 
 use crate::{
     entities::point_entity::PointEntity,
-    entity::{
-        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, KeyValue, Private,
-        UseType,
-    },
+    entity::{delegate_entity, impl_entity_cast, BaseEntity, KeyValue, UseType},
     export::export_entity_default,
     prelude::*,
+    private::Private,
     str::MapString,
     utils,
 };

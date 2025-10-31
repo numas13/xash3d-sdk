@@ -6,8 +6,7 @@ use xash3d_shared::ffi::common::vec3_t;
 use crate::{
     entities::point_entity::PointEntity,
     entity::{
-        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, EntityHandle,
-        KeyValue, Solid, UseType,
+        delegate_entity, impl_entity_cast, BaseEntity, EntityHandle, KeyValue, Solid, UseType,
     },
     export::export_entity_default,
     prelude::*,

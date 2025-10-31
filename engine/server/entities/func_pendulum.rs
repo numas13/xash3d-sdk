@@ -9,10 +9,11 @@ use xash3d_shared::{
 
 use crate::{
     entity::{
-        delegate_entity, impl_entity_cast, BaseEntity, CreateEntity, Entity, KeyValue, ObjectCaps,
-        Solid, TakeDamage, UseType,
+        delegate_entity, impl_entity_cast, BaseEntity, KeyValue, ObjectCaps, Solid, TakeDamage,
+        UseType,
     },
     export::export_entity_default,
+    prelude::*,
     time::MapTime,
 };
 
