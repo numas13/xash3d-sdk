@@ -8,7 +8,6 @@ use xash3d_server::{
     export::export_entity,
     ffi::common::vec3_t,
     prelude::*,
-    private::Private,
     save::{Restore, Save},
 };
 
@@ -121,4 +120,4 @@ impl EntityItem for ItemSodaCan {
     }
 }
 
-export_entity!(item_sodacan, Private<ItemSodaCan>);
+export_entity!(item_sodacan, ItemSodaCan { EntityItem });

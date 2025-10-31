@@ -2,7 +2,6 @@ use crate::{
     entity::{delegate_entity, impl_entity_cast, BaseEntity, KeyValue, UseType},
     export::export_entity,
     prelude::*,
-    private::Private,
     str::MapString,
     utils,
 };
@@ -36,7 +35,7 @@ impl DelayedUseEntity {
         }
 
         let temp = engine
-            .new_entity_with::<Private<DelayedUseEntity>>(|base| {
+            .new_entity_with::<DelayedUseEntity>(|base| {
                 DelayedUseEntity::new(base, use_type, kill_target)
             })
             .class_name(c"DelayedUse")
@@ -147,4 +146,4 @@ impl DelayedUse {
     }
 }
 
-export_entity!(delayed_use, Private<DelayedUseEntity>);
+export_entity!(delayed_use, DelayedUseEntity {});

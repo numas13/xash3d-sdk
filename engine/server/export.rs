@@ -1844,32 +1844,25 @@ pub use export_dll;
 /// ```
 /// extern crate alloc;
 ///
-/// use core::marker::PhantomData;
 /// use xash3d_server::{
 ///     prelude::*,
-///     entity::{BaseEntity, impl_entity_cast, delegate_entity},
+///     entity::{impl_entity_cast, delegate_entity, delegate_player, BaseEntity, EntityPlayer},
+///     entities::player::Player as BasePlayer,
 ///     export::export_entity,
 ///     save::{Save, Restore},
 /// };
 ///
-/// // define a private wrapper for our entities
-/// struct Private<T>(PhantomData<T>);
-///
-/// impl<T: Entity> PrivateEntity for Private<T> {
-///     type Entity = T;
-/// }
-///
 /// // define a player entity
 /// #[derive(Save, Restore)]
 /// struct Player {
-///     base: BaseEntity,
+///     base: BasePlayer,
 /// }
 ///
 /// impl_entity_cast!(Player);
 ///
 /// impl CreateEntity for Player {
 ///     fn create(base: BaseEntity) -> Self {
-///         Self { base }
+///         Self { base: BasePlayer::create(base) }
 ///     }
 /// }
 ///
@@ -1877,20 +1870,48 @@ pub use export_dll;
 ///     delegate_entity!(base);
 /// }
 ///
+/// impl EntityPlayer for Player {
+///     delegate_player!(base);
+/// }
+///
 /// // export the player entity to the engine
-/// export_entity!(test_player, Private<Player>);
+/// export_entity!(test_player, Player {
+///     // downcast to EntityPlayer if EntityPlayer is implemented
+///     ?EntityPlayer,
+///
+///     // downcast to EntityPlayer or compile error if not implemented
+///     EntityPlayer,
+/// });
 /// ```
 #[doc(hidden)]
 #[macro_export]
 macro_rules! export_entity {
-    ($name:ident, $private:ty $(,)?) => {
+    (
+        $name:ident,
+        $entity:ty { $( ?$opt:path ),+ $(, $trait:path )* $(,)? }
+        $(, $init:expr)?
+        $(,)?
+    ) => {
+        $crate::private::impl_private!($entity { $( ?$opt ),+ $(, $trait )* });
+        $crate::export::export_entity!($name, $entity $(, $init )?);
+    };
+    (
+        $name:ident,
+        $entity:ty { $( $trait:path ),* $(,)? }
+        $(, $init:expr)?
+        $(,)?
+    ) => {
+        $crate::private::impl_private!($entity { $($trait ),* });
+        $crate::export::export_entity!($name, $entity $(, $init )?);
+    };
+    ($name:ident, $entity:ty $(,)?) => {
         $crate::export::export_entity!(
             $name,
-            $private,
-            <$private as $crate::private::PrivateEntity>::Entity::create,
+            $entity,
+            <$entity as $crate::private::PrivateEntity>::Entity::create,
         );
     };
-    ($name:ident, $private:ty, $init:expr $(,)?) => {
+    ($name:ident, $entity:ty, $init:expr $(,)?) => {
         #[no_mangle]
         unsafe extern "C" fn $name(ev: *mut $crate::ffi::server::entvars_s) {
             #[allow(unused_imports)]
@@ -1903,7 +1924,7 @@ macro_rules! export_entity {
             unsafe {
                 let engine = ServerEngineRef::new();
                 let global_state = GlobalStateRef::new();
-                PrivateData::create_with::<$private>(engine, global_state, ev, $init);
+                PrivateData::create_with::<$entity>(engine, global_state, ev, $init);
             }
         }
     };

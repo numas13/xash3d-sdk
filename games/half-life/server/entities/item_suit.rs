@@ -5,7 +5,6 @@ use xash3d_server::{
     entity::{delegate_entity, impl_entity_cast, BaseEntity, EntityItem},
     export::export_entity,
     prelude::*,
-    private::Private,
     save::{Restore, Save},
 };
 
@@ -69,4 +68,4 @@ impl EntityItem for ItemSuit {
     }
 }
 
-export_entity!(item_suit, Private<ItemSuit>);
+export_entity!(item_suit, ItemSuit { EntityItem });

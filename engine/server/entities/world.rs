@@ -7,6 +7,7 @@ use crate::{
     entity::{delegate_entity, impl_entity_cast, BaseEntity, KeyValue},
     global_state::{decals::DefaultDecals, sprites::DefaultSprites, GlobalStateRef},
     prelude::*,
+    private::impl_private,
 };
 
 bitflags! {
@@ -217,6 +218,8 @@ impl Entity for World {
         self.precache();
     }
 }
+
+impl_private!(World {});
 
 pub fn client_precache(engine: ServerEngineRef) {
     // setup precaches always needed

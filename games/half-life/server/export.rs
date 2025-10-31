@@ -7,7 +7,6 @@ use xash3d_server::{
     export::{export_dll, impl_unsync_global, ServerDll},
     global_state::GlobalStateRef,
     prelude::*,
-    private::Private,
     user_message::register_user_message,
 };
 
@@ -62,8 +61,8 @@ impl Dll {
 }
 
 impl ServerDll for Dll {
-    type World = Private<World>;
-    type Player = Private<TestPlayer>;
+    type World = World;
+    type Player = TestPlayer;
 
     fn new(engine: ServerEngineRef, global_state: GlobalStateRef) -> Self {
         crate::cvar::init(engine);

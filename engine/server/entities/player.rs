@@ -13,6 +13,7 @@ use crate::{
         EntityVars, LastSound, ObjectCaps, Solid, TakeDamage, UseType,
     },
     prelude::*,
+    private::impl_private,
     utils::{self, ViewField},
 };
 
@@ -394,8 +395,4 @@ impl EntityPlayer for Player {
     }
 }
 
-impl Drop for Player {
-    fn drop(&mut self) {
-        debug!("drop Player");
-    }
-}
+impl_private!(Player { EntityPlayer });

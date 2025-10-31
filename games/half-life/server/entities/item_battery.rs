@@ -7,7 +7,6 @@ use xash3d_server::{
     entity::{delegate_entity, impl_entity_cast, BaseEntity, Dead, EntityItem},
     export::export_entity,
     prelude::*,
-    private::Private,
     save::{Restore, Save},
 };
 
@@ -103,4 +102,4 @@ impl EntityItem for ItemBattery {
     }
 }
 
-export_entity!(item_battery, Private<ItemBattery>);
+export_entity!(item_battery, ItemBattery { EntityItem });

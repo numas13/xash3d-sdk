@@ -12,6 +12,7 @@ use xash3d_server::{
         EntityPlayer, EntityVars, UseType,
     },
     prelude::*,
+    private::impl_private,
     save::{Restore, Save},
     str::MapString,
     time::MapTime,
@@ -444,3 +445,5 @@ impl EntityPlayer for TestPlayer {
         self.geiger.borrow_mut().set_range(range);
     }
 }
+
+impl_private!(TestPlayer { EntityPlayer });
