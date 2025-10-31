@@ -61,7 +61,7 @@ define_enum_for_primitive! {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
 pub enum Protocol {
     GoldSrc,
     Xash48,
@@ -69,6 +69,7 @@ pub enum Protocol {
     Legacy,
     Xash49,
     /// Same as [Protocol::Xash49].
+    #[default]
     Current,
 }
 
@@ -83,12 +84,6 @@ impl Protocol {
 
     pub fn is_goldsrc(&self) -> bool {
         matches!(self, Self::GoldSrc)
-    }
-}
-
-impl Default for Protocol {
-    fn default() -> Self {
-        Self::Current
     }
 }
 
