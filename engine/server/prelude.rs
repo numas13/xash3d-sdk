@@ -11,5 +11,8 @@ pub use crate::{
     private::{GetPrivateData, PrivateEntity},
 };
 
+#[cfg(feature = "save")]
+pub use crate::save::{Restore, Save};
+
 // TODO: remove me
 pub use crate::{engine::LevelListExt, save::TypeDescriptionExt};

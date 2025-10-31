@@ -16,9 +16,6 @@ use crate::{
     utils::{self, AngularMove, LinearMove, Move, MoveState},
 };
 
-#[cfg(feature = "save")]
-use crate::save::{Restore, Save};
-
 const MOVE_SOUNDS: &[&CStr] = &[
     res::valve::sound::common::NULL,
     res::valve::sound::doors::DOORMOVE1,

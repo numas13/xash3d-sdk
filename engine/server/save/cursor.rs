@@ -1,8 +1,9 @@
 use core::{cmp, mem};
 
+use crate::save::{SaveError, SaveResult, Token};
+
 #[cfg(feature = "save")]
 use crate::save::{Save, SaveState};
-use crate::save::{SaveError, SaveResult, Token};
 
 const PREFIX_SIZE_B: u8 = 0xfb;
 const PREFIX_SIZE_H: u8 = 0xfc;

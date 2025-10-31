@@ -16,9 +16,6 @@ use crate::{
     utils::{self, ViewField},
 };
 
-#[cfg(feature = "save")]
-use crate::save::{Restore, Save};
-
 #[derive(Default)]
 #[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct Input {

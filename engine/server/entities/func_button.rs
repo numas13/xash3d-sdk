@@ -16,9 +16,6 @@ use crate::{
     utils::{self, AngularMove, LinearMove, Move, MoveState, Sparks},
 };
 
-#[cfg(feature = "save")]
-use crate::save::{Restore, Save};
-
 bitflags! {
     #[derive(Copy, Clone, Debug)]
     struct SpawnFlags: u32 {

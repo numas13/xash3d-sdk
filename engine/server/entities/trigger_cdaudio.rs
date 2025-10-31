@@ -6,9 +6,6 @@ use crate::{
     sound::play_cd_track,
 };
 
-#[cfg(feature = "save")]
-use crate::save::{Restore, Save};
-
 #[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct TriggerCdAudio {
     base: Trigger,

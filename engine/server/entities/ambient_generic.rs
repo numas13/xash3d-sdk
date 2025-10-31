@@ -17,9 +17,6 @@ use crate::{
     str::MapString,
 };
 
-#[cfg(feature = "save")]
-use crate::save::{Restore, Save};
-
 const LFO_SQUARE: i32 = 1;
 const LFO_TRIANGLE: i32 = 2;
 const LFO_RANDOM: i32 = 3;

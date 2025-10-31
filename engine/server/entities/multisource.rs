@@ -17,7 +17,7 @@ use crate::{
 };
 
 #[cfg(feature = "save")]
-use crate::save::{self, Restore, Save};
+use crate::save;
 
 #[derive(Copy, Clone)]
 #[cfg_attr(feature = "save", derive(Save, Restore))]

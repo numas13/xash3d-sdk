@@ -9,9 +9,6 @@ use crate::{
     utils::Sparks,
 };
 
-#[cfg(feature = "save")]
-use crate::save::{Restore, Save};
-
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "save", derive(Save, Restore))]
 #[repr(u8)]

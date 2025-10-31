@@ -17,9 +17,6 @@ use crate::{
     utils::{self, LinearMove, Move},
 };
 
-#[cfg(feature = "save")]
-use crate::save::{Restore, Save};
-
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
 #[cfg_attr(feature = "save", derive(Save, Restore))]
 #[repr(u8)]

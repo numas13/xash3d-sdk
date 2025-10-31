@@ -17,9 +17,6 @@ use crate::{
     utils,
 };
 
-#[cfg(feature = "save")]
-use crate::save::{Restore, Save};
-
 #[derive(Copy, Clone, Default)]
 #[cfg_attr(feature = "save", derive(Save, Restore))]
 struct MultiManagerTarget {

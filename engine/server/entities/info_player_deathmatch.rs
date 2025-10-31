@@ -5,9 +5,6 @@ use crate::{
     utils,
 };
 
-#[cfg(feature = "save")]
-use crate::save::{Restore, Save};
-
 use super::point_entity::PointEntity;
 
 #[cfg_attr(feature = "save", derive(Save, Restore))]

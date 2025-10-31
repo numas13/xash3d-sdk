@@ -7,9 +7,6 @@ use crate::{
     str::MapString,
 };
 
-#[cfg(feature = "save")]
-use crate::save::{Restore, Save};
-
 #[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct AutoTrigger {
     base: Trigger,

@@ -13,9 +13,6 @@ use crate::{
     utils,
 };
 
-#[cfg(feature = "save")]
-use crate::save::{Restore, Save};
-
 pub const SF_ITEM_NO_RESPAWN: u32 = 1 << 30;
 
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]

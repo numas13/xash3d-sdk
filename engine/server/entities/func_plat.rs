@@ -17,9 +17,6 @@ use crate::{
     utils::{LinearMove, Move, MoveState},
 };
 
-#[cfg(feature = "save")]
-use crate::save::{Restore, Save};
-
 #[cfg_attr(feature = "save", derive(Save, Restore))]
 struct PlatformTrigger {
     base: BaseEntity,

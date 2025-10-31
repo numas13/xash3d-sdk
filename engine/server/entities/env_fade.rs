@@ -9,9 +9,6 @@ use crate::{
     utils::{self, ScreenFadeFlags},
 };
 
-#[cfg(feature = "save")]
-use crate::save::{Restore, Save};
-
 bitflags! {
     #[derive(Copy, Clone)]
     struct SpawnFlags: u32 {

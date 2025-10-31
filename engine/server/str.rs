@@ -11,7 +11,7 @@ use csz::CStrThin;
 use crate::prelude::*;
 
 #[cfg(feature = "save")]
-use crate::save::{self, Restore, Save};
+use crate::save;
 
 pub use xash3d_shared::str::ToEngineStr;
 

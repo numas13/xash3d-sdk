@@ -11,9 +11,6 @@ use crate::{
     time::MapTime,
 };
 
-#[cfg(feature = "save")]
-use crate::save::{Restore, Save};
-
 pub use xash3d_shared::sound::*;
 
 struct SentenceEntry {

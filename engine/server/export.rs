@@ -435,13 +435,13 @@ pub trait ServerDll: UnsyncGlobal {
     }
 
     fn save_global_state(&self, save_data: &mut SaveRestoreData) {
-        if let Err(e) = self.global_state().save(save_data) {
+        if let Err(e) = self.global_state().save_state(save_data) {
             error!("Failed to save global state: {e:?}");
         }
     }
 
     fn restore_global_state(&self, save_data: &mut SaveRestoreData) {
-        if let Err(e) = self.global_state().restore(save_data) {
+        if let Err(e) = self.global_state().restore_state(save_data) {
             error!("Failed to restore global state: {e:?}");
         }
     }

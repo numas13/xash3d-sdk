@@ -4,9 +4,6 @@ use crate::{
     prelude::*,
 };
 
-#[cfg(feature = "save")]
-use crate::save::{Restore, Save};
-
 use super::trigger_multiple::TriggerMultiple;
 
 #[cfg_attr(feature = "save", derive(Save, Restore))]

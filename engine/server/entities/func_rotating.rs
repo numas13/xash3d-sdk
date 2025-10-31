@@ -19,9 +19,6 @@ use crate::{
     str::MapString,
 };
 
-#[cfg(feature = "save")]
-use crate::save::{Restore, Save};
-
 trait EntityVarsExt {
     fn vars(&self) -> &EntityVars;
 

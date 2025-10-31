@@ -7,9 +7,6 @@ use crate::{
     prelude::*,
 };
 
-#[cfg(feature = "save")]
-use crate::save::{Restore, Save};
-
 bitflags! {
     #[derive(Copy, Clone)]
     pub struct SpawnFlags: u32 {

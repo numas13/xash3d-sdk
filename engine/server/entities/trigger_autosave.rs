@@ -7,9 +7,6 @@ use crate::{
     utils,
 };
 
-#[cfg(feature = "save")]
-use crate::save::{Restore, Save};
-
 #[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct TriggerSave {
     base: Trigger,

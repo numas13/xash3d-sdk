@@ -11,9 +11,6 @@ use crate::{
     prelude::*,
 };
 
-#[cfg(feature = "save")]
-use crate::save::{Restore, Save};
-
 bitflags! {
     #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
     #[repr(transparent)]

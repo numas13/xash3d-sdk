@@ -18,9 +18,6 @@ use crate::{
     utils,
 };
 
-#[cfg(feature = "save")]
-use crate::save::{Restore, Save};
-
 const MAP_NAME_MAX: usize = 32;
 
 #[cfg_attr(feature = "save", derive(Save, Restore))]
