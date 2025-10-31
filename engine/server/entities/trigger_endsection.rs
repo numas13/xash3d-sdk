@@ -2,7 +2,7 @@ use core::cell::Cell;
 
 use crate::{
     entities::trigger::Trigger,
-    entity::{delegate_entity, impl_entity_cast, BaseEntity, KeyValue, UseType},
+    entity::{delegate_entity, BaseEntity, KeyValue, UseType},
     export::export_entity_default,
     prelude::*,
 };
@@ -13,8 +13,6 @@ pub struct TriggerEndSection {
     enable_used: Cell<bool>,
     enable_touched: Cell<bool>,
 }
-
-impl_entity_cast!(TriggerEndSection);
 
 impl CreateEntity for TriggerEndSection {
     fn create(base: BaseEntity) -> Self {

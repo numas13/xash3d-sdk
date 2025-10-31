@@ -11,7 +11,7 @@ use xash3d_shared::{
 };
 
 use crate::{
-    entity::{delegate_entity, impl_entity_cast, BaseEntity, KeyValue, ObjectCaps, Solid, UseType},
+    entity::{delegate_entity, BaseEntity, KeyValue, ObjectCaps, Solid, UseType},
     export::export_entity_default,
     prelude::*,
     str::MapString,
@@ -360,8 +360,6 @@ impl AmbientGeneric {
             .ambient_emit_dyn(sound_file, self.vars().origin(), self);
     }
 }
-
-impl_entity_cast!(AmbientGeneric);
 
 impl CreateEntity for AmbientGeneric {
     fn create(base: BaseEntity) -> Self {

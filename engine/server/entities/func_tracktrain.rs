@@ -10,10 +10,7 @@ use xash3d_shared::{
 use crate::{
     engine::EventIndex,
     entities::path_track::PathTrack,
-    entity::{
-        delegate_entity, impl_entity_cast, BaseEntity, EntityHandle, KeyValue, ObjectCaps, Solid,
-        UseType,
-    },
+    entity::{delegate_entity, BaseEntity, EntityHandle, KeyValue, ObjectCaps, Solid, UseType},
     export::export_entity_default,
     prelude::*,
     utils,
@@ -63,8 +60,6 @@ pub struct TrackTrain {
     path: Cell<Option<EntityHandle>>,
     sound_playing: Cell<bool>,
 }
-
-impl_entity_cast!(TrackTrain);
 
 impl CreateEntity for TrackTrain {
     fn create(base: BaseEntity) -> Self {

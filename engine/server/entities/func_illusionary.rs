@@ -1,7 +1,7 @@
 use xash3d_shared::{entity::MoveType, ffi::common::vec3_t};
 
 use crate::{
-    entity::{delegate_entity, impl_entity_cast, BaseEntity, ObjectCaps, Solid},
+    entity::{delegate_entity, BaseEntity, ObjectCaps, Solid},
     export::export_entity_default,
     prelude::*,
 };
@@ -10,8 +10,6 @@ use crate::{
 pub struct Illusionary {
     base: BaseEntity,
 }
-
-impl_entity_cast!(Illusionary);
 
 impl CreateEntity for Illusionary {
     fn create(base: BaseEntity) -> Self {

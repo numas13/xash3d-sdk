@@ -3,7 +3,7 @@ use core::cell::Cell;
 use xash3d_shared::{ffi::common::vec3_t, math::fabsf, render::RenderMode};
 
 use crate::{
-    entity::{delegate_entity, impl_entity_cast, BaseEntity, KeyValue, ObjectCaps, Solid, UseType},
+    entity::{delegate_entity, BaseEntity, KeyValue, ObjectCaps, Solid, UseType},
     export::export_entity_default,
     prelude::*,
     user_message,
@@ -18,8 +18,6 @@ pub struct Bubbles {
     bubble_model: u16,
     state: Cell<bool>,
 }
-
-impl_entity_cast!(Bubbles);
 
 impl CreateEntity for Bubbles {
     fn create(base: BaseEntity) -> Self {

@@ -1,6 +1,6 @@
 use crate::{
     entities::trigger::Trigger,
-    entity::{delegate_entity, impl_entity_cast, BaseEntity, UseType},
+    entity::{delegate_entity, BaseEntity, UseType},
     export::export_entity_default,
     prelude::*,
     sound::play_cd_track,
@@ -10,8 +10,6 @@ use crate::{
 pub struct TriggerCdAudio {
     base: Trigger,
 }
-
-impl_entity_cast!(TriggerCdAudio);
 
 impl CreateEntity for TriggerCdAudio {
     fn create(base: BaseEntity) -> Self {

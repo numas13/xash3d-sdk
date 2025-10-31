@@ -1,6 +1,6 @@
 use crate::{
     entities::{delayed_use::DelayedUse, trigger::Trigger},
-    entity::{delegate_entity, impl_entity_cast, BaseEntity, KeyValue, UseType},
+    entity::{delegate_entity, BaseEntity, KeyValue, UseType},
     export::export_entity_default,
     global_state::EntityState,
     prelude::*,
@@ -14,8 +14,6 @@ pub struct AutoTrigger {
     global_state: Option<MapString>,
     trigger_type: UseType,
 }
-
-impl_entity_cast!(AutoTrigger);
 
 impl CreateEntity for AutoTrigger {
     fn create(base: BaseEntity) -> Self {

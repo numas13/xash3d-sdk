@@ -7,10 +7,7 @@ use xash3d_shared::{
 
 use crate::{
     entities::path_corner::PathCorner,
-    entity::{
-        delegate_entity, impl_entity_cast, BaseEntity, EntityHandle, KeyValue, ObjectCaps, Solid,
-        UseType,
-    },
+    entity::{delegate_entity, BaseEntity, EntityHandle, KeyValue, ObjectCaps, Solid, UseType},
     export::export_entity_default,
     prelude::*,
     sound::PlatformSounds,
@@ -40,8 +37,6 @@ pub struct Train {
     wait: Cell<f32>,
     think: Cell<Think>,
 }
-
-impl_entity_cast!(Train);
 
 impl CreateEntity for Train {
     fn create(base: BaseEntity) -> Self {

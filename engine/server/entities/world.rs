@@ -4,7 +4,7 @@ use bitflags::bitflags;
 
 use crate::{
     entities::env_message::Message,
-    entity::{delegate_entity, impl_entity_cast, BaseEntity, KeyValue},
+    entity::{delegate_entity, BaseEntity, KeyValue},
     global_state::{decals::DefaultDecals, sprites::DefaultSprites, GlobalStateRef},
     prelude::*,
     private::impl_private,
@@ -47,8 +47,6 @@ impl World {
         }
     }
 }
-
-impl_entity_cast!(World);
 
 impl Entity for World {
     delegate_entity!(base not { key_value, precache, spawn });

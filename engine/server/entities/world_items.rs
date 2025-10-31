@@ -1,7 +1,7 @@
 use core::ffi::CStr;
 
 use crate::{
-    entity::{create_entity, delegate_entity, impl_entity_cast, BaseEntity, EntityCast, KeyValue},
+    entity::{create_entity, delegate_entity, BaseEntity, KeyValue},
     prelude::*,
     save::{Restore, Save},
 };
@@ -16,10 +16,6 @@ pub struct WorldItems<T> {
     base: BaseEntity,
     item_type: u16,
     items: T,
-}
-
-impl<T: WorldItemsNames> EntityCast for WorldItems<T> {
-    impl_entity_cast!(cast WorldItems<T>);
 }
 
 impl<T: WorldItemsNames> CreateEntity for WorldItems<T> {

@@ -6,8 +6,8 @@ use xash3d_shared::{entity::MoveType, ffi::common::vec3_t};
 use crate::{
     entities::delayed_use::DelayedUse,
     entity::{
-        delegate_entity, impl_entity_cast, BaseEntity, DamageFlags, EntityCast, EntityHandle,
-        EntityVars, KeyValue, ObjectCaps, Solid, TakeDamage, UseType,
+        delegate_entity, BaseEntity, DamageFlags, EntityHandle, EntityVars, KeyValue, ObjectCaps,
+        Solid, TakeDamage, UseType,
     },
     export::export_entity_default,
     prelude::*,
@@ -71,10 +71,6 @@ struct BaseButton<T> {
     sounds: u8,
     // TODO: move to Button
     lock_sounds: LockSounds,
-}
-
-impl<T: Move> EntityCast for BaseButton<T> {
-    impl_entity_cast!(cast BaseButton<T>);
 }
 
 impl<T: Move + Default> CreateEntity for BaseButton<T> {
@@ -395,12 +391,14 @@ impl<T: Move> Entity for BaseButton<T> {
     }
 }
 
+impl<T: Move> PrivateEntity for BaseButton<T> {
+    type Entity = Self;
+}
+
 #[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct Button {
     base: BaseButton<LinearMove>,
 }
-
-impl_entity_cast!(Button);
 
 impl CreateEntity for Button {
     fn create(base: BaseEntity) -> Self {
@@ -490,8 +488,6 @@ impl Entity for Button {
 pub struct RotButton {
     base: BaseButton<AngularMove>,
 }
-
-impl_entity_cast!(RotButton);
 
 impl CreateEntity for RotButton {
     fn create(base: BaseEntity) -> Self {

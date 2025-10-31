@@ -1,5 +1,5 @@
 use crate::{
-    entity::{delegate_entity, impl_entity_cast, BaseEntity},
+    entity::{delegate_entity, BaseEntity},
     export::export_entity_default,
     prelude::*,
 };
@@ -10,8 +10,6 @@ use super::trigger_multiple::TriggerMultiple;
 pub struct TriggerOnce {
     base: TriggerMultiple,
 }
-
-impl_entity_cast!(TriggerOnce);
 
 impl CreateEntity for TriggerOnce {
     fn create(base: BaseEntity) -> Self {

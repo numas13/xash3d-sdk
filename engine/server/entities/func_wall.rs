@@ -4,7 +4,7 @@ use xash3d_shared::{
 };
 
 use crate::{
-    entity::{delegate_entity, impl_entity_cast, BaseEntity, ObjectCaps, Solid, UseType},
+    entity::{delegate_entity, BaseEntity, ObjectCaps, Solid, UseType},
     export::export_entity_default,
     prelude::*,
 };
@@ -13,8 +13,6 @@ use crate::{
 pub struct FuncWall {
     base: BaseEntity,
 }
-
-impl_entity_cast!(FuncWall);
 
 impl CreateEntity for FuncWall {
     fn create(base: BaseEntity) -> Self {

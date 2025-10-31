@@ -1,7 +1,5 @@
 use xash3d_server::{
-    entity::{
-        create_entity, delegate_entity, impl_entity_cast, BaseEntity, Effects, Solid, UseType,
-    },
+    entity::{create_entity, delegate_entity, BaseEntity, Effects, Solid, UseType},
     export::export_entity,
     prelude::*,
     save::{Restore, Save},
@@ -13,8 +11,6 @@ use crate::entities::item_sodacan::ItemSodaCan;
 pub struct Beverage {
     base: BaseEntity,
 }
-
-impl_entity_cast!(Beverage);
 
 impl CreateEntity for Beverage {
     fn create(base: BaseEntity) -> Self {

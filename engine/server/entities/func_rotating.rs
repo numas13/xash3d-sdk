@@ -11,8 +11,7 @@ use xash3d_shared::{
 
 use crate::{
     entity::{
-        delegate_entity, impl_entity_cast, BaseEntity, EntityVars, KeyValue, ObjectCaps, Solid,
-        TakeDamage, UseType,
+        delegate_entity, BaseEntity, EntityVars, KeyValue, ObjectCaps, Solid, TakeDamage, UseType,
     },
     export::export_entity_default,
     prelude::*,
@@ -76,8 +75,6 @@ pub struct Rotating {
 
     think: Cell<Think>,
 }
-
-impl_entity_cast!(Rotating);
 
 impl CreateEntity for Rotating {
     fn create(base: BaseEntity) -> Self {

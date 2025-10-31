@@ -2,7 +2,7 @@ use bitflags::bitflags;
 use xash3d_shared::entity::MoveType;
 
 use crate::{
-    entity::{delegate_entity, impl_entity_cast, BaseEntity, KeyValue, ObjectCaps, Solid, UseType},
+    entity::{delegate_entity, BaseEntity, KeyValue, ObjectCaps, Solid, UseType},
     export::export_entity_default,
     prelude::*,
 };
@@ -34,8 +34,6 @@ impl Speaker {
         SpeakerSpawnFlags::from_bits_retain(self.vars().spawn_flags())
     }
 }
-
-impl_entity_cast!(Speaker);
 
 impl Entity for Speaker {
     delegate_entity!(base not { object_caps, key_value, precache, spawn, used, think });

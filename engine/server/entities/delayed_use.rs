@@ -1,5 +1,5 @@
 use crate::{
-    entity::{delegate_entity, impl_entity_cast, BaseEntity, KeyValue, UseType},
+    entity::{delegate_entity, BaseEntity, KeyValue, UseType},
     export::export_entity,
     prelude::*,
     str::MapString,
@@ -54,8 +54,6 @@ impl DelayedUseEntity {
         }
     }
 }
-
-impl_entity_cast!(DelayedUseEntity);
 
 impl CreateEntity for DelayedUseEntity {
     fn create(base: BaseEntity) -> Self {

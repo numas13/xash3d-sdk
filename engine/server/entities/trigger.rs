@@ -4,7 +4,7 @@ use xash3d_shared::{
 };
 
 use crate::{
-    entity::{delegate_entity, impl_entity_cast, BaseEntity, ObjectCaps, Solid},
+    entity::{delegate_entity, BaseEntity, ObjectCaps, Solid},
     export::export_entity_default,
     prelude::*,
 };
@@ -13,8 +13,6 @@ use crate::{
 pub struct Trigger {
     base: BaseEntity,
 }
-
-impl_entity_cast!(Trigger);
 
 impl CreateEntity for Trigger {
     fn create(base: BaseEntity) -> Self {

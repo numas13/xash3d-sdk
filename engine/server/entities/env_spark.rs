@@ -3,7 +3,7 @@ use core::cell::Cell;
 use bitflags::bitflags;
 
 use crate::{
-    entity::{delegate_entity, impl_entity_cast, BaseEntity, KeyValue, UseType},
+    entity::{delegate_entity, BaseEntity, KeyValue, UseType},
     export::export_entity_default,
     prelude::*,
     utils::Sparks,
@@ -45,8 +45,6 @@ impl EnvSpark {
         self.vars().set_next_think_time_from_now(0.1 + delay);
     }
 }
-
-impl_entity_cast!(EnvSpark);
 
 impl CreateEntity for EnvSpark {
     fn create(base: BaseEntity) -> Self {

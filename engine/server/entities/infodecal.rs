@@ -4,7 +4,7 @@ use xash3d_shared::ffi::common::vec3_t;
 
 use crate::{
     engine::TraceIgnore,
-    entity::{delegate_entity, impl_entity_cast, BaseEntity, KeyValue, UseType},
+    entity::{delegate_entity, BaseEntity, KeyValue, UseType},
     export::export_entity_default,
     prelude::*,
     user_message,
@@ -26,8 +26,6 @@ pub struct Decal {
     base: BaseEntity,
     state: Cell<DecalState>,
 }
-
-impl_entity_cast!(Decal);
 
 impl CreateEntity for Decal {
     fn create(base: BaseEntity) -> Self {

@@ -8,9 +8,7 @@ use xash3d_shared::{
 
 use crate::{
     entities::point_entity::PointEntity,
-    entity::{
-        delegate_entity, impl_entity_cast, BaseEntity, EntityHandle, ObjectCaps, Solid, UseType,
-    },
+    entity::{delegate_entity, BaseEntity, EntityHandle, ObjectCaps, Solid, UseType},
     export::export_entity_default,
     prelude::*,
     time::MapTime,
@@ -41,8 +39,6 @@ pub struct Sprite {
     last_time: Cell<MapTime>,
     think: Cell<Think>,
 }
-
-impl_entity_cast!(Sprite);
 
 impl CreateEntity for Sprite {
     fn create(base: BaseEntity) -> Self {

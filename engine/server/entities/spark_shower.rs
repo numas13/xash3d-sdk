@@ -4,7 +4,7 @@ use xash3d_shared::{
 };
 
 use crate::{
-    entity::{delegate_entity, impl_entity_cast, BaseEntity, ObjectCaps, Solid},
+    entity::{delegate_entity, BaseEntity, ObjectCaps, Solid},
     export::export_entity_default,
     prelude::*,
     user_message,
@@ -14,8 +14,6 @@ use crate::{
 pub struct SparkShower {
     base: BaseEntity,
 }
-
-impl_entity_cast!(SparkShower);
 
 impl CreateEntity for SparkShower {
     fn create(base: BaseEntity) -> Self {

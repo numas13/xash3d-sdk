@@ -1,10 +1,7 @@
 use crate::{
     engine::TraceIgnore,
     entities::point_entity::PointEntity,
-    entity::{
-        delegate_entity, impl_entity_cast, BaseEntity, EntityPlayer, EntityVars, KeyValue,
-        LastSound,
-    },
+    entity::{delegate_entity, BaseEntity, EntityPlayer, EntityVars, KeyValue, LastSound},
     export::export_entity_default,
     prelude::*,
     user_message::{self, RoomType},
@@ -45,8 +42,6 @@ impl EnvSound {
         }
     }
 }
-
-impl_entity_cast!(EnvSound);
 
 impl CreateEntity for EnvSound {
     fn create(base: BaseEntity) -> Self {

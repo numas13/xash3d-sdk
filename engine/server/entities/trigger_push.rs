@@ -6,7 +6,7 @@ use xash3d_shared::{
 
 use crate::{
     entities::trigger::Trigger,
-    entity::{delegate_entity, impl_entity_cast, BaseEntity, Solid, UseType},
+    entity::{delegate_entity, BaseEntity, Solid, UseType},
     export::export_entity_default,
     prelude::*,
 };
@@ -25,8 +25,6 @@ bitflags! {
 pub struct TriggerPush {
     base: Trigger,
 }
-
-impl_entity_cast!(TriggerPush);
 
 impl CreateEntity for TriggerPush {
     fn create(base: BaseEntity) -> Self {

@@ -8,10 +8,7 @@ use xash3d_shared::{
 };
 
 use crate::{
-    entity::{
-        delegate_entity, impl_entity_cast, BaseEntity, KeyValue, ObjectCaps, Solid, TakeDamage,
-        UseType,
-    },
+    entity::{delegate_entity, BaseEntity, KeyValue, ObjectCaps, Solid, TakeDamage, UseType},
     export::export_entity_default,
     prelude::*,
     time::MapTime,
@@ -55,8 +52,6 @@ pub struct Pendulum {
 
     think: Cell<Think>,
 }
-
-impl_entity_cast!(Pendulum);
 
 impl CreateEntity for Pendulum {
     fn create(base: BaseEntity) -> Self {

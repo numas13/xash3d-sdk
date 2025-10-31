@@ -2,7 +2,7 @@ use xash3d_shared::math::powf;
 
 use crate::{
     entities::light::Light,
-    entity::{delegate_entity, impl_entity_cast, BaseEntity, KeyValue},
+    entity::{delegate_entity, BaseEntity, KeyValue},
     export::export_entity_default,
     prelude::*,
 };
@@ -11,8 +11,6 @@ use crate::{
 pub struct EnvLight {
     base: Light,
 }
-
-impl_entity_cast!(EnvLight);
 
 impl CreateEntity for EnvLight {
     fn create(base: BaseEntity) -> Self {

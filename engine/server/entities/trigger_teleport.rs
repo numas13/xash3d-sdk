@@ -3,7 +3,7 @@ use xash3d_shared::{entity::EdictFlags, ffi::common::vec3_t};
 
 use crate::{
     entities::{point_entity::PointEntity, trigger::Trigger},
-    entity::{delegate_entity, impl_entity_cast, BaseEntity, KeyValue},
+    entity::{delegate_entity, BaseEntity, KeyValue},
     export::export_entity_default,
     prelude::*,
     str::MapString,
@@ -25,8 +25,6 @@ pub struct TriggerTeleport {
     base: Trigger,
     master: Option<MapString>,
 }
-
-impl_entity_cast!(TriggerTeleport);
 
 impl CreateEntity for TriggerTeleport {
     fn create(base: BaseEntity) -> Self {

@@ -4,7 +4,7 @@ use csz::CStrArray;
 use xash3d_hl_shared::user_message;
 use xash3d_server::{
     entities::item::BaseItem,
-    entity::{delegate_entity, impl_entity_cast, BaseEntity, Dead, EntityItem},
+    entity::{delegate_entity, BaseEntity, Dead, EntityItem},
     export::export_entity,
     prelude::*,
     save::{Restore, Save},
@@ -20,8 +20,6 @@ use crate::{
 pub struct ItemBattery {
     base: BaseItem,
 }
-
-impl_entity_cast!(ItemBattery);
 
 impl CreateEntity for ItemBattery {
     fn create(base: BaseEntity) -> Self {

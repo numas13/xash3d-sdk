@@ -1,6 +1,6 @@
 use crate::{
     entities::trigger::Trigger,
-    entity::{delegate_entity, impl_entity_cast, BaseEntity},
+    entity::{delegate_entity, BaseEntity},
     export::export_entity_default,
     prelude::*,
 };
@@ -9,8 +9,6 @@ use crate::{
 pub struct TriggerGravity {
     base: Trigger,
 }
-
-impl_entity_cast!(TriggerGravity);
 
 impl CreateEntity for TriggerGravity {
     fn create(base: BaseEntity) -> Self {

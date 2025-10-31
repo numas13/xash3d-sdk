@@ -2,7 +2,7 @@ use core::ffi::CStr;
 
 use xash3d_server::{
     entities::item::BaseItem,
-    entity::{delegate_entity, impl_entity_cast, BaseEntity, EntityItem},
+    entity::{delegate_entity, BaseEntity, EntityItem},
     export::export_entity,
     prelude::*,
     save::{Restore, Save},
@@ -14,8 +14,6 @@ use crate::{entities::player::WEAPON_SUIT, sound::emit_sound_suit};
 pub struct ItemSuit {
     base: BaseItem,
 }
-
-impl_entity_cast!(ItemSuit);
 
 impl CreateEntity for ItemSuit {
     fn create(base: BaseEntity) -> Self {

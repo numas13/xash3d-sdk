@@ -1,7 +1,7 @@
 use bitflags::bitflags;
 
 use crate::{
-    entity::{delegate_entity, impl_entity_cast, BaseEntity, Solid, UseType},
+    entity::{delegate_entity, BaseEntity, Solid, UseType},
     export::export_entity_default,
     prelude::*,
 };
@@ -20,8 +20,6 @@ bitflags! {
 pub struct Render {
     base: BaseEntity,
 }
-
-impl_entity_cast!(Render);
 
 impl CreateEntity for Render {
     fn create(base: BaseEntity) -> Self {

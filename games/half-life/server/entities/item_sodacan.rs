@@ -1,10 +1,7 @@
 use core::{cell::Cell, ffi::CStr};
 
 use xash3d_server::{
-    entity::{
-        delegate_entity, impl_entity_cast, BaseEntity, DamageFlags, Effects, EntityItem, MoveType,
-        Solid,
-    },
+    entity::{delegate_entity, BaseEntity, DamageFlags, Effects, EntityItem, MoveType, Solid},
     export::export_entity,
     ffi::common::vec3_t,
     prelude::*,
@@ -25,8 +22,6 @@ pub struct ItemSodaCan {
     base: BaseEntity,
     state: Cell<State>,
 }
-
-impl_entity_cast!(ItemSodaCan);
 
 impl CreateEntity for ItemSodaCan {
     fn create(base: BaseEntity) -> Self {

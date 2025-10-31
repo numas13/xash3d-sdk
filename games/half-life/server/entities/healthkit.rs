@@ -1,6 +1,6 @@
 use xash3d_server::{
     entities::stub::StubEntity,
-    entity::{delegate_entity, impl_entity_cast, BaseEntity, ObjectCaps},
+    entity::{delegate_entity, BaseEntity, ObjectCaps},
     export::export_entity,
     prelude::*,
     save::{Restore, Save},
@@ -10,8 +10,6 @@ use xash3d_server::{
 pub struct WallHealthCharger {
     base: StubEntity,
 }
-
-impl_entity_cast!(WallHealthCharger);
 
 impl CreateEntity for WallHealthCharger {
     fn create(base: BaseEntity) -> Self {

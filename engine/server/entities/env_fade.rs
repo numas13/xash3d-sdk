@@ -3,7 +3,7 @@ use xash3d_shared::{color::RGBA, entity::MoveType};
 
 use crate::{
     entities::point_entity::PointEntity,
-    entity::{delegate_entity, impl_entity_cast, BaseEntity, KeyValue, Solid, UseType},
+    entity::{delegate_entity, BaseEntity, KeyValue, Solid, UseType},
     export::export_entity_default,
     prelude::*,
     utils::{self, ScreenFadeFlags},
@@ -22,8 +22,6 @@ bitflags! {
 pub struct Fade {
     base: PointEntity,
 }
-
-impl_entity_cast!(Fade);
 
 impl CreateEntity for Fade {
     fn create(base: BaseEntity) -> Self {

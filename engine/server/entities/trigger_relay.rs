@@ -2,7 +2,7 @@ use bitflags::bitflags;
 
 use crate::{
     entities::delayed_use::DelayedUse,
-    entity::{delegate_entity, impl_entity_cast, BaseEntity, KeyValue, ObjectCaps, UseType},
+    entity::{delegate_entity, BaseEntity, KeyValue, ObjectCaps, UseType},
     export::export_entity_default,
     prelude::*,
 };
@@ -20,8 +20,6 @@ pub struct TriggerRelay {
     delayed: DelayedUse,
     use_type: UseType,
 }
-
-impl_entity_cast!(TriggerRelay);
 
 impl CreateEntity for TriggerRelay {
     fn create(base: BaseEntity) -> Self {

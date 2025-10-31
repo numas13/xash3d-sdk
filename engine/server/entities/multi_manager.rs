@@ -5,10 +5,7 @@ use bitflags::bitflags;
 use csz::{CStrArray, CStrThin};
 
 use crate::{
-    entity::{
-        delegate_entity, impl_entity_cast, BaseEntity, EntityHandle, KeyValue, ObjectCaps, Solid,
-        UseType,
-    },
+    entity::{delegate_entity, BaseEntity, EntityHandle, KeyValue, ObjectCaps, Solid, UseType},
     export::export_entity_default,
     prelude::*,
     str::MapString,
@@ -92,8 +89,6 @@ impl MultiManager {
             .any(|i| i.as_thin() == target)
     }
 }
-
-impl_entity_cast!(MultiManager);
 
 impl CreateEntity for MultiManager {
     fn create(base: BaseEntity) -> Self {

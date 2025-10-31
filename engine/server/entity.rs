@@ -42,6 +42,7 @@ use crate::{
     export::dispatch_spawn,
     global_state::{EntityState, GlobalStateRef},
     prelude::*,
+    private::impl_private,
     save::{Restore, Save},
 };
 
@@ -605,7 +606,23 @@ pub trait EntityCast: 'static {
 
     fn as_player(&self) -> Option<&dyn EntityPlayer>;
 
+    #[deprecated(note = "use downcast_ref instead")]
     fn as_item(&self) -> Option<&dyn EntityItem>;
+}
+
+impl<T: Entity + PrivateEntity> EntityCast for T {
+    fn as_entity(&self) -> &dyn Entity {
+        self
+    }
+
+    fn as_player(&self) -> Option<&dyn EntityPlayer> {
+        self.private().downcast_ref::<dyn EntityPlayer>()
+    }
+
+    #[allow(deprecated)]
+    fn as_item(&self) -> Option<&dyn EntityItem> {
+        self.private().downcast_ref::<dyn EntityItem>()
+    }
 }
 
 define_entity_trait! {
@@ -784,7 +801,7 @@ define_entity_trait! {
 
         /// Returns `true` if it is a player entity.
         fn is_player(&self) -> bool {
-            self.as_player().is_some()
+            false
         }
 
         fn override_reset(&self) {}
@@ -870,8 +887,6 @@ impl save::OnRestore for BaseEntity {
     }
 }
 
-impl_entity_cast!(BaseEntity);
-
 impl Entity for BaseEntity {
     fn private(&self) -> &crate::private::PrivateData {
         let edict = unsafe { &*self.as_entity_handle() };
@@ -895,6 +910,8 @@ impl Entity for BaseEntity {
         &self.vars
     }
 }
+
+impl_private!(BaseEntity {});
 
 pub trait EntityItem: Entity {
     /// Tries to give this item to an entity.

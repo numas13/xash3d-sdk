@@ -5,9 +5,7 @@ use xash3d_shared::ffi::common::vec3_t;
 
 use crate::{
     entities::point_entity::PointEntity,
-    entity::{
-        delegate_entity, impl_entity_cast, BaseEntity, EntityHandle, KeyValue, Solid, UseType,
-    },
+    entity::{delegate_entity, BaseEntity, EntityHandle, KeyValue, Solid, UseType},
     export::export_entity_default,
     prelude::*,
     str::MapString,
@@ -35,8 +33,6 @@ pub struct PathTrack {
     next: Cell<Option<EntityHandle>>,
     alt: Cell<Option<EntityHandle>>,
 }
-
-impl_entity_cast!(PathTrack);
 
 impl CreateEntity for PathTrack {
     fn create(base: BaseEntity) -> Self {

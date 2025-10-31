@@ -9,7 +9,7 @@ use core::{
 use xash3d_shared::ffi::server::{edict_s, entvars_s};
 
 use crate::{
-    entity::{BaseEntity, EntityCast, EntityHandle, EntityItem, EntityPlayer, EntityVars},
+    entity::{BaseEntity, EntityHandle, EntityVars},
     global_state::GlobalStateRef,
     prelude::*,
 };
@@ -36,10 +36,8 @@ impl<T: Entity> PrivateDataVtable<T> {
             ret: *mut (),
         ) -> bool {
             let t = unsafe { Downcast::new(value, type_id, ret) };
-            t.downcast::<P::Entity>(|i| Some(i))
+            t.downcast::<P::Entity>(Some)
                 || t.downcast::<dyn Entity>(|i| Some(i))
-                || t.downcast::<dyn EntityPlayer>(|i| i.as_player())
-                || t.downcast::<dyn EntityItem>(|i| i.as_item())
                 || P::downcast(&t)
         }
 
@@ -94,7 +92,7 @@ pub trait PrivateEntity: Sized + 'static {
     /// ```
     /// use xash3d_server::{
     ///     prelude::*,
-    ///     entity::{impl_entity_cast, delegate_entity, BaseEntity, EntityItem},
+    ///     entity::{delegate_entity, BaseEntity, EntityItem},
     ///     private::{Downcast, PrivateEntity},
     /// };
     /// use log::info;
@@ -103,8 +101,6 @@ pub trait PrivateEntity: Sized + 'static {
     /// struct Pen {
     ///     base: BaseEntity,
     /// }
-    ///
-    /// impl_entity_cast!(Pen);
     ///
     /// impl Pen {
     ///     fn draw(&self) {
@@ -432,7 +428,7 @@ impl<'a, T: 'a + AsEntityHandle> GetPrivateData<'a> for Option<T> {
 /// ```
 /// use xash3d_server::{
 ///     prelude::*,
-///     entity::{impl_entity_cast, delegate_entity, BaseEntity, EntityItem, EntityPlayer},
+///     entity::{delegate_entity, BaseEntity, EntityItem, EntityPlayer},
 ///     private::impl_private,
 /// };
 ///
@@ -440,8 +436,6 @@ impl<'a, T: 'a + AsEntityHandle> GetPrivateData<'a> for Option<T> {
 /// struct Crab {
 ///     base: BaseEntity,
 /// }
-///
-/// impl_entity_cast!(Crab);
 ///
 /// impl Entity for Crab {
 ///     delegate_entity!(base);

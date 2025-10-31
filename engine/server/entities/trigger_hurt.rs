@@ -4,8 +4,7 @@ use xash3d_shared::{entity::DamageFlags, ffi::common::vec3_t};
 use crate::{
     entities::{delayed_use::DelayedUse, trigger::Trigger},
     entity::{
-        delegate_entity, impl_entity_cast, BaseEntity, Dead, EntityPlayer, KeyValue, Solid,
-        TakeDamage, UseType,
+        delegate_entity, BaseEntity, Dead, EntityPlayer, KeyValue, Solid, TakeDamage, UseType,
     },
     export::export_entity_default,
     prelude::*,
@@ -34,8 +33,6 @@ pub struct TriggerHurt {
     delayed: DelayedUse,
     damage_type: DamageFlags,
 }
-
-impl_entity_cast!(TriggerHurt);
 
 impl CreateEntity for TriggerHurt {
     fn create(base: BaseEntity) -> Self {

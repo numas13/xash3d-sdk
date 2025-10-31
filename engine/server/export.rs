@@ -1846,7 +1846,7 @@ pub use export_dll;
 ///
 /// use xash3d_server::{
 ///     prelude::*,
-///     entity::{impl_entity_cast, delegate_entity, delegate_player, BaseEntity, EntityPlayer},
+///     entity::{delegate_entity, delegate_player, BaseEntity, EntityPlayer},
 ///     entities::player::Player as BasePlayer,
 ///     export::export_entity,
 ///     save::{Save, Restore},
@@ -1857,8 +1857,6 @@ pub use export_dll;
 /// struct Player {
 ///     base: BasePlayer,
 /// }
-///
-/// impl_entity_cast!(Player);
 ///
 /// impl CreateEntity for Player {
 ///     fn create(base: BaseEntity) -> Self {

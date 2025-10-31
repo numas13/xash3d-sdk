@@ -5,7 +5,7 @@ use xash3d_shared::{
 };
 
 use crate::{
-    entity::{delegate_entity, impl_entity_cast, BaseEntity, ObjectCaps, Solid},
+    entity::{delegate_entity, BaseEntity, ObjectCaps, Solid},
     export::export_entity_default,
     prelude::*,
 };
@@ -14,8 +14,6 @@ use crate::{
 pub struct Ladder {
     base: BaseEntity,
 }
-
-impl_entity_cast!(Ladder);
 
 impl CreateEntity for Ladder {
     fn create(base: BaseEntity) -> Self {

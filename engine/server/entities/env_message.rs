@@ -2,7 +2,7 @@ use xash3d_shared::sound::Attenuation;
 
 use crate::{
     entities::point_entity::PointEntity,
-    entity::{delegate_entity, impl_entity_cast, BaseEntity, KeyValue, UseType},
+    entity::{delegate_entity, BaseEntity, KeyValue, UseType},
     export::export_entity_default,
     prelude::*,
     str::MapString,
@@ -13,8 +13,6 @@ use crate::{
 pub struct Message {
     base: PointEntity,
 }
-
-impl_entity_cast!(Message);
 
 impl CreateEntity for Message {
     fn create(base: BaseEntity) -> Self {

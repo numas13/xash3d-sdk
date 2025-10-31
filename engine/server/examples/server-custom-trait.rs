@@ -2,7 +2,7 @@ use core::ffi::{c_int, CStr};
 
 use xash3d_server::{
     entities::{player::Player, world::World},
-    entity::{BaseEntity, EntityCast, EntityHandle},
+    entity::{BaseEntity, EntityHandle},
     export::{export_dll, impl_unsync_global, ServerDll},
     game_rules::StubGameRules,
     global_state::GlobalStateRef,
@@ -15,39 +15,17 @@ trait EntityCustom: Entity {
     fn custom(&self);
 }
 
-// A trait to cast entities to custom interfaces.
-#[allow(dead_code)]
-trait CustomEntityCast: EntityCast {
-    fn as_custom(&self) -> Option<&dyn EntityCustom>;
-}
-
-// A helper macro to auto-implement CustomEntityCast for an entity
-macro_rules! impl_custom_entity_cast {
-    ($ty:ty) => {
-        impl $crate::CustomEntityCast for $ty {
-            xash3d_server::entity::impl_cast! {
-                $ty {
-                    as_custom -> $crate::EntityCustom;
-                }
-            }
-        }
-    };
-}
-
 // A custom wrapper for private data.
 struct CustomPrivate<T>(core::marker::PhantomData<T>);
 
-impl<T: Entity + CustomEntityCast> PrivateEntity for CustomPrivate<T> {
+impl<T: Entity + EntityCustom> PrivateEntity for CustomPrivate<T> {
     type Entity = T;
 
     fn downcast(t: &Downcast<'_, Self::Entity>) -> bool {
-        // try to cast an entity to custom interface
-        t.downcast(|entity| entity.as_custom())
+        // cast an entity to the custom interface
+        t.downcast(|i| Some(i))
     }
 }
-
-// Implement CustomEntityCast for the Player
-impl_custom_entity_cast!(Player);
 
 // Implement EntityCustom for the Player type
 impl EntityCustom for Player {

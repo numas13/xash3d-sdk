@@ -1,5 +1,5 @@
 use crate::{
-    entity::{delegate_entity, impl_entity_cast, BaseEntity, ObjectCaps, Solid},
+    entity::{delegate_entity, BaseEntity, ObjectCaps, Solid},
     prelude::*,
     private::impl_private,
 };
@@ -8,8 +8,6 @@ use crate::{
 pub struct PointEntity {
     base: BaseEntity,
 }
-
-impl_entity_cast!(PointEntity);
 
 impl CreateEntity for PointEntity {
     fn create(base: BaseEntity) -> Self {

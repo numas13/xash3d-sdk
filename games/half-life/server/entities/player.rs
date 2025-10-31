@@ -8,8 +8,8 @@ use xash3d_server::{
     color::RGB,
     entities::player::Player as BasePlayer,
     entity::{
-        delegate_entity, delegate_player, impl_entity_cast, BaseEntity, Buttons, Effects,
-        EntityPlayer, EntityVars, UseType,
+        delegate_entity, delegate_player, BaseEntity, Buttons, Effects, EntityPlayer, EntityVars,
+        UseType,
     },
     prelude::*,
     private::impl_private,
@@ -107,8 +107,6 @@ pub struct TestPlayer {
 
     find: Cell<Option<MapString>>,
 }
-
-impl_entity_cast!(TestPlayer);
 
 impl CreateEntity for TestPlayer {
     fn create(base: BaseEntity) -> Self {

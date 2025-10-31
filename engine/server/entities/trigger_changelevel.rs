@@ -8,9 +8,7 @@ use xash3d_shared::{
 
 use crate::{
     entities::trigger::Trigger,
-    entity::{
-        delegate_entity, impl_entity_cast, BaseEntity, EntityHandle, KeyValue, ObjectCaps, UseType,
-    },
+    entity::{delegate_entity, BaseEntity, EntityHandle, KeyValue, ObjectCaps, UseType},
     export::export_entity_default,
     prelude::*,
     save::SaveRestoreData,
@@ -29,8 +27,6 @@ pub struct ChangeLevel {
     change_target: Option<MapString>,
     change_target_delay: f32,
 }
-
-impl_entity_cast!(ChangeLevel);
 
 impl CreateEntity for ChangeLevel {
     fn create(base: BaseEntity) -> Self {

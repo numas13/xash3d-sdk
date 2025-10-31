@@ -1,5 +1,5 @@
 use crate::{
-    entity::{delegate_entity, impl_entity_cast, BaseEntity, KeyValue},
+    entity::{delegate_entity, BaseEntity, KeyValue},
     export::export_entity_default,
     prelude::*,
     utils,
@@ -11,8 +11,6 @@ use super::point_entity::PointEntity;
 pub struct DeathMatchStart {
     base: PointEntity,
 }
-
-impl_entity_cast!(DeathMatchStart);
 
 impl CreateEntity for DeathMatchStart {
     fn create(base: BaseEntity) -> Self {

@@ -1,7 +1,7 @@
 use xash3d_shared::entity::MoveType;
 
 use crate::{
-    entity::{delegate_entity, impl_entity_cast, BaseEntity, KeyValue, ObjectCaps, Solid, UseType},
+    entity::{delegate_entity, BaseEntity, KeyValue, ObjectCaps, Solid, UseType},
     prelude::*,
     private::impl_private,
 };
@@ -26,8 +26,6 @@ impl CreateEntity for StubEntity {
         Self::new(base, false)
     }
 }
-
-impl_entity_cast!(StubEntity);
 
 impl Entity for StubEntity {
     delegate_entity!(base not { object_caps, key_value, spawn, touched, used, blocked });

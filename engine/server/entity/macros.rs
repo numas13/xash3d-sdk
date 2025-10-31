@@ -117,6 +117,7 @@ pub use impl_cast;
 /// // }
 /// impl_entity_cast!(Item);
 /// ```
+#[deprecated]
 #[doc(hidden)]
 #[macro_export]
 macro_rules! impl_entity_cast {
@@ -140,6 +141,7 @@ macro_rules! impl_entity_cast {
     };
 }
 #[doc(inline)]
+#[allow(deprecated)]
 pub use impl_entity_cast;
 
 #[doc(hidden)]

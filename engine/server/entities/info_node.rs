@@ -1,7 +1,7 @@
 use xash3d_shared::entity::MoveType;
 
 use crate::{
-    entity::{delegate_entity, impl_entity_cast, BaseEntity, KeyValue, ObjectCaps, Solid},
+    entity::{delegate_entity, BaseEntity, KeyValue, ObjectCaps, Solid},
     export::export_entity_default,
     prelude::*,
 };
@@ -14,8 +14,6 @@ pub struct NodeEntity {
     #[cfg_attr(feature = "save", save(skip))]
     hint_activity: u16,
 }
-
-impl_entity_cast!(NodeEntity);
 
 impl CreateEntity for NodeEntity {
     fn create(base: BaseEntity) -> Self {

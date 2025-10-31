@@ -5,7 +5,7 @@ use xash3d_shared::entity::EdictFlags;
 
 use crate::{
     entities::{delayed_use::DelayedUse, trigger::Trigger},
-    entity::{delegate_entity, impl_entity_cast, BaseEntity, KeyValue, UseType},
+    entity::{delegate_entity, BaseEntity, KeyValue, UseType},
     export::export_entity_default,
     prelude::*,
     str::MapString,
@@ -37,8 +37,6 @@ pub struct TriggerMultiple {
     /// The time when this trigger can be re-triggered.
     reset_time: Cell<MapTime>,
 }
-
-impl_entity_cast!(TriggerMultiple);
 
 impl CreateEntity for TriggerMultiple {
     fn create(base: BaseEntity) -> Self {

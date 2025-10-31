@@ -1,6 +1,6 @@
 use crate::{
     entities::trigger::Trigger,
-    entity::{delegate_entity, impl_entity_cast, BaseEntity, KeyValue},
+    entity::{delegate_entity, BaseEntity, KeyValue},
     export::export_entity_default,
     prelude::*,
     str::MapString,
@@ -12,8 +12,6 @@ pub struct TriggerSave {
     base: Trigger,
     master: Option<MapString>,
 }
-
-impl_entity_cast!(TriggerSave);
 
 impl CreateEntity for TriggerSave {
     fn create(base: BaseEntity) -> Self {

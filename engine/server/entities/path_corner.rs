@@ -2,7 +2,7 @@ use bitflags::bitflags;
 
 use crate::{
     entities::point_entity::PointEntity,
-    entity::{delegate_entity, impl_entity_cast, BaseEntity, KeyValue},
+    entity::{delegate_entity, BaseEntity, KeyValue},
     export::export_entity_default,
     prelude::*,
 };
@@ -35,8 +35,6 @@ pub struct PathCorner {
     base: PointEntity,
     wait: f32,
 }
-
-impl_entity_cast!(PathCorner);
 
 impl CreateEntity for PathCorner {
     fn create(base: BaseEntity) -> Self {

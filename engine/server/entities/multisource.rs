@@ -5,10 +5,7 @@ use xash3d_shared::entity::MoveType;
 
 use crate::{
     entities::{multi_manager::MultiManager, point_entity::PointEntity},
-    entity::{
-        delegate_entity, impl_entity_cast, BaseEntity, EntityHandle, KeyValue, ObjectCaps, Solid,
-        UseType,
-    },
+    entity::{delegate_entity, BaseEntity, EntityHandle, KeyValue, ObjectCaps, Solid, UseType},
     export::export_entity_default,
     global_state::EntityState,
     prelude::*,
@@ -48,8 +45,6 @@ pub struct MultiSource {
     global_state_name: Option<MapString>,
     entities: RefCell<Vec<Triggered>>,
 }
-
-impl_entity_cast!(MultiSource);
 
 impl CreateEntity for MultiSource {
     fn create(base: BaseEntity) -> Self {

@@ -1,7 +1,7 @@
 use xash3d_shared::entity::MoveType;
 
 use crate::{
-    entity::{delegate_entity, impl_entity_cast, BaseEntity, KeyValue, ObjectCaps, Solid},
+    entity::{delegate_entity, BaseEntity, KeyValue, ObjectCaps, Solid},
     export::export_entity_default,
     prelude::*,
 };
@@ -11,8 +11,6 @@ pub struct FrictionModifier {
     base: BaseEntity,
     friction: f32,
 }
-
-impl_entity_cast!(FrictionModifier);
 
 impl CreateEntity for FrictionModifier {
     fn create(base: BaseEntity) -> Self {

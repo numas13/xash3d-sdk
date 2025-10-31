@@ -6,8 +6,7 @@ use xash3d_shared::entity::{DamageFlags, MoveType};
 use crate::{
     entities::delayed_use::DelayedUse,
     entity::{
-        delegate_entity, impl_entity_cast, BaseEntity, EntityCast, EntityHandle, EntityVars,
-        KeyValue, ObjectCaps, Solid, UseType,
+        delegate_entity, BaseEntity, EntityHandle, EntityVars, KeyValue, ObjectCaps, Solid, UseType,
     },
     export::export_entity_default,
     prelude::*,
@@ -330,10 +329,6 @@ impl<T: Move> BaseDoor<T> {
     }
 }
 
-impl<T: Move> EntityCast for BaseDoor<T> {
-    impl_entity_cast!(cast BaseDoor<T>);
-}
-
 impl<T: Move> Entity for BaseDoor<T> {
     delegate_entity!(base not {
         object_caps, key_value, precache, spawn, used, touched, blocked, think
@@ -512,12 +507,14 @@ impl<T: Move> Entity for BaseDoor<T> {
     }
 }
 
+impl<T: Move> PrivateEntity for BaseDoor<T> {
+    type Entity = Self;
+}
+
 #[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct Door {
     base: BaseDoor<LinearMove>,
 }
-
-impl_entity_cast!(Door);
 
 impl CreateEntity for Door {
     fn create(base: BaseEntity) -> Self {
@@ -558,8 +555,6 @@ impl Entity for Door {
 pub struct RotatingDoor {
     base: BaseDoor<AngularMove>,
 }
-
-impl_entity_cast!(RotatingDoor);
 
 impl CreateEntity for RotatingDoor {
     fn create(base: BaseEntity) -> Self {

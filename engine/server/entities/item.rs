@@ -7,9 +7,7 @@ use xash3d_shared::{
 
 use crate::{
     engine::DropToFloorResult,
-    entity::{
-        delegate_entity, impl_entity_cast, BaseEntity, EntityItem, EntityPlayer, Solid, UseType,
-    },
+    entity::{delegate_entity, BaseEntity, EntityItem, EntityPlayer, Solid, UseType},
     prelude::*,
     private::impl_private,
     time::MapTime,
@@ -33,8 +31,6 @@ pub struct BaseItem {
     base: BaseEntity,
     state: Cell<State>,
 }
-
-impl_entity_cast!(BaseItem);
 
 impl CreateEntity for BaseItem {
     fn create(base: BaseEntity) -> Self {

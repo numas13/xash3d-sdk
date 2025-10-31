@@ -6,10 +6,7 @@ use xash3d_shared::{
 };
 
 use crate::{
-    entity::{
-        delegate_entity, impl_entity_cast, BaseEntity, EntityHandle, KeyValue, ObjectCaps, Solid,
-        UseType,
-    },
+    entity::{delegate_entity, BaseEntity, EntityHandle, KeyValue, ObjectCaps, Solid, UseType},
     export::export_entity_default,
     prelude::*,
     private::impl_private,
@@ -22,8 +19,6 @@ struct PlatformTrigger {
     base: BaseEntity,
     platform: EntityHandle,
 }
-
-impl_entity_cast!(PlatformTrigger);
 
 impl Entity for PlatformTrigger {
     delegate_entity!(base not { object_caps, touched });
@@ -252,8 +247,6 @@ impl Platform {
     }
 }
 
-impl_entity_cast!(Platform);
-
 impl Entity for Platform {
     delegate_entity!(base not { object_caps, key_value, precache, spawn, used, blocked, think });
 
@@ -378,8 +371,6 @@ impl Entity for Platform {
 pub struct RotatingPlatform {
     base: Platform,
 }
-
-impl_entity_cast!(RotatingPlatform);
 
 impl CreateEntity for RotatingPlatform {
     fn create(base: BaseEntity) -> Self {

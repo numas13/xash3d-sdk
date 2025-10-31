@@ -4,7 +4,7 @@ use xash3d_shared::entity::MoveType;
 
 use crate::{
     entities::point_entity::PointEntity,
-    entity::{delegate_entity, impl_entity_cast, BaseEntity, Solid},
+    entity::{delegate_entity, BaseEntity, Solid},
     export::export_entity_default,
     prelude::*,
     time::MapTime,
@@ -26,8 +26,6 @@ impl Glow {
         }
     }
 }
-
-impl_entity_cast!(Glow);
 
 impl CreateEntity for Glow {
     fn create(base: BaseEntity) -> Self {

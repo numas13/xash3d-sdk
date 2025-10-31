@@ -2,7 +2,7 @@ use xash3d_shared::entity::Effects;
 
 use crate::{
     entities::func_wall::FuncWall,
-    entity::{delegate_entity, impl_entity_cast, BaseEntity, Solid, UseType},
+    entity::{delegate_entity, BaseEntity, Solid, UseType},
     export::export_entity_default,
     prelude::*,
 };
@@ -11,8 +11,6 @@ use crate::{
 pub struct WallToggle {
     base: FuncWall,
 }
-
-impl_entity_cast!(WallToggle);
 
 impl CreateEntity for WallToggle {
     fn create(base: BaseEntity) -> Self {

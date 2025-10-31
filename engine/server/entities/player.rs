@@ -9,8 +9,8 @@ use xash3d_shared::{
 use crate::{
     engine::TraceIgnore,
     entity::{
-        delegate_entity, impl_entity_cast, BaseEntity, Dead, EntityHandle, EntityPlayer,
-        EntityVars, LastSound, ObjectCaps, Solid, TakeDamage, UseType,
+        delegate_entity, BaseEntity, Dead, EntityHandle, EntityPlayer, EntityVars, LastSound,
+        ObjectCaps, Solid, TakeDamage, UseType,
     },
     prelude::*,
     private::impl_private,
@@ -257,8 +257,6 @@ impl Player {
         debug!("Player::set_custom_decal_frames({frames})");
     }
 }
-
-impl_entity_cast!(Player);
 
 #[cfg(feature = "save")]
 impl crate::save::OnRestore for Player {

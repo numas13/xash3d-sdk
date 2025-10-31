@@ -6,9 +6,7 @@ use xash3d_shared::{
 
 use crate::{
     engine::TraceIgnore,
-    entity::{
-        create_entity, delegate_entity, impl_entity_cast, BaseEntity, KeyValue, Solid, UseType,
-    },
+    entity::{create_entity, delegate_entity, BaseEntity, KeyValue, Solid, UseType},
     export::export_entity_default,
     prelude::*,
     user_message, utils,
@@ -32,8 +30,6 @@ pub struct Explosion {
     magnitude: i16,
     sprite_scale: u8,
 }
-
-impl_entity_cast!(Explosion);
 
 impl CreateEntity for Explosion {
     fn create(base: BaseEntity) -> Self {

@@ -1,6 +1,6 @@
 use crate::{
     entities::point_entity::PointEntity,
-    entity::{delegate_entity, impl_entity_cast, BaseEntity, KeyValue, UseType},
+    entity::{delegate_entity, BaseEntity, KeyValue, UseType},
     export::export_entity_default,
     prelude::*,
     str::MapString,
@@ -16,8 +16,6 @@ pub struct Light {
 impl Light {
     pub const SF_START_OFF: u32 = 1;
 }
-
-impl_entity_cast!(Light);
 
 impl CreateEntity for Light {
     fn create(base: BaseEntity) -> Self {

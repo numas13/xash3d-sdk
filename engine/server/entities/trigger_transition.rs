@@ -2,7 +2,7 @@ use xash3d_shared::entity::MoveType;
 
 use crate::{
     entities::point_entity::PointEntity,
-    entity::{delegate_entity, impl_entity_cast, BaseEntity, Solid},
+    entity::{delegate_entity, BaseEntity, Solid},
     export::export_entity_default,
     prelude::*,
 };
@@ -11,8 +11,6 @@ use crate::{
 pub struct TriggerVolume {
     base: PointEntity,
 }
-
-impl_entity_cast!(TriggerVolume);
 
 impl CreateEntity for TriggerVolume {
     fn create(base: BaseEntity) -> Self {
