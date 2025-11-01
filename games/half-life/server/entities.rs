@@ -5,3 +5,5 @@ pub mod item_sodacan;
 pub mod item_suit;
 pub mod player;
 pub mod world_items;
+
+xash3d_entities::export_enabled!();

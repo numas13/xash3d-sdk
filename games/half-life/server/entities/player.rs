@@ -4,9 +4,9 @@ use core::{
 };
 
 use csz::CStrThin;
+use xash3d_entities::player::Player as BasePlayer;
 use xash3d_server::{
     color::RGB,
-    entities::player::Player as BasePlayer,
     entity::{
         delegate_entity, delegate_player, BaseEntity, Buttons, Effects, EntityPlayer, EntityVars,
         UseType,

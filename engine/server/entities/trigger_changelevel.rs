@@ -9,7 +9,6 @@ use xash3d_shared::{
 use crate::{
     entities::trigger::Trigger,
     entity::{delegate_entity, BaseEntity, EntityHandle, KeyValue, ObjectCaps, UseType},
-    export::export_entity_default,
     prelude::*,
     private::impl_private,
     save::SaveRestoreData,
@@ -292,9 +291,3 @@ pub fn build_change_list(engine: ServerEngineRef, level_list: &mut [LEVELLIST]) 
 
     count
 }
-
-export_entity_default!(
-    "export-trigger_changelevel",
-    trigger_changelevel,
-    ChangeLevel
-);

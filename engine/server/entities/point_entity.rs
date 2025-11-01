@@ -1,4 +1,4 @@
-use crate::{
+use xash3d_server::{
     entity::{delegate_entity, BaseEntity, ObjectCaps, Solid},
     prelude::*,
     private::impl_private,

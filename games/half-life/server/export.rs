@@ -1,8 +1,8 @@
 use core::ffi::{c_int, CStr};
 
+use xash3d_entities::world::World;
 use xash3d_server::{
     engine::RegisterUserMessageError,
-    entities::world::World,
     entity::{BaseEntity, EntityHandle, EntityPlayer},
     export::{export_dll, impl_unsync_global, ServerDll},
     global_state::GlobalStateRef,

@@ -1,0 +1,172 @@
+[package]
+name = "xash3d-entities"
+version = "0.1.0"
+license.workspace = true
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[lints]
+workspace = true
+
+[features]
+std = ["xash3d-server/std"]
+libm = ["xash3d-server/libm"]
+
+save = [
+    "xash3d-entity-ambient/save",
+    "xash3d-entity-button/save",
+    "xash3d-entity-door/save",
+    "xash3d-entity-platform/save",
+    "xash3d-entity-tracktrain/save",
+    "xash3d-entity-train/save",
+]
+
+all = [
+    "ambient-generic",
+    "env-bubbles",
+    "env-debris",
+    "env-explosion",
+    "env-fade",
+    "env-glow",
+    "env-message",
+    "env-render",
+    "env-shake",
+    "env-sound",
+    "env-spark",
+    "env-sprite",
+    "func-button",
+    "func-rot-button",
+    "func-door",
+    "func-door-rotating",
+    "func-friction",
+    "func-illusionary",
+    "func-ladder",
+    "func-pendulum",
+    "func-plat",
+    "func-platrot",
+    "func-rotating",
+    "func-tracktrain",
+    "func-train",
+    "func-wall",
+    "func-wall-toggle",
+    "func-water",
+    "info-landmark",
+    "info-node",
+    "info-node-air",
+    "info-player-deathmatch",
+    "info-player-start",
+    "info-target",
+    "info-teleport-destination",
+    "infodecal",
+    "item",
+    "light",
+    "light-spot",
+    "light-environment",
+    "multi-manager",
+    "multisource",
+    "path-corner",
+    "path-track",
+    "player",
+    "spark-shower",
+    "speaker",
+    "stub",
+    "target-cdaudio",
+    "trigger",
+    "trigger-auto",
+    "trigger-autosave",
+    "trigger-cdaudio",
+    "trigger-changelevel",
+    "trigger-endsection",
+    "trigger-gravity",
+    "trigger-hurt",
+    "trigger-multiple",
+    "trigger-once",
+    "trigger-push",
+    "trigger-relay",
+    "trigger-teleport",
+    "trigger-transition",
+    "world",
+    "world-items",
+]
+
+ambient-generic = ["dep:xash3d-entity-ambient"]
+env-bubbles = []
+env-debris = []
+env-explosion = []
+env-fade = []
+env-glow = []
+env-message = []
+env-render = []
+env-shake = []
+env-sound = []
+env-spark = []
+env-sprite = []
+func-button = ["dep:xash3d-entity-button"]
+func-rot-button = ["dep:xash3d-entity-button"]
+func-door = ["dep:xash3d-entity-door"]
+func-door-rotating = ["dep:xash3d-entity-door"]
+func-friction = []
+func-illusionary = []
+func-ladder = []
+func-pendulum = []
+func-plat = ["dep:xash3d-entity-platform"]
+func-platrot = ["dep:xash3d-entity-platform"]
+func-rotating = []
+func-tracktrain = ["dep:xash3d-entity-tracktrain"]
+func-train = ["dep:xash3d-entity-train"]
+func-wall = []
+func-wall-toggle = []
+func-water = ["dep:xash3d-entity-door"]
+info-landmark = []
+info-node = []
+info-node-air = []
+info-player-deathmatch = []
+info-player-start = []
+info-target = []
+info-teleport-destination = []
+infodecal = []
+item = []
+light = []
+light-spot = []
+light-environment = []
+multi-manager = []
+multisource = []
+path-corner = ["dep:xash3d-entity-train"]
+path-track = ["dep:xash3d-entity-tracktrain"]
+player = ["dep:xash3d-player-move"]
+spark-shower = []
+speaker = []
+stub = []
+target-cdaudio = []
+trigger = []
+trigger-auto = []
+trigger-autosave = []
+trigger-cdaudio = []
+trigger-changelevel = []
+trigger-endsection = []
+trigger-gravity = []
+trigger-hurt = []
+trigger-multiple = []
+trigger-once = []
+trigger-push = []
+trigger-relay = []
+trigger-teleport = []
+trigger-transition = []
+world = []
+world-items = []
+
+[dependencies]
+bitflags.workspace = true
+log.workspace = true
+csz.workspace = true
+xash3d-player-move = { workspace = true, optional = true }
+xash3d-server.workspace = true
+res.workspace = true
+
+xash3d-entity-ambient = { path = "../ambient", optional = true }
+xash3d-entity-button = { path = "../button", optional = true }
+xash3d-entity-door = { path = "../door", optional = true }
+xash3d-entity-platform = { path = "../platform", optional = true }
+xash3d-entity-tracktrain = { path = "../tracktrain", optional = true }
+xash3d-entity-train = { path = "../train", optional = true }

@@ -1,7 +1,7 @@
 use core::ffi::{c_int, CStr};
 
+use xash3d_entities::{player::Player, world::World};
 use xash3d_server::{
-    entities::{player::Player, world::World},
     entity::{BaseEntity, EntityHandle},
     export::{export_dll, impl_unsync_global, ServerDll},
     game_rules::StubGameRules,
@@ -23,7 +23,7 @@ impl<T: Entity + EntityCustom> PrivateEntity for CustomPrivate<T> {
 
     fn downcast(t: &Downcast<'_, Self::Entity>) -> bool {
         // cast an entity to the custom interface
-        t.downcast(|i| Some(i))
+        t.downcast(Some)
     }
 }
 

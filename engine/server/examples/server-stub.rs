@@ -1,7 +1,7 @@
 use core::ffi::{c_int, CStr};
 
+use xash3d_entities::{player::Player, world::World};
 use xash3d_server::{
-    entities::{player::Player, world::World},
     entity::BaseEntity,
     export::{export_dll, impl_unsync_global, ServerDll},
     game_rules::StubGameRules,

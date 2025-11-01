@@ -1842,15 +1842,13 @@ pub use export_dll;
 /// # Examples
 ///
 /// ```
-/// extern crate alloc;
-///
 /// use xash3d_server::{
 ///     prelude::*,
 ///     entity::{delegate_entity, delegate_player, BaseEntity, EntityPlayer},
-///     entities::player::Player as BasePlayer,
 ///     export::export_entity,
 ///     save::{Save, Restore},
 /// };
+/// use xash3d_entities::player::Player as BasePlayer;
 ///
 /// // define a player entity
 /// #[derive(Save, Restore)]
@@ -1929,20 +1927,3 @@ macro_rules! export_entity {
 }
 #[doc(inline)]
 pub use export_entity;
-
-#[doc(hidden)]
-#[macro_export]
-macro_rules! export_entity_default {
-    ($feature:literal, $name:ident, $entity:ty $(, $init:expr)? $(,)?) => {
-        #[cfg(any(feature = "export-default-entities", feature = $feature))]
-        $crate::export::export_entity!($name, $entity $(, $init)?);
-
-        #[cfg(not(any(feature = "export-default-entities", feature = $feature)))]
-        #[allow(dead_code)]
-        fn $name() {
-            let _: $entity;
-            $( let _ = $init; )?
-        }
-    };
-}
-pub use export_entity_default;

@@ -1076,9 +1076,6 @@ pub fn create_baseline(
     }
 }
 
-#[deprecated(note = "moved to entities::stub::StubEntity")]
-pub type StubEntity = crate::entities::stub::StubEntity;
-
 pub struct CreateError(());
 
 impl fmt::Debug for CreateError {

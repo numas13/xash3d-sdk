@@ -5,7 +5,6 @@ use xash3d_shared::{
 
 use crate::{
     entity::{delegate_entity, BaseEntity, ObjectCaps, Solid},
-    export::export_entity_default,
     prelude::*,
     private::impl_private,
 };
@@ -61,5 +60,3 @@ impl Entity for Trigger {
 }
 
 impl_private!(Trigger {});
-
-export_entity_default!("export-trigger", trigger, Trigger);

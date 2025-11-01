@@ -1,0 +1,19 @@
+[package]
+name = "xash3d-entity-button"
+version = "0.1.0"
+license.workspace = true
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[lints]
+workspace = true
+
+[features]
+save = ["xash3d-server/save"]
+
+[dependencies]
+bitflags.workspace = true
+log.workspace = true
+csz.workspace = true
+xash3d-server.workspace = true

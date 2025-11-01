@@ -15,73 +15,6 @@ libm = ["xash3d-shared/libm"]
 # enable save/restore
 save = ["dep:xash3d-server-derive"]
 
-#
-# Entities
-#
-
-# exports all default entities
-export-default-entities = []
-
-export-ambient_generic = []
-export-env_bubbles = []
-export-env_debris = []
-export-env_explosion = []
-export-env_fade = []
-export-env_glow = []
-export-env_message = []
-export-env_render = []
-export-env_shake = []
-export-env_sound = []
-export-env_spark = []
-export-env_sprite = []
-export-func_button = []
-export-func_door = []
-export-func_door_rotating = []
-export-func_friction = []
-export-func_illusionary = []
-export-func_ladder = []
-export-func_pendulum = []
-export-func_plat = []
-export-func_platrot = []
-export-func_rot_button = []
-export-func_rotating = []
-export-func_tracktrain = []
-export-func_train = []
-export-func_wall = []
-export-func_wall_toggle = []
-export-func_water = []
-export-info_landmark = []
-export-info_node = []
-export-info_node_air = []
-export-info_player_deathmatch = []
-export-info_player_start = []
-export-info_target = []
-export-infodecal = []
-export-light = []
-export-light_environment = []
-export-light_spot = []
-export-multi_manager = []
-export-multisource = []
-export-path_corner = []
-export-path_track = []
-export-spark_shower = []
-export-speaker = []
-export-target_cdaudio = []
-export-trigger = []
-export-trigger_auto = []
-export-trigger_autosave = []
-export-trigger_cdaudio = []
-export-trigger_changelevel = []
-export-trigger_endsection = []
-export-trigger_gravity = []
-export-trigger_hurt = []
-export-trigger_multiple = []
-export-trigger_once = []
-export-trigger_push = []
-export-trigger_relay = []
-export-trigger_teleport = []
-export-trigger_transition = []
-
 [lib]
 path = "lib.rs"
 
@@ -93,6 +26,9 @@ xash3d-shared.workspace = true
 xash3d-player-move.workspace = true
 xash3d-server-derive = { workspace = true, optional = true }
 res.workspace = true
+
+[dev-dependencies]
+xash3d-entities.workspace = true
 
 [lints]
 workspace = true

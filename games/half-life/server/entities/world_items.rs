@@ -1,7 +1,7 @@
 use core::ffi::CStr;
 
+use xash3d_entities::world_items::{WorldItems, WorldItemsNames};
 use xash3d_server::{
-    entities::world_items::{WorldItems, WorldItemsNames},
     export::export_entity,
     prelude::*,
     save::{Restore, Save},
