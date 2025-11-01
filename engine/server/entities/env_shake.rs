@@ -6,6 +6,7 @@ use crate::{
     entity::{delegate_entity, BaseEntity, KeyValue, Solid, UseType},
     export::export_entity_default,
     prelude::*,
+    private::impl_private,
     utils,
 };
 
@@ -106,4 +107,6 @@ impl Entity for Shake {
     }
 }
 
-export_entity_default!("export-env_shake", env_shake, Shake {});
+impl_private!(Shake {});
+
+export_entity_default!("export-env_shake", env_shake, Shake);

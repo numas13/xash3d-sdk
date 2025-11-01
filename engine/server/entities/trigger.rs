@@ -7,6 +7,7 @@ use crate::{
     entity::{delegate_entity, BaseEntity, ObjectCaps, Solid},
     export::export_entity_default,
     prelude::*,
+    private::impl_private,
 };
 
 #[cfg_attr(feature = "save", derive(Save, Restore))]
@@ -59,4 +60,6 @@ impl Entity for Trigger {
     }
 }
 
-export_entity_default!("export-trigger", trigger, Trigger {});
+impl_private!(Trigger {});
+
+export_entity_default!("export-trigger", trigger, Trigger);

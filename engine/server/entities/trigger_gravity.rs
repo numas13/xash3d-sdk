@@ -3,6 +3,7 @@ use crate::{
     entity::{delegate_entity, BaseEntity},
     export::export_entity_default,
     prelude::*,
+    private::impl_private,
 };
 
 #[cfg_attr(feature = "save", derive(Save, Restore))]
@@ -28,4 +29,6 @@ impl Entity for TriggerGravity {
     }
 }
 
-export_entity_default!("export-trigger_gravity", trigger_gravity, TriggerGravity {});
+impl_private!(TriggerGravity {});
+
+export_entity_default!("export-trigger_gravity", trigger_gravity, TriggerGravity);

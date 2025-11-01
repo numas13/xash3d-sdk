@@ -8,6 +8,7 @@ use crate::{
     entity::{delegate_entity, BaseEntity, EntityHandle, KeyValue, ObjectCaps, Solid, UseType},
     export::export_entity_default,
     prelude::*,
+    private::impl_private,
     str::MapString,
     time::MapTime,
     utils,
@@ -195,4 +196,6 @@ impl Entity for MultiManager {
     }
 }
 
-export_entity_default!("export-multi_manager", multi_manager, MultiManager {});
+impl_private!(MultiManager {});
+
+export_entity_default!("export-multi_manager", multi_manager, MultiManager);

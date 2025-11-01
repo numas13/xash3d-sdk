@@ -8,6 +8,7 @@ use crate::{
     entity::{delegate_entity, BaseEntity, EntityHandle, KeyValue, Solid, UseType},
     export::export_entity_default,
     prelude::*,
+    private::impl_private,
     str::MapString,
     utils,
 };
@@ -319,4 +320,6 @@ impl Entity for PathTrack {
     }
 }
 
-export_entity_default!("export-path_track", path_track, PathTrack {});
+impl_private!(PathTrack {});
+
+export_entity_default!("export-path_track", path_track, PathTrack);

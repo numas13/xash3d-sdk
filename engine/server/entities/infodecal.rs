@@ -7,6 +7,7 @@ use crate::{
     entity::{delegate_entity, BaseEntity, KeyValue, UseType},
     export::export_entity_default,
     prelude::*,
+    private::impl_private,
     user_message,
 };
 
@@ -145,4 +146,6 @@ impl Entity for Decal {
     }
 }
 
-export_entity_default!("export-infodecal", infodecal, Decal {});
+impl_private!(Decal {});
+
+export_entity_default!("export-infodecal", infodecal, Decal);

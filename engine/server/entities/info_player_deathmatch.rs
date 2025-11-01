@@ -2,6 +2,7 @@ use crate::{
     entity::{delegate_entity, BaseEntity, KeyValue},
     export::export_entity_default,
     prelude::*,
+    private::impl_private,
     utils,
 };
 
@@ -40,8 +41,10 @@ impl Entity for DeathMatchStart {
     }
 }
 
+impl_private!(DeathMatchStart {});
+
 export_entity_default!(
     "export-info_player_deathmatch",
     info_player_deathmatch,
-    DeathMatchStart {}
+    DeathMatchStart
 );

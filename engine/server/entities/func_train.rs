@@ -10,6 +10,7 @@ use crate::{
     entity::{delegate_entity, BaseEntity, EntityHandle, KeyValue, ObjectCaps, Solid, UseType},
     export::export_entity_default,
     prelude::*,
+    private::impl_private,
     sound::PlatformSounds,
     utils::{self, LinearMove, Move},
 };
@@ -317,4 +318,6 @@ impl Entity for Train {
     }
 }
 
-export_entity_default!("export-func_train", func_train, Train {});
+impl_private!(Train {});
+
+export_entity_default!("export-func_train", func_train, Train);

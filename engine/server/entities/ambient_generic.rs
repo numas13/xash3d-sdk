@@ -14,6 +14,7 @@ use crate::{
     entity::{delegate_entity, BaseEntity, KeyValue, ObjectCaps, Solid, UseType},
     export::export_entity_default,
     prelude::*,
+    private::impl_private,
     str::MapString,
 };
 
@@ -686,4 +687,6 @@ impl Entity for AmbientGeneric {
     }
 }
 
-export_entity_default!("export-ambient_generic", ambient_generic, AmbientGeneric {});
+impl_private!(AmbientGeneric {});
+
+export_entity_default!("export-ambient_generic", ambient_generic, AmbientGeneric);

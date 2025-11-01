@@ -367,6 +367,8 @@ impl Entity for Platform {
     }
 }
 
+impl_private!(Platform {});
+
 #[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct RotatingPlatform {
     base: Platform,
@@ -416,5 +418,7 @@ impl Entity for RotatingPlatform {
     }
 }
 
-export_entity_default!("export-func_plat", func_plat, Platform {});
-export_entity_default!("export-func_platrot", func_platrot, RotatingPlatform {});
+impl_private!(RotatingPlatform {});
+
+export_entity_default!("export-func_plat", func_plat, Platform);
+export_entity_default!("export-func_platrot", func_platrot, RotatingPlatform);

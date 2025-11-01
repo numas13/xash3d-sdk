@@ -7,6 +7,7 @@ use crate::{
     entity::{delegate_entity, BaseEntity, ObjectCaps, Solid, UseType},
     export::export_entity_default,
     prelude::*,
+    private::impl_private,
 };
 
 #[cfg_attr(feature = "save", derive(Save, Restore))]
@@ -46,4 +47,6 @@ impl Entity for FuncWall {
     }
 }
 
-export_entity_default!("export-func_wall", func_wall, FuncWall {});
+impl_private!(FuncWall {});
+
+export_entity_default!("export-func_wall", func_wall, FuncWall);

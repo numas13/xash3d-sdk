@@ -5,6 +5,7 @@ use crate::{
     entity::{delegate_entity, BaseEntity, KeyValue, UseType},
     export::export_entity_default,
     prelude::*,
+    private::impl_private,
     str::MapString,
     utils,
 };
@@ -118,4 +119,6 @@ impl Entity for Message {
     }
 }
 
-export_entity_default!("export-env_message", env_message, Message {});
+impl_private!(Message {});
+
+export_entity_default!("export-env_message", env_message, Message);

@@ -6,6 +6,7 @@ use crate::{
     entity::{delegate_entity, BaseEntity, KeyValue, UseType},
     export::export_entity_default,
     prelude::*,
+    private::impl_private,
     utils::Sparks,
 };
 
@@ -129,4 +130,6 @@ impl Entity for EnvSpark {
     }
 }
 
-export_entity_default!("export-env_spark", env_spark, EnvSpark {});
+impl_private!(EnvSpark {});
+
+export_entity_default!("export-env_spark", env_spark, EnvSpark);

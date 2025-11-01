@@ -4,6 +4,7 @@ use crate::{
     entity::{delegate_entity, BaseEntity, EntityPlayer, EntityVars, KeyValue, LastSound},
     export::export_entity_default,
     prelude::*,
+    private::impl_private,
     user_message::{self, RoomType},
 };
 
@@ -115,4 +116,6 @@ impl Entity for EnvSound {
     }
 }
 
-export_entity_default!("export-env_sound", env_sound, EnvSound {});
+impl_private!(EnvSound {});
+
+export_entity_default!("export-env_sound", env_sound, EnvSound);

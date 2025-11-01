@@ -9,6 +9,7 @@ use crate::{
     export::export_entity_default,
     global_state::EntityState,
     prelude::*,
+    private::impl_private,
     str::MapString,
     utils,
 };
@@ -181,4 +182,6 @@ impl Entity for MultiSource {
     }
 }
 
-export_entity_default!("export-multisource", multisource, MultiSource {});
+impl_private!(MultiSource {});
+
+export_entity_default!("export-multisource", multisource, MultiSource);

@@ -5,6 +5,7 @@ use crate::{
     entity::{delegate_entity, BaseEntity, KeyValue},
     export::export_entity_default,
     prelude::*,
+    private::impl_private,
 };
 
 bitflags! {
@@ -74,4 +75,6 @@ impl Entity for PathCorner {
     }
 }
 
-export_entity_default!("export-path_corner", path_corner, PathCorner {});
+impl_private!(PathCorner {});
+
+export_entity_default!("export-path_corner", path_corner, PathCorner);

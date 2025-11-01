@@ -5,6 +5,7 @@ use crate::{
     entity::{delegate_entity, BaseEntity, KeyValue, UseType},
     export::export_entity_default,
     prelude::*,
+    private::impl_private,
 };
 
 #[cfg_attr(feature = "save", derive(Save, Restore))]
@@ -81,8 +82,10 @@ impl Entity for TriggerEndSection {
     }
 }
 
+impl_private!(TriggerEndSection {});
+
 export_entity_default!(
     "export-trigger_endsection",
     trigger_endsection,
-    TriggerEndSection {}
+    TriggerEndSection
 );

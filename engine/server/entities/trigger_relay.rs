@@ -5,6 +5,7 @@ use crate::{
     entity::{delegate_entity, BaseEntity, KeyValue, ObjectCaps, UseType},
     export::export_entity_default,
     prelude::*,
+    private::impl_private,
 };
 
 bitflags! {
@@ -71,4 +72,6 @@ impl Entity for TriggerRelay {
     }
 }
 
-export_entity_default!("export-trigger_relay", trigger_relay, TriggerRelay {});
+impl_private!(TriggerRelay {});
+
+export_entity_default!("export-trigger_relay", trigger_relay, TriggerRelay);

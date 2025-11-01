@@ -3,6 +3,7 @@ use crate::{
     entity::{delegate_entity, BaseEntity, KeyValue, UseType},
     export::export_entity_default,
     prelude::*,
+    private::impl_private,
     str::MapString,
 };
 
@@ -89,5 +90,7 @@ impl Entity for Light {
     }
 }
 
-export_entity_default!("export-light", light, Light {});
+impl_private!(Light {});
+
+export_entity_default!("export-light", light, Light);
 export_entity_default!("export-light_spot", light_spot, Light);

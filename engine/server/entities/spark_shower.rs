@@ -7,6 +7,7 @@ use crate::{
     entity::{delegate_entity, BaseEntity, ObjectCaps, Solid},
     export::export_entity_default,
     prelude::*,
+    private::impl_private,
     user_message,
 };
 
@@ -84,4 +85,6 @@ impl Entity for SparkShower {
     }
 }
 
-export_entity_default!("export-spark_shower", spark_shower, SparkShower {});
+impl_private!(SparkShower {});
+
+export_entity_default!("export-spark_shower", spark_shower, SparkShower);

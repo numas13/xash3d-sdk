@@ -11,6 +11,7 @@ use crate::{
     entity::{delegate_entity, BaseEntity, KeyValue, ObjectCaps, Solid, TakeDamage, UseType},
     export::export_entity_default,
     prelude::*,
+    private::impl_private,
     time::MapTime,
 };
 
@@ -248,4 +249,6 @@ impl Entity for Pendulum {
     }
 }
 
-export_entity_default!("export-func_pendulum", func_pendulum, Pendulum {});
+impl_private!(Pendulum {});
+
+export_entity_default!("export-func_pendulum", func_pendulum, Pendulum);

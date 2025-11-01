@@ -8,6 +8,7 @@ use crate::{
     },
     export::export_entity_default,
     prelude::*,
+    private::impl_private,
 };
 
 bitflags! {
@@ -174,4 +175,6 @@ impl Entity for TriggerHurt {
     }
 }
 
-export_entity_default!("export-trigger_hurt", trigger_hurt, TriggerHurt {});
+impl_private!(TriggerHurt {});
+
+export_entity_default!("export-trigger_hurt", trigger_hurt, TriggerHurt);

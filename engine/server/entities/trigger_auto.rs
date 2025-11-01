@@ -4,6 +4,7 @@ use crate::{
     export::export_entity_default,
     global_state::EntityState,
     prelude::*,
+    private::impl_private,
     str::MapString,
 };
 
@@ -79,4 +80,6 @@ impl Entity for AutoTrigger {
     }
 }
 
-export_entity_default!("export-trigger_auto", trigger_auto, AutoTrigger {});
+impl_private!(AutoTrigger {});
+
+export_entity_default!("export-trigger_auto", trigger_auto, AutoTrigger);

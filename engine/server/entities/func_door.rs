@@ -10,6 +10,7 @@ use crate::{
     },
     export::export_entity_default,
     prelude::*,
+    private::impl_private,
     sound::LockSounds,
     str::MapString,
     utils::{self, AngularMove, LinearMove, Move, MoveState},
@@ -551,6 +552,8 @@ impl Entity for Door {
     }
 }
 
+impl_private!(Door {});
+
 #[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct RotatingDoor {
     base: BaseDoor<AngularMove>,
@@ -592,12 +595,14 @@ impl Entity for RotatingDoor {
     }
 }
 
-export_entity_default!("export-func_door", func_door, Door {});
+impl_private!(RotatingDoor {});
+
+export_entity_default!("export-func_door", func_door, Door);
 // func_water is the same as a door.
 export_entity_default!("export-func_water", func_water, Door);
 
 export_entity_default!(
     "export-func_door_rotating",
     func_door_rotating,
-    RotatingDoor {}
+    RotatingDoor
 );

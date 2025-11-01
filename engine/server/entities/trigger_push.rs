@@ -9,6 +9,7 @@ use crate::{
     entity::{delegate_entity, BaseEntity, Solid, UseType},
     export::export_entity_default,
     prelude::*,
+    private::impl_private,
 };
 
 bitflags! {
@@ -90,4 +91,6 @@ impl Entity for TriggerPush {
     }
 }
 
-export_entity_default!("export-trigger_push", trigger_push, TriggerPush {});
+impl_private!(TriggerPush {});
+
+export_entity_default!("export-trigger_push", trigger_push, TriggerPush);

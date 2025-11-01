@@ -11,6 +11,7 @@ use crate::{
     entity::{delegate_entity, BaseEntity, EntityHandle, KeyValue, ObjectCaps, UseType},
     export::export_entity_default,
     prelude::*,
+    private::impl_private,
     save::SaveRestoreData,
     str::MapString,
     utils,
@@ -140,6 +141,8 @@ impl Entity for ChangeLevel {
         }
     }
 }
+
+impl_private!(ChangeLevel {});
 
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub fn add_transition_to_list(
@@ -293,5 +296,5 @@ pub fn build_change_list(engine: ServerEngineRef, level_list: &mut [LEVELLIST]) 
 export_entity_default!(
     "export-trigger_changelevel",
     trigger_changelevel,
-    ChangeLevel {}
+    ChangeLevel
 );

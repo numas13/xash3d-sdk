@@ -7,6 +7,7 @@ use crate::{
     entity::{delegate_entity, BaseEntity, Solid},
     export::export_entity_default,
     prelude::*,
+    private::impl_private,
     time::MapTime,
 };
 
@@ -70,4 +71,6 @@ impl Entity for Glow {
     }
 }
 
-export_entity_default!("export-env_glow", env_glow, Glow {});
+impl_private!(Glow {});
+
+export_entity_default!("export-env_glow", env_glow, Glow);

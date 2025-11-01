@@ -4,6 +4,7 @@ use crate::{
     entity::{delegate_entity, BaseEntity, KeyValue, ObjectCaps, Solid},
     export::export_entity_default,
     prelude::*,
+    private::impl_private,
 };
 
 #[cfg_attr(feature = "save", derive(Save, Restore))]
@@ -54,4 +55,6 @@ impl Entity for FrictionModifier {
     }
 }
 
-export_entity_default!("export-func_friction", func_friction, FrictionModifier {});
+impl_private!(FrictionModifier {});
+
+export_entity_default!("export-func_friction", func_friction, FrictionModifier);

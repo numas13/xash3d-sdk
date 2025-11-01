@@ -4,6 +4,7 @@ use crate::{
     entity::{delegate_entity, BaseEntity, Solid, UseType},
     export::export_entity_default,
     prelude::*,
+    private::impl_private,
 };
 
 bitflags! {
@@ -56,4 +57,6 @@ impl Entity for Render {
     }
 }
 
-export_entity_default!("export-env_render", env_render, Render {});
+impl_private!(Render {});
+
+export_entity_default!("export-env_render", env_render, Render);

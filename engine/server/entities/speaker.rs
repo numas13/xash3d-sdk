@@ -5,6 +5,7 @@ use crate::{
     entity::{delegate_entity, BaseEntity, KeyValue, ObjectCaps, Solid, UseType},
     export::export_entity_default,
     prelude::*,
+    private::impl_private,
 };
 
 bitflags! {
@@ -155,4 +156,6 @@ impl Entity for Speaker {
     }
 }
 
-export_entity_default!("export-speaker", speaker, Speaker {});
+impl_private!(Speaker {});
+
+export_entity_default!("export-speaker", speaker, Speaker);

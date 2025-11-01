@@ -5,6 +5,7 @@ use crate::{
     entity::{delegate_entity, BaseEntity, Solid, UseType},
     export::export_entity_default,
     prelude::*,
+    private::impl_private,
 };
 
 #[cfg_attr(feature = "save", derive(Save, Restore))]
@@ -64,4 +65,6 @@ impl Entity for WallToggle {
     }
 }
 
-export_entity_default!("export-func_wall_toggle", func_wall_toggle, WallToggle {});
+impl_private!(WallToggle {});
+
+export_entity_default!("export-func_wall_toggle", func_wall_toggle, WallToggle);

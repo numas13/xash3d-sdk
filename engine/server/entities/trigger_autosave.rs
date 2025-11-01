@@ -3,6 +3,7 @@ use crate::{
     entity::{delegate_entity, BaseEntity, KeyValue},
     export::export_entity_default,
     prelude::*,
+    private::impl_private,
     str::MapString,
     utils,
 };
@@ -57,4 +58,6 @@ impl Entity for TriggerSave {
     }
 }
 
-export_entity_default!("export-trigger_autosave", trigger_autosave, TriggerSave {});
+impl_private!(TriggerSave {});
+
+export_entity_default!("export-trigger_autosave", trigger_autosave, TriggerSave);

@@ -5,6 +5,7 @@ use crate::{
     entity::{delegate_entity, BaseEntity, KeyValue},
     export::export_entity_default,
     prelude::*,
+    private::impl_private,
 };
 
 #[cfg_attr(feature = "save", derive(Save, Restore))]
@@ -78,4 +79,6 @@ impl Entity for EnvLight {
     }
 }
 
-export_entity_default!("export-light_environment", light_environment, EnvLight {});
+impl_private!(EnvLight {});
+
+export_entity_default!("export-light_environment", light_environment, EnvLight);

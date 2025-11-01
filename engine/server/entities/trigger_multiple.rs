@@ -8,6 +8,7 @@ use crate::{
     entity::{delegate_entity, BaseEntity, KeyValue, UseType},
     export::export_entity_default,
     prelude::*,
+    private::impl_private,
     str::MapString,
     time::MapTime,
     utils,
@@ -128,8 +129,6 @@ impl Entity for TriggerMultiple {
     }
 }
 
-export_entity_default!(
-    "export-trigger_multiple",
-    trigger_multiple,
-    TriggerMultiple {}
-);
+impl_private!(TriggerMultiple {});
+
+export_entity_default!("export-trigger_multiple", trigger_multiple, TriggerMultiple);

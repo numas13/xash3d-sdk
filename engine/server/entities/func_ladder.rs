@@ -8,6 +8,7 @@ use crate::{
     entity::{delegate_entity, BaseEntity, ObjectCaps, Solid},
     export::export_entity_default,
     prelude::*,
+    private::impl_private,
 };
 
 #[cfg_attr(feature = "save", derive(Save, Restore))]
@@ -42,4 +43,6 @@ impl Entity for Ladder {
     }
 }
 
-export_entity_default!("export-func_ladder", func_ladder, Ladder {});
+impl_private!(Ladder {});
+
+export_entity_default!("export-func_ladder", func_ladder, Ladder);

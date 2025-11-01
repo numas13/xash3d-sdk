@@ -6,6 +6,7 @@ use crate::{
     entity::{delegate_entity, BaseEntity, KeyValue, Solid, UseType},
     export::export_entity_default,
     prelude::*,
+    private::impl_private,
     utils::{self, ScreenFadeFlags},
 };
 
@@ -109,4 +110,6 @@ impl Entity for Fade {
     }
 }
 
-export_entity_default!("export-env_fade", env_fade, Fade {});
+impl_private!(Fade {});
+
+export_entity_default!("export-env_fade", env_fade, Fade);

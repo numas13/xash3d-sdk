@@ -5,6 +5,7 @@ use crate::{
     entity::{delegate_entity, BaseEntity, Solid},
     export::export_entity_default,
     prelude::*,
+    private::impl_private,
 };
 
 #[cfg_attr(feature = "save", derive(Save, Restore))]
@@ -32,8 +33,10 @@ impl Entity for TriggerVolume {
     }
 }
 
+impl_private!(TriggerVolume {});
+
 export_entity_default!(
     "export-trigger_transition",
     trigger_transition,
-    TriggerVolume {}
+    TriggerVolume
 );

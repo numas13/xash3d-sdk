@@ -15,6 +15,7 @@ use crate::{
     },
     export::export_entity_default,
     prelude::*,
+    private::impl_private,
     str::MapString,
 };
 
@@ -382,4 +383,6 @@ impl Entity for Rotating {
     }
 }
 
-export_entity_default!("export-func_rotating", func_rotating, Rotating {});
+impl_private!(Rotating {});
+
+export_entity_default!("export-func_rotating", func_rotating, Rotating);

@@ -13,6 +13,7 @@ use crate::{
     entity::{delegate_entity, BaseEntity, EntityHandle, KeyValue, ObjectCaps, Solid, UseType},
     export::export_entity_default,
     prelude::*,
+    private::impl_private,
     utils,
 };
 
@@ -559,4 +560,6 @@ impl Entity for TrackTrain {
     }
 }
 
-export_entity_default!("export-func_tracktrain", func_tracktrain, TrackTrain {});
+impl_private!(TrackTrain {});
+
+export_entity_default!("export-func_tracktrain", func_tracktrain, TrackTrain);

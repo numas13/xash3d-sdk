@@ -9,6 +9,7 @@ use crate::{
     entity::{create_entity, delegate_entity, BaseEntity, KeyValue, Solid, UseType},
     export::export_entity_default,
     prelude::*,
+    private::impl_private,
     user_message, utils,
 };
 
@@ -137,4 +138,6 @@ impl Entity for Explosion {
     }
 }
 
-export_entity_default!("export-env_explosion", env_explosion, Explosion {});
+impl_private!(Explosion {});
+
+export_entity_default!("export-env_explosion", env_explosion, Explosion);

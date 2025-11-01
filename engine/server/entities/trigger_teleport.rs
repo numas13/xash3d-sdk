@@ -6,6 +6,7 @@ use crate::{
     entity::{delegate_entity, BaseEntity, KeyValue},
     export::export_entity_default,
     prelude::*,
+    private::impl_private,
     str::MapString,
     utils,
 };
@@ -117,11 +118,9 @@ impl Entity for TriggerTeleport {
     }
 }
 
-export_entity_default!(
-    "export-trigger_teleport",
-    trigger_teleport,
-    TriggerTeleport {}
-);
+impl_private!(TriggerTeleport {});
+
+export_entity_default!("export-trigger_teleport", trigger_teleport, TriggerTeleport);
 export_entity_default!(
     "export-trigger_teleport",
     info_teleport_destination,

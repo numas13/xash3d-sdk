@@ -6,6 +6,7 @@ use crate::{
     entity::{delegate_entity, BaseEntity, KeyValue, ObjectCaps, Solid, UseType},
     export::export_entity_default,
     prelude::*,
+    private::impl_private,
     user_message,
 };
 
@@ -118,4 +119,6 @@ impl Entity for Bubbles {
     }
 }
 
-export_entity_default!("export-env_bubbles", env_bubbles, Bubbles {});
+impl_private!(Bubbles {});
+
+export_entity_default!("export-env_bubbles", env_bubbles, Bubbles);

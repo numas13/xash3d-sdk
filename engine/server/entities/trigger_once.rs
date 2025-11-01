@@ -2,6 +2,7 @@ use crate::{
     entity::{delegate_entity, BaseEntity},
     export::export_entity_default,
     prelude::*,
+    private::impl_private,
 };
 
 use super::trigger_multiple::TriggerMultiple;
@@ -28,4 +29,6 @@ impl Entity for TriggerOnce {
     }
 }
 
-export_entity_default!("export-trigger_once", trigger_once, TriggerOnce {});
+impl_private!(TriggerOnce {});
+
+export_entity_default!("export-trigger_once", trigger_once, TriggerOnce);

@@ -11,6 +11,7 @@ use crate::{
     },
     export::export_entity_default,
     prelude::*,
+    private::impl_private,
     sound::{button_sound_or_default, LockSounds},
     str::MapString,
     utils::{self, AngularMove, LinearMove, Move, MoveState, Sparks},
@@ -484,6 +485,8 @@ impl Entity for Button {
     }
 }
 
+impl_private!(Button {});
+
 #[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct RotButton {
     base: BaseButton<AngularMove>,
@@ -542,5 +545,7 @@ impl Entity for RotButton {
     }
 }
 
-export_entity_default!("export-func_button", func_button, Button {});
-export_entity_default!("export-func_rot_button", func_rot_button, RotButton {});
+impl_private!(RotButton {});
+
+export_entity_default!("export-func_button", func_button, Button);
+export_entity_default!("export-func_rot_button", func_rot_button, RotButton);

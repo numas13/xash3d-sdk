@@ -11,6 +11,7 @@ use crate::{
     entity::{delegate_entity, BaseEntity, EntityHandle, ObjectCaps, Solid, UseType},
     export::export_entity_default,
     prelude::*,
+    private::impl_private,
     time::MapTime,
 };
 
@@ -175,4 +176,6 @@ impl Entity for Sprite {
     }
 }
 
-export_entity_default!("export-env_sprite", env_sprite, Sprite {});
+impl_private!(Sprite {});
+
+export_entity_default!("export-env_sprite", env_sprite, Sprite);

@@ -3,6 +3,7 @@ use crate::{
     entity::{delegate_entity, BaseEntity, UseType},
     export::export_entity_default,
     prelude::*,
+    private::impl_private,
     sound::play_cd_track,
 };
 
@@ -40,4 +41,6 @@ impl Entity for TriggerCdAudio {
     }
 }
 
-export_entity_default!("export-trigger_cdaudio", trigger_cdaudio, TriggerCdAudio {});
+impl_private!(TriggerCdAudio {});
+
+export_entity_default!("export-trigger_cdaudio", trigger_cdaudio, TriggerCdAudio);

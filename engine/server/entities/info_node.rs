@@ -4,6 +4,7 @@ use crate::{
     entity::{delegate_entity, BaseEntity, KeyValue, ObjectCaps, Solid},
     export::export_entity_default,
     prelude::*,
+    private::impl_private,
 };
 
 #[cfg_attr(feature = "save", derive(Save, Restore))]
@@ -55,7 +56,9 @@ impl Entity for NodeEntity {
     }
 }
 
+impl_private!(NodeEntity {});
+
 // TODO: add the world graph
 
-export_entity_default!("export-info_node", info_node, NodeEntity {});
+export_entity_default!("export-info_node", info_node, NodeEntity);
 export_entity_default!("export-info_node_air", info_node_air, NodeEntity);
