@@ -22,9 +22,6 @@ save = ["dep:xash3d-server-derive"]
 # exports all default entities
 export-default-entities = []
 
-# exports stub for some unimplemented entities
-export-stubs = []
-
 export-ambient_generic = []
 export-env_bubbles = []
 export-env_debris = []

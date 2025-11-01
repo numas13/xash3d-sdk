@@ -26,7 +26,7 @@ bitflags.workspace = true
 csz.workspace = true
 libc.workspace = true
 xash3d-player-move.workspace = true
-xash3d-server = { workspace = true, features = ["export-default-entities", "export-stubs"] }
+xash3d-server = { workspace = true, features = ["export-default-entities"] }
 xash3d-allocator.workspace = true
 xash3d-hl-shared.workspace = true
 res.workspace = true

@@ -1946,22 +1946,3 @@ macro_rules! export_entity_default {
     };
 }
 pub use export_entity_default;
-
-#[doc(hidden)]
-#[macro_export]
-macro_rules! export_entity_stub {
-    ($name:ident, $entity:ty $(,)?) => {
-        #[cfg(feature = "export-stubs")]
-        $crate::export::export_entity!($name, $entity);
-
-        #[cfg(not(feature = "export-stubs"))]
-        #[allow(dead_code)]
-        fn $name() {
-            let _: $entity;
-        }
-    };
-    ($name:ident $(,)?) => {
-        $crate::export::export_entity_stub!($name, $crate::entities::stub::StubEntity);
-    };
-}
-pub use export_entity_stub;
