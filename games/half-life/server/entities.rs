@@ -1,16 +1,7 @@
-pub mod barney;
 pub mod env_beverage;
-pub mod gman;
 pub mod healthkit;
 pub mod item_battery;
 pub mod item_sodacan;
 pub mod item_suit;
-pub mod monster_barnacle;
-pub mod monster_bullchicken;
-pub mod monster_headcrab;
-pub mod monster_houndeye;
-pub mod monster_zombie;
-pub mod monstermaker;
 pub mod player;
-pub mod scientist;
 pub mod world_items;
