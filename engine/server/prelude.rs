@@ -15,4 +15,4 @@ pub use crate::{
 pub use crate::save::{Restore, Save};
 
 // TODO: remove me
-pub use crate::{engine::LevelListExt, save::TypeDescriptionExt};
+pub use crate::save::TypeDescriptionExt;

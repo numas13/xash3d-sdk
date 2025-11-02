@@ -28,8 +28,8 @@ use xash3d_shared::{
 };
 
 use crate::{
+    changelevel::build_change_list,
     engine::ClientInfoBuffer,
-    entities::trigger_changelevel::build_change_list,
     entity::{BaseEntity, EntityHandle, EntityPlayer, KeyValue, RestoreResult, UseType},
     global_state::{EntityState, GlobalState, GlobalStateRef},
     prelude::*,
@@ -524,7 +524,7 @@ pub trait ServerDll: UnsyncGlobal {
         let engine = self.engine();
         if let Some(mut save_data) = engine.globals.save_data() {
             let save_data = unsafe { save_data.as_mut() };
-            let count = build_change_list(engine, &mut save_data.levelList);
+            let count = build_change_list(&engine, &mut save_data.levelList);
             save_data.connectionCount = count as c_int;
             trace!("parms_change_level: connections {count}");
         }

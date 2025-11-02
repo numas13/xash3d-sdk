@@ -1000,6 +1000,11 @@ define_entity_trait! {
     }
 }
 
+pub trait EntityChangeLevel: Entity {
+    fn map_name(&self) -> &CStrThin;
+    fn landmark_name(&self) -> &CStrThin;
+}
+
 pub fn set_object_collision_box(ev: &EntityVars) {
     if ev.solid() == Solid::Bsp && ev.angles() != vec3_t::ZERO {
         let mut max = 0.0;

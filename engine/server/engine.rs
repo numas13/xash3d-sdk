@@ -13,7 +13,7 @@ use core::{
 };
 
 use bitflags::bitflags;
-use csz::{CStrArray, CStrSlice, CStrThin};
+use csz::{CStrArray, CStrThin};
 use xash3d_shared::{
     consts::{Contents, MAX_SYSPATH},
     entity::{Buttons, EntityIndex},
@@ -23,7 +23,6 @@ use xash3d_shared::{
         common::{cvar_s, cvar_t, entity_state_s, vec3_t},
         server::{
             edict_s, enginefuncs_s, entvars_s, globalvars_t, CRC32_t, KeyValueData, ALERT_TYPE,
-            LEVELLIST,
         },
     },
     macros::define_enum_for_primitive,
@@ -67,34 +66,6 @@ pub struct RegisterUserMessageError;
 impl fmt::Display for RegisterUserMessageError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str("failed to register user message")
-    }
-}
-
-pub trait LevelListExt {
-    fn map_name(&self) -> &CStrThin;
-
-    fn map_name_new(&mut self) -> &mut CStrSlice;
-
-    fn landmark_name(&self) -> &CStrThin;
-
-    fn landmark_name_new(&mut self) -> &mut CStrSlice;
-}
-
-impl LevelListExt for LEVELLIST {
-    fn map_name(&self) -> &CStrThin {
-        unsafe { CStrThin::from_ptr(self.mapName.as_ptr()) }
-    }
-
-    fn map_name_new(&mut self) -> &mut CStrSlice {
-        CStrSlice::new_in_slice(&mut self.mapName)
-    }
-
-    fn landmark_name(&self) -> &CStrThin {
-        unsafe { CStrThin::from_ptr(self.landmarkName.as_ptr()) }
-    }
-
-    fn landmark_name_new(&mut self) -> &mut CStrSlice {
-        CStrSlice::new_in_slice(&mut self.landmarkName)
     }
 }
 

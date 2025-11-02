@@ -4,4 +4,3 @@ pub mod point_entity;
 
 // TODO: move to xash3d_entities crate
 pub mod trigger;
-pub mod trigger_changelevel;
