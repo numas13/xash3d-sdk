@@ -32,7 +32,6 @@ use xash3d_shared::{
         server::{edict_s, entvars_s, TYPEDESCRIPTION},
     },
     macros::define_enum_for_primitive,
-    utils::cstr_or_none,
 };
 
 use crate::{
@@ -266,8 +265,8 @@ bitflags! {
     }
 }
 
-pub trait TypeDescriptionExt {
-    fn name(&self) -> Option<&CStrThin>;
+trait TypeDescriptionExt {
+    fn name(&self) -> &CStrThin;
 
     fn field_type(&self) -> FieldType;
 
@@ -275,8 +274,8 @@ pub trait TypeDescriptionExt {
 }
 
 impl TypeDescriptionExt for TYPEDESCRIPTION {
-    fn name(&self) -> Option<&CStrThin> {
-        unsafe { cstr_or_none(self.fieldName) }
+    fn name(&self) -> &CStrThin {
+        unsafe { CStrThin::from_ptr(self.fieldName) }
     }
 
     fn field_type(&self) -> FieldType {
@@ -504,7 +503,7 @@ impl SaveWriter {
     pub unsafe fn write_fields_raw(
         &mut self,
         save_data: &mut SaveRestoreData,
-        name: &'static CStr,
+        name: &CStr,
         base_data: *const u8,
         fields: &[TYPEDESCRIPTION],
     ) -> SaveResult<()> {
@@ -576,7 +575,7 @@ pub unsafe fn read_fields_raw(
         for i in 0..fields.len() {
             let field_index = (i + last_field) % fields.len();
             let field = &fields[field_index];
-            let field_name = unsafe { CStrThin::from_ptr(field.fieldName) };
+            let field_name = field.name();
             if !field_name.eq_ignore_case(name) {
                 continue;
             }
@@ -694,12 +693,12 @@ pub fn read_fields<T: SaveFields>(
 ///
 /// * `base_data` must be non-null.
 /// * Field descriptions must be valid for the given `base_data` type.
-pub unsafe fn write_fields_raw(
-    state: &mut SaveState,
+pub unsafe fn write_fields_raw<'a>(
+    state: &mut SaveState<'a>,
     dst: &mut CursorMut,
-    name: &'static CStr,
+    name: &'a CStr,
     base_data: *const u8,
-    fields: &[TYPEDESCRIPTION],
+    fields: &'a [TYPEDESCRIPTION],
 ) -> SaveResult<()> {
     let engine = state.engine();
     let header_offset = dst.skip(2 * mem::size_of::<u16>() + mem::size_of::<u32>())?;
@@ -717,8 +716,8 @@ pub unsafe fn write_fields_raw(
         }
 
         let size_offset = dst.skip(mem::size_of::<u16>())?;
-        let field_name = unsafe { CStr::from_ptr(field.fieldName) };
-        dst.write_token(state.token_hash(field_name))?;
+        let field_name = field.name();
+        dst.write_token(state.token_hash(field_name.as_c_str()))?;
 
         let data_offset = dst.offset();
         match field_type {
@@ -830,7 +829,7 @@ impl<'a> SaveState<'a> {
         self.state.use_landmark_offset()
     }
 
-    pub fn token_hash(&mut self, token: &'static CStr) -> Token {
+    pub fn token_hash(&mut self, token: &'a CStr) -> Token {
         self.state.token_hash(token)
     }
 

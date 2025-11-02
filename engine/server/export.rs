@@ -407,7 +407,7 @@ pub trait ServerDll: UnsyncGlobal {
     unsafe fn save_write_fields(
         &self,
         save_data: &mut SaveRestoreData,
-        name: &'static CStrThin,
+        name: &CStrThin,
         base_data: *mut c_void,
         fields: &mut [TYPEDESCRIPTION],
     ) {

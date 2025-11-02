@@ -136,7 +136,7 @@ impl SaveRestoreState {
         None
     }
 
-    pub fn token_hash(&mut self, str: &'static CStr) -> Token {
+    pub fn token_hash<'a>(&'a mut self, str: &'a CStr) -> Token {
         let tokens = self.tokens_mut();
         let hash = (hash_string(str) % (tokens.len() as c_uint)) as c_ushort;
         for i in 0..tokens.len() {

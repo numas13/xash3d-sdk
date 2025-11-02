@@ -689,10 +689,10 @@ impl<'a> CursorMut<'a> {
     }
 
     #[cfg(feature = "save")]
-    pub fn write_field<T: Save + ?Sized>(
+    pub fn write_field<'b, T: Save + ?Sized>(
         &mut self,
-        state: &mut SaveState,
-        name: &'static core::ffi::CStr,
+        state: &mut SaveState<'b>,
+        name: &'b core::ffi::CStr,
         value: &T,
     ) -> SaveResult<()> {
         let header_offset = self.skip(4)?;

@@ -13,6 +13,3 @@ pub use crate::{
 
 #[cfg(feature = "save")]
 pub use crate::save::{Restore, Save};
-
-// TODO: remove me
-pub use crate::save::TypeDescriptionExt;
