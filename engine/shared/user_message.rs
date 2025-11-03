@@ -526,6 +526,10 @@ impl<const N: u32> FixedU8<N> {
         Self((value * N as f32) as u8)
     }
 
+    pub const fn from_bits(bits: u8) -> Self {
+        Self(bits)
+    }
+
     pub const fn bits(&self) -> u8 {
         self.0
     }
@@ -591,6 +595,10 @@ impl<const N: u32> FixedU16<N> {
         Self((value * N as f32) as u16)
     }
 
+    pub const fn from_bits(bits: u16) -> Self {
+        Self(bits)
+    }
+
     pub const fn bits(&self) -> u16 {
         self.0
     }
@@ -643,6 +651,10 @@ impl<const N: u32> FixedI16<N> {
         Self((value * N as f32) as i16)
     }
 
+    pub const fn from_bits(bits: i16) -> Self {
+        Self(bits)
+    }
+
     pub const fn bits(&self) -> i16 {
         self.0
     }
@@ -691,6 +703,10 @@ impl<const N: u32> ScaledU8<N> {
 
     pub fn from_f32(value: f32) -> Self {
         Self((value / N as f32) as u8)
+    }
+
+    pub const fn from_bits(bits: u8) -> Self {
+        Self(bits)
     }
 
     pub const fn bits(&self) -> u8 {
