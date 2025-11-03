@@ -1,12 +1,17 @@
-use core::cell::Cell;
+use core::{cell::Cell, ffi::CStr};
 
 use bitflags::bitflags;
 use xash3d_server::{
+    color::RGBA,
     entities::point_entity::PointEntity,
-    entity::{Effects, MoveType ,delegate_entity, BaseEntity, EntityHandle, ObjectCaps, Solid, UseType},
-    prelude::*,
+    entity::{
+        delegate_entity, BaseEntity, Effects, EntityHandle, MoveType, ObjectCaps, Solid, UseType,
+    },
     ffi::common::vec3_t,
+    prelude::*,
     private::impl_private,
+    render::{RenderFx, RenderMode},
+    str::MapString,
     time::MapTime,
 };
 
@@ -48,6 +53,28 @@ impl CreateEntity for Sprite {
 }
 
 impl Sprite {
+    pub const CLASS_NAME: &'static CStr = c"env_sprite";
+
+    pub fn new(
+        engine: &ServerEngine,
+        sprite_name: MapString,
+        origin: vec3_t,
+        animate: bool,
+    ) -> &Sprite {
+        let sprite = engine
+            .new_entity::<Self>()
+            .class_name(Self::CLASS_NAME)
+            .vars(|v| {
+                v.set_model_name(sprite_name);
+                v.set_origin(origin);
+            })
+            .build_and_spawn();
+        if animate {
+            sprite.turn_on();
+        }
+        sprite
+    }
+
     fn spawn_flags(&self) -> SpawnFlags {
         SpawnFlags::from_bits_retain(self.vars().spawn_flags())
     }
@@ -66,11 +93,18 @@ impl Sprite {
         now - self.last_time.replace(now)
     }
 
-    fn is_on(&self) -> bool {
+    pub fn set_transparency(&self, mode: RenderMode, color: RGBA, fx: RenderFx) {
+        let v = self.vars();
+        v.set_render_mode(mode);
+        v.set_render_color_from_rgba(color);
+        v.set_render_fx(fx);
+    }
+
+    pub fn is_on(&self) -> bool {
         self.vars().effects() != Effects::NODRAW
     }
 
-    fn turn_on(&self) {
+    pub fn turn_on(&self) {
         let sf = self.spawn_flags();
         let v = self.vars();
         v.remove_effects();
@@ -81,7 +115,7 @@ impl Sprite {
         }
     }
 
-    fn turn_off(&self) {
+    pub fn turn_off(&self) {
         let v = self.vars();
         v.set_effects(Effects::NODRAW);
         v.stop_thinking();
@@ -173,8 +207,12 @@ impl Entity for Sprite {
 
 impl_private!(Sprite {});
 
-define_export! {
-    export_env_sprite as export if "env-sprite" {
-        env_sprite = env_sprite::Sprite,
-    }
+#[doc(hidden)]
+#[macro_export]
+macro_rules! export_env_sprite {
+    () => {
+        $crate::export_entity!(env_sprite, $crate::env_sprite::Sprite);
+    };
 }
+#[doc(inline)]
+pub use export_env_sprite as export;

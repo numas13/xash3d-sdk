@@ -24,6 +24,7 @@ import_with_export! {
     use xash3d_entity_door::func_door_rotating as func_door_rotating if "func-door-rotating";
     use xash3d_entity_platform::func_plat as func_plat if "func-plat";
     use xash3d_entity_platform::func_platrot as func_platrot if "func-platrot";
+    use xash3d_entity_sprite::env_sprite as env_sprite if "env-sprite";
     use xash3d_entity_tracktrain::func_tracktrain as func_tracktrain if "func-tracktrain";
     use xash3d_entity_tracktrain::path_track as path_track if "path-track";
     use xash3d_entity_train::func_train as func_train if "func-train";
@@ -43,7 +44,6 @@ define_with_export! {
     mod env_shake if "env-shake";
     mod env_sound if "env-sound";
     mod env_spark if "env-spark" or "env-debris";
-    mod env_sprite if "env-sprite";
     mod func_friction if "func-friction";
     mod func_illusionary if "func-illusionary";
     mod func_ladder if "func-ladder";

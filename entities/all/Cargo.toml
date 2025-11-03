@@ -15,6 +15,7 @@ libm = ["xash3d-server/libm"]
 
 save = [
     "xash3d-entity-ambient/save",
+    "xash3d-entity-sprite/save",
     "xash3d-entity-button/save",
     "xash3d-entity-door/save",
     "xash3d-entity-platform/save",
@@ -101,7 +102,7 @@ env-render = []
 env-shake = []
 env-sound = []
 env-spark = []
-env-sprite = []
+env-sprite = ["dep:xash3d-entity-sprite"]
 func-button = ["dep:xash3d-entity-button"]
 func-rot-button = ["dep:xash3d-entity-button"]
 func-door = ["dep:xash3d-entity-door"]
@@ -168,5 +169,6 @@ xash3d-entity-ambient = { path = "../ambient", optional = true }
 xash3d-entity-button = { path = "../button", optional = true }
 xash3d-entity-door = { path = "../door", optional = true }
 xash3d-entity-platform = { path = "../platform", optional = true }
+xash3d-entity-sprite = { path = "../sprite", optional = true }
 xash3d-entity-tracktrain = { path = "../tracktrain", optional = true }
 xash3d-entity-train = { path = "../train", optional = true }

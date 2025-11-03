@@ -105,6 +105,7 @@ dependencies = [
  "xash3d-entity-button",
  "xash3d-entity-door",
  "xash3d-entity-platform",
+ "xash3d-entity-sprite",
  "xash3d-entity-tracktrain",
  "xash3d-entity-train",
  "xash3d-hl-resources",
@@ -145,6 +146,16 @@ dependencies = [
 
 [[package]]
 name = "xash3d-entity-platform"
+version = "0.1.0"
+dependencies = [
+ "bitflags",
+ "csz",
+ "log",
+ "xash3d-server",
+]
+
+[[package]]
+name = "xash3d-entity-sprite"
 version = "0.1.0"
 dependencies = [
  "bitflags",

@@ -297,6 +297,11 @@ impl<'a, T: Entity> EntityBuilder<'a, T> {
     pub fn build(self) -> &'a mut T {
         self.entity
     }
+
+    pub fn build_and_spawn(self) -> &'a mut T {
+        self.entity.spawn();
+        self.entity
+    }
 }
 
 pub struct TraceResult<'a> {
