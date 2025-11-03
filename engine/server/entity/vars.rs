@@ -8,6 +8,7 @@ use core::{
 use bitflags::bitflags;
 use csz::CStrThin;
 use xash3d_shared::{
+    color::{RGB, RGBA},
     entity::{Buttons, EdictFlags, Effects, EntityIndex, MoveType},
     ffi::{
         self,
@@ -707,6 +708,28 @@ impl EntityVars {
 
     field!(get rendercolor, fn render_color() -> vec3_t);
     field!(set rendercolor, fn set_render_color(v: vec3_t));
+
+    pub fn render_color_to_rgb(&self) -> RGB {
+        let &[r, g, b] = self.render_color().as_ref();
+        RGB::new(r as u8, g as u8, b as u8)
+    }
+
+    pub fn set_render_color_from_rgb(&self, color: RGB) {
+        self.set_render_color(vec3_t::new(
+            color.r() as f32,
+            color.g() as f32,
+            color.b() as f32,
+        ))
+    }
+
+    pub fn render_color_to_rgba(&self) -> RGBA {
+        self.render_color_to_rgb().rgba(self.render_amount() as u8)
+    }
+
+    pub fn set_render_color_from_rgba(&self, color: RGBA) {
+        self.set_render_color_from_rgb(color.into());
+        self.set_render_amount(color.a() as f32);
+    }
 
     field!(get renderfx, fn render_fx_raw() -> i32);
     field!(set renderfx, fn set_render_fx_raw(v: i32));
