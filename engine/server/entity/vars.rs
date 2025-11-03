@@ -508,6 +508,8 @@ impl EntityVars {
         NonZeroI32::new(self.model_index_raw())
     }
 
+    field!(get model, fn model_name_raw() -> i32);
+    field!(set model, fn set_model_name_raw(v: i32));
     field!(get model, fn model_name() -> Option<MapString>);
     field!(set model, fn set_model_name(v: Option<MapString>));
 
@@ -546,9 +548,13 @@ impl EntityVars {
         }
     }
 
+    field!(get viewmodel, fn view_model_name_raw() -> i32);
+    field!(set viewmodel, fn set_view_model_name_raw(v: i32));
     field!(get viewmodel, fn view_model_name() -> Option<MapString>);
     field!(set viewmodel, fn set_view_model_name(v: Option<MapString>));
 
+    field!(get weaponmodel, fn weapon_model_name_raw() -> i32);
+    field!(set weaponmodel, fn set_weapon_model_name_raw(v: i32));
     field!(get weaponmodel, fn weapon_model_name() -> Option<MapString>);
     field!(set weaponmodel, fn set_weapon_model_name(v: Option<MapString>));
 
@@ -626,9 +632,13 @@ impl EntityVars {
         self.next_think_time() > MapTime::ZERO
     }
 
+    field!(get movetype, fn move_type_raw() -> i32);
+    field!(set movetype, fn set_move_type_raw(v: i32));
     field!(get enum movetype, fn move_type() -> MoveType);
     field!(set enum movetype, fn set_move_type(v: MoveType));
 
+    field!(get solid, fn solid_raw() -> i32);
+    field!(set solid, fn set_solid_raw(v: i32));
     field!(get enum solid, fn solid() -> Solid);
     field!(set enum solid, fn set_solid(v: Solid));
 
@@ -638,6 +648,9 @@ impl EntityVars {
     field!(get body, fn body() -> i32);
     field!(set body, fn set_body(v: i32));
 
+    field!(get effects, fn effects_raw() -> i32);
+    field!(set effects, fn set_effects_raw(v: i32));
+    field!(mut effects, fn with_effects_raw(i32));
     field!(get bitflags effects, fn effects() -> Effects);
     field!(set bitflags effects, fn set_effects(v: Effects));
     field!(mut bitflags effects, fn with_effects(Effects));
@@ -684,6 +697,8 @@ impl EntityVars {
         fn scale() -> f32);
     field!(set scale, fn set_scale(v: f32));
 
+    field!(get rendermode, fn render_mode_raw() -> i32);
+    field!(set rendermode, fn set_render_mode_raw(v: i32));
     field!(get enum rendermode, fn render_mode() -> RenderMode);
     field!(set enum rendermode, fn set_render_mode(v: RenderMode));
 
@@ -693,6 +708,8 @@ impl EntityVars {
     field!(get rendercolor, fn render_color() -> vec3_t);
     field!(set rendercolor, fn set_render_color(v: vec3_t));
 
+    field!(get renderfx, fn render_fx_raw() -> i32);
+    field!(set renderfx, fn set_render_fx_raw(v: i32));
     field!(get enum renderfx, fn render_fx() -> RenderFx);
     field!(set enum renderfx, fn set_render_fx(v: RenderFx));
 
@@ -712,9 +729,13 @@ impl EntityVars {
         Weapons::from_bits_retain(self.weapons()).intersects(Weapons::SUIT)
     }
 
+    field!(get takedamage, fn take_damage_raw() -> f32);
+    field!(set takedamage, fn set_take_damage_raw(v: f32));
     field!(get enum takedamage, fn take_damage() -> TakeDamage);
     field!(set enum takedamage, fn set_take_damage(v: TakeDamage));
 
+    field!(get deadflag, fn dead_raw() -> i32);
+    field!(set deadflag, fn set_dead_raw(v: i32));
     field!(get enum deadflag, fn dead() -> Dead);
     field!(set enum deadflag, fn set_dead(v: Dead));
 
@@ -722,6 +743,9 @@ impl EntityVars {
     field!(set view_ofs, fn set_view_ofs(v: vec3_t));
     field!(mut view_ofs, fn with_view_ofs(vec3_t));
 
+    field!(get button, fn buttons_raw() -> i32);
+    field!(set button, fn set_buttons_raw(v: i32));
+    field!(mut button, fn with_buttons_raw(i32));
     field!(get bitflags button, fn buttons() -> Buttons);
     field!(set bitflags button, fn set_buttons(v: Buttons));
     field!(mut bitflags button, fn with_buttons(Buttons));
@@ -752,6 +776,9 @@ impl EntityVars {
     field!(set bitflags spawnflags, fn set_spawn_flags(v: u32));
     field!(mut bitflags spawnflags, fn with_spawn_flags(u32));
 
+    field!(get flags, fn flags_raw() -> i32);
+    field!(set flags, fn set_flags_raw(v: i32));
+    field!(mut flags, fn with_flags_raw(i32));
     field!(get bitflags flags, fn flags() -> EdictFlags);
     field!(set bitflags flags, fn set_flags(v: EdictFlags));
     field!(mut bitflags flags, fn with_flags(EdictFlags));
@@ -774,6 +801,8 @@ impl EntityVars {
     field!(get armorvalue, fn armor_value() -> f32);
     field!(set armorvalue, fn set_armor_value(v: f32));
 
+    field!(get waterlevel, fn water_level_raw() -> i32);
+    field!(set waterlevel, fn set_water_level_raw(v: i32));
     field!(get enum waterlevel, fn water_level() -> WaterLevel);
     field!(set enum waterlevel, fn set_water_level(v: WaterLevel));
 
@@ -781,6 +810,8 @@ impl EntityVars {
     field!(get watertype, fn water_type() -> i32);
     field!(set watertype, fn set_water_type(v: i32));
 
+    field!(get target, fn target_raw() -> i32);
+    field!(set target, fn set_target_raw(s: i32));
     field!(get target, fn target() -> Option<MapString>);
     field!(set target, fn set_target(s: Option<MapString>));
 
@@ -788,6 +819,8 @@ impl EntityVars {
         self.target().is_some_and(|s| s.as_thin() == name.as_ref())
     }
 
+    field!(get targetname, fn target_name_raw() -> i32);
+    field!(set targetname, fn set_target_name_raw(s: i32));
     field!(get targetname, fn target_name() -> Option<MapString>);
     field!(set targetname, fn set_target_name(s: Option<MapString>));
 
@@ -796,9 +829,13 @@ impl EntityVars {
             .is_some_and(|s| s.as_thin() == name.as_ref())
     }
 
+    field!(get netname, fn net_name_raw() -> i32);
+    field!(set netname, fn set_net_name_raw(s: i32));
     field!(get netname, fn net_name() -> Option<MapString>);
     field!(set netname, fn set_net_name(s: Option<MapString>));
 
+    field!(get message, fn message_raw() -> i32);
+    field!(set message, fn set_message_raw(s: i32));
     field!(get message, fn message() -> Option<MapString>);
     field!(set message, fn set_message(s: Option<MapString>));
 
@@ -816,15 +853,23 @@ impl EntityVars {
         fn damage_time() -> MapTime);
     field!(set dmgtime, fn set_damage_time(v: MapTime));
 
+    field!(get noise, fn noise_raw() -> i32);
+    field!(set noise, fn set_noise_raw(s: i32));
     field!(get noise, fn noise() -> Option<MapString>);
     field!(set noise, fn set_noise(s: Option<MapString>));
 
+    field!(get noise1, fn noise1_raw() -> i32);
+    field!(set noise1, fn set_noise1_raw(s: i32));
     field!(get noise1, fn noise1() -> Option<MapString>);
     field!(set noise1, fn set_noise1(s: Option<MapString>));
 
+    field!(get noise2, fn noise2_raw() -> i32);
+    field!(set noise2, fn set_noise2_raw(s: i32));
     field!(get noise2, fn noise2() -> Option<MapString>);
     field!(set noise2, fn set_noise2(s: Option<MapString>));
 
+    field!(get noise3, fn noise3_raw() -> i32);
+    field!(set noise3, fn set_noise3_raw(s: i32));
     field!(get noise3, fn noise3() -> Option<MapString>);
     field!(set noise3, fn set_noise3(s: Option<MapString>));
 
@@ -892,6 +937,9 @@ impl EntityVars {
     field!(get gamestate, fn game_state() -> i32);
     field!(set gamestate, fn set_game_state(v: i32));
 
+    field!(get oldbuttons, fn old_buttons_raw() -> i32);
+    field!(set oldbuttons, fn set_old_buttons_raw(v: i32));
+    field!(mut oldbuttons, fn with_old_buttons_raw(i32));
     field!(get bitflags oldbuttons, fn old_buttons() -> Buttons);
     field!(set bitflags oldbuttons, fn set_old_buttons(v: Buttons));
     field!(mut bitflags oldbuttons, fn with_old_buttons(Buttons));
