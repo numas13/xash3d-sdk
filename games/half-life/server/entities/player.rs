@@ -105,7 +105,9 @@ pub struct TestPlayer {
     #[save(skip)]
     client: ClientState,
 
-    find: Cell<Option<MapString>>,
+    find_class: Cell<Option<MapString>>,
+    find_name: Cell<Option<MapString>>,
+    find_target: Cell<Option<MapString>>,
 }
 
 impl CreateEntity for TestPlayer {
@@ -124,7 +126,9 @@ impl CreateEntity for TestPlayer {
 
             client: ClientState::default(),
 
-            find: Cell::default(),
+            find_class: Cell::default(),
+            find_name: Cell::default(),
+            find_target: Cell::default(),
         }
     }
 }
@@ -283,17 +287,62 @@ impl TestPlayer {
         self.update_client_data();
     }
 
-    pub fn find_class_name(&self, class_name: &CStrThin) {
+    pub fn find_class(&self, name: &CStrThin) {
         let v = self.vars();
-        if class_name.is_empty() {
+        if !name.is_empty() {
+            info!("searching class {name}");
+            let s = self.engine().new_map_string(name);
+            self.find_class.set(Some(s));
+            v.set_next_think_time_from_now(0.1)
+        } else {
             v.stop_thinking();
-            self.find.set(None);
-            return;
+            self.find_class.set(None);
         }
-        info!("searching {class_name}");
-        self.find
-            .set(Some(self.engine().new_map_string(class_name)));
-        v.set_next_think_time_from_now(0.1)
+    }
+
+    pub fn find_name(&self, name: &CStrThin) {
+        let v = self.vars();
+        if !name.is_empty() {
+            info!("searching name {name}");
+            let s = self.engine().new_map_string(name);
+            self.find_name.set(Some(s));
+            v.set_next_think_time_from_now(0.1)
+        } else {
+            v.stop_thinking();
+            self.find_name.set(None);
+        }
+    }
+
+    pub fn find_target(&self, name: &CStrThin) {
+        let v = self.vars();
+        if !name.is_empty() {
+            info!("searching target {name}");
+            let s = self.engine().new_map_string(name);
+            self.find_target.set(Some(s));
+            v.set_next_think_time_from_now(0.1)
+        } else {
+            v.stop_thinking();
+            self.find_target.set(None);
+        }
+    }
+
+    fn find_entities(&self, field: &CStr, value: &CStrThin, radius: f32, color: RGB) {
+        let engine = self.engine();
+        let v = self.vars();
+        let start = v.origin() + v.view_ofs() * 0.5;
+        for i in engine.entities().by_string(field, value) {
+            let end = i.vars().bmodel_origin();
+            if (start - end).length() > radius {
+                continue;
+            }
+            let msg = user_message::Line {
+                start: start.into(),
+                end: end.into(),
+                duration: 0.2.into(),
+                color,
+            };
+            engine.msg_one_reliable(v, &msg)
+        }
     }
 }
 
@@ -315,6 +364,13 @@ impl Entity for TestPlayer {
         if self.global_state().init_hud() {
             self.init_hud.set(true);
         }
+
+        if self.find_class.get().is_some()
+            || self.find_name.get().is_some()
+            || self.find_target.get().is_some()
+        {
+            self.vars().set_next_think_time_from_now(0.1);
+        }
     }
 
     fn spawn(&mut self) {
@@ -333,30 +389,20 @@ impl Entity for TestPlayer {
         self.precache();
 
         self.init_hud.set(true);
-
-        if self.find.get().is_some() {
-            self.vars().set_next_think_time_from_now(0.1);
-        }
     }
 
     fn think(&self) {
-        if let Some(classname) = self.find.get() {
-            let engine = self.engine();
-            let v = self.vars();
-            let start = v.origin() + v.view_ofs() * 0.5;
-            for i in engine.entities().by_class_name(classname) {
-                let end = i.vars().bmodel_origin();
-                if (start - end).length() > 1000.0 {
-                    continue;
-                }
-                let msg = user_message::Line {
-                    start: start.into(),
-                    end: end.into(),
-                    duration: 0.2.into(),
-                    color: RGB::GREEN,
-                };
-                engine.msg_one_reliable(v, &msg)
-            }
+        let v = self.vars();
+        if let Some(name) = self.find_class.get() {
+            self.find_entities(c"classname", &name, 1000.0, RGB::GREEN);
+            v.set_next_think_time_from_now(0.2);
+        }
+        if let Some(name) = self.find_name.get() {
+            self.find_entities(c"targetname", &name, f32::MAX, RGB::BLUE);
+            v.set_next_think_time_from_now(0.2);
+        }
+        if let Some(name) = self.find_target.get() {
+            self.find_entities(c"target", &name, f32::MAX, RGB::RED);
             v.set_next_think_time_from_now(0.2);
         }
     }

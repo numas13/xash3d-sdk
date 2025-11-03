@@ -117,9 +117,19 @@ impl ServerDll for Dll {
                     }
                 }
             }
-            b"find" => {
+            b"find_class" => {
                 if let Some(player) = ent.downcast_ref::<TestPlayer>() {
-                    player.find_class_name(engine.cmd_argv(1));
+                    player.find_class(engine.cmd_argv(1));
+                }
+            }
+            b"find_name" => {
+                if let Some(player) = ent.downcast_ref::<TestPlayer>() {
+                    player.find_name(engine.cmd_argv(1));
+                }
+            }
+            b"find_target" => {
+                if let Some(player) = ent.downcast_ref::<TestPlayer>() {
+                    player.find_target(engine.cmd_argv(1));
                 }
             }
             b"health" => {
