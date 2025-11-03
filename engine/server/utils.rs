@@ -285,10 +285,16 @@ impl Sparks {
         }
     }
 
+    /// Emit sparks without sound at exact location.
+    pub fn emit_simple(&self, pos: vec3_t) {
+        let msg = user_message::Sparks::new(pos);
+        self.engine.msg_pvs(pos, &msg);
+    }
+
     pub fn emit(&self, location: vec3_t, vars: &EntityVars) {
         let engine = self.engine;
         let pos = location + vars.size() * 0.5;
-        engine.msg_pvs(pos, &user_message::Sparks::new(pos));
+        self.emit_simple(pos);
         engine
             .build_sound()
             .channel_voice()
