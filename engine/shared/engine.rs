@@ -10,6 +10,7 @@ use core::{
 };
 
 use csz::CStrThin;
+use xash3d_ffi::common::vec3_t;
 
 use crate::{
     color::RGB,
@@ -160,6 +161,15 @@ pub trait EngineRng {
 
     fn random_bool(&self) -> bool {
         self.random_int(0, 1) != 0
+    }
+
+    /// Returns a vector with random elements in range from `min` to `max`.
+    fn random_vec3(&self, min: f32, max: f32) -> vec3_t {
+        vec3_t::new(
+            self.random_float(min, max),
+            self.random_float(min, max),
+            self.random_float(min, max),
+        )
     }
 
     /// Returns a random element from a given slice if the slice is not empty.
