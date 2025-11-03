@@ -125,6 +125,11 @@ impl BeamEntity {
         Self((attachment << 12) | index)
     }
 
+    /// Copy this beam entity with a new entity index.
+    pub const fn copy_with_index(self, index: EntityIndex) -> BeamEntity {
+        unsafe { Self::new_unchecked(index.to_u16(), self.attachment()) }
+    }
+
     /// Creates `BeamEntity` from a raw value.
     pub const fn from_bits(bits: u16) -> BeamEntity {
         BeamEntity(bits)
@@ -138,6 +143,11 @@ impl BeamEntity {
     /// Returns the entity index.
     pub const fn index(&self) -> EntityIndex {
         unsafe { EntityIndex::new_unchecked(self.0 & 0xfff) }
+    }
+
+    /// Sets a new entity index.
+    pub fn set_index(&mut self, index: EntityIndex) {
+        *self = unsafe { Self::new_unchecked(index.to_u16(), self.attachment()) };
     }
 
     /// Returns the attachment.
