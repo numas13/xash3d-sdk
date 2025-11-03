@@ -1046,12 +1046,12 @@ pub fn create_baseline(
     baseline.frame = v.frame();
     baseline.skin = v.skin() as i16;
 
-    baseline.rendermode = v.render_mode() as i32;
+    baseline.rendermode = v.render_mode_raw();
     baseline.renderamt = v.render_amount() as u8 as i32;
     baseline.rendercolor.r = v.render_color()[0] as u8;
     baseline.rendercolor.g = v.render_color()[1] as u8;
     baseline.rendercolor.b = v.render_color()[2] as u8;
-    baseline.renderfx = v.render_fx() as i32;
+    baseline.renderfx = v.render_fx_raw();
 
     if player {
         baseline.mins = player_mins;
@@ -1072,10 +1072,10 @@ pub fn create_baseline(
 
         baseline.colormap = 0;
         baseline.modelindex = v.model_index_raw();
-        baseline.movetype = v.move_type() as i32;
+        baseline.movetype = v.move_type_raw();
 
         baseline.scale = v.scale();
-        baseline.solid = v.solid() as i16;
+        baseline.solid = v.solid_raw() as i16;
         baseline.framerate = v.framerate();
         baseline.gravity = v.gravity();
     }
