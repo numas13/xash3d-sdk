@@ -55,10 +55,15 @@ pub trait GameRules: AsAny {
         false
     }
 
+    /// Returns `true` if the player can receive the given item.
     fn can_have_item(&self, player: &dyn EntityPlayer, item: &dyn Entity) -> bool;
 
+    /// Called when player got an item.
     fn player_got_item(&self, player: &dyn EntityPlayer, item: &dyn Entity);
 
+    /// Returns a map time when the given item should respawn and a location where to spawn.
+    ///
+    /// The item will be removed from the world if `None` is returned.
     fn item_respawn(&self, item: &dyn Entity) -> Option<(MapTime, vec3_t)>;
 }
 
