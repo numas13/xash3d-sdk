@@ -14,7 +14,7 @@ extern crate self as xash3d_server;
 #[macro_use]
 pub mod macros;
 
-pub mod changelevel;
+pub mod change_level;
 pub mod consts;
 pub mod engine;
 pub mod entities;
@@ -35,3 +35,8 @@ pub mod user_message;
 pub mod utils;
 
 pub use xash3d_shared::{cell, color, cvar, ffi, math, render};
+
+#[deprecated]
+pub mod changelevel {
+    pub use crate::change_level::*;
+}

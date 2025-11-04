@@ -8,7 +8,7 @@ use csz::CStrThin;
 use xash3d_shared::{
     ffi::{
         common::vec3_t,
-        server::{edict_s, ENTITYTABLE, SAVERESTOREDATA},
+        server::{edict_s, ENTITYTABLE, LEVELLIST, SAVERESTOREDATA},
     },
     utils::{slice_from_raw_parts_or_empty, slice_from_raw_parts_or_empty_mut},
 };
@@ -213,6 +213,12 @@ impl SaveRestoreData {
         (buffer, state)
     }
 
+    pub fn split_level_list_mut(&mut self) -> (&mut [ENTITYTABLE], &mut [LEVELLIST]) {
+        let len = self.data.tableCount as usize;
+        let table = unsafe { slice_from_raw_parts_or_empty_mut(self.data.pTable, len) };
+        (table, &mut self.data.levelList)
+    }
+
     pub fn restore_save_pointers(&mut self) {
         self.data.size = self.table()[self.current_index()].location;
         self.data.pCurrentData = self.data.pBaseData.wrapping_add(self.data.size as usize);
@@ -220,6 +226,10 @@ impl SaveRestoreData {
 
     pub fn offset(&self) -> usize {
         self.data.size as usize
+    }
+
+    pub fn set_connection_count(&mut self, count: usize) {
+        self.data.connectionCount = count as i32;
     }
 }
 

@@ -1,6 +1,6 @@
 use csz::{cstr, CStrArray, CStrThin};
 use xash3d_server::{
-    changelevel::{find_landmark, in_transition_volume},
+    change_level::{find_landmark, in_transition_volume},
     entities::trigger::Trigger,
     entity::{delegate_entity, BaseEntity, EntityChangeLevel, KeyValue, UseType},
     prelude::*,
@@ -57,7 +57,7 @@ impl ChangeLevel {
         v.set_damage_time(now);
 
         let player = engine.get_single_player().expect("player entity");
-        if !in_transition_volume(&engine, unsafe { &*player.as_ptr() }, &self.landmark_name) {
+        if !in_transition_volume(&engine, player, &self.landmark_name) {
             let landmark = &self.landmark_name;
             debug!("{name}: player is not in the transition volume {landmark}, aborting");
             return;
