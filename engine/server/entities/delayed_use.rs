@@ -1,3 +1,5 @@
+use core::ffi::CStr;
+
 use crate::{
     entity::{delegate_entity, BaseEntity, KeyValue, UseType},
     export::export_entity,
@@ -14,6 +16,8 @@ struct DelayedUseEntity {
 }
 
 impl DelayedUseEntity {
+    const CLASS_NAME: &'static CStr = c"DelayedUse";
+
     fn new(base: BaseEntity, use_type: UseType, kill_target: Option<MapString>) -> Self {
         Self {
             base,
@@ -38,7 +42,7 @@ impl DelayedUseEntity {
             .new_entity_with::<DelayedUseEntity>(|base| {
                 DelayedUseEntity::new(base, use_type, kill_target)
             })
-            .class_name(c"DelayedUse")
+            .class_name(Self::CLASS_NAME)
             .vars(|e| {
                 e.set_next_think_time_from_now(delay);
                 if let Some(target) = target {
@@ -80,6 +84,8 @@ impl Entity for DelayedUseEntity {
         self.remove_from_world();
     }
 }
+
+export_entity!(DelayedUse, DelayedUseEntity {});
 
 #[cfg_attr(feature = "save", derive(Save, Restore))]
 pub struct DelayedUse {
@@ -143,5 +149,3 @@ impl DelayedUse {
         }
     }
 }
-
-export_entity!(delayed_use, DelayedUseEntity {});
