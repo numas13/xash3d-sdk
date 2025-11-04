@@ -331,7 +331,7 @@ pub trait ServerDll: UnsyncGlobal {
         };
 
         if log_enabled!(target: "dispatch_restore", log::Level::Trace) {
-            let index = entity.entity_index();
+            let index = save_data.current_index();
             let name = entity.pretty_name();
             let location = save_data.offset();
             trace!(target: "dispatch_restore", "restore {index}:{name} from {location:#x}");

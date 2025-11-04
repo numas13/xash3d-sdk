@@ -317,7 +317,8 @@ impl<'a> From<&'a EntityHandle> for EntityHandleRef<'a> {
 #[cfg(feature = "save")]
 impl Save for EntityHandle {
     fn save(&self, state: &mut save::SaveState, cur: &mut save::CursorMut) -> save::SaveResult<()> {
-        self.entity_index().save(state, cur)
+        let id = state.entity_index(self.as_ptr()).unwrap();
+        cur.write_leb_usize(id)
     }
 }
 
@@ -335,18 +336,13 @@ impl Restore for EntityHandle {
         state: &save::RestoreState,
         cur: &mut save::Cursor,
     ) -> save::SaveResult<()> {
-        let mut index = EntityIndex::default();
-        index.restore(state, cur)?;
-        match state.engine().get_entity_by_index(index) {
-            Some(entity) => {
-                *self = entity;
-                Ok(())
-            }
-            None => {
-                error!("failed to get entity by index({index})");
-                Err(save::SaveError::InvalidEntityHandle)
-            }
+        let id = cur.read_leb_usize()?;
+        let edict = state.entity_from_index(id as i32);
+        match unsafe { EntityHandle::new(state.engine(), edict) } {
+            Some(handle) => *self = handle,
+            None => *self = state.engine().get_world_spawn_entity(),
         }
+        Ok(())
     }
 }
 

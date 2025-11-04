@@ -296,16 +296,25 @@ impl_save_restore_for_bitflags!(xash3d_shared::entity::DamageFlags);
 impl_save_restore_for_bitflags!(xash3d_shared::entity::Buttons);
 
 impl Save for EntityIndex {
-    fn save(&self, _: &mut SaveState, cur: &mut CursorMut) -> SaveResult<()> {
-        cur.write_leb_u16(self.to_u16())?;
+    fn save(&self, state: &mut SaveState, cur: &mut CursorMut) -> SaveResult<()> {
+        let entity = state
+            .engine()
+            .get_entity_by_index(*self)
+            .ok_or(SaveError::InvalidEntityIndex)?;
+        let id = state.entity_index(entity.as_ptr()).expect("entity save id");
+        cur.write_leb_i32(id as i32)?;
         Ok(())
     }
 }
 
 impl Restore for EntityIndex {
-    fn restore(&mut self, _: &RestoreState, cur: &mut Cursor) -> SaveResult<()> {
-        let index = cur.read_leb_u16()?;
-        *self = EntityIndex::new(index).ok_or(SaveError::InvalidNumber)?;
+    fn restore(&mut self, state: &RestoreState, cur: &mut Cursor) -> SaveResult<()> {
+        let id = cur.read_leb_i32()?;
+        let edict = state.entity_from_index(id);
+        match unsafe { edict.as_ref() } {
+            Some(edict) => *self = state.engine().get_entity_index(edict),
+            None => *self = EntityIndex::default(),
+        }
         Ok(())
     }
 }
