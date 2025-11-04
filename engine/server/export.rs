@@ -848,8 +848,8 @@ pub trait ServerDll: UnsyncGlobal {
         unsafe { PrivateData::drop_in_place(ent) }
     }
 
-    fn chould_collide(&self, touched: EntityHandle, other: EntityHandle) -> bool {
-        false
+    fn should_collide(&self, touched: EntityHandle, other: EntityHandle) -> bool {
+        true
     }
 
     fn cvar_value(&self, ent: EntityHandle, value: &CStrThin) {}
@@ -1727,7 +1727,7 @@ impl<T: ServerDll> ServerDllExport for Export<T> {
             let touched = EntityHandle::new(engine, touched).expect("touched must be non-null");
             let other = EntityHandle::new(engine, other).expect("other must be non-null");
             let dll = T::global_assume_init_ref();
-            dll.chould_collide(touched, other) as c_int
+            dll.should_collide(touched, other) as c_int
         }
     }
 
