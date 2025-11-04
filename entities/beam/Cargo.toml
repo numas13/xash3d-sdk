@@ -1,0 +1,20 @@
+[package]
+name = "xash3d-entity-beam"
+version = "0.1.0"
+license.workspace = true
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[lints]
+workspace = true
+
+[features]
+save = ["xash3d-server/save", "xash3d-entity-sprite/save"]
+
+[dependencies]
+bitflags.workspace = true
+log.workspace = true
+csz.workspace = true
+xash3d-server.workspace = true
+xash3d-entity-sprite = { path = "../sprite" }

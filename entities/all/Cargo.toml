@@ -15,21 +15,26 @@ libm = ["xash3d-server/libm"]
 
 save = [
     "xash3d-entity-ambient/save",
-    "xash3d-entity-sprite/save",
+    "xash3d-entity-beam/save",
     "xash3d-entity-button/save",
     "xash3d-entity-door/save",
     "xash3d-entity-platform/save",
+    "xash3d-entity-sprite/save",
     "xash3d-entity-tracktrain/save",
     "xash3d-entity-train/save",
 ]
 
 all = [
     "ambient-generic",
+    "beam",
+    "env-beam",
     "env-bubbles",
     "env-debris",
     "env-explosion",
     "env-fade",
     "env-glow",
+    "env-laser",
+    "env-lightning",
     "env-message",
     "env-render",
     "env-shake",
@@ -37,7 +42,6 @@ all = [
     "env-spark",
     "env-sprite",
     "func-button",
-    "func-rot-button",
     "func-door",
     "func-door-rotating",
     "func-friction",
@@ -46,6 +50,7 @@ all = [
     "func-pendulum",
     "func-plat",
     "func-platrot",
+    "func-rot-button",
     "func-rotating",
     "func-tracktrain",
     "func-train",
@@ -62,8 +67,8 @@ all = [
     "infodecal",
     "item",
     "light",
-    "light-spot",
     "light-environment",
+    "light-spot",
     "multi-manager",
     "multisource",
     "path-corner",
@@ -92,11 +97,15 @@ all = [
 ]
 
 ambient-generic = ["dep:xash3d-entity-ambient"]
+beam = ["dep:xash3d-entity-beam"]
+env-beam = ["dep:xash3d-entity-beam"]
 env-bubbles = []
 env-debris = []
 env-explosion = []
 env-fade = []
 env-glow = []
+env-laser = ["dep:xash3d-entity-beam"]
+env-lightning = ["dep:xash3d-entity-beam"]
 env-message = []
 env-render = []
 env-shake = []
@@ -166,6 +175,7 @@ xash3d-server.workspace = true
 res.workspace = true
 
 xash3d-entity-ambient = { path = "../ambient", optional = true }
+xash3d-entity-beam = { path = "../beam", optional = true }
 xash3d-entity-button = { path = "../button", optional = true }
 xash3d-entity-door = { path = "../door", optional = true }
 xash3d-entity-platform = { path = "../platform", optional = true }

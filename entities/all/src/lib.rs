@@ -18,6 +18,10 @@ import_with_export! {
     export_imported;
 
     use xash3d_entity_ambient::ambient_generic as ambient_generic if "ambient-generic";
+    use xash3d_entity_beam::beam as beam if "beam";
+    use xash3d_entity_beam::env_beam as env_beam if "env-beam";
+    use xash3d_entity_beam::env_laser as env_laser if "env-laser";
+    use xash3d_entity_beam::env_lightning as env_lightning if "env-lightning";
     use xash3d_entity_button::func_button as func_button if "func-button";
     use xash3d_entity_button::func_rot_button as func_rot_button if "func-rot-button";
     use xash3d_entity_door::func_door as func_door if "func-door";

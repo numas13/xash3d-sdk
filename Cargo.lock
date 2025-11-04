@@ -102,6 +102,7 @@ dependencies = [
  "csz",
  "log",
  "xash3d-entity-ambient",
+ "xash3d-entity-beam",
  "xash3d-entity-button",
  "xash3d-entity-door",
  "xash3d-entity-platform",
@@ -120,6 +121,17 @@ dependencies = [
  "bitflags",
  "csz",
  "log",
+ "xash3d-server",
+]
+
+[[package]]
+name = "xash3d-entity-beam"
+version = "0.1.0"
+dependencies = [
+ "bitflags",
+ "csz",
+ "log",
+ "xash3d-entity-sprite",
  "xash3d-server",
 ]
 

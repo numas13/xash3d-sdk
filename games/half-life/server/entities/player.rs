@@ -4,12 +4,15 @@ use core::{
 };
 
 use csz::CStrThin;
-use xash3d_entities::player::Player as BasePlayer;
+use xash3d_entities::{
+    beam::{Beam, BeamType},
+    player::Player as BasePlayer,
+};
 use xash3d_server::{
     color::RGB,
     entity::{
-        delegate_entity, delegate_player, BaseEntity, Buttons, Effects, EntityPlayer, EntityVars,
-        UseType,
+        delegate_entity, delegate_player, BaseEntity, Buttons, Effects, EntityHandle, EntityPlayer,
+        EntityVars, UseType,
     },
     prelude::*,
     private::impl_private,
@@ -108,6 +111,8 @@ pub struct TestPlayer {
     find_class: Cell<Option<MapString>>,
     find_name: Cell<Option<MapString>>,
     find_target: Cell<Option<MapString>>,
+
+    test_beam: Option<EntityHandle>,
 }
 
 impl CreateEntity for TestPlayer {
@@ -129,6 +134,8 @@ impl CreateEntity for TestPlayer {
             find_class: Cell::default(),
             find_name: Cell::default(),
             find_target: Cell::default(),
+
+            test_beam: None,
         }
     }
 }
@@ -389,6 +396,10 @@ impl Entity for TestPlayer {
         self.precache();
 
         self.init_hud.set(true);
+
+        let beam_sprite = engine.new_map_string(c"sprites/laserbeam.spr");
+        let beam = Beam::new(&engine, beam_sprite, 2);
+        self.test_beam = Some(beam.entity_handle());
     }
 
     fn think(&self) {
@@ -469,13 +480,24 @@ impl EntityPlayer for TestPlayer {
                 create_entity(&engine, c"spark_shower", pos, angles, None).ok();
             }
 
-            let msg = user_message::Line {
-                start: start.into(),
-                end: trace.end_position().into(),
-                duration: 3.0.into(),
-                color: RGB::GREEN,
-            };
-            engine.msg_one(v, &msg);
+            if false {
+                let msg = user_message::Line {
+                    start: start.into(),
+                    end: trace.end_position().into(),
+                    duration: 3.0.into(),
+                    color: RGB::GREEN,
+                };
+                engine.msg_one(v, &msg);
+            }
+        }
+
+        if let Some(beam) = self.test_beam.downcast_ref::<Beam>() {
+            let v = self.vars();
+            let start = v.origin() + v.view_ofs() * 0.75;
+            let direction = v.view_angle().angle_vectors().forward();
+            beam.set_beam_type(BeamType::Points(start, start + direction * 1000.0));
+            beam.set_color(RGB::RED);
+            beam.relink();
         }
     }
 
