@@ -1,5 +1,5 @@
 use core::{
-    ffi::{c_char, c_int, c_short, c_uchar, c_uint, c_void, CStr},
+    ffi::{c_char, c_int, c_uchar, c_uint, c_void, CStr},
     fmt::Write,
     marker::PhantomData,
     ptr::{self, NonNull},
@@ -685,7 +685,7 @@ pub trait ServerDll: UnsyncGlobal {
         }
 
         if hv.group_info() != 0 {
-            debug!("TODO: add_to_full_pack groupinfo");
+            warn!("add_to_full_pack: groupinfo is not implemented yet");
         }
 
         unsafe {
@@ -714,7 +714,7 @@ pub trait ServerDll: UnsyncGlobal {
 
         state.frame = ev.frame();
 
-        state.skin = ev.skin() as c_short;
+        state.skin = ev.skin() as i16;
         state.effects = ev.effects().bits();
 
         if !player && ev.animation_time() != 0.0 && ev.velocity() == vec3_t::ZERO {
@@ -722,10 +722,10 @@ pub trait ServerDll: UnsyncGlobal {
         }
 
         state.scale = ev.scale();
-        state.solid = ev.solid() as c_short;
+        state.solid = ev.solid_raw() as i16;
         state.colormap = ev.color_map();
 
-        state.movetype = ev.move_type() as c_int;
+        state.movetype = ev.move_type_raw();
         state.sequence = ev.sequence();
         state.framerate = ev.framerate();
         state.body = ev.body();
@@ -734,22 +734,17 @@ pub trait ServerDll: UnsyncGlobal {
         state.blending[0] = ev.blending()[0];
         state.blending[1] = ev.blending()[1];
 
-        state.rendermode = ev.render_mode() as c_int;
-        state.renderamt = ev.render_amount() as c_int;
-        state.renderfx = ev.render_fx() as c_int;
+        state.rendermode = ev.render_mode_raw();
+        state.renderamt = ev.render_amount() as i32;
+        state.renderfx = ev.render_fx_raw();
         state.rendercolor.r = ev.render_color()[0] as u8;
         state.rendercolor.g = ev.render_color()[1] as u8;
         state.rendercolor.b = ev.render_color()[2] as u8;
 
-        state.aiment = if let Some(aiment) = ev.aim_entity() {
-            engine.get_entity_index(&aiment).to_i32()
-        } else {
-            0
-        };
+        state.aiment = ev.aim_entity().map_or(0, |i| i.entity_index().to_i32());
 
         state.owner = 0;
-        if let Some(owner) = ev.owner() {
-            let owner = engine.get_entity_index(&owner).to_i32();
+        if let Some(owner) = ev.owner().map(|i| i.entity_index().to_i32()) {
             if owner >= 1 && owner <= engine.globals.max_clients() {
                 state.owner = owner;
             }
@@ -762,20 +757,19 @@ pub trait ServerDll: UnsyncGlobal {
         if player {
             state.basevelocity = ev.base_velocity();
 
-            state.weaponmodel = engine.model_index(
-                ev.weapon_model_name()
-                    .as_ref()
-                    .map_or(c"".into(), |s| s.as_thin()),
-            );
+            state.weaponmodel = ev
+                .weapon_model_name()
+                .map_or(0, |model_name| engine.model_index(model_name));
+
             state.gaitsequence = ev.gaitsequence();
             state.spectator = ev.flags().intersects(EdictFlags::SPECTATOR).into();
             state.friction = ev.friction();
 
             state.gravity = ev.gravity();
-            // state.team = ev.team();
+            state.team = ev.team();
 
             state.usehull = ev.flags().intersects(EdictFlags::DUCKING) as i32;
-            state.health = ev.health() as c_int;
+            state.health = ev.health() as i32;
         }
 
         // TODO: state.eflags |= EFLAG_FLESH_SOUND
