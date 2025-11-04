@@ -144,7 +144,7 @@ impl<'a> ToEngineStr for &'a MapString {
 #[cfg(feature = "save")]
 impl Save for Option<MapString> {
     fn save(&self, _: &mut save::SaveState, cur: &mut save::CursorMut) -> save::SaveResult<()> {
-        let bytes = self.as_ref().map_or(&[0][..], |s| s.to_bytes_with_nul());
+        let bytes = self.as_ref().map_or(&[][..], |s| s.to_bytes_with_nul());
         cur.write_bytes_with_size(bytes)?;
         Ok(())
     }
