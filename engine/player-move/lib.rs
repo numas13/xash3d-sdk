@@ -41,19 +41,6 @@ const PM_DEAD_VIEWHEIGHT: f32 = -8.0;
 const MAX_CLIMB_SPEED: f32 = 200.0;
 const STUCK_MOVEUP: c_int = 1;
 // const STUCK_MOVEDOWN: c_int = -1;
-#[deprecated(note = "use VIEW_OFFSET instead")]
-pub const VEC_VIEW_Z: f32 = 28.0;
-#[deprecated(note = "use VIEW_OFFSET instead")]
-pub const VEC_VIEW: vec3_t = vec3_t::new(0.0, 0.0, 28.0);
-
-#[deprecated(note = "use DUCK_HULL_MIN instead")]
-pub const VEC_DUCK_HULL_MIN: f32 = -18.0;
-#[deprecated(note = "use DUCK_HULL_MAX instead")]
-pub const VEC_DUCK_HULL_MAX: f32 = 18.0;
-#[deprecated(note = "use HULL_MIN instead")]
-pub const VEC_HULL_MIN: f32 = -36.0;
-#[deprecated(note = "use HULL_MAX instead")]
-pub const VEC_HULL_MAX: f32 = 36.0;
 
 pub const DUCK_VIEW_OFFSET: vec3_t = vec3_t::new(0.0, 0.0, 12.0);
 pub const VIEW_OFFSET: vec3_t = vec3_t::new(0.0, 0.0, 28.0);
@@ -63,6 +50,10 @@ pub const DUCK_HULL_MAX: vec3_t = vec3_t::new(16.0, 16.0, 18.0);
 
 pub const HULL_MIN: vec3_t = vec3_t::new(-16.0, -16.0, -36.0);
 pub const HULL_MAX: vec3_t = vec3_t::new(16.0, 16.0, 36.0);
+
+pub const HUMAN_HULL_MIN: vec3_t = vec3_t::new(-16.0, -16.0, 0.0);
+pub const HUMAN_HULL_MAX: vec3_t = vec3_t::new(16.0, 16.0, 72.0);
+pub const HUMAN_HULL_DUCK: vec3_t = vec3_t::new(16.0, 16.0, 36.0);
 
 // const OBS_NONE: c_int = 0;
 // const OBS_CHASE_LOCKED: c_int = 1;
