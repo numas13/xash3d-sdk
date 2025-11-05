@@ -456,7 +456,7 @@ impl EntityPlayer for TestPlayer {
                     decals.get_random_blood()
                 } else {
                     use xash3d_server::global_state::decals::DefaultDecals;
-                    let decals: &DefaultDecals = decals.as_any().downcast_ref().unwrap();
+                    let decals: &DefaultDecals = decals.downcast_ref().unwrap();
                     decals.get_random_yellow_blood()
                 };
                 utils::decal_trace(&engine, &trace, decal_index);

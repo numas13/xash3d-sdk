@@ -1,10 +1,8 @@
-use core::ffi::CStr;
-
-use xash3d_shared::utils::AsAny;
+use core::{any::Any, ffi::CStr};
 
 use crate::prelude::*;
 
-pub trait Decals: AsAny {
+pub trait Decals: Any {
     fn get_random_gunshot(&self) -> u16;
 
     fn get_random_bigshot(&self) -> u16;
@@ -20,6 +18,15 @@ pub trait Decals: AsAny {
     fn get_random_glass_break(&self) -> u16;
 
     fn get_random_spit(&self) -> u16;
+}
+
+impl dyn Decals {
+    pub fn downcast_ref<T>(&self) -> Option<&T>
+    where
+        T: Any,
+    {
+        <dyn Any>::downcast_ref::<T>(self)
+    }
 }
 
 pub struct StubDecals(());

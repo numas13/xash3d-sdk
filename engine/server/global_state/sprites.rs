@@ -1,8 +1,8 @@
-use xash3d_shared::utils::AsAny;
+use core::any::Any;
 
 use crate::prelude::*;
 
-pub trait Sprites: AsAny {
+pub trait Sprites: Any {
     fn laser(&self) -> u16;
 
     fn laser_dot(&self) -> u16;
@@ -18,6 +18,15 @@ pub trait Sprites: AsAny {
     fn blood_drop(&self) -> u16;
 
     fn blood_spray(&self) -> u16;
+}
+
+impl dyn Sprites {
+    pub fn downcast_ref<T>(&self) -> Option<&T>
+    where
+        T: Any,
+    {
+        <dyn Any>::downcast_ref::<T>(self)
+    }
 }
 
 pub struct StubSprites(());

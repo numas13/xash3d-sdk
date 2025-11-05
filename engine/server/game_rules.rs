@@ -1,6 +1,6 @@
 use core::{any::Any, ffi::CStr};
 
-use xash3d_shared::{ffi::common::vec3_t, utils::AsAny};
+use xash3d_shared::ffi::common::vec3_t;
 
 use crate::{
     engine::ServerEngineRef,
@@ -9,7 +9,7 @@ use crate::{
     time::MapTime,
 };
 
-pub trait GameRules: AsAny {
+pub trait GameRules: Any {
     fn engine(&self) -> ServerEngineRef;
 
     fn is_multiplayer(&self) -> bool {
@@ -72,7 +72,7 @@ impl dyn GameRules {
     where
         T: Any,
     {
-        self.as_any().downcast_ref::<T>()
+        <dyn Any>::downcast_ref::<T>(self)
     }
 }
 
