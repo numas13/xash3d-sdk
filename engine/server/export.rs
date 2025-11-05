@@ -129,8 +129,8 @@ pub trait ServerDll: UnsyncGlobal {
     fn dispatch_think(&self, ent: EntityHandle) {
         if let Some(entity) = ent.get_entity() {
             if entity.vars().flags().intersects(EdictFlags::DORMANT) {
-                let classname = entity.classname();
-                warn!("Dormant entity {classname:?} is thinkng");
+                let name = entity.pretty_name();
+                warn!("{name}: dormant entity is thinkng");
             }
             entity.think();
         }
@@ -388,8 +388,8 @@ pub trait ServerDll: UnsyncGlobal {
                     entity.make_dormant();
                 }
             } else {
-                let classname = entity.classname();
-                error!("Global entity \"{globalname}\" (\"{classname}\") not in table!!!");
+                let name = entity.pretty_name();
+                error!("Global entity \"{globalname}\" (\"{name}\") not in table!!!");
                 entities.add(globalname, globals.map_name().unwrap(), EntityState::On);
             }
         }

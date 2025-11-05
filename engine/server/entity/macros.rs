@@ -279,15 +279,69 @@ pub use define_entity_trait_impl;
 macro_rules! define_entity_trait {
     ($( #[$trait_attr:meta] )*
      $vis:vis trait $name:ident($delegate:ident) $(: ( $($sup:tt)* ))? {
-        $( $( #[$attr:meta] )*
-        fn $meth:ident($( $arg:tt )*) $(-> $ret:ty)? $( $body:block )? $(;)? )*
+        $(auto {
+            $(
+                $( #[$attr_auto:meta] )*
+                fn $meth_auto:ident($( $arg_auto:tt )*) $(-> $ret_auto:ty)?
+                $body_auto:block
+            )*
+        })?
+
+        $(default {
+            $(
+                $( #[$attr_default:meta] )*
+                fn $meth_default:ident($( $arg_default:tt )*) $(-> $ret_default:ty)?
+                $body_default:block
+            )*
+        })?
+
+        $(
+            $( #[$attr:meta] )*
+            fn $meth:ident($( $arg:tt )*) $(-> $ret:ty)? $( $body:block )? $(;)?
+        )*
     }) => {
         $( #[$trait_attr] )*
         #[doc = concat!("\n\nDelegate macro is [", stringify!($delegate), "].")]
         $vis trait $name $(: $($sup)*)? {
             $(
+                $(
+                    $crate::entity::define_method_impl! {
+                        $( #[$attr_auto] )*
+                        /// # Delegation
+                        ///
+                        /// This method will be auto-implemented by
+                        #[doc = concat!("[", stringify!($delegate), "]")]
+                        /// macro.
+                        fn $meth_auto($( $arg_auto )*) $(-> $ret_auto)? ;
+                    }
+                )*
+            )?
+
+            $(
+                $(
+                    $crate::entity::define_method_impl! {
+                        $( #[$attr_default] )*
+                        /// # Delegation
+                        ///
+                        /// This method will not be delegated by
+                        #[doc = concat!("[", stringify!($delegate), "]")]
+                        /// macro.
+                        fn $meth_default($( $arg_default )*) $(-> $ret_default)?
+                        $body_default ;
+                    }
+                )*
+            )?
+
+            $(
                 $crate::entity::define_method_impl! {
-                    $( #[$attr] )* fn $meth($( $arg )*) $(-> $ret)? $( $body )? ;
+                    $( #[$attr] )*
+                    /// # Delegation
+                    ///
+                    /// This method will be delegated by
+                    #[doc = concat!("[", stringify!($delegate), "]")]
+                    /// macro.
+                    fn $meth($( $arg )*) $(-> $ret)?
+                    $( $body )? ;
                 }
             )*
         }
@@ -304,9 +358,11 @@ macro_rules! define_entity_trait {
                 #[macro_export]
                 macro_rules! $delegate {
                     ($base:ident $v:vis not { $d($d meth:ident),* $d(,)? }) => {
+                        $delegate!(impl auto);
                         $( $delegate!($base, $v $meth, $d( $d meth ),*); )*
                     };
                     ($base:ident { $d($d v:vis $d meth:ident),* $d(,)? }) => {
+                        $delegate!(impl auto);
                         $d( $delegate!($base, $d v $d meth); )*
                     };
                     ($base:ident $v:vis) => {
@@ -314,6 +370,13 @@ macro_rules! define_entity_trait {
                     };
                     ($base:ident) => {
                         $delegate!($base { $( $meth ),* });
+                    };
+                    (impl auto) => {
+                        $(
+                            $(
+                                fn $meth_auto($( $arg_auto )*) $(-> $ret_auto)? $body_auto
+                            )*
+                        )?
                     };
                     $(
                         ($base:ident, $v:vis $meth, $meth $d(, $d rest:ident)* $d(,)?) => {

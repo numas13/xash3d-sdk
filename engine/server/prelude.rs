@@ -6,7 +6,7 @@ pub use crate::{
 };
 
 pub use crate::{
-    entity::{AsEntityHandle, CreateEntity, Entity, EntityCast},
+    entity::{AsEntityHandle, CreateEntity, Entity},
     global_state::decals::Decals,
     private::{GetPrivateData, PrivateEntity},
 };

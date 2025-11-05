@@ -173,7 +173,7 @@ impl<T: Move> BaseButton<T> {
             self.delayed.use_targets(UseType::Toggle, activator, self);
         }
 
-        if let Some(target) = self.target() {
+        if let Some(target) = self.vars().target() {
             let activator = self.activator.get().get_entity();
             for target in engine.entities().by_target_name(&*target) {
                 if !target.vars().is_class_name(c"multisource") {

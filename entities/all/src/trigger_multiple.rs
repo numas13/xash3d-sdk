@@ -73,10 +73,8 @@ impl TriggerMultiple {
 
         if let Some(_message) = v.message() {
             // TODO: need HudText user message defined in xash3d-hl-shared =\
-            warn!(
-                "{}: show a hud message is not implemented",
-                self.classname()
-            );
+            let name = self.pretty_name();
+            warn!("{name}: show a hud message is not implemented");
         }
 
         if self.wait > 0.0 {

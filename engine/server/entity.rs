@@ -574,101 +574,95 @@ impl fmt::Display for PrettyName<'_> {
     }
 }
 
-pub trait EntityCast: 'static {
-    fn as_entity(&self) -> &dyn Entity;
-
-    fn as_player(&self) -> Option<&dyn EntityPlayer>;
-}
-
-impl<T: Entity + PrivateEntity> EntityCast for T {
-    fn as_entity(&self) -> &dyn Entity {
-        self
-    }
-
-    fn as_player(&self) -> Option<&dyn EntityPlayer> {
-        self.private().downcast_ref::<dyn EntityPlayer>()
-    }
-}
-
 define_entity_trait! {
     /// The base trait for all entities.
-    pub trait Entity(delegate_entity): (Save + Restore + EntityCast + AsEntityHandle) {
-        fn private(&self) -> &::xash3d_server::private::PrivateData;
+    pub trait Entity(delegate_entity): ('static + Save + Restore + AsEntityHandle) {
+        // methods will be implemented for each type
+        auto {
+            /// Returns a shared reference to a dyn entity object.
+            fn as_entity(&self) -> &dyn ::xash3d_server::entity::Entity {
+                self
+            }
+        }
 
-        fn private_mut(&mut self) -> &mut ::xash3d_server::private::PrivateData;
+        // methods will not be delegated
+        default {
+            fn global_state(&self) -> ::xash3d_server::global_state::GlobalStateRef {
+                self.engine().global_state_ref()
+            }
+
+            /// Returns an entity handle of this entity.
+            fn entity_handle(&self) -> ::xash3d_server::entity::EntityHandle {
+                self.vars().entity_handle()
+            }
+
+            /// Returns an index of this entity.
+            fn entity_index(&self) -> ::xash3d_server::entity::EntityIndex {
+                self.engine().get_entity_index(self.vars())
+            }
+
+            /// Returns an offset of this entity.
+            fn entity_offset(&self) -> ::xash3d_server::entity::EntityOffset {
+                self.engine().get_entity_offset(self.vars())
+            }
+
+            fn pretty_name(&self) -> ::xash3d_server::entity::PrettyName<'_> {
+                PrettyName::new(self.vars())
+            }
+
+            fn globalname(&self) -> Option<::xash3d_server::str::MapString> {
+                self.vars().globalname()
+            }
+
+            fn is_globalname(&self, name: &::csz::CStrThin) -> bool {
+                self.vars().is_global_name(name)
+            }
+
+            fn classname(&self) -> ::xash3d_server::str::MapString {
+                self.vars().classname().unwrap()
+            }
+
+            fn is_classname(&self, name: &::csz::CStrThin) -> bool {
+                self.vars().is_class_name(name)
+            }
+
+            /// Returns the target name.
+            fn target(&self) -> Option<::xash3d_server::str::MapString> {
+                self.vars().target()
+            }
+
+            /// Returns the target entity.
+            fn target_entity(&self) -> Option<&dyn ::xash3d_server::entity::Entity> {
+                self.engine()
+                    .entities()
+                    .by_target_name(self.vars().target()?.as_thin())
+                    .first()
+                    .get_entity()
+            }
+
+            fn is_alive(&self) -> bool {
+                let v = self.vars();
+                v.dead() == Dead::No && v.health() > 0.0
+            }
+
+            fn is_bsp_model(&self) -> bool {
+                let v = self.vars();
+                v.solid() == Solid::Bsp || v.move_type() == MoveType::PushStep
+            }
+        }
 
         /// Returns a reference to the server engine.
         fn engine(&self) -> ::xash3d_server::engine::ServerEngineRef;
 
-        fn global_state(&self) -> ::xash3d_server::global_state::GlobalStateRef;
+        fn private(&self) -> &::xash3d_server::private::PrivateData;
+
+        fn private_mut(&mut self) -> &mut ::xash3d_server::private::PrivateData;
 
         /// Returns a shared reference to entity variables.
         fn vars(&self) -> &::xash3d_server::entity::EntityVars;
 
-        /// Returns an entity handle of this entity.
-        fn entity_handle(&self) -> ::xash3d_server::entity::EntityHandle {
-            self.vars().entity_handle()
-        }
-
-        /// Returns an index of this entity.
-        fn entity_index(&self) -> ::xash3d_server::entity::EntityIndex {
-            self.engine().get_entity_index(self.vars())
-        }
-
-        /// Returns an offset of this entity.
-        fn entity_offset(&self) -> ::xash3d_server::entity::EntityOffset {
-            self.engine().get_entity_offset(self.vars())
-        }
-
-        fn pretty_name(&self) -> ::xash3d_server::entity::PrettyName<'_> {
-            PrettyName::new(self.vars())
-        }
-
-        fn globalname(&self) -> Option<::xash3d_server::str::MapString> {
-            self.vars().globalname()
-        }
-
-        fn is_globalname(&self, name: &::csz::CStrThin) -> bool {
-            self.globalname().is_some_and(|s| name == s.as_thin())
-        }
-
-        fn classname(&self) -> ::xash3d_server::str::MapString {
-            self.vars().classname().unwrap()
-        }
-
-        fn is_classname(&self, name: &::csz::CStrThin) -> bool {
-            name == self.classname().as_thin()
-        }
-
-        /// Returns the target name.
-        fn target(&self) -> Option<::xash3d_server::str::MapString> {
-            self.vars().target()
-        }
-
-        /// Returns the target entity.
-        fn target_entity(&self) -> Option<&dyn ::xash3d_server::entity::Entity> {
-            self.engine()
-                .entities()
-                .by_target_name(self.target()?.as_thin())
-                .first()
-                .get_entity()
-        }
-
         fn object_caps(&self) -> ::xash3d_server::entity::ObjectCaps {
             ObjectCaps::ACROSS_TRANSITION
-        }
-
-        fn make_dormant(&self) {
-            let v = self.vars();
-            v.with_flags(|f| f | EdictFlags::DORMANT);
-            v.set_solid(Solid::Not);
-            v.set_move_type(MoveType::None);
-            v.with_effects(|f| f | Effects::NODRAW);
-            v.stop_thinking();
-        }
-
-        fn is_dormant(&self) -> bool {
-            self.vars().flags().intersects(EdictFlags::DORMANT)
         }
 
         fn key_value(&mut self, data: &mut ::xash3d_server::entity::KeyValue) {
@@ -727,16 +721,14 @@ define_entity_trait! {
             inflictor: &::xash3d_server::entity::EntityVars,
             attacker: Option<&::xash3d_server::entity::EntityVars>,
         ) -> bool {
-            let classname = self.classname();
-            match (inflictor.classname(), attacker.and_then(|i| i.classname())) {
-                (Some(from), None) => {
-                    warn!("{classname}: take_damage from {from} is not implemented yet");
+            let name = self.pretty_name();
+            let inflictor = inflictor.pretty_name();
+            match attacker.map(|i| i.pretty_name()) {
+                Some(attacker) => {
+                    warn!("{name}: take_damage from {inflictor}({attacker}) is not implemented yet");
                 }
-                (Some(from), Some(from2)) => {
-                    warn!("{classname}: take_damage from {from}({from2}) is not implemented yet");
-                }
-                _ => {
-                    warn!("{classname}: take_damage is not implemented yet");
+                None => {
+                    warn!("{name}: take_damage from {inflictor} is not implemented yet");
                 }
             }
             false
@@ -754,19 +746,9 @@ define_entity_trait! {
             self.remove_from_world();
         }
 
-        fn is_alive(&self) -> bool {
-            let v = self.vars();
-            v.dead() == Dead::No && v.health() > 0.0
-        }
-
-        fn is_bsp_model(&self) -> bool {
-            let v = self.vars();
-            v.solid() == Solid::Bsp || v.move_type() == MoveType::PushStep
-        }
-
         /// Returns `true` if it is a player entity.
         fn is_player(&self) -> bool {
-            false
+            self.as_entity().as_player().is_some()
         }
 
         fn override_reset(&self) {}
@@ -795,13 +777,15 @@ define_entity_trait! {
             let v = self.vars();
 
             if v.flags().intersects(EdictFlags::KILLME) {
-                warn!("{}: trying to remove dead entity", self.classname());
+                let name = self.pretty_name();
+                warn!("{name}: trying to remove dead entity");
                 return;
             }
 
             if v.flags().intersects(EdictFlags::GRAPHED) {
                 // TODO: remove from the world graph
-                warn!("Entity::update_on_remove(): remove from the world graph is not implemented");
+                let name = self.pretty_name();
+                warn!("{name}: remove from the world graph is not implemented yet");
             }
 
             if let Some(globalname) = self.globalname() {
@@ -810,7 +794,8 @@ define_entity_trait! {
 
             if v.health() > 0.0 {
                 v.set_health(0.0);
-                warn!("Entity::remove_from_world(): called with health > 0");
+                let name = self.pretty_name();
+                warn!("{name}: remove from world with health > 0");
             }
 
             v.delayed_remove();
@@ -825,6 +810,23 @@ impl dyn Entity {
 
     pub fn downcast_mut<U: Entity + ?Sized + 'static>(&mut self) -> Option<&mut U> {
         self.private_mut().downcast_mut::<U>()
+    }
+
+    pub fn as_player(&self) -> Option<&dyn EntityPlayer> {
+        self.private().downcast_ref::<dyn EntityPlayer>()
+    }
+
+    pub fn make_dormant(&self) {
+        let v = self.vars();
+        v.with_flags(|f| f | EdictFlags::DORMANT);
+        v.set_solid(Solid::Not);
+        v.set_move_type(MoveType::None);
+        v.with_effects(|f| f | Effects::NODRAW);
+        v.stop_thinking();
+    }
+
+    pub fn is_dormant(&self) -> bool {
+        self.vars().flags().intersects(EdictFlags::DORMANT)
     }
 }
 
@@ -853,6 +855,10 @@ impl save::OnRestore for BaseEntity {
 }
 
 impl Entity for BaseEntity {
+    fn as_entity(&self) -> &dyn Entity {
+        self
+    }
+
     fn private(&self) -> &crate::private::PrivateData {
         let edict = unsafe { &*self.as_entity_handle() };
         crate::private::PrivateData::from_edict(edict).unwrap()

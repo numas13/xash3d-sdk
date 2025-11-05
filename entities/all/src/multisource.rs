@@ -2,9 +2,9 @@ use core::cell::RefCell;
 
 use alloc::vec::Vec;
 use xash3d_server::{
-    entities::{point_entity::PointEntity},
+    entities::point_entity::PointEntity,
     entity::{
-        delegate_entity, BaseEntity, EntityHandle, KeyValue, MoveType, ObjectCaps, Solid, UseType,
+        BaseEntity, EntityHandle, KeyValue, MoveType, ObjectCaps, Solid, UseType, delegate_entity,
     },
     global_state::EntityState,
     prelude::*,
@@ -70,12 +70,6 @@ impl Entity for MultiSource {
     }
 
     fn key_value(&mut self, data: &mut KeyValue) {
-        trace!(
-            "{}: key_value({:?}, {:?})",
-            self.classname(),
-            data.key_name(),
-            data.value()
-        );
         if data.key_name() == c"globalstate" {
             self.global_state_name = Some(self.engine().new_map_string(data.value()));
             data.set_handled(true);

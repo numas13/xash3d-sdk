@@ -78,9 +78,9 @@ impl EntityItem for ItemBattery {
                 .channel_item()
                 .emit_dyn(Self::PICKUP_SOUND, player_v);
 
-            let classname = self.classname();
+            let classname = self.vars().classname().expect("class name must be defined");
             let msg = user_message::ItemPickup {
-                classname: classname.as_thin().into(),
+                classname: classname.as_c_str(),
             };
             engine.msg_one_reliable(player_v, &msg);
 
@@ -90,10 +90,8 @@ impl EntityItem for ItemBattery {
             write!(buffer.cursor(), "!HEV_{p}P").ok();
             emit_sound_suit(player.as_entity(), &buffer);
 
-            debug!(
-                "{}: set suit update {buffer} is not implemented yet",
-                self.pretty_name()
-            );
+            let name = self.pretty_name();
+            debug!("{name}: set suit update {buffer} is not implemented yet");
 
             true
         })

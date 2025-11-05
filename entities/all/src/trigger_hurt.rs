@@ -111,10 +111,8 @@ impl Entity for TriggerHurt {
         let now = engine.globals.map_time();
         let is_multiplayer = global_state.game_rules().is_multiplayer();
         if is_multiplayer {
-            warn!(
-                "{}: touched is not implemented in multiplayer",
-                self.classname()
-            );
+            let name = self.pretty_name();
+            warn!("{name}: touched is not implemented in multiplayer");
             return;
         } else if now <= v.damage_time() && now != v.pain_finished_time() {
             return;

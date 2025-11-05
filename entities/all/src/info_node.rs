@@ -47,7 +47,8 @@ impl Entity for InfoNode {
         v.set_move_type(MoveType::None);
 
         // TODO: add node entity to the world graph
-        warn!("{}: spawn is not implemented", self.classname());
+        let name = self.pretty_name();
+        warn!("{name}: spawn is not implemented");
 
         self.vars().delayed_remove();
     }

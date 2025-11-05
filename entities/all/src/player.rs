@@ -1,10 +1,14 @@
-use core::{cell::Cell, ffi::c_int, ptr};
+use core::{
+    cell::Cell,
+    ffi::{CStr, c_int},
+    ptr,
+};
 
 use xash3d_server::{
     engine::TraceIgnore,
     entity::{
-        delegate_entity, BaseEntity, Buttons, Dead, EdictFlags, EntityHandle, EntityPlayer,
-        EntityVars, LastSound, MoveType, ObjectCaps, Solid, TakeDamage, UseType,
+        BaseEntity, Buttons, Dead, EdictFlags, EntityHandle, EntityPlayer, EntityVars, LastSound,
+        MoveType, ObjectCaps, Solid, TakeDamage, UseType, delegate_entity,
     },
     ffi::common::vec3_t,
     math::ToAngleVectors,
@@ -99,6 +103,8 @@ impl CreateEntity for Player {
 }
 
 impl Player {
+    pub const CLASS_NAME: &'static CStr = c"player";
+
     /// Default search radius for player use action.
     pub const USE_SEARCH_RADIUS: f32 = 64.0;
 
@@ -307,7 +313,7 @@ impl Entity for Player {
     fn spawn(&mut self) {
         let engine = self.engine();
         let v = self.base.vars();
-        v.set_classname(engine.try_alloc_map_string(c"player").unwrap());
+        v.set_classname(engine.new_map_string(Self::CLASS_NAME));
         v.set_health(100.0);
         v.set_armor_value(0.0);
         v.set_take_damage(TakeDamage::Aim);

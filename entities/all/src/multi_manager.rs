@@ -128,7 +128,8 @@ impl Entity for MultiManager {
                     self.targets.push(MultiManagerTarget::new(name, delay))
                 }
                 Err(_) => {
-                    error!("{}: failed to strip token {key:?}", self.classname());
+                    let name = self.pretty_name();
+                    error!("{name}: failed to strip token {key:?}");
                 }
             }
         }

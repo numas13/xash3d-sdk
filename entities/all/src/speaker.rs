@@ -1,6 +1,6 @@
 use bitflags::bitflags;
 use xash3d_server::{
-    entity::{delegate_entity, BaseEntity, KeyValue, MoveType, ObjectCaps, Solid, UseType},
+    entity::{BaseEntity, KeyValue, MoveType, ObjectCaps, Solid, UseType, delegate_entity},
     prelude::*,
     private::impl_private,
 };
@@ -63,11 +63,8 @@ impl Entity for Speaker {
         let v = self.base.vars();
 
         if self.preset == 0 && v.message().is_none_or(|s| s.is_empty()) {
-            error!(
-                "{}: with no Level/Sentence at {}",
-                self.classname(),
-                v.origin()
-            );
+            let name = self.pretty_name();
+            error!("{name}: with no Level/Sentence at {}", v.origin());
             self.remove_from_world();
             return;
         }
@@ -136,10 +133,8 @@ impl Entity for Speaker {
             sound.ambient_emit_dyn(sound_file, v.origin(), v);
         } else {
             if sound.emit_random_sentence(sound_file.into(), v).is_none() {
-                warn!(
-                    "{}: invalid sentence group {sound_file:?}",
-                    self.classname()
-                );
+                let name = self.pretty_name();
+                warn!("{name}: invalid sentence group {sound_file:?}");
             }
 
             let time = engine.random_float(
