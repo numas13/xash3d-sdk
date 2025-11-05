@@ -62,7 +62,7 @@ impl Entity for Speaker {
     fn spawn(&mut self) {
         let v = self.base.vars();
 
-        if self.preset == 0 && v.message().map_or(true, |s| s.is_empty()) {
+        if self.preset == 0 && v.message().is_none_or(|s| s.is_empty()) {
             error!(
                 "{}: with no Level/Sentence at {}",
                 self.classname(),

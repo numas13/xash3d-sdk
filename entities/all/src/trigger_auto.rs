@@ -64,7 +64,7 @@ impl Entity for AutoTrigger {
     }
 
     fn think(&self) {
-        if !self.global_state.map_or(true, |name| {
+        if !self.global_state.is_none_or(|name| {
             self.global_state().entity_state(name) == EntityState::On
         }) {
             return;

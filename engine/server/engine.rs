@@ -6,8 +6,7 @@ use core::{
     marker::PhantomData,
     mem::MaybeUninit,
     ops::Deref,
-    ptr,
-    slice,
+    ptr, slice,
     time::Duration,
 };
 
@@ -39,7 +38,7 @@ use crate::{
     },
     global_state::GlobalStateRef,
     globals::ServerGlobals,
-    private::{PrivateData, GetPrivateData, PrivateEntity},
+    private::{GetPrivateData, PrivateData, PrivateEntity},
     str::MapString,
     user_message::{MessageDest, ServerMessage},
 };

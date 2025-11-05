@@ -663,7 +663,7 @@ pub trait ServerDll: UnsyncGlobal {
             return false;
         }
 
-        if ev.model_index().is_none() || ev.model_name().map_or(true, |s| s.is_empty()) {
+        if ev.model_index().is_none() || ev.model_name().is_none_or(|s| s.is_empty()) {
             return false;
         }
 
@@ -814,9 +814,9 @@ pub trait ServerDll: UnsyncGlobal {
         from: &netadr_s,
         args: &CStrThin,
         buffer: &mut [u8],
-    ) -> Result<usize, ()> {
+    ) -> Option<usize> {
         // no response
-        Ok(0)
+        Some(0)
     }
 
     fn get_hull_bounds(&self, hullnumber: c_int, mins: &mut vec3_t, maxs: &mut vec3_t) -> c_int {
@@ -1658,11 +1658,11 @@ impl<T: ServerDll> ServerDllExport for Export<T> {
             let buffer = slice::from_raw_parts_mut(response_buffer.cast(), max_buffer_size);
             let dll = T::global_assume_init_ref();
             match dll.connectionless_packet(from, args, buffer) {
-                Ok(len) => {
+                Some(len) => {
                     *response_buffer_size = len as c_int;
                     (len > 0) as c_int
                 }
-                Err(_) => 0,
+                None => 0,
             }
         }
     }

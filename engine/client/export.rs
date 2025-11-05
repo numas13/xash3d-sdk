@@ -139,9 +139,9 @@ pub trait ClientDll: UnsyncGlobal {
         from: &netadr_s,
         args: &CStrThin,
         buffer: &mut [u8],
-    ) -> Result<usize, ()> {
+    ) -> Option<usize> {
         // no response
-        Ok(0)
+        Some(0)
     }
 
     fn key_event(&self, down: c_int, keynum: c_int, current_binding: Option<&CStrThin>) -> bool {
@@ -611,13 +611,13 @@ impl<T: ClientDll> ClientDllExport for Export<T> {
         let max_buffer_size = unsafe { *response_buffer_size } as usize;
         let buffer = unsafe { slice::from_raw_parts_mut(response_buffer.cast(), max_buffer_size) };
         match unsafe { T::global_assume_init_ref() }.connectionless_packet(from, args, buffer) {
-            Ok(len) => {
+            Some(len) => {
                 unsafe {
                     *response_buffer_size = len as c_int;
                 }
                 (len > 0) as c_int
             }
-            Err(_) => 0,
+            None => 0,
         }
     }
 

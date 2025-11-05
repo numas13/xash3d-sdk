@@ -102,7 +102,7 @@ impl Entity for EnvSound {
         }
 
         if let Some(range) = self.in_range(player.vars()) {
-            if player.env_sound().map_or(true, |i| i.range() < range) {
+            if player.env_sound().is_none_or(|i| i.range() < range) {
                 player.set_env_sound(Some(LastSound::new(self.entity_handle(), range)));
 
                 trace!("set room type {:?}", self.room_type);

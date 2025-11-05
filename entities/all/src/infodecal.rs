@@ -84,7 +84,7 @@ impl Entity for Decal {
             return;
         }
 
-        if v.target_name().map_or(true, |s| s.is_empty()) {
+        if v.target_name().is_none_or(|s| s.is_empty()) {
             self.state.set(DecalState::Static);
             // spawn the decal as soon as the world is done spawning
             v.set_next_think_time_from_now(0.0);
