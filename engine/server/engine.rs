@@ -3,11 +3,10 @@ use core::{
     ffi::{c_char, c_int, c_long, c_uchar, c_void, CStr},
     fmt,
     hash::{BuildHasher, Hasher},
-    iter,
     marker::PhantomData,
     mem::MaybeUninit,
     ops::Deref,
-    ptr::{self, NonNull},
+    ptr,
     slice,
     time::Duration,
 };
@@ -36,11 +35,11 @@ use crate::{
     cvar::CVarPtr,
     entity::{
         AsEntityHandle, BaseEntity, CreateEntity, Entity, EntityHandle, EntityHandleRef,
-        EntityOffset, EntityVars, GetPrivateData, KeyValue,
+        EntityOffset, EntityVars, KeyValue,
     },
     global_state::GlobalStateRef,
     globals::ServerGlobals,
-    private::{PrivateData, PrivateEntity},
+    private::{PrivateData, GetPrivateData, PrivateEntity},
     str::MapString,
     user_message::{MessageDest, ServerMessage},
 };
@@ -844,26 +843,6 @@ impl ServerEngine {
         self.set_model(ent, model.as_ref());
     }
 
-    #[deprecated(note = "use vars().reload_model() instead")]
-    pub fn reload_model<T>(&self, model: Option<T>, ent: &impl AsEntityHandle)
-    where
-        T: ToEngineStr,
-    {
-        if let Some(model) = model {
-            self.set_model(ent, model);
-        }
-    }
-
-    #[deprecated(note = "use vars().reload_model_with_precache() instead")]
-    pub fn reload_model_with_precache<T>(&self, model: Option<T>, ent: &impl AsEntityHandle)
-    where
-        T: ToEngineStr,
-    {
-        if let Some(model) = model {
-            self.set_model_with_precache(model, ent);
-        }
-    }
-
     pub fn model_index(&self, m: impl ToEngineStr) -> c_int {
         let m = m.to_engine_str();
         unsafe { unwrap!(self, pfnModelIndex)(m.as_ptr()) }
@@ -948,90 +927,8 @@ impl ServerEngine {
         Entities::new(self)
     }
 
-    #[deprecated(note = "use entities instead")]
-    #[allow(deprecated)]
-    pub fn find_ent_by_string(
-        &self,
-        start_search_after: *mut edict_s,
-        field: impl ToEngineStr,
-        value: impl ToEngineStr,
-    ) -> *mut edict_s {
-        let start = start_search_after;
-        let field = field.to_engine_str();
-        let value = value.to_engine_str();
-        unsafe { unwrap!(self, pfnFindEntityByString)(start, field.as_ptr(), value.as_ptr()) }
-    }
-
-    #[deprecated(note = "use entities instead")]
-    #[allow(deprecated)]
-    pub fn find_ent_by_classname(
-        &self,
-        start_search_after: *mut edict_s,
-        name: impl ToEngineStr,
-    ) -> *mut edict_s {
-        self.find_ent_by_string(start_search_after, c"classname", name)
-    }
-
-    #[deprecated(note = "use entities instead")]
-    #[allow(deprecated)]
-    pub fn find_ent_by_target_name(
-        &self,
-        start_search_after: *mut edict_s,
-        name: impl ToEngineStr,
-    ) -> *mut edict_s {
-        self.find_ent_by_string(start_search_after, c"targetname", name)
-    }
-
     pub fn is_null_ent(&self, ent: *const edict_s) -> bool {
         ent.is_null() || self.get_entity_offset(unsafe { &*ent }).is_world_spawn()
-    }
-
-    #[deprecated(note = "use entities instead")]
-    pub fn find_ent_by_string_iter<'a>(
-        &'a self,
-        field: impl ToEngineStr + 'a,
-        value: impl ToEngineStr + 'a,
-    ) -> impl 'a + Iterator<Item = NonNull<edict_s>> {
-        let field = field.to_engine_str();
-        let value = value.to_engine_str();
-        let func = unwrap!(self, pfnFindEntityByString);
-        let mut ent = unsafe { func(ptr::null_mut(), field.as_ptr(), value.as_ptr()) };
-        iter::from_fn(move || {
-            if !self.is_null_ent(ent) {
-                let tmp = ent;
-                ent = unsafe { func(ent, field.as_ptr(), value.as_ptr()) };
-                Some(unsafe { NonNull::new_unchecked(tmp) })
-            } else {
-                None
-            }
-        })
-    }
-
-    #[deprecated(note = "use entities instead")]
-    #[allow(deprecated)]
-    pub fn find_ent_by_classname_iter<'a>(
-        &'a self,
-        value: impl ToEngineStr + 'a,
-    ) -> impl 'a + Iterator<Item = NonNull<edict_s>> {
-        self.find_ent_by_string_iter(c"classname", value)
-    }
-
-    #[deprecated(note = "use entities instead")]
-    #[allow(deprecated)]
-    pub fn find_ent_by_globalname_iter<'a>(
-        &'a self,
-        value: impl ToEngineStr + 'a,
-    ) -> impl 'a + Iterator<Item = NonNull<edict_s>> {
-        self.find_ent_by_string_iter(c"globalname", value)
-    }
-
-    #[deprecated(note = "use entities instead")]
-    #[allow(deprecated)]
-    pub fn find_ent_by_targetname_iter<'a>(
-        &'a self,
-        value: impl ToEngineStr + 'a,
-    ) -> impl 'a + Iterator<Item = NonNull<edict_s>> {
-        self.find_ent_by_string_iter(c"targetname", value)
     }
 
     pub fn find_global_entity(
@@ -1079,32 +976,6 @@ impl ServerEngine {
             )
         };
         unsafe { EntityHandleRef::new_not_world_spawn(self.engine_ref(), ret) }
-    }
-
-    #[deprecated(note = "use entites().in_sphere instead")]
-    pub fn find_entity_in_sphere<'a>(
-        &'a self,
-        start_search_after: Option<&impl AsEntityHandle>,
-        origin: vec3_t,
-        radius: f32,
-    ) -> Option<EntityHandleRef<'a>> {
-        let start = start_search_after.map_or(ptr::null_mut(), |e| e.as_entity_handle());
-        self.find_entity_in_sphere_impl(start, origin, radius)
-    }
-
-    #[deprecated(note = "use entites().in_sphere instead")]
-    pub fn find_entity_in_sphere_iter<'a>(
-        &'a self,
-        start_search_after: Option<&impl AsEntityHandle>,
-        origin: vec3_t,
-        radius: f32,
-    ) -> impl 'a + Iterator<Item = EntityHandleRef<'a>> {
-        let mut start = start_search_after.map_or(ptr::null_mut(), |i| i.as_entity_handle());
-        iter::from_fn(move || {
-            let ret = self.find_entity_in_sphere_impl(start, origin, radius);
-            start = ret.map_or(ptr::null_mut(), |i| i.as_ptr());
-            ret
-        })
     }
 
     pub fn find_client_in_pvs<'a>(
@@ -1630,30 +1501,6 @@ impl ServerEngine {
     // pub fn get_entity_vars(&self, ent: &impl AsEntityHandle) -> *mut entvars_s {
     //     unsafe { unwrap!(self, pfnGetVarsOfEnt)(ent.as_entity_handle()) }
     // }
-
-    #[deprecated(note = "use get_entity_by_offset instead")]
-    pub fn entity_of_ent_offset(&self, offset: EntityOffset) -> *mut edict_s {
-        let offset = offset.to_u32() as c_int;
-        unsafe { unwrap!(self, pfnPEntityOfEntOffset)(offset) }
-    }
-
-    #[deprecated(note = "use get_entity_offset instead")]
-    pub fn ent_offset_of_entity(&self, ent: &impl AsEntityHandle) -> EntityOffset {
-        let offset = unsafe { unwrap!(self, pfnEntOffsetOfPEntity)(ent.as_entity_handle()) };
-        unsafe { EntityOffset::new_unchecked(offset.try_into().unwrap()) }
-    }
-
-    #[deprecated(note = "use get_entity_index instead")]
-    pub fn ent_index(&self, edict: &(impl AsEntityHandle + ?Sized)) -> EntityIndex {
-        let index = unsafe { unwrap!(self, pfnIndexOfEdict)(edict.as_entity_handle()) };
-        unsafe { EntityIndex::new_unchecked(index.try_into().unwrap()) }
-    }
-
-    #[deprecated(note = "use get_entity_by_index instead")]
-    pub fn entity_of_ent_index(&self, ent: EntityIndex) -> *mut edict_s {
-        self.get_entity_by_index(ent)
-            .map_or(ptr::null_mut(), |i| i.as_ptr())
-    }
 
     pub fn get_entity_offset(&self, ent: &impl AsEntityHandle) -> EntityOffset {
         let offset = unsafe { unwrap!(self, pfnEntOffsetOfPEntity)(ent.as_entity_handle()) };

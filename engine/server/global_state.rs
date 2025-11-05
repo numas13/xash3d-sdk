@@ -247,16 +247,6 @@ impl GlobalState {
         self.last_spawn.set(ent);
     }
 
-    #[deprecated(note = "use save_state instead")]
-    pub fn save(&self, save_data: &mut SaveRestoreData) -> SaveResult<()> {
-        self.save_state(save_data)
-    }
-
-    #[deprecated(note = "use restore_state instead")]
-    pub fn restore(&self, save_data: &mut SaveRestoreData) -> SaveResult<()> {
-        self.restore_state(save_data)
-    }
-
     pub fn save_state(&self, save_data: &mut SaveRestoreData) -> SaveResult<()> {
         let mut writer = SaveWriter::new(self.engine);
         let entities = self.entities.borrow();

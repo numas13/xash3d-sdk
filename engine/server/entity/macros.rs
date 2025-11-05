@@ -43,12 +43,12 @@ pub use static_trait_cast;
 /// # Examples
 ///
 /// ```
-/// use xash3d_server::entity::{BaseEntity, EntityCast, impl_entity_cast};
+/// use xash3d_server::entity::BaseEntity;
 ///
 /// trait MyToggle {}
 /// trait MyMonster {}
 ///
-/// trait MyCast: EntityCast {
+/// trait MyCast {
 ///     fn as_my_toggle(&self) -> Option<&dyn MyToggle>;
 ///     fn as_my_monster(&self) -> Option<&dyn MyMonster>;
 /// }
@@ -69,9 +69,6 @@ pub use static_trait_cast;
 /// struct Zombie {
 ///     base: BaseEntity,
 /// }
-///
-/// // impl EntityCast for Zombie { ... }
-/// impl_entity_cast!(Zombie);
 ///
 /// // impl MyCast for Zombie { ... }
 /// impl_my_cast!(Zombie);
@@ -100,49 +97,6 @@ macro_rules! impl_cast {
 }
 #[doc(inline)]
 pub use impl_cast;
-
-/// Implement the [EntityCast](super::EntityCast) trait for given types.
-///
-/// # Examples
-///
-/// ```
-/// use xash3d_server::entity::{BaseEntity, EntityCast, impl_entity_cast};
-///
-/// struct Item {
-///     base: BaseEntity,
-/// }
-///
-/// // impl EntityCast for Item {
-/// //      impl_entity_cast!(cast Item);
-/// // }
-/// impl_entity_cast!(Item);
-/// ```
-#[deprecated]
-#[doc(hidden)]
-#[macro_export]
-macro_rules! impl_entity_cast {
-    (cast $ty:ty) => {
-        fn as_entity(&self) -> &dyn $crate::entity::Entity {
-            $crate::entity::static_trait_cast!($ty, $crate::entity::Entity, self).unwrap()
-        }
-
-        $crate::entity::impl_cast! {
-            $ty {
-                as_player -> $crate::entity::EntityPlayer;
-                as_item -> $crate::entity::EntityItem;
-            }
-        }
-    };
-    ($(#[$attr:meta])* $ty:ty) => {
-        $(#[$attr])*
-        impl $crate::entity::EntityCast for $ty {
-            $crate::entity::impl_entity_cast!(cast $ty);
-        }
-    };
-}
-#[doc(inline)]
-#[allow(deprecated)]
-pub use impl_entity_cast;
 
 #[doc(hidden)]
 #[macro_export]

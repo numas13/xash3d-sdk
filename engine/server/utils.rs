@@ -310,15 +310,6 @@ pub enum MoveState {
     AtEnd,
     GoingToStart,
     GoingToEnd,
-
-    #[deprecated(note = "use AtStart instead")]
-    Bottom,
-    #[deprecated(note = "use AtEnd instead")]
-    Top,
-    #[deprecated(note = "use GoingToStart instead")]
-    GoingDown,
-    #[deprecated(note = "use GoingToEnd instead")]
-    GoingUp,
 }
 
 impl MoveState {
@@ -330,12 +321,11 @@ impl MoveState {
 #[cfg(feature = "save")]
 impl Save for MoveState {
     fn save(&self, _: &mut save::SaveState, cur: &mut save::CursorMut) -> save::SaveResult<()> {
-        #[allow(deprecated)]
         let id = match self {
-            Self::AtStart | Self::Bottom => 0,
-            Self::AtEnd | Self::Top => 1,
-            Self::GoingToStart | Self::GoingDown => 2,
-            Self::GoingToEnd | Self::GoingUp => 3,
+            Self::AtStart => 0,
+            Self::AtEnd => 1,
+            Self::GoingToStart => 2,
+            Self::GoingToEnd => 3,
         };
         cur.write_u8(id)?;
         Ok(())
@@ -374,16 +364,6 @@ pub trait Move: Save + Restore + 'static {
 
     /// Returns `true` if movement is finished.
     fn move_done(&self, v: &EntityVars) -> bool;
-
-    #[deprecated(note = "use move_to_end instead")]
-    fn move_up(&self, v: &EntityVars, speed: f32, reverse: bool) -> bool {
-        self.move_to_end(v, speed, reverse)
-    }
-
-    #[deprecated(note = "use move_to_start instead")]
-    fn move_down(&self, v: &EntityVars, speed: f32) -> bool {
-        self.move_to_start(v, speed)
-    }
 
     /// Returns `true` if movement is finished.
     fn move_to_end(&self, v: &EntityVars, speed: f32, reverse: bool) -> bool;

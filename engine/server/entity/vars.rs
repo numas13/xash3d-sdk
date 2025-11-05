@@ -608,11 +608,6 @@ impl EntityVars {
     field!(get nextthink, fn next_think_time() -> MapTime);
     field!(set nextthink, fn set_next_think_time(time: MapTime));
 
-    #[deprecated(note = "use set_next_think_time instead")]
-    pub fn set_next_think_time_absolute(&self, time: MapTime) {
-        self.set_next_think_time(time);
-    }
-
     /// Sets the next think time relative to the map time.
     pub fn set_next_think_time_from_now(&self, relative: f32) {
         self.set_next_think_time(self.engine.globals.map_time() + relative)
@@ -912,9 +907,6 @@ impl EntityVars {
     field!(set pContainingEntity,
         #[allow(clippy::missing_safety_doc)]
         unsafe fn set_containing_entity_raw(v: *mut edict_s));
-
-    field!(get pContainingEntity, #[deprecated] fn containing_entity() -> Option<NonNull<edict_s>>);
-    field!(set entity pContainingEntity, #[deprecated] fn set_containing_entity(owner));
 
     field!(get playerclass, fn player_class() -> i32);
     field!(set playerclass, fn set_player_class(v: i32));

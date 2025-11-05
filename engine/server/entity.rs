@@ -1,21 +1,6 @@
 mod macros;
 mod vars;
 
-mod private_data {
-    #[deprecated(note = "moved to private module")]
-    pub type PrivateData = crate::private::PrivateData;
-
-    #[deprecated(note = "moved to private module")]
-    #[allow(deprecated)]
-    pub type Private<T> = crate::private::Private<T>;
-
-    #[deprecated(note = "moved to private module")]
-    pub type Downcast<'a, T> = crate::private::Downcast<'a, T>;
-
-    pub use crate::private::GetPrivateData;
-    pub use crate::private::PrivateEntity;
-}
-
 use core::{
     any::type_name,
     ffi::{c_int, c_void, CStr},
@@ -53,9 +38,6 @@ pub use xash3d_shared::entity::*;
 
 pub use self::macros::*;
 pub use self::vars::*;
-
-// TODO: remove me
-pub use self::private_data::*;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum RestoreResult {
@@ -100,11 +82,6 @@ impl EntityOffset {
     /// Converts this offset to a raw value.
     pub const fn to_u32(self) -> u32 {
         self.0
-    }
-
-    #[deprecated(note = "use is_world_spawn instead")]
-    pub const fn is_first(&self) -> bool {
-        self.0 == 0
     }
 
     /// Returns `true` if the offset is for the world spawn entity.
@@ -601,9 +578,6 @@ pub trait EntityCast: 'static {
     fn as_entity(&self) -> &dyn Entity;
 
     fn as_player(&self) -> Option<&dyn EntityPlayer>;
-
-    #[deprecated(note = "use downcast_ref instead")]
-    fn as_item(&self) -> Option<&dyn EntityItem>;
 }
 
 impl<T: Entity + PrivateEntity> EntityCast for T {
@@ -613,11 +587,6 @@ impl<T: Entity + PrivateEntity> EntityCast for T {
 
     fn as_player(&self) -> Option<&dyn EntityPlayer> {
         self.private().downcast_ref::<dyn EntityPlayer>()
-    }
-
-    #[allow(deprecated)]
-    fn as_item(&self) -> Option<&dyn EntityItem> {
-        self.private().downcast_ref::<dyn EntityItem>()
     }
 }
 

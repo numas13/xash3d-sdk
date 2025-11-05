@@ -35,8 +35,3 @@ pub mod user_message;
 pub mod utils;
 
 pub use xash3d_shared::{cell, color, cvar, ffi, math, render};
-
-#[deprecated]
-pub mod changelevel {
-    pub use crate::change_level::*;
-}
