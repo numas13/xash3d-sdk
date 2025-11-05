@@ -106,7 +106,7 @@ pub trait EngineCvar: Sized {
 
     #[doc(hidden)]
     fn fn_set_cvar_string(&self)
-        -> unsafe extern "C" fn(name: *const c_char, value: *const c_char);
+    -> unsafe extern "C" fn(name: *const c_char, value: *const c_char);
 
     fn get_cvar_float(&self, name: impl ToEngineStr) -> f32 {
         let name = name.to_engine_str();

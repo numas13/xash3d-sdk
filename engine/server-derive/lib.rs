@@ -1,6 +1,6 @@
 mod save_restore;
 
-use syn::{parse_macro_input, DeriveInput};
+use syn::{DeriveInput, parse_macro_input};
 
 use crate::save_restore::SaveRestore;
 

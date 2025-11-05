@@ -1,4 +1,4 @@
-use core::ffi::{c_int, CStr};
+use core::ffi::{CStr, c_int};
 
 use alloc::collections::vec_deque::VecDeque;
 use csz::CStrArray;

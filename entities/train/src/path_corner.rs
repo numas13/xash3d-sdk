@@ -1,7 +1,7 @@
 use bitflags::bitflags;
 use xash3d_server::{
     entities::point_entity::PointEntity,
-    entity::{delegate_entity, BaseEntity, KeyValue},
+    entity::{BaseEntity, KeyValue, delegate_entity},
     prelude::*,
     private::impl_private,
 };

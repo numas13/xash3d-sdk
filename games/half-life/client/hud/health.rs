@@ -15,7 +15,7 @@ use xash3d_hl_shared::user_message;
 
 use crate::{
     export::{hud, hud_mut},
-    hud::{try_spr_load, Fade, Hide, Sprite, State},
+    hud::{Fade, Hide, Sprite, State, try_spr_load},
 };
 
 // seconds that image is up

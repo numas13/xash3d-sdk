@@ -3,7 +3,7 @@ use core::{cell::Cell, ffi::CStr};
 use bitflags::bitflags;
 use xash3d_server::{
     entities::point_entity::PointEntity,
-    entity::{delegate_entity, BaseEntity, EntityHandle, KeyValue, Solid, UseType},
+    entity::{BaseEntity, EntityHandle, KeyValue, Solid, UseType, delegate_entity},
     ffi::common::vec3_t,
     prelude::*,
     private::impl_private,

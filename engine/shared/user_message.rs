@@ -1,6 +1,6 @@
 use core::{
     cmp,
-    ffi::{c_int, CStr},
+    ffi::{CStr, c_int},
     fmt::{self, Write},
     mem,
     num::NonZeroU8,

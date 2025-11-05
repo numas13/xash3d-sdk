@@ -1,5 +1,5 @@
 use core::{
-    ffi::{c_char, c_int, c_uchar, c_uint, c_void, CStr},
+    ffi::{CStr, c_char, c_int, c_uchar, c_uint, c_void},
     fmt::Write,
     marker::PhantomData,
     ptr::{self, NonNull},
@@ -20,8 +20,8 @@ use xash3d_shared::{
         },
         player_move::playermove_s,
         server::{
-            edict_s, KeyValueData, DLL_FUNCTIONS, NEW_DLL_FUNCTIONS, SAVERESTOREDATA,
-            TYPEDESCRIPTION,
+            DLL_FUNCTIONS, KeyValueData, NEW_DLL_FUNCTIONS, SAVERESTOREDATA, TYPEDESCRIPTION,
+            edict_s,
         },
     },
     utils::cstr_or_none,
@@ -38,7 +38,7 @@ use crate::{
     utils::slice_from_raw_parts_or_empty_mut,
 };
 
-pub use xash3d_shared::export::{impl_unsync_global, UnsyncGlobal};
+pub use xash3d_shared::export::{UnsyncGlobal, impl_unsync_global};
 
 #[cfg(feature = "save")]
 const ENTITY_SAVE_NAME: &CStr = c"ENTITY";
@@ -1773,7 +1773,7 @@ macro_rules! export_dll {
             <$server_dll as $crate::export::ServerDll>::Player,
         );
 
-        #[no_mangle]
+        #[unsafe(no_mangle)]
         unsafe extern "system" fn GiveFnptrsToDll(
             eng_funcs: *const $crate::ffi::server::enginefuncs_s,
             globals: *mut $crate::ffi::server::globalvars_t,
@@ -1784,7 +1784,7 @@ macro_rules! export_dll {
             }
         }
 
-        #[no_mangle]
+        #[unsafe(no_mangle)]
         unsafe extern "C" fn GetEntityAPI(
             dll_funcs: *mut $crate::ffi::server::DLL_FUNCTIONS,
             mut version: core::ffi::c_int,
@@ -1792,7 +1792,7 @@ macro_rules! export_dll {
             unsafe { GetEntityAPI2(dll_funcs, &mut version) }
         }
 
-        #[no_mangle]
+        #[unsafe(no_mangle)]
         unsafe extern "C" fn GetEntityAPI2(
             dll_funcs: *mut $crate::ffi::server::DLL_FUNCTIONS,
             version: *mut core::ffi::c_int,
@@ -1811,7 +1811,7 @@ macro_rules! export_dll {
             1
         }
 
-        #[no_mangle]
+        #[unsafe(no_mangle)]
         unsafe extern "C" fn GetNewDLLFunctions(
             dll_funcs: *mut $crate::ffi::server::NEW_DLL_FUNCTIONS,
             version: *mut core::ffi::c_int,
@@ -1902,7 +1902,7 @@ macro_rules! export_entity {
         );
     };
     ($name:ident, $entity:ty, $init:expr $(,)?) => {
-        #[no_mangle]
+        #[unsafe(no_mangle)]
         unsafe extern "C" fn $name(ev: *mut $crate::ffi::server::entvars_s) {
             #[allow(unused_imports)]
             use $crate::{

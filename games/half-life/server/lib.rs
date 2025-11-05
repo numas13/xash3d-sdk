@@ -30,5 +30,5 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
 
 #[cfg(not(feature = "std"))]
 #[cfg(panic = "abort")]
-#[no_mangle]
+#[unsafe(no_mangle)]
 fn rust_eh_personality() {}

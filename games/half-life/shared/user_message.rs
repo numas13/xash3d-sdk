@@ -2,7 +2,7 @@ use core::ffi::CStr;
 
 use xash3d_shared::{
     ffi::common::vec3_t,
-    user_message::{define_user_message, Coord},
+    user_message::{Coord, define_user_message},
 };
 
 pub use xash3d_shared::user_message::HudText;

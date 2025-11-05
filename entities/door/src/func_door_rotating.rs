@@ -1,5 +1,5 @@
 use xash3d_server::{
-    entity::{delegate_entity, BaseEntity, Solid},
+    entity::{BaseEntity, Solid, delegate_entity},
     prelude::*,
     private::impl_private,
     utils::AngularMove,

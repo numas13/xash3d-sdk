@@ -1,5 +1,5 @@
 use core::{
-    ffi::{c_int, CStr},
+    ffi::{CStr, c_int},
     fmt, mem,
 };
 
@@ -8,7 +8,7 @@ use csz::CStrThin;
 use xash3d_shared::{
     ffi::{
         self,
-        menu::{gameinfo2_s, gametype_e, GAMEINFO},
+        menu::{GAMEINFO, gameinfo2_s, gametype_e},
     },
     macros::{const_assert_size_eq, define_enum_for_primitive},
 };

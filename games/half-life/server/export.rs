@@ -1,10 +1,10 @@
-use core::ffi::{c_int, CStr};
+use core::ffi::{CStr, c_int};
 
 use xash3d_entities::world::World;
 use xash3d_server::{
     engine::RegisterUserMessageError,
     entity::{BaseEntity, EntityHandle, EntityPlayer},
-    export::{export_dll, impl_unsync_global, ServerDll},
+    export::{ServerDll, export_dll, impl_unsync_global},
     global_state::GlobalStateRef,
     prelude::*,
     user_message::register_user_message,

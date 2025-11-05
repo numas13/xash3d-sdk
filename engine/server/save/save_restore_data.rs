@@ -1,5 +1,5 @@
 use core::{
-    ffi::{c_char, c_int, c_uint, c_ushort, CStr},
+    ffi::{CStr, c_char, c_int, c_uint, c_ushort},
     ops::{Deref, DerefMut},
     ptr,
 };
@@ -8,7 +8,7 @@ use csz::CStrThin;
 use xash3d_shared::{
     ffi::{
         common::vec3_t,
-        server::{edict_s, ENTITYTABLE, LEVELLIST, SAVERESTOREDATA},
+        server::{ENTITYTABLE, LEVELLIST, SAVERESTOREDATA, edict_s},
     },
     utils::{slice_from_raw_parts_or_empty, slice_from_raw_parts_or_empty_mut},
 };

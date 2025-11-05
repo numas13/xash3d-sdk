@@ -2,8 +2,8 @@ use core::cell::Cell;
 
 use xash3d_server::{
     entity::{
-        delegate_entity, BaseEntity, DamageFlags, EntityHandle, KeyValue, MoveType, ObjectCaps,
-        Solid, UseType,
+        BaseEntity, DamageFlags, EntityHandle, KeyValue, MoveType, ObjectCaps, Solid, UseType,
+        delegate_entity,
     },
     ffi::common::vec3_t,
     prelude::*,

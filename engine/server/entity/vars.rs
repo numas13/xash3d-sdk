@@ -1,5 +1,5 @@
 use core::{
-    ffi::{c_int, CStr},
+    ffi::{CStr, c_int},
     fmt,
     num::NonZeroI32,
     ptr::{self, NonNull},

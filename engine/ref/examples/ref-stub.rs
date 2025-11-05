@@ -3,7 +3,7 @@ use std::cell::RefCell;
 use xash3d_ref::{
     buffer::SwBuffer,
     engine::{GraphicApi, RefEngineRef},
-    export::{export_dll, impl_unsync_global, RefDll},
+    export::{RefDll, export_dll, impl_unsync_global},
 };
 
 pub struct Instance {

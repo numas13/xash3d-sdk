@@ -2,7 +2,7 @@ use core::ffi::CStr;
 
 use xash3d_entities::item::BaseItem;
 use xash3d_server::{
-    entity::{delegate_entity, BaseEntity, EntityItem},
+    entity::{BaseEntity, EntityItem, delegate_entity},
     export::export_entity,
     prelude::*,
     save::{Restore, Save},

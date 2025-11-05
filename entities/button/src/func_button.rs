@@ -1,5 +1,5 @@
 use xash3d_server::{
-    entity::{delegate_entity, BaseEntity, KeyValue, MoveType, Solid, UseType},
+    entity::{BaseEntity, KeyValue, MoveType, Solid, UseType, delegate_entity},
     prelude::*,
     private::impl_private,
     utils::{LinearMove, Move, Sparks},

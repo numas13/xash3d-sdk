@@ -15,7 +15,7 @@ use xash3d_shared::{
 
 use crate::{color::RGBA, engine::UiEngineRef};
 
-pub use xash3d_shared::export::{impl_unsync_global, UnsyncGlobal};
+pub use xash3d_shared::export::{UnsyncGlobal, impl_unsync_global};
 
 #[allow(unused_variables)]
 pub trait UiDll: UnsyncGlobal {
@@ -444,7 +444,7 @@ pub unsafe fn get_ext_api<T: UiDll>(
 #[macro_export]
 macro_rules! export_dll {
     ($ui_dll:ty $(, pre $pre:block)? $(, post $post:block)?) => {
-        #[no_mangle]
+        #[unsafe(no_mangle)]
         pub unsafe extern "C" fn GetMenuAPI(
             dll_funcs: Option<&mut $crate::ffi::menu::UI_FUNCTIONS>,
             eng_funcs: Option<&$crate::ffi::menu::ui_enginefuncs_s>,
@@ -458,7 +458,7 @@ macro_rules! export_dll {
             result
         }
 
-        #[no_mangle]
+        #[unsafe(no_mangle)]
         pub unsafe extern "C" fn GetExtAPI(
             version: core::ffi::c_int,
             dll_funcs: Option<&mut $crate::ffi::menu::UI_EXTENDED_FUNCTIONS>,

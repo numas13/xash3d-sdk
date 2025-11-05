@@ -1,5 +1,5 @@
 use core::{
-    ffi::{c_int, c_uint, CStr},
+    ffi::{CStr, c_int, c_uint},
     mem,
     num::NonZeroU32,
     ops::{Deref, DerefMut},

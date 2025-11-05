@@ -3,7 +3,7 @@ mod vars;
 
 use core::{
     any::type_name,
-    ffi::{c_int, c_void, CStr},
+    ffi::{CStr, c_int, c_void},
     fmt,
     marker::PhantomData,
     ptr::{self, NonNull},
@@ -15,7 +15,7 @@ use csz::CStrThin;
 use xash3d_shared::{
     ffi::{
         common::{entity_state_s, vec3_t},
-        server::{edict_s, entvars_s, KeyValueData},
+        server::{KeyValueData, edict_s, entvars_s},
     },
     math::fabsf,
     utils::cstr_or_none,

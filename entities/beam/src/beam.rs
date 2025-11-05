@@ -6,8 +6,8 @@ use xash3d_server::{
     color::RGB,
     engine::TraceResult,
     entity::{
-        delegate_entity, BaseEntity, BeamEntity, EdictFlags, EntityHandle, EntityIndex, EntityVars,
-        ObjectCaps, TakeDamage,
+        BaseEntity, BeamEntity, EdictFlags, EntityHandle, EntityIndex, EntityVars, ObjectCaps,
+        TakeDamage, delegate_entity,
     },
     ffi::common::vec3_t,
     prelude::*,

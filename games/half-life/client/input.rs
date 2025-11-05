@@ -1,5 +1,5 @@
 use core::{
-    ffi::{c_int, CStr},
+    ffi::{CStr, c_int},
     mem,
     ptr::addr_of_mut,
 };
@@ -432,7 +432,7 @@ impl Input {
                 let mut dx = 0;
                 let mut dy = 0;
                 #[link(name = "SDL2-2.0")]
-                extern "C" {
+                unsafe extern "C" {
                     fn SDL_GetRelativeMouseState(x: &mut c_int, y: &mut c_int) -> u32;
                 }
                 unsafe {

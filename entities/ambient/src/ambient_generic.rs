@@ -5,7 +5,7 @@ use core::{
 
 use bitflags::bitflags;
 use xash3d_server::{
-    entity::{delegate_entity, BaseEntity, KeyValue, MoveType, ObjectCaps, Solid, UseType},
+    entity::{BaseEntity, KeyValue, MoveType, ObjectCaps, Solid, UseType, delegate_entity},
     ffi::common::PITCH_NORM,
     prelude::*,
     private::impl_private,
@@ -23,11 +23,7 @@ trait Fixup {
 
 impl Fixup for i32 {
     fn fixup(self) -> Self {
-        if self > 0 {
-            (101 - self) * 64
-        } else {
-            self
-        }
+        if self > 0 { (101 - self) * 64 } else { self }
     }
 }
 

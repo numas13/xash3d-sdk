@@ -1,8 +1,8 @@
 use std::ffi::{CStr, CString};
 
 use proc_macro2::{Span, TokenStream};
-use quote::{format_ident, quote, ToTokens};
-use syn::{parse_quote, spanned::Spanned, DeriveInput, Error, Token};
+use quote::{ToTokens, format_ident, quote};
+use syn::{DeriveInput, Error, Token, parse_quote, spanned::Spanned};
 
 trait Combine<T> {
     fn combine(&mut self, other: T);

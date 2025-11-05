@@ -4,7 +4,7 @@ use xash3d_shared::{
 };
 
 use crate::{
-    entity::{delegate_entity, BaseEntity, ObjectCaps, Solid},
+    entity::{BaseEntity, ObjectCaps, Solid, delegate_entity},
     prelude::*,
     private::impl_private,
 };

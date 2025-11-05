@@ -289,11 +289,7 @@ impl EventApi {
     pub fn get_phys_ent(&self, idx: c_int) -> Option<&physent_s> {
         unsafe {
             let ptr = unwrap!(self, EV_GetPhysent)(idx);
-            if !ptr.is_null() {
-                Some(&*ptr)
-            } else {
-                None
-            }
+            if !ptr.is_null() { Some(&*ptr) } else { None }
         }
     }
 

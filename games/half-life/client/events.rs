@@ -12,15 +12,15 @@ mod snark;
 mod train;
 mod tripmine;
 
-use core::ffi::{c_int, CStr};
+use core::ffi::{CStr, c_int};
 
 use csz::CStrArray;
 use res::valve::{self, sound};
 use xash3d_client::{
     consts::{EFLAG_FLESH_SOUND, MAX_PLAYERS, PM_NORMAL, SOLID_BSP},
     engine::{
-        event::{hook_event, EventArgs},
         ClientEngineRef,
+        event::{EventArgs, hook_event},
     },
     entity::{Effects, EntityIndex, MoveType},
     ffi::{

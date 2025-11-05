@@ -11,8 +11,8 @@ use xash3d_entities::{
 use xash3d_server::{
     color::RGB,
     entity::{
-        delegate_entity, delegate_player, BaseEntity, Buttons, Effects, EntityHandle, EntityPlayer,
-        EntityVars, UseType,
+        BaseEntity, Buttons, Effects, EntityHandle, EntityPlayer, EntityVars, UseType,
+        delegate_entity, delegate_player,
     },
     prelude::*,
     private::impl_private,

@@ -1,9 +1,9 @@
-use core::ffi::{c_int, CStr};
+use core::ffi::{CStr, c_int};
 
 use alloc::string::String;
 use xash3d_client::{
     prelude::*,
-    user_message::{hook_user_message, UserMessageBuffer, UserMessageError},
+    user_message::{UserMessageBuffer, UserMessageError, hook_user_message},
 };
 
 use crate::{export::hud, hud::say_text::SayText};

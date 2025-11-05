@@ -5,8 +5,8 @@ use xash3d_server::{
     color::RGBA,
     engine::TraceIgnore,
     entity::{
-        delegate_entity, BaseEntity, EdictFlags, Effects, Entity, EntityVars, KeyValue, Solid,
-        UseType,
+        BaseEntity, EdictFlags, Effects, Entity, EntityVars, KeyValue, Solid, UseType,
+        delegate_entity,
     },
     ffi::common::vec3_t,
     prelude::*,

@@ -1,6 +1,6 @@
 use bitflags::bitflags;
 use xash3d_server::{
-    entity::{delegate_entity, BaseEntity, MoveType, Solid},
+    entity::{BaseEntity, MoveType, Solid, delegate_entity},
     ffi::common::vec3_t,
     prelude::*,
     private::impl_private,

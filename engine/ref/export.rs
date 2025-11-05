@@ -15,24 +15,24 @@ use xash3d_shared::{
             tri::TRICULLSTYLE,
         },
         common::{
-            byte, cl_entity_s, colorVec, decal_s, model_s, msurface_s, particle_s, qboolean,
-            ref_viewpass_s, uint, vec2_t, vec3_t, BEAM,
+            BEAM, byte, cl_entity_s, colorVec, decal_s, model_s, msurface_s, particle_s, qboolean,
+            ref_viewpass_s, uint, vec2_t, vec3_t,
         },
         render::{
-            ref_api_s, ref_globals_s, ref_interface_s, ref_screen_rotation_t, rgbdata_t,
-            REF_API_VERSION,
+            REF_API_VERSION, ref_api_s, ref_globals_s, ref_interface_s, ref_screen_rotation_t,
+            rgbdata_t,
         },
     },
-    render::{RefParm, TextureFlags, ViewPass, MAX_LIGHTSTYLES, MAX_RENDER_DECALS},
+    render::{MAX_LIGHTSTYLES, MAX_RENDER_DECALS, RefParm, TextureFlags, ViewPass},
     utils::{cstr_or_none, slice_from_raw_parts_or_empty},
 };
 
 use crate::{
     engine::RefEngineRef,
-    texture::{TextureId, SKYBOX_MAX_SIDES, UNUSED_TEXTURE_NAME},
+    texture::{SKYBOX_MAX_SIDES, TextureId, UNUSED_TEXTURE_NAME},
 };
 
-pub use xash3d_shared::export::{impl_unsync_global, UnsyncGlobal};
+pub use xash3d_shared::export::{UnsyncGlobal, impl_unsync_global};
 
 #[allow(unused_variables)]
 pub trait RefDll: UnsyncGlobal {
@@ -960,11 +960,7 @@ struct Export<T> {
 
 fn texture_name<'a>(name: *const c_char) -> Option<&'a CStrThin> {
     let name = unsafe { cstr_or_none(name) }?;
-    if !name.is_empty() {
-        Some(name)
-    } else {
-        None
-    }
+    if !name.is_empty() { Some(name) } else { None }
 }
 
 impl<T: RefDll> RefDllExport for Export<T> {
@@ -1873,7 +1869,7 @@ pub unsafe fn get_ref_api<T: RefDll>(
 #[macro_export]
 macro_rules! export_dll {
     ($ref_dll:ty $($init:block)?) => {
-        #[no_mangle]
+        #[unsafe(no_mangle)]
         unsafe extern "C" fn GetRefAPI(
             version: core::ffi::c_int,
             dll_funcs: Option<&mut $crate::ffi::render::ref_interface_t>,

@@ -1,6 +1,6 @@
 use core::{
     cmp,
-    ffi::{c_int, CStr},
+    ffi::{CStr, c_int},
     fmt::Write,
 };
 
@@ -11,7 +11,7 @@ use xash3d_hl_shared::user_message;
 
 use crate::{
     export::hud,
-    hud::{HudItem, Sprite, State, MAX_PLAYER_NAME_LENGTH},
+    hud::{HudItem, MAX_PLAYER_NAME_LENGTH, Sprite, State},
 };
 
 const MAX_DEATH_NOTICES: usize = 4;

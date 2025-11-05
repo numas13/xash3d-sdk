@@ -2,7 +2,7 @@ use core::ffi::c_int;
 
 use xash3d_client::{
     prelude::*,
-    user_message::{hook_user_message, UserMessageError},
+    user_message::{UserMessageError, hook_user_message},
 };
 use xash3d_hl_shared::user_message;
 

@@ -11,7 +11,7 @@ pub mod raw;
 
 use core::{
     cmp,
-    ffi::{c_char, c_int, CStr},
+    ffi::{CStr, c_char, c_int},
     ptr, str,
     sync::atomic::{AtomicU8, Ordering},
 };
@@ -31,7 +31,7 @@ use xash3d_shared::{
         common::{pmtrace_s, qboolean, vec3_t},
         player_move::{physent_s, playermove_s},
     },
-    math::{self, fabsf, fmaxf, fminf, pow2, sqrtf, ToAngleVectors},
+    math::{self, ToAngleVectors, fabsf, fmaxf, fminf, pow2, sqrtf},
     model::ModelType,
     sound::{Attenuation, Channel, Pitch, SoundFlags},
 };

@@ -1,6 +1,6 @@
 use core::{
     cmp,
-    ffi::{c_int, CStr},
+    ffi::{CStr, c_int},
 };
 
 use alloc::{boxed::Box, vec, vec::Vec};
@@ -10,7 +10,7 @@ use xash3d_client::{
     math::fabsf,
     prelude::*,
     screen::ScreenInfo,
-    user_message::{hook_user_message, UserMessageError},
+    user_message::{UserMessageError, hook_user_message},
 };
 use xash3d_hl_shared::user_message;
 

@@ -1,6 +1,6 @@
 use core::{
     cmp,
-    ffi::{c_int, CStr},
+    ffi::{CStr, c_int},
 };
 
 use csz::CStrArray;
@@ -8,11 +8,11 @@ use xash3d_client::{
     color::RGB,
     macros::{spr_get_list, spr_load},
     prelude::*,
-    user_message::{hook_user_message, UserMessageBuffer, UserMessageError},
+    user_message::{UserMessageBuffer, UserMessageError, hook_user_message},
 };
 use xash3d_hl_shared::user_message;
 
-use crate::hud::{hud_mut, weapon_menu::WeaponMenu, Sprite, Weapons, MAX_WEAPONS};
+use crate::hud::{MAX_WEAPONS, Sprite, Weapons, hud_mut, weapon_menu::WeaponMenu};
 
 pub const MAX_WEAPON_POSITIONS: usize = MAX_WEAPON_SLOTS;
 // hud item selection slots

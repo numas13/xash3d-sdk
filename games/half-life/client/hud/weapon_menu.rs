@@ -5,8 +5,8 @@ use xash3d_client::{color::RGB, consts, macros::hook_command, prelude::*};
 use crate::{
     export::{hud, hud_mut},
     hud::{
-        inventory::{Weapon, MAX_WEAPON_POSITIONS, MAX_WEAPON_SLOTS},
         Hide, HudItem, Sprite, State,
+        inventory::{MAX_WEAPON_POSITIONS, MAX_WEAPON_SLOTS, Weapon},
     },
 };
 

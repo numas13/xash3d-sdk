@@ -4,8 +4,8 @@ use bitflags::bitflags;
 use xash3d_server::{
     engine::EventIndex,
     entity::{
-        delegate_entity, BaseEntity, EdictFlags, EntityHandle, KeyValue, MoveType, ObjectCaps,
-        Solid, UseType,
+        BaseEntity, EdictFlags, EntityHandle, KeyValue, MoveType, ObjectCaps, Solid, UseType,
+        delegate_entity,
     },
     ffi::common::vec3_t,
     math::{angle_distance, approach_angle, fabsf},

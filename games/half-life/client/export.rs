@@ -7,7 +7,7 @@ use core::{
 use csz::CStrThin;
 use xash3d_client::{
     entity::{EntityType, TempEntityList},
-    export::{export_dll, impl_unsync_global, ClientDll, UnsyncGlobal},
+    export::{ClientDll, UnsyncGlobal, export_dll, impl_unsync_global},
     ffi::{
         self,
         api::{

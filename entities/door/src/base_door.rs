@@ -4,8 +4,8 @@ use bitflags::bitflags;
 use xash3d_server::{
     entities::delayed_use::DelayedUse,
     entity::{
-        delegate_entity, BaseEntity, DamageFlags, EntityHandle, EntityVars, KeyValue, MoveType,
-        ObjectCaps, UseType,
+        BaseEntity, DamageFlags, EntityHandle, EntityVars, KeyValue, MoveType, ObjectCaps, UseType,
+        delegate_entity,
     },
     prelude::*,
     sound::LockSounds,

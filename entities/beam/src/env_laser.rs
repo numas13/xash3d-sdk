@@ -4,8 +4,8 @@ use xash3d_entity_sprite::env_sprite::Sprite;
 use xash3d_server::{
     engine::{TraceIgnore, TraceResult},
     entity::{
-        delegate_entity, BaseEntity, EdictFlags, Effects, Entity, EntityHandle, EntityVars,
-        KeyValue, Solid, UseType,
+        BaseEntity, EdictFlags, Effects, Entity, EntityHandle, EntityVars, KeyValue, Solid,
+        UseType, delegate_entity,
     },
     ffi::common::vec3_t,
     prelude::*,

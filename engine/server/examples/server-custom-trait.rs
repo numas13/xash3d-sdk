@@ -1,9 +1,9 @@
-use core::ffi::{c_int, CStr};
+use core::ffi::{CStr, c_int};
 
 use xash3d_entities::{player::Player, world::World};
 use xash3d_server::{
     entity::{BaseEntity, EntityHandle},
-    export::{export_dll, impl_unsync_global, ServerDll},
+    export::{ServerDll, export_dll, impl_unsync_global},
     game_rules::StubGameRules,
     global_state::GlobalStateRef,
     prelude::*,

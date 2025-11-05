@@ -2,7 +2,7 @@ use core::{ffi::c_int, ptr::NonNull};
 
 use xash3d_shared::ffi::{
     common::vec3_t,
-    server::{globalvars_t, SAVERESTOREDATA},
+    server::{SAVERESTOREDATA, globalvars_t},
 };
 
 use crate::{prelude::*, str::MapString, time::MapTime};

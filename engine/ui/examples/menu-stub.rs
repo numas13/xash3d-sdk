@@ -7,7 +7,7 @@ use xash3d_ui::{
         ActiveMenu::{Console, Menu},
         UiEngineRef,
     },
-    export::{export_dll, impl_unsync_global, UiDll},
+    export::{UiDll, export_dll, impl_unsync_global},
     prelude::*,
 };
 

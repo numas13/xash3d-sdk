@@ -9,14 +9,14 @@ use core::{
 use csz::{CStrArray, CStrSlice, CStrThin};
 use xash3d_shared::{
     borrow::{BorrowRef, Ref},
-    engine::net::{netadr_s, NetApi},
+    engine::net::{NetApi, netadr_s},
     entity::EntityType,
     export::impl_unsync_global,
     ffi::{
         common::{cl_entity_s, kbutton_t, wrect_s},
         menu::{
-            gameinfo2_s, ui_enginefuncs_s, ui_extendedfuncs_s, ui_globalvars_s, GAMEINFO,
-            GAMEINFO_VERSION, HIMAGE,
+            GAMEINFO, GAMEINFO_VERSION, HIMAGE, gameinfo2_s, ui_enginefuncs_s, ui_extendedfuncs_s,
+            ui_globalvars_s,
         },
     },
     macros::define_enum_for_primitive,
@@ -38,12 +38,12 @@ use crate::{
 #[allow(deprecated)]
 use crate::game_info::GameInfo;
 
-pub use xash3d_shared::engine::{net, AddCmdError, BufferError, EngineRef};
+pub use xash3d_shared::engine::{AddCmdError, BufferError, EngineRef, net};
 
 pub(crate) mod prelude {
     pub use xash3d_shared::engine::{
-        net::EngineNet, EngineCmd, EngineCmdArgsRaw, EngineConsole, EngineCvar,
-        EngineDrawConsoleString, EngineRng, EngineSystemTime,
+        EngineCmd, EngineCmdArgsRaw, EngineConsole, EngineCvar, EngineDrawConsoleString, EngineRng,
+        EngineSystemTime, net::EngineNet,
     };
 }
 

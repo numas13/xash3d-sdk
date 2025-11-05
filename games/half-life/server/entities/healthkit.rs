@@ -1,6 +1,6 @@
 use xash3d_entities::stub::StubEntity;
 use xash3d_server::{
-    entity::{delegate_entity, BaseEntity, ObjectCaps},
+    entity::{BaseEntity, ObjectCaps, delegate_entity},
     export::export_entity,
     prelude::*,
     save::{Restore, Save},

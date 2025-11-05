@@ -8,7 +8,7 @@ macro_rules! hook_user_message {
     }};
     ($engine:expr, $name:ident, $handle:expr $(,)?) => {{
         use core::{
-            ffi::{c_char, c_int, c_void, CStr},
+            ffi::{CStr, c_char, c_int, c_void},
             slice,
         };
 

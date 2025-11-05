@@ -5,7 +5,7 @@ use xash3d_server::{
     color::RGBA,
     entities::point_entity::PointEntity,
     entity::{
-        delegate_entity, BaseEntity, Effects, EntityHandle, MoveType, ObjectCaps, Solid, UseType,
+        BaseEntity, Effects, EntityHandle, MoveType, ObjectCaps, Solid, UseType, delegate_entity,
     },
     ffi::common::vec3_t,
     prelude::*,

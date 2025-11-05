@@ -1,7 +1,7 @@
 use core::ffi::CStr;
 
 use crate::{
-    entity::{delegate_entity, BaseEntity, KeyValue, UseType},
+    entity::{BaseEntity, KeyValue, UseType, delegate_entity},
     export::export_entity,
     prelude::*,
     str::MapString,

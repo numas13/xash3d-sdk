@@ -1,6 +1,6 @@
 use core::{
     cmp,
-    ffi::{c_int, CStr},
+    ffi::{CStr, c_int},
     fmt,
     num::NonZero,
     ops::Deref,

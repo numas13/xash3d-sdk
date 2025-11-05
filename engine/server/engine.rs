@@ -1,6 +1,6 @@
 use core::{
     cmp,
-    ffi::{c_char, c_int, c_long, c_uchar, c_void, CStr},
+    ffi::{CStr, c_char, c_int, c_long, c_uchar, c_void},
     fmt,
     hash::{BuildHasher, Hasher},
     marker::PhantomData,
@@ -20,7 +20,7 @@ use xash3d_shared::{
         self,
         common::{cvar_s, cvar_t, entity_state_s, vec3_t},
         server::{
-            edict_s, enginefuncs_s, entvars_s, globalvars_t, CRC32_t, KeyValueData, ALERT_TYPE,
+            ALERT_TYPE, CRC32_t, KeyValueData, edict_s, enginefuncs_s, entvars_s, globalvars_t,
         },
     },
     macros::define_enum_for_primitive,
@@ -1947,11 +1947,7 @@ impl ServerEngine {
     pub fn get_player_user_id(&self, ent: &impl AsEntityHandle) -> Option<i32> {
         let ent = ent.as_entity_handle();
         let id = unsafe { unwrap!(self, pfnGetPlayerUserId)(ent) };
-        if id != -1 {
-            Some(id)
-        } else {
-            None
-        }
+        if id != -1 { Some(id) } else { None }
     }
 
     // pub pfnBuildSoundMsg: Option<
@@ -2110,11 +2106,7 @@ impl ServerEngine {
 
     pub fn get_current_player(&self) -> Option<i32> {
         let index = unsafe { unwrap!(self, pfnGetCurrentPlayer)() };
-        if index != -1 {
-            Some(index)
-        } else {
-            None
-        }
+        if index != -1 { Some(index) } else { None }
     }
 
     pub fn can_skip_player(&self, ent: &impl AsEntityHandle) -> bool {
@@ -2145,11 +2137,7 @@ impl ServerEngine {
                 (baseline as *const entity_state_s).cast_mut(),
             )
         };
-        if index != 0 {
-            Some(index)
-        } else {
-            None
-        }
+        if index != 0 { Some(index) } else { None }
     }
 
     // pub pfnCvar_DirectSet: Option<unsafe extern "C" fn(var: *mut cvar_s, value: *const c_char)>,
@@ -2208,11 +2196,7 @@ impl ServerEngine {
     pub fn get_file_size(&self, filename: impl ToEngineStr) -> Option<i32> {
         let filename = filename.to_engine_str();
         let size = unsafe { unwrap!(self, pfnGetFileSize)(filename.as_ptr()) };
-        if size != -1 {
-            Some(size)
-        } else {
-            None
-        }
+        if size != -1 { Some(size) } else { None }
     }
 
     pub fn get_approx_wav_duration(&self, filepath: impl ToEngineStr) -> Duration {

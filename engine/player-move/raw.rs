@@ -5,7 +5,7 @@
 #![allow(clippy::type_complexity)]
 
 use core::{
-    ffi::{c_char, c_int, c_void, CStr},
+    ffi::{CStr, c_char, c_int, c_void},
     mem::{self, MaybeUninit},
     slice,
     str::FromStr,

@@ -26,7 +26,7 @@ use xash3d_shared::{
 
 use crate::{engine::ClientEngineRef, entity::TempEntityList};
 
-pub use xash3d_shared::export::{impl_unsync_global, UnsyncGlobal};
+pub use xash3d_shared::export::{UnsyncGlobal, impl_unsync_global};
 
 #[allow(unused_variables)]
 pub trait ClientDll: UnsyncGlobal {
@@ -693,7 +693,7 @@ impl<T: ClientDll> ClientDllExport for Export<T> {
 #[macro_export]
 macro_rules! export_dll {
     ($client_dll:ty $($init:block)?) => {
-        #[no_mangle]
+        #[unsafe(no_mangle)]
         unsafe extern "C" fn GetClientAPI(
             dll_funcs: Option<&mut $crate::ffi::client::cldll_func_s>,
         ) {

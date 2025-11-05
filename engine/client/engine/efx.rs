@@ -3,8 +3,8 @@ use core::ffi::c_int;
 use xash3d_shared::{
     entity::BeamEntity,
     ffi::{
-        api::efx::{efx_api_s, TEMPENTITY},
-        common::{dlight_s, vec3_t, BEAM},
+        api::efx::{TEMPENTITY, efx_api_s},
+        common::{BEAM, dlight_s, vec3_t},
     },
     render::{RenderFx, RenderMode},
     str::{AsCStrPtr, ToEngineStr},

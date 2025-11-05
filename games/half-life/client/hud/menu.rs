@@ -5,7 +5,7 @@ use csz::CStrArray;
 use xash3d_client::{
     color::RGB,
     prelude::*,
-    user_message::{hook_user_message, UserMessageBuffer, UserMessageError},
+    user_message::{UserMessageBuffer, UserMessageError, hook_user_message},
 };
 
 use crate::export::hud;

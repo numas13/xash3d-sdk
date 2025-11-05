@@ -1,7 +1,7 @@
 use core::{cell::Cell, ffi::CStr};
 
 use xash3d_server::{
-    entity::{delegate_entity, BaseEntity, DamageFlags, Effects, EntityItem, MoveType, Solid},
+    entity::{BaseEntity, DamageFlags, Effects, EntityItem, MoveType, Solid, delegate_entity},
     export::export_entity,
     ffi::common::vec3_t,
     prelude::*,

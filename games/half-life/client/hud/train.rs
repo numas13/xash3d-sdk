@@ -7,7 +7,7 @@ use xash3d_hl_shared::user_message;
 
 use crate::{
     export::hud,
-    hud::{try_spr_load, HudItem, State},
+    hud::{HudItem, State, try_spr_load},
 };
 
 pub struct Train {

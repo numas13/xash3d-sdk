@@ -1,5 +1,5 @@
 use xash3d_server::{
-    entity::{delegate_entity, BaseEntity, KeyValue},
+    entity::{BaseEntity, KeyValue, delegate_entity},
     ffi::common::vec3_t,
     prelude::*,
     private::impl_private,

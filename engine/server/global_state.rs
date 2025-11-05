@@ -2,9 +2,9 @@ pub mod decals;
 pub mod sprites;
 
 use core::{
-    any::{type_name, Any},
+    any::{Any, type_name},
     cell::{Cell, Ref, RefCell, RefMut},
-    ffi::{c_int, CStr},
+    ffi::{CStr, c_int},
     mem::MaybeUninit,
 };
 

@@ -19,7 +19,7 @@ mod derive {
 }
 
 use core::{
-    ffi::{c_char, c_float, c_int, c_short, CStr},
+    ffi::{CStr, c_char, c_float, c_int, c_short},
     fmt, mem, ptr, slice, str,
 };
 
@@ -29,7 +29,7 @@ use xash3d_shared::{
     ffi::{
         self,
         common::{string_t, vec3_t},
-        server::{edict_s, entvars_s, TYPEDESCRIPTION},
+        server::{TYPEDESCRIPTION, edict_s, entvars_s},
     },
     macros::define_enum_for_primitive,
 };
