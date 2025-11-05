@@ -32,9 +32,6 @@ impl Default for EntityIndex {
 }
 
 impl EntityIndex {
-    #[deprecated(note = "use WORLD_SPAWN instead")]
-    pub const ZERO: Self = Self(0);
-
     /// The world spawn entity index.
     pub const WORLD_SPAWN: Self = Self(0);
 
@@ -63,11 +60,6 @@ impl EntityIndex {
 
     pub const fn to_i32(self) -> i32 {
         self.0 as i32
-    }
-
-    #[deprecated(note = "use is_world_spawn instead")]
-    pub const fn is_zero(&self) -> bool {
-        self.0 == 0
     }
 
     /// Returns `true` if the index is for the world spawn entity.
