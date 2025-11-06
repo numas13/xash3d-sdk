@@ -583,9 +583,18 @@ pub trait ServerDll: UnsyncGlobal {
         }
 
         let view = view_entity.unwrap_or(client);
-        let mut org = view.vars().origin() + view.vars().view_ofs();
-        if view.vars().flags().intersects(EdictFlags::DUCKING) {
-            org += HULL_MIN.z - DUCK_HULL_MIN.z;
+        let mut org;
+        if view.vars().effects().intersects(Effects::MERGE_VISIBILITY) {
+            if !view.vars().is_class_name(c"env_sky") {
+                // do not merge pvs
+                return;
+            }
+            org = view.vars().origin();
+        } else {
+            org = view.vars().origin() + view.vars().view_ofs();
+            if view.vars().flags().intersects(EdictFlags::DUCKING) {
+                org += HULL_MIN - DUCK_HULL_MIN;
+            }
         }
 
         let engine = self.engine();
