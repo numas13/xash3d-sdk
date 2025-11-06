@@ -86,7 +86,7 @@ impl TriggerMultiple {
 }
 
 impl Entity for TriggerMultiple {
-    delegate_entity!(base not { key_value, touched, think });
+    delegate_entity!(base not { key_value, touched });
 
     fn key_value(&mut self, data: &mut KeyValue) {
         match data.key_name().to_bytes() {

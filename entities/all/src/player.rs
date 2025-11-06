@@ -4,11 +4,13 @@ use core::{
     ptr,
 };
 
+use csz::CStrThin;
 use xash3d_server::{
     engine::TraceIgnore,
+    entities::item::SF_ITEM_NO_RESPAWN,
     entity::{
-        BaseEntity, Buttons, Dead, EdictFlags, EntityHandle, EntityPlayer, EntityVars, LastSound,
-        MoveType, ObjectCaps, Solid, TakeDamage, UseType, delegate_entity,
+        BaseEntity, Buttons, Dead, EdictFlags, EntityHandle, EntityItem, EntityPlayer, EntityVars,
+        LastSound, MoveType, ObjectCaps, Solid, TakeDamage, UseType, delegate_entity,
     },
     ffi::common::vec3_t,
     math::ToAngleVectors,
@@ -356,6 +358,10 @@ impl Entity for Player {
 }
 
 impl EntityPlayer for Player {
+    fn is_net_client(&self) -> bool {
+        true
+    }
+
     fn select_spawn_point(&self) -> EntityHandle {
         let engine = self.engine();
         let global_state = self.global_state();
@@ -390,12 +396,40 @@ impl EntityPlayer for Player {
         self.input.post_think(self.base.vars());
     }
 
+    fn set_geiger_range(&self, _range: f32) {}
+
     fn env_sound(&self) -> Option<LastSound> {
         self.last_sound.get()
     }
 
     fn set_env_sound(&self, last: Option<LastSound>) {
         self.last_sound.set(last);
+    }
+
+    fn give_named_item(&self, name: &CStrThin) -> bool {
+        let engine = self.engine();
+        let Some(mut item) = engine.create_named_entity(name) else {
+            warn!("{}: failed to create named item {name}", self.pretty_name());
+            return false;
+        };
+
+        let item_v = item.vars();
+        item_v.set_origin(self.vars().origin());
+        item_v.with_spawn_flags(|f| f | SF_ITEM_NO_RESPAWN);
+
+        if let Some(item) = unsafe { item.downcast_mut::<dyn EntityItem>() } {
+            item.spawn();
+            if item.try_give(self.as_entity()) {
+                return true;
+            }
+        } else {
+            warn!("{}: {name} is not an item entity", self.pretty_name());
+        }
+
+        // failed to give the item, manually remove from the world
+        item.remove_from_world();
+
+        false
     }
 }
 

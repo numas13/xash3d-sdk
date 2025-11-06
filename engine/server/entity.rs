@@ -23,7 +23,6 @@ use xash3d_shared::{
 
 use crate::{
     engine::ServerEngineRef,
-    entities::item::SF_ITEM_NO_RESPAWN,
     export::dispatch_spawn,
     global_state::{EntityState, GlobalStateRef},
     prelude::*,
@@ -649,6 +648,17 @@ define_entity_trait! {
                 let v = self.vars();
                 v.solid() == Solid::Bsp || v.move_type() == MoveType::PushStep
             }
+
+            fn killed(
+                &self,
+                _attacker: &::xash3d_server::entity::EntityVars,
+                _gib: ::xash3d_server::entity::Gib,
+            ) {
+                let v = self.vars();
+                v.set_take_damage(::xash3d_server::entity::TakeDamage::No);
+                v.set_dead(::xash3d_server::entity::Dead::Yes);
+                self.remove_from_world();
+            }
         }
 
         /// Returns a reference to the server engine.
@@ -658,148 +668,59 @@ define_entity_trait! {
 
         fn private_mut(&mut self) -> &mut ::xash3d_server::private::PrivateData;
 
+        /// Returns `true` if it is a player entity.
+        fn is_player(&self) -> bool;
+
         /// Returns a shared reference to entity variables.
         fn vars(&self) -> &::xash3d_server::entity::EntityVars;
 
-        fn object_caps(&self) -> ::xash3d_server::entity::ObjectCaps {
-            ObjectCaps::ACROSS_TRANSITION
-        }
+        fn object_caps(&self) -> ::xash3d_server::entity::ObjectCaps;
 
-        fn key_value(&mut self, data: &mut ::xash3d_server::entity::KeyValue) {
-            data.set_handled(false);
-        }
+        fn key_value(&mut self, data: &mut ::xash3d_server::entity::KeyValue);
 
-        fn precache(&mut self) {}
+        fn precache(&mut self);
 
-        fn spawn(&mut self) {}
+        fn spawn(&mut self);
 
-        fn activate(&self) {}
+        fn activate(&self);
 
-        fn think(&self) {}
+        fn think(&self);
 
-        #[allow(unused_variables)]
-        fn touched(&self, other: &dyn ::xash3d_server::entity::Entity) {}
+        fn touched(&self, other: &dyn ::xash3d_server::entity::Entity);
 
-        #[allow(unused_variables)]
         fn used(
             &self,
             use_type: ::xash3d_server::entity::UseType,
             activator: Option<&dyn ::xash3d_server::entity::Entity>,
             caller: &dyn ::xash3d_server::entity::Entity,
-        ) {}
+        );
 
-        #[allow(unused_variables)]
-        fn blocked(&self, other: &dyn ::xash3d_server::entity::Entity) {}
+        fn blocked(&self, other: &dyn ::xash3d_server::entity::Entity);
 
-        #[allow(unused_variables)]
-        fn is_triggered(&self, activator: Option<&dyn ::xash3d_server::entity::Entity>) -> bool {
-            true
-        }
+        fn is_triggered(&self, activator: Option<&dyn ::xash3d_server::entity::Entity>) -> bool;
 
-        #[allow(unused_variables)]
         fn take_health(
             &self,
             health: f32,
             damage_type: ::xash3d_server::entity::DamageFlags,
-        ) -> bool {
-            let v = self.vars();
-            if v.take_damage() == TakeDamage::No {
-                return false;
-            }
-            if v.health() == v.max_health() {
-                return false;
-            }
-            v.set_health((v.health() + health).min(v.max_health()));
-            true
-        }
+        ) -> bool;
 
-        #[allow(unused_variables)]
         fn take_damage(
             &self,
             damage: f32,
             damage_type: ::xash3d_server::entity::DamageFlags,
             inflictor: &::xash3d_server::entity::EntityVars,
             attacker: Option<&::xash3d_server::entity::EntityVars>,
-        ) -> bool {
-            let name = self.pretty_name();
-            let inflictor = inflictor.pretty_name();
-            match attacker.map(|i| i.pretty_name()) {
-                Some(attacker) => {
-                    warn!("{name}: take_damage from {inflictor}({attacker}) is not implemented yet");
-                }
-                None => {
-                    warn!("{name}: take_damage from {inflictor} is not implemented yet");
-                }
-            }
-            false
-        }
+        ) -> bool;
 
-        #[allow(unused_variables)]
-        fn killed(
-            &self,
-            attacker: &::xash3d_server::entity::EntityVars,
-            gib: ::xash3d_server::entity::Gib,
-        ) {
-            let v = self.vars();
-            v.set_take_damage(TakeDamage::No);
-            v.set_dead(Dead::Yes);
-            self.remove_from_world();
-        }
+        fn override_reset(&self);
 
-        /// Returns `true` if it is a player entity.
-        fn is_player(&self) -> bool {
-            self.as_entity().as_player().is_some()
-        }
+        fn set_object_collision_box(&self);
 
-        fn override_reset(&self) {}
-
-        fn set_object_collision_box(&self) {
-            set_object_collision_box(self.vars());
-        }
-
-        fn intersects(&self, other: &dyn ::xash3d_server::entity::Entity) -> bool {
-            let a = self.vars();
-            let a_min = a.abs_min();
-            let a_max = a.abs_max();
-            let b = other.vars();
-            let b_min = b.abs_min();
-            let b_max = b.abs_max();
-            !(     b_min.x > a_max.x
-                || b_min.y > a_max.y
-                || b_min.z > a_max.z
-                || b_max.x < a_min.x
-                || b_max.y < a_min.y
-                || b_max.z < a_min.z)
-        }
+        fn intersects(&self, other: &dyn ::xash3d_server::entity::Entity) -> bool;
 
         /// Removes this entity from the world.
-        fn remove_from_world(&self) {
-            let v = self.vars();
-
-            if v.flags().intersects(EdictFlags::KILLME) {
-                let name = self.pretty_name();
-                warn!("{name}: trying to remove dead entity");
-                return;
-            }
-
-            if v.flags().intersects(EdictFlags::GRAPHED) {
-                // TODO: remove from the world graph
-                let name = self.pretty_name();
-                warn!("{name}: remove from the world graph is not implemented yet");
-            }
-
-            if let Some(globalname) = self.globalname() {
-                self.global_state().set_entity_state(globalname, EntityState::Dead);
-            }
-
-            if v.health() > 0.0 {
-                v.set_health(0.0);
-                let name = self.pretty_name();
-                warn!("{name}: remove from world with health > 0");
-            }
-
-            v.delayed_remove();
-        }
+        fn remove_from_world(&self);
     }
 }
 
@@ -859,6 +780,10 @@ impl Entity for BaseEntity {
         self
     }
 
+    fn is_player(&self) -> bool {
+        false
+    }
+
     fn private(&self) -> &crate::private::PrivateData {
         let edict = unsafe { &*self.as_entity_handle() };
         crate::private::PrivateData::from_edict(edict).unwrap()
@@ -880,6 +805,114 @@ impl Entity for BaseEntity {
     fn vars(&self) -> &EntityVars {
         &self.vars
     }
+
+    fn object_caps(&self) -> ObjectCaps {
+        ObjectCaps::ACROSS_TRANSITION
+    }
+
+    fn key_value(&mut self, data: &mut KeyValue) {
+        data.set_handled(false);
+    }
+
+    fn precache(&mut self) {}
+
+    fn spawn(&mut self) {}
+
+    fn activate(&self) {}
+
+    fn think(&self) {}
+
+    fn touched(&self, _: &dyn Entity) {}
+
+    fn used(&self, _: UseType, _: Option<&dyn Entity>, _: &dyn Entity) {}
+
+    fn blocked(&self, _: &dyn Entity) {}
+
+    fn is_triggered(&self, _: Option<&dyn Entity>) -> bool {
+        true
+    }
+
+    fn take_health(&self, health: f32, _damage_type: DamageFlags) -> bool {
+        let v = self.vars();
+        if v.take_damage() == TakeDamage::No {
+            return false;
+        }
+        if v.health() == v.max_health() {
+            return false;
+        }
+        v.set_health((v.health() + health).min(v.max_health()));
+        true
+    }
+
+    fn take_damage(
+        &self,
+        _damage: f32,
+        _damage_type: DamageFlags,
+        inflictor: &EntityVars,
+        attacker: Option<&EntityVars>,
+    ) -> bool {
+        let name = self.pretty_name();
+        let inflictor = inflictor.pretty_name();
+        match attacker.map(|i| i.pretty_name()) {
+            Some(attacker) => {
+                warn!("{name}: take_damage from {inflictor}({attacker}) is not implemented yet");
+            }
+            None => {
+                warn!("{name}: take_damage from {inflictor} is not implemented yet");
+            }
+        }
+        false
+    }
+
+    fn override_reset(&self) {}
+
+    fn set_object_collision_box(&self) {
+        set_object_collision_box(self.vars());
+    }
+
+    fn intersects(&self, other: &dyn Entity) -> bool {
+        let a = self.vars();
+        let a_min = a.abs_min();
+        let a_max = a.abs_max();
+        let b = other.vars();
+        let b_min = b.abs_min();
+        let b_max = b.abs_max();
+        !(b_min.x > a_max.x
+            || b_min.y > a_max.y
+            || b_min.z > a_max.z
+            || b_max.x < a_min.x
+            || b_max.y < a_min.y
+            || b_max.z < a_min.z)
+    }
+
+    fn remove_from_world(&self) {
+        let v = self.vars();
+
+        if v.flags().intersects(EdictFlags::KILLME) {
+            let name = self.pretty_name();
+            warn!("{name}: trying to remove dead entity");
+            return;
+        }
+
+        if v.flags().intersects(EdictFlags::GRAPHED) {
+            // TODO: remove from the world graph
+            let name = self.pretty_name();
+            warn!("{name}: remove from the world graph is not implemented yet");
+        }
+
+        if let Some(globalname) = self.globalname() {
+            self.global_state()
+                .set_entity_state(globalname, EntityState::Dead);
+        }
+
+        if v.health() > 0.0 {
+            v.set_health(0.0);
+            let name = self.pretty_name();
+            warn!("{name}: remove from world with health > 0");
+        }
+
+        v.delayed_remove();
+    }
 }
 
 impl_private!(BaseEntity {});
@@ -887,7 +920,7 @@ impl_private!(BaseEntity {});
 pub trait EntityItem: Entity {
     /// Tries to give this item to an entity.
     ///
-    /// Remove self from the world if it is successful.
+    /// Remove self from the world or respawn if it was successful.
     fn try_give(&self, other: &dyn Entity) -> bool;
 }
 
@@ -919,55 +952,27 @@ impl LastSound {
 
 define_entity_trait! {
     pub trait EntityPlayer(delegate_player): (Entity) {
+        default {
+            fn is_observer(&self) -> bool {
+                self.vars().iuser1() != 0
+            }
+        }
+
         fn select_spawn_point(&self) -> ::xash3d_server::entity::EntityHandle;
 
         fn pre_think(&self);
 
         fn post_think(&self);
 
-        #[allow(unused_variables)]
-        fn set_geiger_range(&self, range: f32) {}
+        fn set_geiger_range(&self, range: f32);
 
-        fn is_observer(&self) -> bool {
-            self.vars().iuser1() != 0
-        }
+        fn is_net_client(&self) -> bool;
 
-        fn is_net_client(&self) -> bool {
-            true
-        }
+        fn env_sound(&self) -> Option<::xash3d_server::entity::LastSound>;
 
-        fn env_sound(&self) -> Option<::xash3d_server::entity::LastSound> {
-            None
-        }
+        fn set_env_sound(&self, last: Option<::xash3d_server::entity::LastSound>);
 
-        #[allow(unused_variables)]
-        fn set_env_sound(&self, last: Option<::xash3d_server::entity::LastSound>) {}
-
-        fn give_named_item(&self, name: &::csz::CStrThin) -> bool {
-            let engine = self.engine();
-            let Some(mut item) = engine.create_named_entity(name) else {
-                warn!("{}: failed to create named item {name}", self.pretty_name());
-                return false;
-            };
-
-            let item_v = item.vars();
-            item_v.set_origin(self.vars().origin());
-            item_v.with_spawn_flags(|f| f | SF_ITEM_NO_RESPAWN);
-
-            if let Some(item) = unsafe { item.downcast_mut::<dyn EntityItem>() } {
-                item.spawn();
-                if item.try_give(self.as_entity()) {
-                    return true;
-                }
-            } else {
-                warn!("{}: {name} is not an item entity", self.pretty_name());
-            }
-
-            // failed to give the item, manually remove from the world
-            item.remove_from_world();
-
-            false
-        }
+        fn give_named_item(&self, name: &::csz::CStrThin) -> bool;
     }
 }
 
