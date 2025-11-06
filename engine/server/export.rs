@@ -765,6 +765,8 @@ pub trait ServerDll: UnsyncGlobal {
             }
         }
 
+        state.onground = ev.ground_entity().map_or(0, |i| i.entity_index().to_i32());
+
         if !player {
             state.playerclass = ev.player_class();
         }
