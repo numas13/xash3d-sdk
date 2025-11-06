@@ -207,7 +207,7 @@ pub trait ServerDll: UnsyncGlobal {
     }
 
     #[cfg(feature = "save")]
-    fn dispatch_save(&self, mut ent: EntityHandle, save_data: &mut SaveRestoreData) {
+    fn dispatch_save(&self, ent: EntityHandle, save_data: &mut SaveRestoreData) {
         use crate::{
             entity::{MoveType, ObjectCaps},
             save,
@@ -218,14 +218,15 @@ pub trait ServerDll: UnsyncGlobal {
         if save_data.table()[current_index].pent != ent.as_ptr() {
             error!("Entity table or index is wrong");
         }
-        let Some(entity) = (unsafe { ent.get_entity_mut() }) else {
+        let Some(private) = ent.get_private() else {
             return;
         };
+        let entity = private.as_entity();
         if entity.object_caps().intersects(ObjectCaps::DONT_SAVE) {
             return;
         }
 
-        let v = entity.vars();
+        let v = private.as_entity().vars();
         if v.move_type() == MoveType::Push {
             let delta = v.next_think_time() - v.last_think_time();
             v.set_last_think_time_from_now(0.0);
@@ -249,7 +250,8 @@ pub trait ServerDll: UnsyncGlobal {
         let result = save::write_fields(&mut state, &mut cur, unsafe { &*entity.vars().as_ptr() });
 
         // save other data
-        let result = result.and_then(|_| cur.write_field(&mut state, ENTITY_SAVE_NAME, entity));
+        let result =
+            result.and_then(|_| cur.write_field(&mut state, ENTITY_SAVE_NAME, private.as_save()));
 
         let size = cur.offset() - start_offset;
         if let Err(err) = result {
@@ -326,11 +328,12 @@ pub trait ServerDll: UnsyncGlobal {
             }
         }
 
-        let Some(entity) = (unsafe { ent.get_entity_mut() }) else {
+        let Some(private) = (unsafe { ent.get_private_mut() }) else {
             return RestoreResult::Ok;
         };
 
         if log_enabled!(target: "dispatch_restore", log::Level::Trace) {
+            let entity = private.as_entity();
             let index = save_data.current_index();
             let name = entity.pretty_name();
             let location = save_data.offset();
@@ -345,7 +348,7 @@ pub trait ServerDll: UnsyncGlobal {
 
         // restore entity variables from known location
         let result = save::read_fields(&state, &mut cur, unsafe {
-            &mut *entity.vars().as_mut_ptr()
+            &mut *private.as_entity().vars().as_mut_ptr()
         });
 
         // restore other data
@@ -353,10 +356,13 @@ pub trait ServerDll: UnsyncGlobal {
             cur.read_field().and_then(|field| {
                 let name = state.token_str(field.token());
                 assert_eq!(name, Some(ENTITY_SAVE_NAME.into()));
-                entity.restore(&state, &mut field.cursor())
+                private
+                    .as_restore_mut()
+                    .restore(&state, &mut field.cursor())
             })
         });
 
+        let entity = private.as_entity_mut();
         let size = cur.offset() - start_offset;
         if let Err(err) = result {
             let name = entity.pretty_name();

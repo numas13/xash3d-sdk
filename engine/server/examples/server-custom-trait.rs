@@ -18,7 +18,10 @@ trait EntityCustom: Entity {
 // A custom wrapper for private data.
 struct CustomPrivate<T>(core::marker::PhantomData<T>);
 
-impl<T: Entity + EntityCustom> PrivateEntity for CustomPrivate<T> {
+impl<T> PrivateEntity for CustomPrivate<T>
+where
+    T: Entity + Save + Restore + EntityCustom,
+{
     type Entity = T;
 
     fn downcast(t: &Downcast<'_, Self::Entity>) -> bool {

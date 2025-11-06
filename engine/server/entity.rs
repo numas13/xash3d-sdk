@@ -575,7 +575,7 @@ impl fmt::Display for PrettyName<'_> {
 
 define_entity_trait! {
     /// The base trait for all entities.
-    pub trait Entity(delegate_entity): ('static + Save + Restore + AsEntityHandle) {
+    pub trait Entity(delegate_entity): ('static + AsEntityHandle) {
         // methods will be implemented for each type
         auto {
             /// Returns a shared reference to a dyn entity object.

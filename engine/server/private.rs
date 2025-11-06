@@ -19,33 +19,56 @@ use crate::{
 struct PrivateDataVtable<T> {
     drop_in_place: unsafe fn(*mut T),
     as_entity: fn(&T) -> &dyn Entity,
+    #[cfg(feature = "save")]
+    as_save: fn(&T) -> &dyn Save,
+    #[cfg(feature = "save")]
+    as_restore: fn(&T) -> &dyn Restore,
     downcast: unsafe fn(&T, TypeId, *mut ()) -> bool,
 }
 
+#[cfg(feature = "save")]
+impl<T: Entity + Save + Restore> PrivateDataVtable<T> {
+    /// Returns a private data `vtable` for this type.
+    fn new<P: PrivateEntity<Entity = T>>() -> &'static PrivateDataVtable<T> {
+        &PrivateDataVtable {
+            drop_in_place: ptr::drop_in_place::<T>,
+            as_entity: as_entity::<P::Entity>,
+            as_save: as_save::<P::Entity>,
+            as_restore: as_restore::<P::Entity>,
+            downcast: downcast::<P>,
+        }
+    }
+}
+
+#[cfg(not(feature = "save"))]
 impl<T: Entity> PrivateDataVtable<T> {
     /// Returns a private data `vtable` for this type.
     fn new<P: PrivateEntity<Entity = T>>() -> &'static PrivateDataVtable<T> {
-        fn as_entity<T: Entity>(value: &T) -> &dyn Entity {
-            value
-        }
-
-        unsafe fn downcast<P: PrivateEntity>(
-            value: &P::Entity,
-            type_id: TypeId,
-            ret: *mut (),
-        ) -> bool {
-            let t = unsafe { Downcast::new(value, type_id, ret) };
-            t.downcast::<P::Entity>(Some)
-                || t.downcast::<dyn Entity>(|i| Some(i))
-                || P::downcast(&t)
-        }
-
         &PrivateDataVtable {
             drop_in_place: ptr::drop_in_place::<T>,
             as_entity: as_entity::<P::Entity>,
             downcast: downcast::<P>,
         }
     }
+}
+
+fn as_entity<T: Entity>(value: &T) -> &dyn Entity {
+    value
+}
+
+#[cfg(feature = "save")]
+fn as_save<T: Save>(value: &T) -> &dyn Save {
+    value
+}
+
+#[cfg(feature = "save")]
+fn as_restore<T: Restore>(value: &T) -> &dyn Restore {
+    value
+}
+
+unsafe fn downcast<P: PrivateEntity>(value: &P::Entity, type_id: TypeId, ret: *mut ()) -> bool {
+    let t = unsafe { Downcast::new(value, type_id, ret) };
+    t.downcast::<P::Entity>(Some) || t.downcast::<dyn Entity>(|i| Some(i)) || P::downcast(&t)
 }
 
 pub struct Downcast<'a, T> {
@@ -79,6 +102,10 @@ impl<'a, T> Downcast<'a, T> {
 /// Use [impl_private] or [export_entity](crate::export::export_entity) macros to auto-implement
 /// this trait.
 pub trait PrivateEntity: Sized + 'static {
+    #[cfg(feature = "save")]
+    type Entity: Entity + Save + Restore;
+
+    #[cfg(not(feature = "save"))]
     type Entity: Entity;
 
     /// Downcast this entity to a custom entity trait.
@@ -325,6 +352,28 @@ impl PrivateData {
     /// Converts this private data to a mutable [Entity] reference.
     pub fn as_entity_mut(&mut self) -> &mut dyn Entity {
         unsafe { &mut *self.as_entity_ptr().cast_mut() }
+    }
+
+    #[cfg(feature = "save")]
+    fn as_save_ptr(&self) -> *const dyn Save {
+        let data = unsafe { &*self.data };
+        unsafe { ((*data.vtable).as_save)(&*data.as_ptr()) }
+    }
+
+    #[cfg(feature = "save")]
+    pub fn as_save(&self) -> &dyn Save {
+        unsafe { &*self.as_save_ptr() }
+    }
+
+    #[cfg(feature = "save")]
+    fn as_restore_ptr(&self) -> *const dyn Restore {
+        let data = unsafe { &*self.data };
+        unsafe { ((*data.vtable).as_restore)(&*data.as_ptr()) }
+    }
+
+    #[cfg(feature = "save")]
+    pub fn as_restore_mut(&mut self) -> &mut dyn Restore {
+        unsafe { &mut *self.as_restore_ptr().cast_mut() }
     }
 
     fn downcast<U: Entity + ?Sized>(&self) -> Option<*mut U> {
