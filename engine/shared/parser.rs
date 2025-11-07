@@ -1,8 +1,9 @@
-use core::{fmt, mem};
+use core::{fmt, mem, str};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum TokenError<'a> {
     InvalidData,
+    UnexpectedTokenBytes(&'a [u8]),
     UnexpectedToken(&'a str),
     UnexpectedEnd,
 }
@@ -11,22 +12,23 @@ impl fmt::Display for TokenError<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::InvalidData => write!(f, "Invalid data"),
+            Self::UnexpectedTokenBytes(token) => write!(f, "Unexpected token \"{token:?}\""),
             Self::UnexpectedToken(token) => write!(f, "Unexpected token \"{token}\""),
             Self::UnexpectedEnd => write!(f, "Unexpected end"),
         }
     }
 }
 
-pub struct Tokens<'a> {
-    data: &'a str,
+pub struct TokensBytes<'a> {
+    data: &'a [u8],
     hash_comments: bool,
     handle_bracket: bool,
     handle_colon: bool,
 }
 
-impl<'a> Tokens<'a> {
-    pub fn new(data: &'a str) -> Tokens<'a> {
-        Tokens {
+impl<'a> TokensBytes<'a> {
+    pub fn new(data: &'a [u8]) -> TokensBytes<'a> {
+        Self {
             data,
             hash_comments: true,
             handle_bracket: true,
@@ -53,31 +55,42 @@ impl<'a> Tokens<'a> {
         self.data.is_empty()
     }
 
-    fn is_single_char(&self, c: char) -> bool {
+    fn is_single_char(&self, c: u8) -> bool {
         match c {
-            '{' | '}' | '\'' | ',' => true,
-            '(' | ')' if self.handle_bracket => true,
-            ':' if self.handle_colon => true,
+            b'{' | b'}' | b'\'' | b',' => true,
+            b'(' | b')' if self.handle_bracket => true,
+            b':' if self.handle_colon => true,
             _ => false,
         }
     }
 
-    fn is_whitespace(c: char) -> bool {
-        c <= ' '
+    fn trim_start_matches(&mut self, f: impl Fn(u8) -> bool) {
+        let offset = self
+            .data
+            .iter()
+            .position(|&i| !f(i))
+            .unwrap_or(self.data.len());
+        if offset != 0 {
+            self.data = &self.data[offset..];
+        }
     }
 
     fn skip_line(&mut self) {
-        self.data = self.data.trim_start_matches(|c| c != '\n');
+        self.trim_start_matches(|c| c != b'\n');
+    }
+
+    fn is_whitespace(c: u8) -> bool {
+        c <= b' '
     }
 
     fn skip_whitespace(&mut self) {
         while !self.data.is_empty() {
-            self.data = self.data.trim_start_matches(Self::is_whitespace);
-            if self.data.starts_with("//") {
+            self.trim_start_matches(Self::is_whitespace);
+            if self.data.starts_with(b"//") {
                 self.skip_line();
                 continue;
             }
-            if self.hash_comments && self.data.starts_with("#") {
+            if self.hash_comments && self.data.starts_with(b"#") {
                 self.skip_line();
                 continue;
             }
@@ -85,18 +98,18 @@ impl<'a> Tokens<'a> {
         }
     }
 
-    pub fn parse(&mut self) -> Result<&'a str, TokenError<'a>> {
+    pub fn parse(&mut self) -> Result<&'a [u8], TokenError<'a>> {
         self.skip_whitespace();
 
-        match self.data.chars().next().ok_or(TokenError::UnexpectedEnd)? {
-            '"' => {
+        match self.data.first().ok_or(TokenError::UnexpectedEnd)? {
+            b'"' => {
                 let mut skip = false;
-                for (i, c) in self.data.char_indices().skip(1) {
+                for (i, &c) in self.data.iter().enumerate().skip(1) {
                     if skip {
                         skip = false;
-                    } else if c == '\\' {
+                    } else if c == b'\\' {
                         skip = true;
-                    } else if c == '\"' {
+                    } else if c == b'\"' {
                         let s = &self.data[1..i];
                         self.data = &self.data[i + 1..];
                         return Ok(s);
@@ -104,17 +117,17 @@ impl<'a> Tokens<'a> {
                 }
                 Err(TokenError::InvalidData)
             }
-            c if self.is_single_char(c) => {
+            c if self.is_single_char(*c) => {
                 let s = &self.data[..1];
                 self.data = &self.data[1..];
                 Ok(s)
             }
             _ => match self
                 .data
-                .char_indices()
-                .find(|&(_, c)| Self::is_whitespace(c) || self.is_single_char(c))
+                .iter()
+                .position(|&c| Self::is_whitespace(c) || self.is_single_char(c))
             {
-                Some((i, _)) => {
+                Some(i) => {
                     let (head, tail) = self.data.split_at(i);
                     self.data = tail;
                     Ok(head)
@@ -122,6 +135,68 @@ impl<'a> Tokens<'a> {
                 None => Ok(mem::take(&mut self.data)),
             },
         }
+    }
+
+    pub fn expect(&mut self, token: &[u8]) -> Result<&'a [u8], TokenError<'a>> {
+        let s = self.parse()?;
+        if s == token {
+            Ok(s)
+        } else {
+            Err(TokenError::UnexpectedTokenBytes(s))
+        }
+    }
+}
+
+impl<'a> Iterator for TokensBytes<'a> {
+    type Item = Result<&'a [u8], TokenError<'a>>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.parse() {
+            Ok(s) => Some(Ok(s)),
+            Err(TokenError::UnexpectedEnd) => None,
+            Err(e) => Some(Err(e)),
+        }
+    }
+}
+
+pub struct Tokens<'a> {
+    bytes: TokensBytes<'a>,
+}
+
+impl<'a> Tokens<'a> {
+    pub fn new(data: &'a str) -> Tokens<'a> {
+        Self {
+            bytes: TokensBytes::new(data.as_bytes()),
+        }
+    }
+
+    pub fn hash_comments(self, hash_comments: bool) -> Self {
+        Self {
+            bytes: self.bytes.hash_comments(hash_comments),
+        }
+    }
+
+    pub fn handle_bracket(self, bracket: bool) -> Self {
+        Self {
+            bytes: self.bytes.handle_bracket(bracket),
+        }
+    }
+
+    pub fn handle_colon(self, colon: bool) -> Self {
+        Self {
+            bytes: self.bytes.handle_colon(colon),
+        }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.bytes.is_empty()
+    }
+
+    pub fn parse(&mut self) -> Result<&'a str, TokenError<'a>> {
+        self.bytes.parse().map(|s| {
+            // SAFETY: bytes are valid utf8 string
+            unsafe { str::from_utf8_unchecked(s) }
+        })
     }
 
     pub fn expect(&mut self, token: &str) -> Result<&'a str, TokenError<'a>> {
@@ -144,6 +219,10 @@ impl<'a> Iterator for Tokens<'a> {
             Err(e) => Some(Err(e)),
         }
     }
+}
+
+pub fn tokens_bytes(data: &[u8]) -> TokensBytes<'_> {
+    TokensBytes::new(data)
 }
 
 pub fn tokens(data: &str) -> Tokens<'_> {
