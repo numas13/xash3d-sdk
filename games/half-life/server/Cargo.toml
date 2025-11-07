@@ -23,7 +23,6 @@ crate-type = ["cdylib"]
 [dependencies]
 log.workspace = true
 bitflags.workspace = true
-csz.workspace = true
 libc.workspace = true
 xash3d-player-move.workspace = true
 xash3d-server = { workspace = true, features = ["save"] }

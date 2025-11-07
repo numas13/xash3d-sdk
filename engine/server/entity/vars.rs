@@ -6,9 +6,9 @@ use core::{
 };
 
 use bitflags::bitflags;
-use csz::CStrThin;
 use xash3d_shared::{
     color::{RGB, RGBA},
+    csz::CStrThin,
     entity::{Buttons, EdictFlags, Effects, EntityIndex, MoveType},
     ffi::{
         self,

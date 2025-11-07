@@ -24,7 +24,6 @@ crate-type = ["cdylib"]
 libc.workspace = true
 log.workspace = true
 bitflags.workspace = true
-csz.workspace = true
 xash3d-player-move.workspace = true
 xash3d-client.workspace = true
 xash3d-allocator.workspace = true

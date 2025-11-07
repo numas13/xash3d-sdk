@@ -1,8 +1,9 @@
 use core::ffi::{CStr, c_int};
 
 use alloc::collections::vec_deque::VecDeque;
-use csz::CStrArray;
-use xash3d_client::{color::RGB, math::fminf, prelude::*, user_message::hook_user_message};
+use xash3d_client::{
+    color::RGB, csz::CStrArray, math::fminf, prelude::*, user_message::hook_user_message,
+};
 use xash3d_hl_shared::user_message;
 
 use crate::export::hud;

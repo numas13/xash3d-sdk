@@ -16,4 +16,6 @@ pub mod render;
 pub mod texture;
 pub mod utils;
 
-pub use xash3d_shared::{bsp, cell, color, entity, ffi, math, model, parser, str::ToEngineStr};
+pub use xash3d_shared::{
+    bsp, cell, color, csz, entity, ffi, math, model, parser, str::ToEngineStr,
+};

@@ -1,8 +1,8 @@
 use core::cell::Cell;
 
-use csz::CStrThin;
 use xash3d_server::{
     color::RGBA,
+    csz::CStrThin,
     engine::TraceIgnore,
     entity::{
         BaseEntity, EdictFlags, Effects, Entity, EntityVars, KeyValue, Solid, UseType,

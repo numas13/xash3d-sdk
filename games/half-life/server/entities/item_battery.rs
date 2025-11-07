@@ -1,9 +1,9 @@
 use core::{ffi::CStr, fmt::Write};
 
-use csz::CStrArray;
 use xash3d_entities::item::BaseItem;
 use xash3d_hl_shared::user_message;
 use xash3d_server::{
+    csz::CStrArray,
     entity::{BaseEntity, Dead, EntityItem, delegate_entity},
     export::export_entity,
     prelude::*,

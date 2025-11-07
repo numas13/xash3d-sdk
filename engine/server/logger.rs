@@ -1,5 +1,7 @@
-use csz::CStrThin;
-use xash3d_shared::logger::{self, EngineConsoleLogger};
+use xash3d_shared::{
+    csz::CStrThin,
+    logger::{self, EngineConsoleLogger},
+};
 
 use crate::prelude::*;
 

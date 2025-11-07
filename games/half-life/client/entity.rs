@@ -1,8 +1,8 @@
 use core::{cell::Cell, ffi::c_int};
 
-use csz::CStrThin;
 use xash3d_client::{
     consts::{DEAD_NO, PM_STUDIO_BOX, PM_WORLD_ONLY, YAW},
+    csz::CStrThin,
     entity::{EntityType, TempEntityFlags, TempEntityList},
     ffi::{
         api::efx::TEMPENTITY,

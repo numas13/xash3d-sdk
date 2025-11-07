@@ -5,9 +5,9 @@ use core::{
 };
 
 use alloc::vec::Vec;
-use csz::{CStrBox, CStrThin};
 use xash3d_client::{
     consts::{self, PITCH, ROLL, YAW},
+    csz::{CStrBox, CStrThin},
     ffi::{
         common::{kbutton_t, usercmd_s, vec3_t},
         keys,

@@ -1,9 +1,9 @@
 use core::{ffi::c_int, num::NonZeroU8};
 
 use bitflags::bitflags;
-use csz::CStrArray;
 use xash3d_shared::{
     color::{RGB, RGBA},
+    csz::CStrArray,
     entity::{BeamEntity, EntityIndex},
     ffi::{self, common::vec3_t},
     macros::define_enum_for_primitive,

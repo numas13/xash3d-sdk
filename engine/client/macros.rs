@@ -43,7 +43,7 @@ pub use hook_command_key;
 macro_rules! spr_load {
     ($engine:expr, $($args:tt)+) => ({
         use core::fmt::Write;
-        let buf = &mut csz::CStrArray::<256>::new();
+        let buf = &mut $crate::csz::CStrArray::<256>::new();
         write!(buf.cursor(), $($args)+).ok();
         $engine.spr_load(buf.as_c_str())
     });
@@ -56,7 +56,7 @@ pub use spr_load;
 macro_rules! spr_get_list {
     ($engine:expr, $($args:tt)+) => ({
         use core::fmt::Write;
-        let buf = &mut csz::CStrArray::<256>::new();
+        let buf = &mut $crate::csz::CStrArray::<256>::new();
         write!(buf.cursor(), $($args)+).ok();
         $engine.spr_get_list(buf.as_c_str())
     });

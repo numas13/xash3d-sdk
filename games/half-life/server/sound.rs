@@ -1,5 +1,4 @@
-use csz::CStrThin;
-use xash3d_server::{entity::Entity, prelude::*, sound::Pitch};
+use xash3d_server::{csz::CStrThin, entity::Entity, prelude::*, sound::Pitch};
 
 pub fn emit_sound_suit(entity: &dyn Entity, sample: &CStrThin) {
     let engine = entity.engine();

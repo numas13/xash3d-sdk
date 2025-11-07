@@ -7,10 +7,10 @@ use core::{
     sync::atomic::{AtomicBool, Ordering},
 };
 
-use csz::{CStrArray, CStrSlice, CStrThin};
 use xash3d_player_move::{DUCK_HULL_MIN, HULL_MIN};
 use xash3d_shared::{
     consts::{EFLAG_SLERP, ENTITY_BEAM, ENTITY_NORMAL},
+    csz::{CStrArray, CStrSlice, CStrThin},
     engine::net::netadr_s,
     entity::{EdictFlags, Effects},
     ffi::{

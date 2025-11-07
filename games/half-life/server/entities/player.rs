@@ -3,13 +3,13 @@ use core::{
     ffi::CStr,
 };
 
-use csz::CStrThin;
 use xash3d_entities::{
     beam::{Beam, BeamType},
     player::Player as BasePlayer,
 };
 use xash3d_server::{
     color::RGB,
+    csz::CStrThin,
     entity::{
         BaseEntity, Buttons, Effects, EntityHandle, EntityPlayer, EntityVars, UseType,
         delegate_entity, delegate_player,

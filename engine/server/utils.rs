@@ -1,8 +1,12 @@
 use core::{cell::Cell, ffi::CStr, mem};
 
-use csz::{CStrSlice, CStrThin};
-pub use xash3d_shared::utils::*;
-use xash3d_shared::{color::RGBA, entity::EdictFlags, ffi::common::vec3_t, str::ToEngineStr};
+use xash3d_shared::{
+    color::RGBA,
+    csz::{self, CStrSlice, CStrThin},
+    entity::EdictFlags,
+    ffi::common::vec3_t,
+    str::ToEngineStr,
+};
 
 use crate::{
     engine::TraceResult,
@@ -12,6 +16,8 @@ use crate::{
     str::MapString,
     user_message,
 };
+
+pub use xash3d_shared::utils::*;
 
 #[cfg(feature = "save")]
 use crate::save;

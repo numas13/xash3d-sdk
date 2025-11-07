@@ -17,7 +17,6 @@ use core::{
 };
 
 use alloc::vec::Vec;
-use csz::{CStrArray, CStrThin};
 use xash3d_shared::{
     cell::SyncOnceCell,
     consts::{
@@ -26,6 +25,7 @@ use xash3d_shared::{
         IN_ATTACK, IN_BACK, IN_DUCK, IN_FORWARD, IN_JUMP, IN_MOVELEFT, IN_MOVERIGHT, IN_USE,
         MAX_CLIP_PLANES, MAX_PHYSENTS, PITCH, PM_NORMAL, ROLL, YAW,
     },
+    csz::{CStrArray, CStrThin},
     entity::{EdictFlags, MoveType},
     ffi::{
         common::{pmtrace_s, qboolean, vec3_t},

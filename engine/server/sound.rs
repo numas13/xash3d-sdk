@@ -1,8 +1,10 @@
 use core::{cell::RefCell, cmp, ffi::CStr, fmt::Write};
 
 use alloc::vec::Vec;
-use csz::{CStrArray, CStrSlice, CStrThin};
-use xash3d_shared::str::ByteSliceExt;
+use xash3d_shared::{
+    csz::{CStrArray, CStrSlice, CStrThin},
+    str::ByteSliceExt,
+};
 
 use crate::{
     entity::{EntityVars, KeyValue},

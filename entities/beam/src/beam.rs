@@ -1,9 +1,9 @@
 use core::ffi::CStr;
 
 use bitflags::bitflags;
-use csz::CStrThin;
 use xash3d_server::{
     color::RGB,
+    csz::CStrThin,
     engine::TraceResult,
     entity::{
         BaseEntity, BeamEntity, EdictFlags, EntityHandle, EntityIndex, EntityVars, ObjectCaps,

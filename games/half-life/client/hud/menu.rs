@@ -1,9 +1,9 @@
 use core::{cmp, ffi::c_int, fmt::Write};
 
 use alloc::string::String;
-use csz::CStrArray;
 use xash3d_client::{
     color::RGB,
+    csz::CStrArray,
     prelude::*,
     user_message::{UserMessageBuffer, UserMessageError, hook_user_message},
 };

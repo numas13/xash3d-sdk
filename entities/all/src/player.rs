@@ -4,8 +4,8 @@ use core::{
     ptr,
 };
 
-use csz::CStrThin;
 use xash3d_server::{
+    csz::CStrThin,
     engine::TraceIgnore,
     entities::item::SF_ITEM_NO_RESPAWN,
     entity::{
@@ -269,7 +269,7 @@ impl Player {
 #[cfg(feature = "save")]
 impl save::OnRestore for Player {
     fn on_restore(&self) {
-        use csz::CStrThin;
+        use xash3d_server::csz::CStrThin;
 
         let engine = self.engine();
         let v = self.vars();

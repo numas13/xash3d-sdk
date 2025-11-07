@@ -11,8 +11,8 @@ use core::{
 };
 
 use bitflags::bitflags;
-use csz::CStrThin;
 use xash3d_shared::{
+    csz::CStrThin,
     ffi::{
         common::{entity_state_s, vec3_t},
         server::{KeyValueData, edict_s, entvars_s},
@@ -612,7 +612,7 @@ define_entity_trait! {
                 self.vars().globalname()
             }
 
-            fn is_globalname(&self, name: &::csz::CStrThin) -> bool {
+            fn is_globalname(&self, name: &::xash3d_server::csz::CStrThin) -> bool {
                 self.vars().is_global_name(name)
             }
 
@@ -620,7 +620,7 @@ define_entity_trait! {
                 self.vars().classname().unwrap()
             }
 
-            fn is_classname(&self, name: &::csz::CStrThin) -> bool {
+            fn is_classname(&self, name: &::xash3d_server::csz::CStrThin) -> bool {
                 self.vars().is_class_name(name)
             }
 
@@ -971,7 +971,7 @@ define_entity_trait! {
 
         fn set_env_sound(&self, last: Option<::xash3d_server::entity::LastSound>);
 
-        fn give_named_item(&self, name: &::csz::CStrThin) -> bool;
+        fn give_named_item(&self, name: &::xash3d_server::csz::CStrThin) -> bool;
     }
 }
 

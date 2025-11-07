@@ -6,7 +6,7 @@ use core::{
     ops::Deref,
 };
 
-use csz::CStrThin;
+use xash3d_shared::csz::CStrThin;
 
 use crate::prelude::*;
 

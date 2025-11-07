@@ -4,8 +4,8 @@ use core::{
 };
 
 use bitflags::bitflags;
-use csz::CStrThin;
 use xash3d_shared::{
+    csz::CStrThin,
     ffi::{
         self,
         menu::{GAMEINFO, gameinfo2_s, gametype_e},

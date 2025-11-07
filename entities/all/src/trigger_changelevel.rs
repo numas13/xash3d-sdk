@@ -1,8 +1,8 @@
-use csz::{cstr, CStrArray, CStrThin};
 use xash3d_server::{
     change_level::{find_landmark, in_transition_volume},
+    csz::{CStrArray, CStrThin, cstr},
     entities::trigger::Trigger,
-    entity::{delegate_entity, BaseEntity, EntityChangeLevel, KeyValue, UseType},
+    entity::{BaseEntity, EntityChangeLevel, KeyValue, UseType, delegate_entity},
     prelude::*,
     private::impl_private,
     str::MapString,

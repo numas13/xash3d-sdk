@@ -25,10 +25,10 @@ use core::{
 
 use alloc::{boxed::Box, rc::Rc, string::String, vec::Vec};
 use bitflags::bitflags;
-use csz::{CStrArray, CStrBox};
 use xash3d_client::{
     color::RGB,
     consts::MAX_PLAYERS,
+    csz::{CStrArray, CStrBox},
     ffi::{
         client::client_data_s,
         common::{vec3_t, wrect_s},

@@ -5,8 +5,12 @@ use core::{
 };
 
 use alloc::collections::vec_deque::VecDeque;
-use csz::{CStrArray, CStrThin};
-use xash3d_client::{color::RGB, prelude::*, user_message::hook_user_message};
+use xash3d_client::{
+    color::RGB,
+    csz::{CStrArray, CStrThin},
+    prelude::*,
+    user_message::hook_user_message,
+};
 use xash3d_hl_shared::user_message;
 
 use crate::{

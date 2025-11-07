@@ -3,9 +3,9 @@ use core::{
     ffi::{CStr, c_int},
 };
 
-use csz::CStrArray;
 use xash3d_client::{
     color::RGB,
+    csz::CStrArray,
     macros::{spr_get_list, spr_load},
     prelude::*,
     user_message::{UserMessageBuffer, UserMessageError, hook_user_message},

@@ -18,7 +18,7 @@ pub mod user_message;
 pub mod utils;
 
 pub use xash3d_shared::{
-    cell, color, consts, cvar, ffi, math, misc, model, sound, str::ToEngineStr,
+    cell, color, consts, csz, cvar, ffi, math, misc, model, sound, str::ToEngineStr,
 };
 
 pub use crate::studio::*;

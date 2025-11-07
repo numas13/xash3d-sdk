@@ -4,8 +4,8 @@ use core::{
     ptr,
 };
 
-use csz::CStrThin;
 use xash3d_client::{
+    csz::CStrThin,
     entity::{EntityType, TempEntityList},
     export::{ClientDll, UnsyncGlobal, export_dll, impl_unsync_global},
     ffi::{

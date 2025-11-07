@@ -100,8 +100,8 @@ pub use define_field;
 /// ```
 /// use core::ffi::CStr;
 ///
-/// use csz::CStrArray;
 /// use xash3d_server::{
+///     csz::CStrArray,
 ///     ffi::server::TYPEDESCRIPTION,
 ///     save::{FieldType, SaveFields, define_fields},
 /// };

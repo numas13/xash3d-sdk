@@ -11,9 +11,9 @@ use core::{
 };
 
 use bitflags::bitflags;
-use csz::{CStrArray, CStrThin};
 use xash3d_shared::{
     consts::{Contents, MAX_SYSPATH},
+    csz::{CStrArray, CStrThin},
     entity::{Buttons, EntityIndex},
     export::impl_unsync_global,
     ffi::{

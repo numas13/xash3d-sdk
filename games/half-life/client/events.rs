@@ -14,10 +14,10 @@ mod tripmine;
 
 use core::ffi::{CStr, c_int};
 
-use csz::CStrArray;
 use res::valve::{self, sound};
 use xash3d_client::{
     consts::{EFLAG_FLESH_SOUND, MAX_PLAYERS, PM_NORMAL, SOLID_BSP},
+    csz::CStrArray,
     engine::{
         ClientEngineRef,
         event::{EventArgs, hook_event},

@@ -1,7 +1,6 @@
 use core::fmt::Write;
 
-use csz::CStrArray;
-use xash3d_client::{prelude::*, user_message::hook_user_message};
+use xash3d_client::{csz::CStrArray, prelude::*, user_message::hook_user_message};
 use xash3d_hl_shared::user_message;
 
 use crate::{

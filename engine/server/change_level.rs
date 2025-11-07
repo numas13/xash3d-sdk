@@ -1,5 +1,5 @@
-use csz::{CStrSlice, CStrThin};
 use xash3d_shared::{
+    csz::{CStrSlice, CStrThin},
     entity::MoveType,
     ffi::server::{ENTITYTABLE, FENTTABLE_GLOBAL, FENTTABLE_MOVEABLE, LEVELLIST},
 };

@@ -15,7 +15,6 @@ std = []
 [dependencies]
 log.workspace = true
 bitflags.workspace = true
-csz.workspace = true
 xash3d-shared.workspace = true
 
 [lints]

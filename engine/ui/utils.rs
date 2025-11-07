@@ -35,7 +35,7 @@ pub fn escape_command(engine: UiEngineRef, src: &str) -> EscapeCommand<'_> {
 
 #[cfg(test)]
 mod tests {
-    use csz::CStrArray;
+    use xash3d_shared::csz::CStrArray;
 
     use super::*;
 

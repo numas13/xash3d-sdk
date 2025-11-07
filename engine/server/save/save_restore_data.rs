@@ -4,8 +4,8 @@ use core::{
     ptr,
 };
 
-use csz::CStrThin;
 use xash3d_shared::{
+    csz::CStrThin,
     ffi::{
         common::vec3_t,
         server::{ENTITYTABLE, LEVELLIST, SAVERESTOREDATA, edict_s},

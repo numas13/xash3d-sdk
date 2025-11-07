@@ -15,6 +15,5 @@ save = ["xash3d-server/save"]
 [dependencies]
 bitflags.workspace = true
 log.workspace = true
-csz.workspace = true
 xash3d-server.workspace = true
 res.workspace = true

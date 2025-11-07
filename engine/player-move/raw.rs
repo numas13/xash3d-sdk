@@ -11,8 +11,8 @@ use core::{
     str::FromStr,
 };
 
-use csz::{CStrSlice, CStrThin};
 use xash3d_shared::{
+    csz::{CStrSlice, CStrThin},
     entity::{EdictFlags, MoveType},
     ffi::{
         common::{hull_s, model_s, movevars_s, pmtrace_s, trace_t, vec3_t},

@@ -34,4 +34,4 @@ pub mod time;
 pub mod user_message;
 pub mod utils;
 
-pub use xash3d_shared::{cell, color, cvar, ffi, math, render};
+pub use xash3d_shared::{cell, color, csz, cvar, ffi, math, render};

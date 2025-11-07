@@ -2,9 +2,9 @@ use core::{cell::Cell, ptr};
 
 use alloc::vec::Vec;
 use bitflags::bitflags;
-use csz::{CStrArray, CStrThin};
 use xash3d_server::{
-    entity::{delegate_entity, BaseEntity, EntityHandle, KeyValue, ObjectCaps, Solid, UseType},
+    csz::{CStrArray, CStrThin},
+    entity::{BaseEntity, EntityHandle, KeyValue, ObjectCaps, Solid, UseType, delegate_entity},
     prelude::*,
     private::impl_private,
     str::MapString,

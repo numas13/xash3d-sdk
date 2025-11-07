@@ -6,9 +6,9 @@ use core::{
     str::FromStr,
 };
 
-use csz::{CStrArray, CStrSlice, CStrThin};
 use xash3d_shared::{
     borrow::{BorrowRef, Ref},
+    csz::{CStrArray, CStrSlice, CStrThin},
     engine::net::{NetApi, netadr_s},
     entity::EntityType,
     export::impl_unsync_global,

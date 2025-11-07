@@ -5,9 +5,9 @@ use core::{
     slice,
 };
 
-use csz::{CStrSlice, CStrThin};
 use xash3d_shared::{
     color::RGBA,
+    csz::{CStrSlice, CStrThin},
     ffi::{
         api::{
             render::{decallist_s, lightstyle_t, texFlags_t},

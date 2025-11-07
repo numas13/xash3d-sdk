@@ -24,8 +24,8 @@ use core::{
 };
 
 use bitflags::bitflags;
-use csz::{CStrArray, CStrThin};
 use xash3d_shared::{
+    csz::{CStrArray, CStrThin},
     ffi::{
         self,
         common::{string_t, vec3_t},

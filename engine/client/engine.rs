@@ -9,8 +9,8 @@ use core::{
     ptr,
 };
 
-use csz::{CStrSlice, CStrThin};
 use xash3d_shared::{
+    csz::{CStrSlice, CStrThin},
     engine::net::NetApi,
     export::impl_unsync_global,
     ffi::{

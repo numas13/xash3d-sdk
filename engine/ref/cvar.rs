@@ -1,7 +1,6 @@
 use core::{ffi::CStr, ptr};
 
-use csz::CStrThin;
-use xash3d_shared::ffi::render::convar_s;
+use xash3d_shared::{csz::CStrThin, ffi::render::convar_s};
 
 pub use xash3d_shared::cvar::*;
 

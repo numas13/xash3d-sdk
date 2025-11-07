@@ -9,16 +9,21 @@ use core::{
 };
 
 use alloc::{boxed::Box, collections::linked_list::LinkedList, vec::Vec};
-use csz::{CStrArray, CStrThin};
-use xash3d_shared::{engine::EngineRef, export::impl_unsync_global, ffi::server::TYPEDESCRIPTION};
+use xash3d_shared::{
+    csz::{CStrArray, CStrThin},
+    engine::EngineRef,
+    export::impl_unsync_global,
+    ffi::server::TYPEDESCRIPTION,
+};
 
 use crate::{
-    define_fields,
     engine::ServerEngineRef,
     entity::EntityHandle,
     game_rules::{GameRules, StubGameRules},
     global_state::sprites::{Sprites, StubSprites},
-    save::{FieldType, SaveFields, SaveReader, SaveRestoreData, SaveResult, SaveWriter},
+    save::{
+        FieldType, SaveFields, SaveReader, SaveRestoreData, SaveResult, SaveWriter, define_fields,
+    },
     sound::Sentences,
     str::MapString,
     time::MapTime,

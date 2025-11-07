@@ -4,8 +4,8 @@ use core::{
     slice,
 };
 
-use csz::CStrThin;
 use xash3d_shared::{
+    csz::CStrThin,
     engine::net::netadr_s,
     ffi::{
         self,

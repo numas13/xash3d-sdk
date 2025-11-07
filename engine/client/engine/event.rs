@@ -1,8 +1,8 @@
 use core::{ffi::c_int, mem::MaybeUninit};
 
 use bitflags::bitflags;
-use csz::CStrThin;
 use xash3d_shared::{
+    csz::CStrThin,
     entity::EntityIndex,
     ffi::{
         self,
