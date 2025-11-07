@@ -27,7 +27,6 @@ use crate::{
     global_state::{EntityState, GlobalStateRef},
     prelude::*,
     private::impl_private,
-    save::{Restore, Save},
 };
 
 #[cfg(feature = "save")]
