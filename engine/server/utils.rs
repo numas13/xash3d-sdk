@@ -23,7 +23,7 @@ pub use xash3d_shared::utils::*;
 use crate::save;
 
 /// Used for view cone checking.
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, Debug, Default, PartialEq)]
 pub struct ViewField(f32);
 
 impl ViewField {
@@ -45,6 +45,21 @@ impl ViewField {
 
     pub fn to_dot(self) -> f32 {
         self.0
+    }
+}
+
+#[cfg(feature = "save")]
+impl Save for ViewField {
+    fn save(&self, _: &mut save::SaveState, cur: &mut save::CursorMut) -> save::SaveResult<()> {
+        cur.write_f32(self.0)
+    }
+}
+
+#[cfg(feature = "save")]
+impl Restore for ViewField {
+    fn restore(&mut self, _: &save::RestoreState, cur: &mut save::Cursor) -> save::SaveResult<()> {
+        self.0 = cur.read_f32()?;
+        Ok(())
     }
 }
 
