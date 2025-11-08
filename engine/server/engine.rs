@@ -2463,6 +2463,28 @@ impl<'a> Entities<'a> {
             radius,
         }
     }
+
+    /// Searches an entity by a target name or searches by a class name in a sphere if not found
+    /// by the target name.
+    pub fn find_generic(&self, name: &CStrThin, src: vec3_t, radius: f32) -> Option<EntityHandle> {
+        if let Some(entity) = self.by_target_name(name).first() {
+            return Some(entity);
+        }
+
+        let max_dist2 = radius * radius;
+        self.by_class_name(name)
+            .filter_map(|ent| {
+                let dist = (ent.vars().origin() - src).length();
+                let dist2 = dist * dist;
+                if dist2 < max_dist2 {
+                    Some((ent, dist2))
+                } else {
+                    None
+                }
+            })
+            .min_by(|(_, dist2_a), (_, dist2_b)| dist2_a.partial_cmp(dist2_b).unwrap())
+            .map(|(ent, _)| ent.into())
+    }
 }
 
 pub struct EntitiesByString<'a, F: ToEngineStr, V: ToEngineStr> {
