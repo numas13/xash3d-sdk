@@ -1,4 +1,4 @@
-use core::{cell::RefCell, cmp, ffi::CStr, fmt::Write};
+use core::{cell::RefCell, cmp, ffi::CStr, fmt::Write, mem};
 
 use alloc::vec::Vec;
 use xash3d_shared::{
@@ -15,21 +15,54 @@ use crate::{
 
 pub use xash3d_shared::sound::*;
 
+#[derive(Copy, Clone)]
+struct StringId(u32);
+
+struct Strings {
+    data: Vec<u8>,
+}
+
+impl Strings {
+    fn new() -> Self {
+        Self { data: Vec::new() }
+    }
+
+    fn clear(&mut self) {
+        self.data.clear();
+    }
+
+    fn shrink_to_fit(&mut self) {
+        self.data.shrink_to_fit();
+    }
+
+    fn alloc(&mut self, bytes: &[u8]) -> StringId {
+        let offset = self.data.len();
+        self.data.extend(bytes);
+        self.data.push(0);
+        StringId(offset as u32)
+    }
+
+    fn get(&self, id: StringId) -> &CStrThin {
+        let ptr = &self.data[id.0 as usize] as *const u8;
+        unsafe { CStrThin::from_ptr(ptr as *const i8) }
+    }
+}
+
 struct SentenceEntry {
-    name_offset: u32,
+    name: StringId,
     index: u16,
 }
 
 pub struct SentenceGroup {
-    name_offset: u32,
+    name: StringId,
     count: u16,
     lru: RefCell<Vec<u16>>,
 }
 
 impl SentenceGroup {
-    fn new(name_offset: u32, count: u16) -> Self {
+    fn new(name: StringId, count: u16) -> Self {
         Self {
-            name_offset,
+            name,
             count,
             lru: RefCell::new(Vec::new()),
         }
@@ -50,8 +83,8 @@ impl SentenceGroup {
 
 pub struct Sentences {
     engine: ServerEngineRef,
-    strings: Vec<u8>,
-    names: Vec<SentenceEntry>,
+    strings: Strings,
+    sentences: Vec<SentenceEntry>,
     groups: Vec<SentenceGroup>,
 }
 
@@ -59,8 +92,8 @@ impl Sentences {
     pub(crate) fn new(engine: ServerEngineRef) -> Self {
         let mut ret = Self {
             engine,
-            strings: Vec::new(),
-            names: Vec::new(),
+            strings: Strings::new(),
+            sentences: Vec::new(),
             groups: Vec::new(),
         };
         ret.init();
@@ -71,6 +104,20 @@ impl Sentences {
         match self.engine.load_file("sound/sentences.txt") {
             Ok(file) => {
                 self.parse(file.as_bytes());
+
+                // if log_enabled!(target: "sentences", log::Level::Trace) {
+                //     trace!(target: "sentences", "sentences:");
+                //     for (i, sentence) in self.names.iter().enumerate() {
+                //         let name = self.get_name(sentence.name_offset as usize);
+                //         trace!(target: "sentences", "  {i}: {name} (index {})", sentence.index);
+                //     }
+                //
+                //     trace!(target: "sentences", "groups:");
+                //     for (i, group) in self.groups.iter().enumerate() {
+                //         let name = self.get_name(group.name_offset as usize);
+                //         trace!(target: "sentences", "  {i}: {name} (count {})", group.count);
+                //     }
+                // }
             }
             Err(err) => {
                 error!("sentences: failed to load sentences file, error: {err}");
@@ -80,9 +127,11 @@ impl Sentences {
 
     fn parse(&mut self, bytes: &[u8]) {
         self.strings.clear();
-        self.names.clear();
+        self.sentences.clear();
         self.groups.clear();
 
+        let mut sentences = mem::take(&mut self.sentences);
+        let mut groups = mem::take(&mut self.groups);
         let mut index = 0;
         let mut group_name = None;
         for line in bytes.split(|i| *i == b'\n') {
@@ -96,10 +145,10 @@ impl Sentences {
                 continue;
             }
 
-            let name_offset = self.strings.len() as u32;
-            self.strings.extend(name);
-            self.strings.push(0);
-            self.names.push(SentenceEntry { name_offset, index });
+            sentences.push(SentenceEntry {
+                name: self.strings.alloc(name),
+                index,
+            });
             index += 1;
 
             let group = name.bytes_trim_suffix(|i| i.is_ascii_digit());
@@ -109,33 +158,31 @@ impl Sentences {
 
             if group_name != Some(group) {
                 group_name = Some(group);
-                let name_offset = self.strings.len() as u32;
-                self.strings.extend(group);
-                self.strings.push(0);
-                self.groups.push(SentenceGroup::new(name_offset, 1));
+                let name = self.strings.alloc(group);
+                groups.push(SentenceGroup::new(name, 1));
             } else {
-                self.groups.last_mut().unwrap().count += 1;
+                groups.last_mut().unwrap().count += 1;
             }
         }
 
-        self.names.sort_unstable_by_key(|i| {
-            let ptr = &self.strings[i.name_offset as usize] as *const u8;
-            unsafe { CStrThin::from_ptr(ptr as *const i8) }
+        sentences.sort_unstable_by(|a, b| {
+            let a = self.strings.get(a.name);
+            let b = self.strings.get(b.name);
+            a.cmp_ignore_case(b)
         });
 
-        self.groups.sort_unstable_by_key(|i| {
-            let ptr = &self.strings[i.name_offset as usize] as *const u8;
-            unsafe { CStrThin::from_ptr(ptr as *const i8) }
+        groups.sort_unstable_by(|a, b| {
+            let a = self.strings.get(a.name);
+            let b = self.strings.get(b.name);
+            a.cmp_ignore_case(b)
         });
+
+        self.sentences = sentences;
+        self.groups = groups;
 
         self.strings.shrink_to_fit();
-        self.names.shrink_to_fit();
+        self.sentences.shrink_to_fit();
         self.groups.shrink_to_fit();
-    }
-
-    fn get_name(&self, offset: usize) -> &CStrThin {
-        let ptr = &self.strings[offset] as *const u8;
-        unsafe { CStrThin::from_ptr(ptr as *const i8) }
     }
 
     pub fn find_sentence_index(&self, name: &CStrThin) -> Option<u16> {
@@ -144,9 +191,9 @@ impl Sentences {
         }
 
         let name = unsafe { CStrThin::from_ptr(name.as_ptr().wrapping_add(1)) };
-        self.names
-            .binary_search_by(|i| self.get_name(i.name_offset as usize).cmp_ignore_case(name))
-            .map(|index| self.names[index].index)
+        self.sentences
+            .binary_search_by(|i| self.strings.get(i.name).cmp_ignore_case(name))
+            .map(|index| self.sentences[index].index)
             .ok()
     }
 
@@ -164,7 +211,7 @@ impl Sentences {
         }
 
         self.groups
-            .binary_search_by(|i| self.get_name(i.name_offset as usize).cmp_ignore_case(name))
+            .binary_search_by(|i| self.strings.get(i.name).cmp_ignore_case(name))
             .map(|index| &self.groups[index])
             .ok()
     }
