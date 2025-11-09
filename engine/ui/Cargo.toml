@@ -10,7 +10,8 @@ rust-version.workspace = true
 path = "lib.rs"
 
 [features]
-std = []
+std = ["xash3d-shared/std"]
+libm = ["xash3d-shared/libm"]
 
 [dependencies]
 log.workspace = true

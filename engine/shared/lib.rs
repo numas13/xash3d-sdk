@@ -23,6 +23,7 @@ pub mod cvar;
 pub mod engine;
 pub mod entity;
 pub mod export;
+pub mod file;
 pub mod input;
 pub mod logger;
 pub mod math;

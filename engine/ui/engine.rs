@@ -1,5 +1,5 @@
 use core::{
-    ffi::{c_char, c_int, c_uint, c_void},
+    ffi::{c_char, c_int, c_uint},
     fmt,
     mem::{self, MaybeUninit},
     ptr, slice,
@@ -29,7 +29,7 @@ use crate::{
     color::{RGB, RGBA},
     consts::{MAX_STRING, MAX_SYSPATH},
     cvar::{CVarFlags, CVarPtr},
-    file::{Cursor, File, FileList},
+    file::{Cursor, FileList},
     game_info::GameInfo2,
     globals::UiGlobals,
     picture::{Picture, PictureFlags},
@@ -41,15 +41,22 @@ use crate::game_info::GameInfo;
 pub use xash3d_shared::engine::{AddCmdError, BufferError, EngineRef, net};
 
 pub(crate) mod prelude {
-    pub use xash3d_shared::engine::{
-        EngineCmd, EngineCmdArgsRaw, EngineConsole, EngineCvar, EngineDrawConsoleString, EngineRng,
-        EngineSystemTime, net::EngineNet,
-    };
+    pub use xash3d_shared::engine::EngineCmd;
+    pub use xash3d_shared::engine::EngineCmdArgsRaw;
+    pub use xash3d_shared::engine::EngineConsole;
+    pub use xash3d_shared::engine::EngineCvar;
+    pub use xash3d_shared::engine::EngineDrawConsoleString;
+    pub use xash3d_shared::engine::EngineFile;
+    pub use xash3d_shared::engine::EngineRng;
+    pub use xash3d_shared::engine::EngineSystemTime;
+    pub use xash3d_shared::engine::net::EngineNet;
 }
 
 pub use self::prelude::*;
 
 pub type UiEngineRef = EngineRef<UiEngine>;
+
+pub use xash3d_shared::engine::LoadFileError;
 
 define_enum_for_primitive! {
     #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
@@ -509,30 +516,6 @@ impl UiEngine {
         }
     }
 
-    pub fn load_file(&self, path: impl ToEngineStr) -> Option<File> {
-        let path = path.to_engine_str();
-        let mut len = 0;
-        let data = unsafe { unwrap!(self, COM_LoadFile)(path.as_ptr(), &mut len) };
-        if !data.is_null() {
-            let engine = unsafe { UiEngineRef::new() };
-            Some(unsafe { File::new(engine, data.cast(), len as usize) })
-        } else {
-            None
-        }
-    }
-
-    // pub COM_ParseFile:
-    //     Option<unsafe extern "C" fn(data: *mut c_char, token: *mut c_char) -> *mut c_char>,
-
-    /// Free file.
-    ///
-    /// # Safety
-    ///
-    /// Buffer must be allocated with [load_file](Self::load_file).
-    pub unsafe fn free_file(&self, buffer: *mut c_void) {
-        unsafe { unwrap!(self, COM_FreeFile)(buffer) }
-    }
-
     pub fn key_clear_states(&self) {
         unsafe { unwrap!(self, pfnKeyClearStates)() }
     }
@@ -801,7 +784,7 @@ impl UiEngine {
         let mut len = 0;
         let data = unsafe {
             unwrap!(self, ext.pfnParseFile)(
-                cursor.data.cast(),
+                cursor.as_mut_ptr().cast(),
                 buf.as_mut_ptr().cast(),
                 buf.len() as c_int,
                 flags,
@@ -809,7 +792,7 @@ impl UiEngine {
             )
         };
         if !data.is_null() {
-            cursor.data = data.cast();
+            *cursor = unsafe { Cursor::from_ptr(data.cast()) };
             Some(&buf[..len as usize])
         } else {
             None
@@ -963,5 +946,15 @@ impl EngineDrawConsoleString for UiEngine {
 impl EngineNet for UiEngine {
     fn net_api(&self) -> &NetApi {
         &self.net_api
+    }
+}
+
+impl EngineFile for UiEngine {
+    fn load_file_raw(&self, path: &CStrThin, len: &mut i32) -> *mut u8 {
+        unsafe { unwrap!(self, COM_LoadFile)(path.as_ptr(), len) }
+    }
+
+    unsafe fn free_file_raw(&self, file: *mut u8) {
+        unsafe { unwrap!(self, COM_FreeFile)(file.cast()) }
     }
 }

@@ -6,6 +6,7 @@ pub mod macros;
 pub mod engine;
 pub mod entity;
 pub mod export;
+pub mod file;
 pub mod input;
 pub mod instance;
 mod logger;

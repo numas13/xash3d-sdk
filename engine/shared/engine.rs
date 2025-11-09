@@ -16,6 +16,7 @@ use crate::{
     color::RGB,
     cvar::{GetCvar, SetCvar},
     export::UnsyncGlobal,
+    file::File,
     str::{AsCStrPtr, ToEngineStr},
 };
 
@@ -283,4 +284,43 @@ pub trait EngineDrawConsoleString {
     ///
     /// Returns the x coordinate after the drawn text.
     fn draw_console_string(&self, x: c_int, y: c_int, text: impl ToEngineStr) -> c_int;
+}
+
+/// An error returned from the [EngineFile::load_file] function.
+pub struct LoadFileError(());
+
+impl fmt::Debug for LoadFileError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_tuple("LoadFileError").finish()
+    }
+}
+
+impl fmt::Display for LoadFileError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.write_str("failed to load a file")
+    }
+}
+
+pub trait EngineFile: UnsyncGlobal {
+    #[doc(hidden)]
+    fn load_file_raw(&self, path: &CStrThin, len: &mut i32) -> *mut u8;
+
+    /// Free a file.
+    ///
+    /// # Safety
+    ///
+    /// The file must be allocated with [load_file](Self::load_file) function.
+    unsafe fn free_file_raw(&self, file: *mut u8);
+
+    /// Load a file by the given path.
+    fn load_file(&self, path: impl ToEngineStr) -> Result<File<Self>, LoadFileError> {
+        let path = path.to_engine_str();
+        let mut len = 0;
+        let data = self.load_file_raw(path.as_ref(), &mut len);
+        if !data.is_null() {
+            Ok(unsafe { File::new(data.cast(), len as usize) })
+        } else {
+            Err(LoadFileError(()))
+        }
+    }
 }

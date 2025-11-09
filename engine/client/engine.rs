@@ -33,13 +33,19 @@ use crate::{
 pub use xash3d_shared::engine::{AddCmdError, BufferError, EngineRef, net};
 
 pub(crate) mod prelude {
-    pub use xash3d_shared::engine::{
-        EngineCmd, EngineConsole, EngineCvar, EngineDrawConsoleString, EngineRng, EngineSystemTime,
-        net::EngineNet,
-    };
+    pub use xash3d_shared::engine::EngineCmd;
+    pub use xash3d_shared::engine::EngineConsole;
+    pub use xash3d_shared::engine::EngineCvar;
+    pub use xash3d_shared::engine::EngineDrawConsoleString;
+    pub use xash3d_shared::engine::EngineFile;
+    pub use xash3d_shared::engine::EngineRng;
+    pub use xash3d_shared::engine::EngineSystemTime;
+    pub use xash3d_shared::engine::net::EngineNet;
 }
 
 pub use self::prelude::*;
+
+pub use xash3d_shared::engine::LoadFileError;
 
 pub type ClientEngineRef = EngineRef<ClientEngine>;
 
@@ -781,5 +787,16 @@ impl EngineDrawConsoleString for ClientEngine {
 impl EngineNet for ClientEngine {
     fn net_api(&self) -> &NetApi {
         &self.net_api
+    }
+}
+
+impl EngineFile for ClientEngine {
+    fn load_file_raw(&self, path: &CStrThin, len: &mut i32) -> *mut u8 {
+        // NOTE: usehunk is not used in the engine
+        unsafe { unwrap!(self, COM_LoadFile)(path.as_ptr(), 0, len) }
+    }
+
+    unsafe fn free_file_raw(&self, file: *mut u8) {
+        unsafe { unwrap!(self, COM_FreeFile)(file.cast()) }
     }
 }
