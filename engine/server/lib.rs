@@ -1,9 +1,13 @@
 #![no_std]
 
+#[cfg(feature = "std")]
+extern crate std;
+
 #[allow(unused_imports)]
 #[macro_use]
 extern crate alloc;
 
+#[allow(unused_imports)]
 #[macro_use]
 extern crate log;
 

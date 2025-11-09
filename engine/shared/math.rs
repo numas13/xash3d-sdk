@@ -2,80 +2,94 @@ use xash3d_ffi::common::vec3_t;
 
 use crate::consts::{PITCH, ROLL, YAW};
 
-// TODO: float trait and libstd support
+// TODO: float trait
 
-macro_rules! define {
-    ($(fn $name:ident($($a:ident: $t:ty),* $(,)?) $(-> $r:ty)?;)*) => (
-        $(
-            #[cfg(not(feature = "libm"))]
-            #[inline(always)]
-            pub fn $name($($a: $t),*) $(-> $r)? {
-                #[cfg_attr(unix, link(name = "m"))]
-                unsafe extern "C" {
-                    fn $name($($a: $t),*) $(-> $r)?;
+// Rust libstd
+#[cfg(feature = "std")]
+mod imp {
+    macro_rules! define {
+        ($(fn $name:ident($($a:ident: $t:ty),* $(,)?) $(-> $r:ty)? = $func:path;)*) => (
+            $(
+                #[inline(always)]
+                pub fn $name($($a: $t),*) $(-> $r)? {
+                    $func($( $a ),*)
                 }
-                unsafe {
-                    $name($($a),*)
-                }
-            }
+            )*
+        );
+    }
 
-            #[cfg(feature = "libm")]
-            pub use libm::$name;
-        )*
-    );
+    define! {
+        fn cosf(x: f32) -> f32 = f32::cos;
+        fn sinf(x: f32) -> f32 = f32::sin;
+        fn tanf(x: f32) -> f32 = f32::tan;
+        fn atanf(x: f32) -> f32 = f32::atan;
+        fn sqrtf(x: f32) -> f32 = f32::sqrt;
+        fn fmaxf(x: f32, y: f32) -> f32 = f32::max;
+        fn fminf(x: f32, y: f32) -> f32 = f32::min;
+        fn powf(x: f32, y: f32) -> f32 = f32::powf;
+        fn fabsf(x: f32) -> f32 = f32::abs;
+        fn copysignf(x: f32, y: f32) -> f32 = f32::copysign;
+
+        fn cos(x: f64) -> f64 = f64::cos;
+        fn sin(x: f64) -> f64 = f64::sin;
+        fn tan(x: f64) -> f64 = f64::tan;
+        fn atan(x: f64) -> f64 = f64::atan;
+        fn sqrt(x: f64) -> f64 = f64::sqrt;
+        fn fmax(x: f64, y: f64) -> f64 = f64::max;
+        fn fmin(x: f64, y: f64) -> f64 = f64::min;
+        fn pow(x: f64, y: f64) -> f64 = f64::powf;
+        fn fabs(x: f64) -> f64 = f64::abs;
+        fn copysign(x: f64, y: f64) -> f64 = f64::copysign;
+    }
 }
 
-define! {
-    fn cosf(x: f32) -> f32;
-    fn sinf(x: f32) -> f32;
-    fn tanf(x: f32) -> f32;
-    fn atanf(x: f32) -> f32;
-    fn sqrtf(x: f32) -> f32;
-    fn fmaxf(x: f32, y: f32) -> f32;
-    fn fminf(x: f32, y: f32) -> f32;
-    fn powf(x: f32, y: f32) -> f32;
+// Rust libm
+#[cfg(all(feature = "libm", not(feature = "std")))]
+mod imp {
+    pub use libm::atanf;
+    pub use libm::copysignf;
+    pub use libm::cosf;
+    pub use libm::fabsf;
+    pub use libm::fmaxf;
+    pub use libm::fminf;
+    pub use libm::powf;
+    pub use libm::sinf;
+    pub use libm::sqrtf;
+    pub use libm::tanf;
 
-    fn cos(x: f64) -> f64;
-    fn sin(x: f64) -> f64;
-    fn tan(x: f64) -> f64;
-    fn atan(x: f64) -> f64;
-    fn sqrt(x: f64) -> f64;
-    fn fmax(x: f64, y: f64) -> f64;
-    fn fmin(x: f64, y: f64) -> f64;
-    fn pow(x: f64, y: f64) -> f64;
+    pub use libm::atan;
+    pub use libm::copysign;
+    pub use libm::cos;
+    pub use libm::fabs;
+    pub use libm::fmax;
+    pub use libm::fmin;
+    pub use libm::pow;
+    pub use libm::sin;
+    pub use libm::sqrt;
+    pub use libm::tan;
 }
 
-#[inline(always)]
-fn sign() -> u64 {
-    1 << (core::mem::size_of::<f64>() * 8 - 1)
-}
+pub use self::imp::atanf;
+pub use self::imp::copysignf;
+pub use self::imp::cosf;
+pub use self::imp::fabsf;
+pub use self::imp::fmaxf;
+pub use self::imp::fminf;
+pub use self::imp::powf;
+pub use self::imp::sinf;
+pub use self::imp::sqrtf;
+pub use self::imp::tanf;
 
-#[inline(always)]
-fn signf() -> u32 {
-    1 << (core::mem::size_of::<f32>() * 8 - 1)
-}
-
-#[inline(always)]
-pub fn fabs(x: f64) -> f64 {
-    f64::from_bits(x.to_bits() & !sign())
-}
-
-#[inline(always)]
-pub fn fabsf(x: f32) -> f32 {
-    f32::from_bits(x.to_bits() & !signf())
-}
-
-#[inline(always)]
-pub fn copysign(x: f64, y: f64) -> f64 {
-    let sign = sign();
-    f64::from_bits((x.to_bits() & !sign) | (y.to_bits() & sign))
-}
-
-#[inline(always)]
-pub fn copysignf(x: f32, y: f32) -> f32 {
-    let sign = signf();
-    f32::from_bits((x.to_bits() & !sign) | (y.to_bits() & sign))
-}
+pub use self::imp::atan;
+pub use self::imp::copysign;
+pub use self::imp::cos;
+pub use self::imp::fabs;
+pub use self::imp::fmax;
+pub use self::imp::fmin;
+pub use self::imp::pow;
+pub use self::imp::sin;
+pub use self::imp::sqrt;
+pub use self::imp::tan;
 
 #[inline(always)]
 pub fn pow2(x: f32) -> f32 {
