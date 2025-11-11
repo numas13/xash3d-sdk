@@ -2,18 +2,19 @@ pub mod decals;
 pub mod sprites;
 
 use core::{
-    any::{Any, type_name},
+    any::Any,
     cell::{Cell, Ref, RefCell, RefMut},
     ffi::{CStr, c_int},
     mem::MaybeUninit,
 };
 
-use alloc::{boxed::Box, collections::linked_list::LinkedList, vec::Vec};
+use alloc::{boxed::Box, collections::linked_list::LinkedList};
 use xash3d_shared::{
     csz::{CStrArray, CStrThin},
     engine::EngineRef,
     export::impl_unsync_global,
     ffi::server::TYPEDESCRIPTION,
+    global_state::CustomGlobals,
 };
 
 use crate::{
@@ -30,6 +31,12 @@ use crate::{
 };
 
 use self::decals::{Decals, StubDecals};
+
+/// Used to create a new global objects.
+pub trait DefaultGlobal {
+    /// Constructs a new global object.
+    fn default_global(engine: ServerEngineRef) -> Self;
+}
 
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
 #[repr(C)]
@@ -173,10 +180,6 @@ unsafe impl SaveFields for GlobalStateSave {
     const SAVE_FIELDS: &'static [TYPEDESCRIPTION] = &define_fields![list_count];
 }
 
-pub trait DefaultGlobal {
-    fn default_global(engine: ServerEngineRef) -> Self;
-}
-
 pub struct GlobalState {
     engine: ServerEngineRef,
     entities: RefCell<Entities>,
@@ -187,7 +190,7 @@ pub struct GlobalState {
     talk_wait_time: Cell<MapTime>,
     decals: RefCell<Box<dyn Decals>>,
     sprites: RefCell<Box<dyn Sprites>>,
-    custom: RefCell<Vec<Box<dyn Any>>>,
+    customs: CustomGlobals,
 }
 
 impl_unsync_global!(GlobalState);
@@ -204,7 +207,7 @@ impl GlobalState {
             talk_wait_time: Default::default(),
             decals: RefCell::new(Box::new(StubDecals::new(engine))),
             sprites: RefCell::new(Box::new(StubSprites::new(engine))),
-            custom: RefCell::default(),
+            customs: CustomGlobals::default(),
         }
     }
 
@@ -289,7 +292,7 @@ impl GlobalState {
         self.entities_mut().clear();
         self.init_hud.set(true);
         self.decals.replace(Box::new(StubDecals::new(self.engine)));
-        self.custom.borrow_mut().clear();
+        self.customs.clear();
     }
 
     pub fn entity_state(&self, name: MapString) -> EntityState {
@@ -343,59 +346,29 @@ impl GlobalState {
         self.set_talk_wait_time(self.engine.globals.map_time() + relative);
     }
 
-    /// Returns a custom global state with type `T`.
     pub fn try_get<T: Any>(&self) -> Option<Ref<'_, T>> {
-        Ref::filter_map(self.custom.borrow(), |list| {
-            list.iter().find_map(|i| i.as_ref().downcast_ref::<T>())
-        })
-        .ok()
+        self.customs.try_get::<T>()
     }
 
-    /// Returns a custom global state with type `T`.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the custom global state is not added.
     pub fn get<T: Any>(&self) -> Ref<'_, T> {
-        match self.try_get() {
-            Some(custom) => custom,
-            None => {
-                panic!("custom({}) is not added to GlobalState", type_name::<T>());
-            }
-        }
+        self.customs.get::<T>()
     }
 
-    pub fn get_or_insert<T: Any>(&self, with: impl FnOnce() -> T) -> Ref<'_, T> {
-        match self.try_get::<T>() {
-            Some(i) => i,
-            None => {
-                let custom = Box::new(with());
-                trace!("add custom({})", type_name::<T>());
-                self.custom.borrow_mut().push(custom);
-                Ref::map(self.custom.borrow(), |list| {
-                    list.last().unwrap().as_ref().downcast_ref::<T>().unwrap()
-                })
-            }
-        }
+    pub fn get_or_insert_with<T: Any>(&self, with: impl FnOnce() -> T) -> Ref<'_, T> {
+        self.customs.get_or_insert_with::<T>(with)
+    }
+
+    pub fn get_or_insert<T: Any>(&self, value: T) -> Ref<'_, T> {
+        self.customs.get_or_insert(value)
     }
 
     pub fn get_or_default<T: Any + DefaultGlobal>(&self) -> Ref<'_, T> {
-        self.get_or_insert::<T>(|| T::default_global(self.engine))
+        self.customs
+            .get_or_insert_with(|| T::default_global(self.engine))
     }
 
-    /// Add a custom global state with type `T`.
     pub fn add<T: Any>(&self, custom: T) {
-        let mut list = self.custom.borrow_mut();
-        match list.iter_mut().find_map(|i| i.as_mut().downcast_mut::<T>()) {
-            Some(i) => {
-                trace!("replace custom({})", type_name::<T>());
-                *i = custom;
-            }
-            None => {
-                trace!("add custom({})", type_name::<T>());
-                list.push(Box::new(custom));
-            }
-        }
+        self.customs.add::<T>(custom)
     }
 }
 

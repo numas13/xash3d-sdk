@@ -5,6 +5,7 @@
 extern crate alloc;
 
 #[cfg(any(test, feature = "std"))]
+#[allow(unused_imports)]
 #[macro_use]
 extern crate std;
 
@@ -24,6 +25,7 @@ pub mod engine;
 pub mod entity;
 pub mod export;
 pub mod file;
+pub mod global_state;
 pub mod input;
 pub mod logger;
 pub mod math;
