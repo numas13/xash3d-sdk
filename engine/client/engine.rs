@@ -26,6 +26,7 @@ use crate::{
     color::{RGB, RGBA},
     cvar::{CVarFlags, CVarPtr},
     engine::{demo::DemoApi, efx::EfxApi, event::EventApi, tri::TriangleApi},
+    global_state::GlobalStateRef,
     screen::ScreenInfo,
     sprite::{SpriteHandle, SpriteList},
 };
@@ -143,6 +144,11 @@ impl ClientEngine {
 
     pub fn raw(&self) -> &cl_enginefuncs_s {
         &self.raw
+    }
+
+    pub fn global_state_ref(&self) -> GlobalStateRef {
+        // SAFETY: we are in the game thread
+        unsafe { GlobalStateRef::new() }
     }
 
     pub fn tri_api(&self) -> &TriangleApi {

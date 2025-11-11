@@ -24,7 +24,7 @@ use xash3d_shared::{
     utils::cstr_or_none,
 };
 
-use crate::{engine::ClientEngineRef, entity::TempEntityList};
+use crate::{engine::ClientEngineRef, entity::TempEntityList, global_state::GlobalState};
 
 pub use xash3d_shared::export::{UnsyncGlobal, impl_unsync_global};
 
@@ -395,6 +395,8 @@ impl<T: ClientDll> ClientDllExport for Export<T> {
 
             crate::logger::init_console_logger(&engine);
 
+            (*GlobalState::global_as_mut_ptr()).write(GlobalState::new(engine));
+
             let dll = T::new(engine);
             (&mut *T::global_as_mut_ptr()).write(dll);
         }
@@ -403,6 +405,8 @@ impl<T: ClientDll> ClientDllExport for Export<T> {
     unsafe extern "C" fn shutdown() {
         unsafe {
             (&mut *T::global_as_mut_ptr()).assume_init_drop();
+
+            (*GlobalState::global_as_mut_ptr()).assume_init_drop();
         }
     }
 
