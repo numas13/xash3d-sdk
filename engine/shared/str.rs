@@ -3,7 +3,7 @@ use core::{
     fmt::{self, Write},
 };
 
-use alloc::{ffi::CString, string::String};
+use alloc::{ffi::CString, string::String, vec::Vec};
 use csz::{CStrArray, CStrBox, CStrThin};
 
 /// An internal buffer for [CStrTemp].
@@ -188,6 +188,75 @@ impl ByteSliceExt for [u8] {
     fn bytes_take_while_rev(&self, mut pat: impl FnMut(u8) -> bool) -> (&[u8], &[u8]) {
         let offset = self.iter().rev().position(|&i| !pat(i)).unwrap_or(0);
         self.split_at(self.len() - offset)
+    }
+}
+
+#[derive(Copy, Clone)]
+pub struct StringId(u32);
+
+impl StringId {
+    fn offset(&self) -> usize {
+        self.0 as usize
+    }
+}
+
+#[derive(Default)]
+pub struct Strings {
+    data: Vec<u8>,
+}
+
+impl Strings {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn clear(&mut self) {
+        self.data.clear();
+    }
+
+    pub fn shrink_to_fit(&mut self) {
+        self.data.shrink_to_fit();
+    }
+
+    fn next_id(&self) -> StringId {
+        StringId(self.data.len().try_into().unwrap())
+    }
+
+    pub fn from_bytes_until_nul(&mut self, bytes: &[u8]) -> StringId {
+        let id = self.next_id();
+        for &i in bytes {
+            if i == 0 {
+                break;
+            }
+            self.data.push(i);
+        }
+        self.data.push(0);
+        id
+    }
+
+    pub fn from_thin(&mut self, s: &CStrThin) -> StringId {
+        let id = self.next_id();
+        self.data.extend(s.bytes());
+        self.data.push(0);
+        id
+    }
+
+    pub fn from_c_str(&mut self, s: &CStr) -> StringId {
+        let id = self.next_id();
+        self.data.extend_from_slice(s.to_bytes_with_nul());
+        id
+    }
+
+    pub fn try_get(&self, id: StringId) -> Option<&CStrThin> {
+        let offset = id.offset();
+        self.data.get(offset).map(|_| unsafe {
+            let s = self.data.as_ptr().wrapping_add(offset);
+            CStrThin::from_ptr(s as *const i8)
+        })
+    }
+
+    pub fn get(&self, id: StringId) -> &CStrThin {
+        self.try_get(id).unwrap()
     }
 }
 

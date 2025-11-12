@@ -3,7 +3,7 @@ use core::{cell::RefCell, cmp, ffi::CStr, fmt::Write, mem};
 use alloc::vec::Vec;
 use xash3d_shared::{
     csz::{CStrArray, CStrSlice, CStrThin},
-    str::ByteSliceExt,
+    str::{ByteSliceExt, StringId, Strings},
 };
 
 use crate::{
@@ -14,39 +14,6 @@ use crate::{
 };
 
 pub use xash3d_shared::sound::*;
-
-#[derive(Copy, Clone)]
-struct StringId(u32);
-
-struct Strings {
-    data: Vec<u8>,
-}
-
-impl Strings {
-    fn new() -> Self {
-        Self { data: Vec::new() }
-    }
-
-    fn clear(&mut self) {
-        self.data.clear();
-    }
-
-    fn shrink_to_fit(&mut self) {
-        self.data.shrink_to_fit();
-    }
-
-    fn alloc(&mut self, bytes: &[u8]) -> StringId {
-        let offset = self.data.len();
-        self.data.extend(bytes);
-        self.data.push(0);
-        StringId(offset as u32)
-    }
-
-    fn get(&self, id: StringId) -> &CStrThin {
-        let ptr = &self.data[id.0 as usize] as *const u8;
-        unsafe { CStrThin::from_ptr(ptr as *const i8) }
-    }
-}
 
 struct SentenceEntry {
     name: StringId,
@@ -146,7 +113,7 @@ impl Sentences {
             }
 
             sentences.push(SentenceEntry {
-                name: self.strings.alloc(name),
+                name: self.strings.from_bytes_until_nul(name),
                 index,
             });
             index += 1;
@@ -158,7 +125,7 @@ impl Sentences {
 
             if group_name != Some(group) {
                 group_name = Some(group);
-                let name = self.strings.alloc(group);
+                let name = self.strings.from_bytes_until_nul(group);
                 groups.push(SentenceGroup::new(name, 1));
             } else {
                 groups.last_mut().unwrap().count += 1;
