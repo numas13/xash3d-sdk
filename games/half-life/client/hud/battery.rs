@@ -60,11 +60,12 @@ impl super::HudItem for Battery {
             return;
         };
 
+        let digits = &state.digits;
         let color = state.color.scale_color(self.fade.alpha(state.time_delta));
         let screen_info = engine.screen_info();
         let width = empty.width();
         let mut x = width * 3;
-        let mut y = screen_info.height() - state.num_height - state.num_height / 2;
+        let mut y = screen_info.height() - digits.height() - digits.height() / 2;
         let offset = empty.height() / 6;
 
         empty.draw_additive(0, x, y - offset, color);
@@ -79,7 +80,7 @@ impl super::HudItem for Battery {
         }
 
         x += width;
-        y += (state.num_height as f32 * 0.2) as c_int;
+        y += (digits.height() as f32 * 0.2) as c_int;
         state
             .draw_number(self.current as c_int)
             .width(3)

@@ -143,15 +143,16 @@ impl Health {
 
         let color = self.get_pain_color().unwrap_or(state.color).scale_color(a);
 
+        let digits = &state.digits;
         let screen_info = engine.screen_info();
         let cross_width = cross.width();
         let mut x = cross_width / 2;
-        let mut y = screen_info.height() - state.num_height - state.num_height / 2;
+        let mut y = screen_info.height() - digits.height() - digits.height() / 2;
 
         cross.draw_additive(0, x, y, color);
 
-        x = cross_width + state.num_width / 2;
-        y += (state.num_height as f32 * 0.2) as c_int;
+        x = cross_width + digits.width() / 2;
+        y += (digits.height() as f32 * 0.2) as c_int;
 
         x = state
             .draw_number(self.current.into())
@@ -159,10 +160,10 @@ impl Health {
             .color(color)
             .at(x, y);
 
-        x += state.num_width / 2;
+        x += digits.width() / 2;
 
-        let height = state.num_height;
-        let width = state.num_width / 10;
+        let height = digits.height();
+        let width = digits.width() / 10;
         engine.fill_rgba(x, y, width, height, state.color.rgba(a));
     }
 

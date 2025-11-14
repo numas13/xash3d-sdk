@@ -47,10 +47,11 @@ impl HudItem for Ammo {
 
         let engine = self.engine;
         let screen = engine.screen_info();
-        let ammo_width = state.num_width;
+        let digits = &state.digits;
+        let ammo_width = digits.width();
 
-        let mut y = screen.height() - state.num_height - state.num_height / 2;
-        y += (state.num_height as f32 * 0.2) as c_int;
+        let mut y = screen.height() - digits.height() - digits.height() / 2;
+        y += (digits.height() as f32 * 0.2) as c_int;
 
         if let Some(ammo) = weapon.ammo[0] {
             let ammo_count = state.inv.ammo_count(ammo.ty) as c_int;
@@ -67,7 +68,7 @@ impl HudItem for Ammo {
 
                 let bar_width = ammo_width / 10;
                 x += ammo_width / 2;
-                engine.fill_rgba(x, y, bar_width, state.num_height, state.color.rgba(a));
+                engine.fill_rgba(x, y, bar_width, digits.height(), state.color.rgba(a));
 
                 x += ammo_width / 2 + bar_width;
                 x = state.draw_number(ammo_count).width(3).color(color).at(x, y);
@@ -88,7 +89,7 @@ impl HudItem for Ammo {
                 let icon_width = ammo.icon.map_or(FALLBACK_WIDTH, |s| s.width());
 
                 let mut x = screen.width() - icon_width;
-                y -= state.num_height + state.num_height / 4;
+                y -= digits.height() + digits.height() / 4;
 
                 x -= 4 * ammo_width;
                 x = state.draw_number(ammo_count).width(3).color(color).at(x, y);

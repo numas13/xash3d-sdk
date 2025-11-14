@@ -32,7 +32,7 @@ use xash3d_client::{
     ffi::{client::client_data_s, common::vec3_t},
     macros::hook_command,
     prelude::*,
-    sprite::{Sprite, SpriteHandle, Sprites},
+    sprite::{DigitSprites, Sprite, SpriteHandle, Sprites},
     user_message::{hook_user_message, hook_user_message_flag},
 };
 use xash3d_hl_shared::{user_message, weapons::Weapons};
@@ -218,11 +218,7 @@ pub struct State {
     /// HUD sprites.
     sprites: Sprites,
     /// HUD sprites for numbers.
-    numbers: Vec<Sprite>,
-    /// The width of number sprites.
-    num_width: c_int,
-    /// The height of number sprites.
-    num_height: c_int,
+    digits: DigitSprites,
     last_fov: u8,
     fov: u8,
     mouse_sensitivity: f32,
@@ -247,9 +243,7 @@ impl State {
             angles: vec3_t::ZERO,
             inv: Inventory::new(engine),
             sprites: Sprites::new(engine),
-            numbers: Vec::with_capacity(10),
-            num_width: 0,
-            num_height: 0,
+            digits: DigitSprites::new(),
             last_fov: 0,
             fov: 0,
             mouse_sensitivity: 0.0,
@@ -269,15 +263,7 @@ impl State {
         self.sprites
             .reload_from_file(self.sprite_resolution, c"sprites/hud.txt");
 
-        self.numbers.clear();
-        for i in 0..10 {
-            let mut buf = CStrArray::<64>::new();
-            write!(buf.cursor(), "number_{i}").ok();
-            let sprite = self.find_sprite(buf).unwrap();
-            self.numbers.push(sprite);
-        }
-        self.num_width = self.numbers[0].width();
-        self.num_height = self.numbers[0].height();
+        self.digits = DigitSprites::from_sprites(&self.sprites);
 
         self.inv.vid_init();
 
@@ -383,8 +369,9 @@ impl DrawNumber<'_> {
     }
 
     fn at(self, x: c_int, y: c_int) -> c_int {
+        let digits = &self.state.digits;
         if self.number == 0 && !self.zero {
-            return x + self.state.num_width * self.width as c_int;
+            return x + digits.width() * self.width as c_int;
         }
 
         let mut buf = CStrArray::<64>::new();
@@ -404,12 +391,11 @@ impl DrawNumber<'_> {
         }
 
         let mut x = x;
-        for i in buf.bytes() {
-            if i.is_ascii_digit() {
-                let s = &self.state.numbers[i as usize - b'0' as usize];
-                s.draw_additive(0, x, y, self.color);
+        for c in buf.bytes() {
+            if let Some(digit) = digits.get_by_char(c as char) {
+                digit.draw_additive(0, x, y, self.color);
             }
-            x += self.state.num_width;
+            x += digits.width();
         }
         x
     }

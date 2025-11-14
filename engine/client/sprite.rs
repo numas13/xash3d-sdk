@@ -1,9 +1,9 @@
-use core::{ffi::c_int, num::NonZeroI32, ops::Deref, slice};
+use core::{ffi::c_int, fmt::Write, num::NonZeroI32, ops::Deref, slice};
 
 use alloc::vec::Vec;
 use xash3d_shared::{
     color::RGB,
-    csz::CStrThin,
+    csz::{CStrArray, CStrThin},
     ffi::{
         client::{HSPRITE, client_sprite_s},
         common::wrect_s,
@@ -141,6 +141,55 @@ impl Sprite {
     pub fn draw_additive(&self, frame: i32, x: i32, y: i32, color: RGB) {
         self.handle
             .draw_additive_rect(frame, x, y, color, self.rect);
+    }
+}
+
+#[derive(Default)]
+pub struct DigitSprites {
+    digits: [Option<Sprite>; 10],
+    width: i32,
+    height: i32,
+}
+
+impl DigitSprites {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn from_sprites(sprites: &Sprites) -> Self {
+        let mut digits: [Option<Sprite>; 10] = [None; 10];
+        let mut width = 0;
+        let mut height = 0;
+        let mut buf = CStrArray::<64>::new();
+        for (i, digit) in digits.iter_mut().enumerate() {
+            write!(buf.cursor(), "number_{i}").ok();
+            let name = buf.as_thin();
+            if let Some(sprite) = sprites.find(name) {
+                *digit = Some(*sprite);
+                if width == 0 {
+                    width = sprite.width();
+                    height = sprite.height();
+                }
+            }
+        }
+        Self {
+            digits,
+            width,
+            height,
+        }
+    }
+
+    pub fn get_by_char(&self, c: char) -> Option<&Sprite> {
+        c.to_digit(10)
+            .and_then(|i| self.digits[i as usize].as_ref())
+    }
+
+    pub fn width(&self) -> i32 {
+        self.width
+    }
+
+    pub fn height(&self) -> i32 {
+        self.height
     }
 }
 
