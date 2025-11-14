@@ -5,7 +5,6 @@ use xash3d_client::{
     color::RGB,
     entity::DamageFlags,
     ffi::common::vec3_t,
-    macros::spr_load,
     math::{fabsf, fmaxf, sinf},
     prelude::*,
     sprite::SpriteHandle,
@@ -302,8 +301,9 @@ impl super::HudItem for Health {
     fn vid_init(&mut self, state: &mut State) {
         let engine = self.engine;
         self.cross = state.find_sprite("cross");
-        self.pain_sprite =
-            try_spr_load(state.res, |res| spr_load!(engine, "sprites/{res}_pain.spr"));
+        self.pain_sprite = try_spr_load(state.res, |res| {
+            engine.spr_load(format_args!("sprites/{res}_pain.spr"))
+        });
         self.dmg_spr_index = state.find_sprite_index("dmg_bio").map(|i| i + 1);
     }
 

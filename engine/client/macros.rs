@@ -38,6 +38,7 @@ macro_rules! hook_command_key {
 #[doc(inline)]
 pub use hook_command_key;
 
+#[deprecated(note = "use ClientEngine::spr_load instead")]
 #[doc(hidden)]
 #[macro_export]
 macro_rules! spr_load {
@@ -48,9 +49,11 @@ macro_rules! spr_load {
         $engine.spr_load(buf.as_c_str())
     });
 }
+#[allow(deprecated)]
 #[doc(inline)]
 pub use spr_load;
 
+#[deprecated(note = "use ClientEngine::spr_get_list instead")]
 #[doc(hidden)]
 #[macro_export]
 macro_rules! spr_get_list {
@@ -61,5 +64,6 @@ macro_rules! spr_get_list {
         $engine.spr_get_list(buf.as_c_str())
     });
 }
+#[allow(deprecated)]
 #[doc(inline)]
 pub use spr_get_list;

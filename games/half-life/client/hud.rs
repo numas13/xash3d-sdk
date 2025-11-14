@@ -33,7 +33,7 @@ use xash3d_client::{
         client::client_data_s,
         common::{vec3_t, wrect_s},
     },
-    macros::{hook_command, spr_load},
+    macros::hook_command,
     prelude::*,
     sprite::SpriteHandle,
     user_message::{hook_user_message, hook_user_message_flag},
@@ -289,7 +289,7 @@ impl State {
         self.sprites_names.clear();
         self.sprites.clear();
         for i in sprite_list.iter().filter(|i| i.iRes as u32 == self.res) {
-            let Some(hspr) = spr_load!(engine, "sprites/{}.spr", i.sprite()) else {
+            let Some(hspr) = engine.spr_load(format_args!("sprites/{}.spr", i.sprite())) else {
                 continue;
             };
             self.sprites_names.push(i.name().to_str().unwrap().into());
@@ -718,7 +718,7 @@ impl Hud {
         let engine = self.engine;
         if self.logo_hspr.is_none() {
             self.logo_hspr = try_spr_load(self.state.res, |res| {
-                spr_load!(engine, "sprites/{res}_logo.spr")
+                engine.spr_load(format_args!("sprites/{res}_logo.spr"))
             });
         }
 

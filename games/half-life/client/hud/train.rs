@@ -1,8 +1,6 @@
 use core::ffi::c_int;
 
-use xash3d_client::{
-    macros::spr_load, prelude::*, sprite::SpriteHandle, user_message::hook_user_message,
-};
+use xash3d_client::{prelude::*, sprite::SpriteHandle, user_message::hook_user_message};
 use xash3d_hl_shared::user_message;
 
 use crate::{
@@ -45,7 +43,7 @@ impl HudItem for Train {
         let engine = self.engine;
         if self.sprite.is_none() {
             self.sprite = try_spr_load(state.res, |res| {
-                spr_load!(engine, "sprites/{res}_train.spr")
+                engine.spr_load(format_args!("sprites/{res}_train.spr"))
             });
         }
 

@@ -6,7 +6,6 @@ use core::{
 use xash3d_client::{
     color::RGB,
     csz::CStrArray,
-    macros::{spr_get_list, spr_load},
     prelude::*,
     user_message::{UserMessageBuffer, UserMessageError, hook_user_message},
 };
@@ -128,7 +127,7 @@ impl Weapon {
 
     fn load_sptires(&mut self) {
         let engine = self.engine;
-        let list = spr_get_list!(engine, "sprites/{}.txt", self.name);
+        let list = engine.spr_get_list(format_args!("sprites/{}.txt", self.name));
         if list.is_empty() {
             return;
         }
@@ -138,7 +137,11 @@ impl Weapon {
 
         let load = |name: &CStr| {
             list.find(name.into(), res)
-                .and_then(|i| spr_load!(engine, "sprites/{}.spr", i.sprite()).map(|s| (s, i.rc)))
+                .and_then(|i| {
+                    engine
+                        .spr_load(format_args!("sprites/{}.spr", i.sprite()))
+                        .map(|s| (s, i.rc))
+                })
                 .map(|(s, rc)| Sprite::new(s, rc))
         };
 
