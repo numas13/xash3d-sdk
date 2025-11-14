@@ -217,10 +217,7 @@ impl HudItem for DeathNotice {
 
         let engine = self.engine;
         let screen = engine.screen_info();
-        let gap = cmp::max(
-            screen.char_height(),
-            self.skull.map_or(20, |s| s.rect.height()),
-        );
+        let gap = cmp::max(screen.char_height(), self.skull.map_or(20, |s| s.height()));
 
         let x = screen.width() - 4;
         let mut y = DEATHNOTICE_TOP + 6;
@@ -242,9 +239,8 @@ impl HudItem for DeathNotice {
                     RGB::new(255, 80, 0) // TODO:
                 };
 
-                engine.spr_set(s.hspr, color);
-                x -= s.rect.width();
-                engine.spr_draw_additive_rect(0, x, y - 4, s.rect);
+                x -= s.width();
+                s.draw_additive(0, x, y - 4, color);
             }
 
             // draw killer name

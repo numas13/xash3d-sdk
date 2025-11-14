@@ -168,6 +168,7 @@ impl From<(i32, i32, u32, u32)> for Rect {
     }
 }
 
+#[deprecated]
 pub trait WRectExt {
     fn default() -> Self;
 
@@ -180,6 +181,7 @@ pub trait WRectExt {
     }
 }
 
+#[allow(deprecated)]
 impl WRectExt for wrect_s {
     fn default() -> Self {
         unsafe { mem::zeroed() }

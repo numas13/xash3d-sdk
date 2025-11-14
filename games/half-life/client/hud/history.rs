@@ -138,10 +138,8 @@ impl HudItem for History {
                         continue;
                     };
 
-                    x -= icon.rect.width();
-
-                    engine.spr_set(icon.hspr, color);
-                    engine.spr_draw_additive_rect(0, x, y, icon.rect);
+                    x -= icon.width();
+                    icon.draw_additive(0, x, y, color);
 
                     state
                         .draw_number(count as i32)
@@ -155,10 +153,8 @@ impl HudItem for History {
                         continue;
                     };
 
-                    x -= icon.rect.width();
-
-                    engine.spr_set(icon.hspr, color);
-                    engine.spr_draw_additive_rect(0, x, y, icon.rect);
+                    x -= icon.width();
+                    icon.draw_additive(0, x, y, color);
                 }
                 ItemKind::Item(index) => {
                     let Some(index) = index else { continue };
@@ -166,10 +162,8 @@ impl HudItem for History {
                         continue;
                     };
 
-                    x -= icon.rect.width();
-
-                    engine.spr_set(icon.hspr, color);
-                    engine.spr_draw_additive_rect(0, x, y, icon.rect);
+                    x -= icon.width();
+                    icon.draw_additive(0, x, y, color);
                 }
             }
         }

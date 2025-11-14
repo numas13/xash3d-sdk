@@ -29,13 +29,10 @@ use xash3d_client::{
     color::RGB,
     consts::MAX_PLAYERS,
     csz::{CStrArray, CStrBox},
-    ffi::{
-        client::client_data_s,
-        common::{vec3_t, wrect_s},
-    },
+    ffi::{client::client_data_s, common::vec3_t},
     macros::hook_command,
     prelude::*,
-    sprite::SpriteHandle,
+    sprite::{Sprite, SpriteHandle},
     user_message::{hook_user_message, hook_user_message_flag},
 };
 use xash3d_hl_shared::{user_message, weapons::Weapons};
@@ -102,18 +99,6 @@ where
                 res = lower;
             }
         }
-    }
-}
-
-#[derive(Copy, Clone, Debug)]
-struct Sprite {
-    hspr: SpriteHandle,
-    rect: wrect_s,
-}
-
-impl Sprite {
-    fn new(hspr: SpriteHandle, rect: wrect_s) -> Self {
-        Sprite { hspr, rect }
     }
 }
 
@@ -304,8 +289,8 @@ impl State {
             let sprite = self.find_sprite(buf.to_str().unwrap()).unwrap();
             self.numbers.push(sprite);
         }
-        self.num_width = self.numbers[0].rect.width();
-        self.num_height = self.numbers[0].rect.height();
+        self.num_width = self.numbers[0].width();
+        self.num_height = self.numbers[0].height();
 
         self.inv.vid_init();
 
@@ -437,8 +422,7 @@ impl DrawNumber<'_> {
         for i in buf.bytes() {
             if i.is_ascii_digit() {
                 let s = &self.state.numbers[i as usize - b'0' as usize];
-                engine.spr_set(s.hspr, self.color);
-                engine.spr_draw_additive_rect(0, x, y, s.rect);
+                s.draw_additive(0, x, y, self.color);
             }
             x += self.state.num_width;
         }
@@ -723,16 +707,13 @@ impl Hud {
         }
 
         let Some(hspr) = self.logo_hspr else { return };
-
         let info = engine.screen_info();
-        let (w, h) = engine.spr_size(hspr, 0);
+        let (w, h) = hspr.size(0);
         let x = info.width() - w;
         let y = h / 2;
         let frame = (self.state.time * 20.0) as usize % MAX_LOGO_FRAMES;
         let i = LOGO_FRAME[frame] - 1;
-
-        engine.spr_set(hspr, RGB::new(250, 250, 250));
-        engine.spr_draw_additive(i, x, y);
+        hspr.draw_additive(i, x, y, RGB::splat(250));
     }
 
     pub fn draw(&mut self, time: f32, intermission: bool) -> bool {

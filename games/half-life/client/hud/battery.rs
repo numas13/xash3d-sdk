@@ -62,21 +62,20 @@ impl super::HudItem for Battery {
 
         let color = state.color.scale_color(self.fade.alpha(state.time_delta));
         let screen_info = engine.screen_info();
-        let width = empty.rect.width();
+        let width = empty.width();
         let mut x = width * 3;
         let mut y = screen_info.height() - state.num_height - state.num_height / 2;
-        let offset = empty.rect.height() / 6;
+        let offset = empty.height() / 6;
 
-        engine.spr_set(empty.hspr, color);
-        engine.spr_draw_additive_rect(0, x, y - offset, empty.rect);
+        empty.draw_additive(0, x, y - offset, color);
 
-        let height = (full.rect.bottom - empty.rect.top) as f32;
-        let mut rc = full.rect;
+        let height = (full.rect().bottom - empty.rect().top) as f32;
+        let mut rc = full.rect();
         rc.top += (height * ((100 - cmp::min(100, self.current)) as f32 * 0.01)) as c_int;
         if rc.bottom > rc.top {
-            let y = y + (rc.top - full.rect.top);
-            engine.spr_set(full.hspr, color);
-            engine.spr_draw_additive_rect(0, x, y - offset, rc);
+            let y = y + (rc.top - full.rect().top);
+            full.handle()
+                .draw_additive_rect(0, x, y - offset, color, rc);
         }
 
         x += width;

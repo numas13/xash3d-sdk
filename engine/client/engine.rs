@@ -5,7 +5,7 @@ pub mod tri;
 
 use core::{
     ffi::{c_char, c_int, c_void},
-    mem::MaybeUninit,
+    mem::{self, MaybeUninit},
     ptr,
 };
 
@@ -17,7 +17,6 @@ use xash3d_shared::{
         client::{cl_enginefuncs_s, client_textmessage_s, hud_player_info_s},
         common::{cl_entity_s, event_args_s, vec3_t, wrect_s},
     },
-    misc::WRectExt,
     str::{AsCStrPtr, ToEngineStr},
     utils::cstr_or_none,
 };
@@ -146,6 +145,10 @@ impl ClientEngine {
         &self.raw
     }
 
+    pub fn engine_ref(&self) -> ClientEngineRef {
+        unsafe { ClientEngineRef::new() }
+    }
+
     pub fn global_state_ref(&self) -> GlobalStateRef {
         // SAFETY: we are in the game thread
         unsafe { GlobalStateRef::new() }
@@ -170,7 +173,7 @@ impl ClientEngine {
     pub fn spr_load(&self, pic_name: impl ToEngineStr) -> Option<SpriteHandle> {
         let pic_name = pic_name.to_engine_str();
         let raw = unsafe { unwrap!(self, pfnSPR_Load)(pic_name.as_ptr()) };
-        SpriteHandle::new(raw)
+        SpriteHandle::new(self.engine_ref(), raw)
     }
 
     pub fn spr_frames(&self, pic: SpriteHandle) -> c_int {
@@ -228,6 +231,7 @@ impl ClientEngine {
         unsafe { unwrap!(self, pfnSPR_DisableScissor)() }
     }
 
+    // TODO: spr_get_list: return result?
     pub fn spr_get_list(&self, path: impl ToEngineStr) -> SpriteList {
         let path = path.to_engine_str();
         unsafe {
@@ -254,7 +258,7 @@ impl ClientEngine {
     }
 
     pub fn unset_crosshair(&self) {
-        let rect = wrect_s::default();
+        let rect = unsafe { mem::zeroed() };
         unsafe { unwrap!(self, pfnSetCrosshair)(0, rect, 0, 0, 0) }
     }
 

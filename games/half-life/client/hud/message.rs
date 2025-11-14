@@ -310,18 +310,16 @@ impl HudMessage {
         let brightness = fade_blend(title.fadein, title.fadeout, title.holdtime, local_time);
         let color = RGB::new(title.r1, title.g1, title.b1).scale_color((brightness * 255.0) as u8);
 
-        let half_width = title_half.rect.width();
-        let full_width = half_width + title_life.rect.width();
-        let full_height = title_life.rect.height();
+        let half_width = title_half.width();
+        let full_width = half_width + title_life.width();
+        let full_height = title_life.height();
         let engine = self.engine;
         let screen = engine.screen_info();
         let x = position(title.x, full_width, full_width, screen.width());
         let y = position(title.y, full_height, 0, screen.height());
 
-        engine.spr_set(title_half.hspr, color);
-        engine.spr_draw_additive_rect(0, x, y, title_half.rect);
-        engine.spr_set(title_life.hspr, color);
-        engine.spr_draw_additive_rect(0, x + half_width, y, title_life.rect);
+        title_half.draw_additive(0, x, y, color);
+        title_life.draw_additive(0, x + half_width, y, color);
 
         true
     }

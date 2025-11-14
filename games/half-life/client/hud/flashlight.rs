@@ -92,25 +92,23 @@ impl super::HudItem for Flashlight {
         let engine = self.engine;
         let screen = engine.screen_info();
 
-        let width = empty.rect.width();
+        let width = empty.width();
         let x = screen.width() - width - width / 2;
-        let y = (empty.rect.bottom - full.rect.top) / 2;
+        let y = (empty.rect().bottom - full.rect().top) / 2;
 
-        engine.spr_set(empty.hspr, color);
-        engine.spr_draw_additive_rect(0, x, y, empty.rect);
+        empty.draw_additive(0, x, y, color);
 
         if self.enabled {
             let x = screen.width() - width / 2;
-            engine.spr_set(beam.hspr, color);
-            engine.spr_draw_additive_rect(0, x, y, beam.rect);
+            beam.draw_additive(0, x, y, color);
         }
 
         let offset = (width as f32 * (1.0 - self.battery_f)) as c_int;
         if offset < width {
-            let mut rect = full.rect;
+            let mut rect = full.rect();
             rect.left += offset;
-            engine.spr_set(full.hspr, color);
-            engine.spr_draw_additive_rect(0, x + offset, y, rect);
+            full.handle()
+                .draw_additive_rect(0, x + offset, y, color, rect);
         }
     }
 }

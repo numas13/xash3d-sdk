@@ -54,7 +54,7 @@ impl HudItem for Ammo {
 
         if let Some(ammo) = weapon.ammo[0] {
             let ammo_count = state.inv.ammo_count(ammo.ty) as c_int;
-            let icon_width = ammo.icon.map_or(FALLBACK_WIDTH, |s| s.rect.width());
+            let icon_width = ammo.icon.map_or(FALLBACK_WIDTH, |s| s.width());
 
             let mut x = screen.width() - icon_width;
             if weapon.clip >= 0 {
@@ -77,16 +77,15 @@ impl HudItem for Ammo {
             }
 
             if let Some(icon) = ammo.icon {
-                let offset = icon.rect.height() / 8;
-                engine.spr_set(icon.hspr, color);
-                engine.spr_draw_additive_rect(0, x, y - offset, icon.rect);
+                let offset = icon.height() / 8;
+                icon.draw_additive(0, x, y - offset, color);
             }
         }
 
         if let Some(ammo) = weapon.ammo[1] {
             let ammo_count = state.inv.ammo_count(ammo.ty) as c_int;
             if ammo_count > 0 {
-                let icon_width = ammo.icon.map_or(FALLBACK_WIDTH, |s| s.rect.width());
+                let icon_width = ammo.icon.map_or(FALLBACK_WIDTH, |s| s.width());
 
                 let mut x = screen.width() - icon_width;
                 y -= state.num_height + state.num_height / 4;
@@ -95,9 +94,8 @@ impl HudItem for Ammo {
                 x = state.draw_number(ammo_count).width(3).color(color).at(x, y);
 
                 if let Some(icon) = ammo.icon {
-                    let offset = icon.rect.height() / 8;
-                    engine.spr_set(icon.hspr, color);
-                    engine.spr_draw_additive_rect(0, x, y - offset, icon.rect);
+                    let offset = icon.height() / 8;
+                    icon.draw_additive(0, x, y - offset, color);
                 }
             }
         }

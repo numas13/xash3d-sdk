@@ -318,18 +318,15 @@ impl HudItem for WeaponMenu {
 
             if let Some(index) = self.bucket0 {
                 let sprite = state.sprites[index + slot as usize];
-                engine.spr_set(sprite.hspr, color);
-
                 let width = match active_slot {
                     Some(s) if s == slot => state
                         .inv
                         .get_first_pos(s)
                         .and_then(|weapon| weapon.active)
-                        .map_or(sprite.rect.width(), |s| s.rect.width()),
-                    _ => sprite.rect.width(),
+                        .map_or(sprite.width(), |s| s.width()),
+                    _ => sprite.width(),
                 };
-
-                engine.spr_draw_additive_rect(0, x, y, sprite.rect);
+                sprite.draw_additive(0, x, y, color);
 
                 x += width + 5;
             }
@@ -338,7 +335,7 @@ impl HudItem for WeaponMenu {
         let mut x = 10;
 
         let (bucket_width, bucket_height) = match self.bucket0 {
-            Some(index) => state.sprites[index].rect.size(),
+            Some(index) => state.sprites[index].size(),
             None => (0, 0),
         };
 
@@ -347,7 +344,7 @@ impl HudItem for WeaponMenu {
 
             if matches!(active_slot, Some(s) if s == slot) {
                 let width = match state.inv.get_first_pos(slot).and_then(|i| i.active) {
-                    Some(sprite) => sprite.rect.width(),
+                    Some(sprite) => sprite.width(),
                     None => bucket_width,
                 };
 
@@ -360,13 +357,11 @@ impl HudItem for WeaponMenu {
 
                     if matches!(self.active, Select::Weapon(id, ..) if id == weapon.id) {
                         if let Some(sprite) = weapon.active {
-                            engine.spr_set(sprite.hspr, color);
-                            engine.spr_draw_additive_rect(0, x, y, sprite.rect);
+                            sprite.draw_additive(0, x, y, color);
                         }
 
                         if let Some(sprite) = self.selection {
-                            engine.spr_set(sprite.hspr, color);
-                            engine.spr_draw_additive_rect(0, x, y, sprite.rect);
+                            sprite.draw_additive(0, x, y, color);
                         }
                     } else if let Some(sprite) = weapon.inactive {
                         let color = if state.inv.has_ammo(weapon) {
@@ -375,13 +370,12 @@ impl HudItem for WeaponMenu {
                             RGB::REDISH.scale_color(96)
                         };
 
-                        engine.spr_set(sprite.hspr, color);
-                        engine.spr_draw_additive_rect(0, x, y, sprite.rect);
+                        sprite.draw_additive(0, x, y, color);
                     }
 
                     self.draw_ammo_bar(state, weapon, x + self.ab_width / 2, y);
 
-                    y += weapon.active.unwrap().rect.height() + 5;
+                    y += weapon.active.unwrap().height() + 5;
                 }
 
                 x += width + 5;

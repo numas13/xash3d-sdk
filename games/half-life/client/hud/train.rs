@@ -48,13 +48,10 @@ impl HudItem for Train {
         }
 
         let Some(sprite) = self.sprite else { return };
-
-        engine.spr_set(sprite, state.color);
-
-        let (w, h) = engine.spr_size(sprite, 0);
+        let (w, h) = sprite.size(0);
         let screen = engine.screen_info();
         let x = screen.width() / 3 + w / 4;
         let y = screen.height() - h - state.num_height;
-        engine.spr_draw_additive(self.pos as c_int - 1, x, y);
+        sprite.draw_additive(self.pos as c_int - 1, x, y, state.color);
     }
 }

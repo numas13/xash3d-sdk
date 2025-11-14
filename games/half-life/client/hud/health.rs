@@ -144,12 +144,11 @@ impl Health {
         let color = self.get_pain_color().unwrap_or(state.color).scale_color(a);
 
         let screen_info = engine.screen_info();
-        let cross_width = cross.rect.width();
+        let cross_width = cross.width();
         let mut x = cross_width / 2;
         let mut y = screen_info.height() - state.num_height - state.num_height / 2;
 
-        engine.spr_set(cross.hspr, color);
-        engine.spr_draw_additive_rect(0, x, y, cross.rect);
+        cross.draw_additive(0, x, y, color);
 
         x = cross_width + state.num_width / 2;
         y += (state.num_height as f32 * 0.2) as c_int;
@@ -204,16 +203,16 @@ impl Health {
         let a = (fabsf(sinf(state.time * 2.0)) * 256.0) as u8;
         let color = state.color.scale_color(a);
 
-        let width = sprites[0].rect.width();
-        let height = sprites[0].rect.height();
+        let width = sprites[0].width();
+        let height = sprites[0].height();
 
         let screen = engine.screen_info();
         let x = width / 8;
         let mut y = screen.height() - height * 2;
 
         for i in &self.damages {
-            engine.spr_set(sprites[i.index].hspr, color);
-            engine.spr_draw_additive_rect(0, x, y, sprites[i.index].rect);
+            let sprite = sprites[i.index];
+            sprite.draw_additive(0, x, y, color);
             y -= height;
         }
 
@@ -277,10 +276,8 @@ impl Health {
         for i in 0..4 {
             if self.attack[i] > 0.4 {
                 let color = color.scale_color((a as f32 * fmaxf(self.attack[i], 0.5)) as u8);
-                engine.spr_set(hspr, color);
-
                 let frame = i as c_int;
-                let (w, h) = engine.spr_size(hspr, frame);
+                let (w, h) = hspr.size(frame);
                 let (x, y) = match i {
                     ATTACK_FRONT => (x - w / 2, y - h * 3),
                     ATTACK_RIGHT => (x + w * 2, y - h / 2),
@@ -288,7 +285,7 @@ impl Health {
                     ATTACK_LEFT => (x - w * 3, y - h / 2),
                     _ => unreachable!(),
                 };
-                engine.spr_draw_additive(frame, x, y);
+                hspr.draw_additive(frame, x, y, color);
                 self.attack[i] = fmaxf(0.0, self.attack[i] - fade);
             } else {
                 self.attack[i] = 0.0;

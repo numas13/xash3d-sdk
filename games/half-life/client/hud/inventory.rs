@@ -163,11 +163,11 @@ impl Weapon {
     fn max_sprite_height(&self) -> c_int {
         let mut gap = 0;
         if let Some(s) = self.inactive {
-            gap = cmp::max(gap, s.rect.height());
+            gap = cmp::max(gap, s.height());
         }
         for i in self.ammo.iter().filter_map(|i| i.as_ref()) {
             if let Some(s) = i.icon {
-                gap = cmp::max(gap, s.rect.height());
+                gap = cmp::max(gap, s.height());
             }
         }
         gap
@@ -412,7 +412,7 @@ impl Inventory {
     pub fn set_crosshair(&self) {
         if let Some(weapon) = self.current() {
             if let Some(s) = weapon.crosshair {
-                self.engine.set_crosshair(s.hspr, s.rect, RGB::WHITE);
+                self.engine.set_crosshair(s.handle(), s.rect(), RGB::WHITE);
             }
         }
     }
@@ -453,9 +453,9 @@ impl Inventory {
 
         let on_target = state > 1;
         if let (true, Some(s)) = (on_target, autoaim) {
-            engine.set_crosshair(s.hspr, s.rect, RGB::WHITE);
+            engine.set_crosshair(s.handle(), s.rect(), RGB::WHITE);
         } else if let Some(s) = crosshair {
-            engine.set_crosshair(s.hspr, s.rect, RGB::WHITE);
+            engine.set_crosshair(s.handle(), s.rect(), RGB::WHITE);
         } else {
             engine.unset_crosshair();
         }
