@@ -135,7 +135,7 @@ impl DeathNotice {
         let weapon = {
             let mut buf = CStrArray::<128>::new();
             write!(buf.cursor(), "d_{killed_with}").ok();
-            buf.to_str().ok().and_then(|s| state.find_sprite(s))
+            state.find_sprite(buf)
         };
 
         let display_time = state.time + cvar::hud_deathnotice_time.value();
@@ -198,7 +198,7 @@ impl DeathNotice {
 impl HudItem for DeathNotice {
     fn vid_init(&mut self, state: &mut State) {
         self.list.clear();
-        self.skull = state.find_sprite("d_skull");
+        self.skull = state.find_sprite(c"d_skull");
     }
 
     fn init_hud_data(&mut self, _: &mut State) {

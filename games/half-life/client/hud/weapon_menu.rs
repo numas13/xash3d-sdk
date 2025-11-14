@@ -254,8 +254,8 @@ impl WeaponMenu {
 
 impl HudItem for WeaponMenu {
     fn vid_init(&mut self, state: &mut State) {
-        self.bucket0 = state.find_sprite_index("bucket1");
-        self.selection = state.find_sprite("selection");
+        self.bucket0 = state.find_sprite_index(c"bucket1");
+        self.selection = state.find_sprite(c"selection");
 
         let engine = self.engine;
         let screen = engine.screen_info();

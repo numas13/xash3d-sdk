@@ -42,7 +42,7 @@ impl HudItem for Train {
 
         let engine = self.engine;
         if self.sprite.is_none() {
-            self.sprite = try_spr_load(state.res, |res| {
+            self.sprite = try_spr_load(state.sprite_resolution, |res| {
                 engine.spr_load(format_args!("sprites/{res}_train.spr"))
             });
         }

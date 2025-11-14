@@ -45,8 +45,8 @@ impl Battery {
 
 impl super::HudItem for Battery {
     fn vid_init(&mut self, state: &mut State) {
-        self.suit_empty = state.find_sprite("suit_empty");
-        self.suit_full = state.find_sprite("suit_full");
+        self.suit_empty = state.find_sprite(c"suit_empty");
+        self.suit_full = state.find_sprite(c"suit_full");
     }
 
     fn draw(&mut self, state: &mut State) {

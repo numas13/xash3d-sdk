@@ -1,9 +1,6 @@
 use core::ffi::c_int;
 
-use xash3d_client::{
-    prelude::*,
-    user_message::{UserMessageError, hook_user_message},
-};
+use xash3d_client::{prelude::*, user_message::hook_user_message};
 use xash3d_hl_shared::user_message;
 
 use crate::{
@@ -62,12 +59,8 @@ impl History {
 
         hook_user_message!(engine, ItemPickup, |_, msg| {
             let msg = msg.read::<user_message::ItemPickup>()?;
-            let name = msg
-                .classname
-                .to_str()
-                .map_err(|_| UserMessageError::InvalidUtf8String)?;
             let hud = hud();
-            let index = hud.state.find_sprite_index(name);
+            let index = hud.state.find_sprite_index(msg.classname);
             hud.items
                 .get_mut::<History>()
                 .add(&hud.state, ItemKind::Item(index));

@@ -23,16 +23,16 @@ use core::{
     fmt::Write,
 };
 
-use alloc::{boxed::Box, rc::Rc, string::String, vec::Vec};
+use alloc::{rc::Rc, string::String, vec::Vec};
 use bitflags::bitflags;
 use xash3d_client::{
     color::RGB,
     consts::MAX_PLAYERS,
-    csz::{CStrArray, CStrBox},
+    csz::{CStrArray, CStrBox, CStrThin},
     ffi::{client::client_data_s, common::vec3_t},
     macros::hook_command,
     prelude::*,
-    sprite::{Sprite, SpriteHandle},
+    sprite::{Sprite, SpriteHandle, Sprites},
     user_message::{hook_user_message, hook_user_message_flag},
 };
 use xash3d_hl_shared::{user_message, weapons::Weapons};
@@ -206,7 +206,7 @@ pub struct State {
     /// The difference between current and previous engine time.
     time_delta: f64,
     /// Default sprite resolution to load.
-    res: u32,
+    sprite_resolution: u32,
     /// Current hide flags for HUD items.
     hide: Hide,
     /// The position of player in the world.
@@ -215,10 +215,8 @@ pub struct State {
     pub angles: vec3_t,
     /// Player inventory.
     inv: Inventory,
-    /// HUD sprites names.
-    sprites_names: Vec<Box<str>>,
     /// HUD sprites.
-    sprites: Vec<Sprite>,
+    sprites: Sprites,
     /// HUD sprites for numbers.
     numbers: Vec<Sprite>,
     /// The width of number sprites.
@@ -243,13 +241,12 @@ impl State {
             time_old: 0.0,
             time: 1.0,
             time_delta: 0.0,
-            res: 0,
+            sprite_resolution: 0,
             hide: Hide::empty(),
             origin: vec3_t::ZERO,
             angles: vec3_t::ZERO,
             inv: Inventory::new(engine),
-            sprites_names: Vec::new(),
-            sprites: Vec::new(),
+            sprites: Sprites::new(engine),
             numbers: Vec::with_capacity(10),
             num_width: 0,
             num_height: 0,
@@ -267,26 +264,16 @@ impl State {
         let engine = self.engine;
 
         let screen_info = engine.screen_info();
-        self.res = screen_info.sprite_resolution();
+        self.sprite_resolution = screen_info.sprite_resolution();
 
-        let sprite_list = engine.spr_get_list("sprites/hud.txt");
-        let sprite_list = sprite_list.as_slice();
-        self.sprites_names.clear();
-        self.sprites.clear();
-        for i in sprite_list.iter().filter(|i| i.iRes as u32 == self.res) {
-            let Some(hspr) = engine.spr_load(format_args!("sprites/{}.spr", i.sprite())) else {
-                continue;
-            };
-            self.sprites_names.push(i.name().to_str().unwrap().into());
-            let sprite = Sprite::new(hspr, i.rc);
-            self.sprites.push(sprite);
-        }
+        self.sprites
+            .reload_from_file(self.sprite_resolution, c"sprites/hud.txt");
 
         self.numbers.clear();
         for i in 0..10 {
             let mut buf = CStrArray::<64>::new();
             write!(buf.cursor(), "number_{i}").ok();
-            let sprite = self.find_sprite(buf.to_str().unwrap()).unwrap();
+            let sprite = self.find_sprite(buf).unwrap();
             self.numbers.push(sprite);
         }
         self.num_width = self.numbers[0].width();
@@ -309,14 +296,12 @@ impl State {
         self.inv.think();
     }
 
-    fn find_sprite_index(&self, name: &str) -> Option<usize> {
-        self.sprites_names.iter().position(|i| i.as_ref() == name)
+    fn find_sprite_index(&self, name: impl AsRef<CStrThin>) -> Option<usize> {
+        self.sprites.find_index(name)
     }
 
-    fn find_sprite(&self, name: &str) -> Option<Sprite> {
-        self.find_sprite_index(name)
-            .map(|i| &self.sprites[i])
-            .copied()
+    fn find_sprite(&self, name: impl AsRef<CStrThin>) -> Option<Sprite> {
+        self.sprites.find(name).copied()
     }
 
     pub fn is_hidden(&self, value: Hide) -> bool {
@@ -701,7 +686,7 @@ impl Hud {
 
         let engine = self.engine;
         if self.logo_hspr.is_none() {
-            self.logo_hspr = try_spr_load(self.state.res, |res| {
+            self.logo_hspr = try_spr_load(self.state.sprite_resolution, |res| {
                 engine.spr_load(format_args!("sprites/{res}_logo.spr"))
             });
         }

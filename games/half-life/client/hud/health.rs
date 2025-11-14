@@ -297,11 +297,11 @@ impl Health {
 impl super::HudItem for Health {
     fn vid_init(&mut self, state: &mut State) {
         let engine = self.engine;
-        self.cross = state.find_sprite("cross");
-        self.pain_sprite = try_spr_load(state.res, |res| {
+        self.cross = state.find_sprite(c"cross");
+        self.pain_sprite = try_spr_load(state.sprite_resolution, |res| {
             engine.spr_load(format_args!("sprites/{res}_pain.spr"))
         });
-        self.dmg_spr_index = state.find_sprite_index("dmg_bio").map(|i| i + 1);
+        self.dmg_spr_index = state.find_sprite_index(c"dmg_bio").map(|i| i + 1);
     }
 
     fn reset(&mut self) {

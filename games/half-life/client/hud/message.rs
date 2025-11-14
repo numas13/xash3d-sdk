@@ -374,8 +374,8 @@ impl HudItem for HudMessage {
     }
 
     fn vid_init(&mut self, state: &mut State) {
-        self.title_half = state.find_sprite("title_half");
-        self.title_life = state.find_sprite("title_life");
+        self.title_half = state.find_sprite(c"title_half");
+        self.title_life = state.find_sprite(c"title_life");
     }
 
     fn draw(&mut self, state: &mut State) {

@@ -60,9 +60,9 @@ impl Flashlight {
 
 impl super::HudItem for Flashlight {
     fn vid_init(&mut self, state: &mut State) {
-        self.flash_empty = state.find_sprite("flash_empty");
-        self.flash_full = state.find_sprite("flash_full");
-        self.flash_beam = state.find_sprite("flash_beam");
+        self.flash_empty = state.find_sprite(c"flash_empty");
+        self.flash_full = state.find_sprite(c"flash_full");
+        self.flash_beam = state.find_sprite(c"flash_beam");
     }
 
     fn reset(&mut self) {

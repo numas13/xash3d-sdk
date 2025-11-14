@@ -1,5 +1,6 @@
 use core::{ffi::c_int, num::NonZeroI32, ops::Deref, slice};
 
+use alloc::vec::Vec;
 use xash3d_shared::{
     color::RGB,
     csz::CStrThin,
@@ -7,6 +8,7 @@ use xash3d_shared::{
         client::{HSPRITE, client_sprite_s},
         common::wrect_s,
     },
+    str::{StringId, Strings},
 };
 
 use crate::prelude::*;
@@ -180,5 +182,107 @@ impl Deref for SpriteList {
 
     fn deref(&self) -> &Self::Target {
         self.as_slice()
+    }
+}
+
+#[derive(Copy, Clone)]
+pub struct NamedSprite {
+    name: StringId,
+    sprite: Sprite,
+}
+
+impl Deref for NamedSprite {
+    type Target = Sprite;
+
+    fn deref(&self) -> &Self::Target {
+        &self.sprite
+    }
+}
+
+pub struct Sprites {
+    engine: ClientEngineRef,
+    strings: Strings,
+    sprites: Vec<NamedSprite>,
+}
+
+impl Sprites {
+    pub fn new(engine: ClientEngineRef) -> Sprites {
+        Self {
+            engine,
+            strings: Strings::new(),
+            sprites: Vec::new(),
+        }
+    }
+
+    pub fn load_from_list(engine: &ClientEngine, resolution: u32, list: &SpriteList) -> Self {
+        let mut sprites = Self::new(engine.engine_ref());
+        sprites.reload_from_list(resolution, list);
+        sprites
+    }
+
+    pub fn load_from_file(
+        engine: &ClientEngine,
+        resolution: u32,
+        path: impl AsRef<CStrThin>,
+    ) -> Self {
+        let mut sprites = Self::new(engine.engine_ref());
+        sprites.reload_from_file(resolution, path);
+        sprites
+    }
+
+    pub fn reload_from_list(&mut self, resolution: u32, list: &SpriteList) {
+        self.strings.clear();
+        self.sprites.clear();
+        let engine = &*self.engine;
+        let sprites = list
+            .as_slice()
+            .iter()
+            .filter(|info| info.iRes as u32 == resolution)
+            .filter_map(|info| {
+                let handle = engine.spr_load(format_args!("sprites/{}.spr", info.sprite()))?;
+                Some((info, handle))
+            })
+            .map(|(info, handle)| NamedSprite {
+                name: self.strings.from_thin(info.name()),
+                sprite: Sprite::new(handle, info.rc),
+            });
+        self.sprites.extend(sprites);
+        self.strings.shrink_to_fit();
+        self.sprites.shrink_to_fit();
+    }
+
+    pub fn reload_from_file(&mut self, resolution: u32, path: impl AsRef<CStrThin>) {
+        let list = self.engine.spr_get_list(path.as_ref());
+        self.reload_from_list(resolution, &list);
+    }
+
+    fn name_for(&self, sprite: &NamedSprite) -> &CStrThin {
+        self.strings.get(sprite.name)
+    }
+
+    fn find_index_impl(&self, name: &CStrThin) -> Option<usize> {
+        self.iter().position(|i| self.name_for(i) == name)
+    }
+
+    pub fn find_index(&self, name: impl AsRef<CStrThin>) -> Option<usize> {
+        self.find_index_impl(name.as_ref())
+    }
+
+    fn find_impl(&self, name: &CStrThin) -> Option<&Sprite> {
+        self.iter()
+            .find(|i| self.name_for(i) == name)
+            .map(|i| &i.sprite)
+    }
+
+    pub fn find(&self, name: impl AsRef<CStrThin>) -> Option<&Sprite> {
+        self.find_impl(name.as_ref())
+    }
+}
+
+impl Deref for Sprites {
+    type Target = [NamedSprite];
+
+    fn deref(&self) -> &Self::Target {
+        &self.sprites
     }
 }
