@@ -24,12 +24,10 @@ pub use hook_command;
 macro_rules! hook_command_key {
     ($engine:expr, $name:expr, $key:expr $(, down $down:block)? $(, up $up:block)?) => {
         $crate::macros::hook_command!($engine, concat!("+", $name), |_| {
-            use $crate::input::KeyButtonExt;
             $key.key_down();
             $($down)?
         });
         $crate::macros::hook_command!($engine, concat!("-", $name), |_| {
-            use $crate::input::KeyButtonExt;
             $key.key_up();
             $($up)?
         });

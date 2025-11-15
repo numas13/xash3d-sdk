@@ -1,1 +1,1 @@
-pub use crate::{entity::EntityStateExt, input::KButtonExt, math::ToAngleVectors};
+pub use crate::{entity::EntityStateExt, math::ToAngleVectors};

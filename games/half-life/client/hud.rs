@@ -38,7 +38,7 @@ use xash3d_client::{
 use xash3d_hl_shared::{user_message, weapons::Weapons};
 
 use crate::{
-    export::{hud, input, input_mut},
+    export::{hud, input},
     hud::{
         health::Health, inventory::Inventory, menu::Menu, scoreboard::ScoreBoard,
         text_message::TextMessage, weapon_menu::WeaponMenu,
@@ -684,7 +684,7 @@ impl Hud {
 
         let show_score = self.show_score();
         self.state
-            .set_key_bits(input_mut().button_bits(false, show_score));
+            .set_key_bits(input().button_bits(false, show_score));
 
         self.state
             .inventory_mut()
@@ -694,7 +694,7 @@ impl Hud {
 
         data.fov = self.fov() as f32;
 
-        input_mut().reset_button_bits(self.state.key_bits(), show_score);
+        input().reset_button_bits(self.state.key_bits(), show_score);
 
         // data has been changed
         true

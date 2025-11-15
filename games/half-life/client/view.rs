@@ -10,9 +10,8 @@ use xash3d_client::{
 };
 
 use crate::{
-    export::{camera, view_mut},
+    export::{camera, input, view_mut},
     helpers::*,
-    input,
 };
 
 mod cvar {
@@ -135,7 +134,7 @@ impl PitchDrift {
         }
 
         if !self.drift {
-            let state = KeyState::from_bits_retain(unsafe { input::in_mlook.state });
+            let state = input().in_mlook_state();
             if cvar::v_centermove.value() > 0.0 && !state.contains(KeyState::DOWN) {
                 if fabsf(params.cmd().forwardmove) < cvar::cl_forwardspeed.value() {
                     self.driftmove = 0.0;

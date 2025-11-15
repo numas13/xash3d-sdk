@@ -59,7 +59,7 @@ macro_rules! impl_global_getter {
 
 impl_global_getter!(Events, events, events_mut);
 impl_global_getter!(Entities, entities, entities_mut);
-impl_global_getter!(Input, input, input_mut);
+impl_global_getter!(Input, input);
 impl_global_getter!(Camera, camera, camera_mut);
 impl_global_getter!(View, view, view_mut);
 impl_global_getter!(Hud, hud);
@@ -68,7 +68,7 @@ impl_global_getter!(StudioRenderer, renderer, renderer_mut);
 
 impl Drop for Dll {
     fn drop(&mut self) {
-        input_mut().shutdown();
+        self.input.borrow_mut().shutdown();
     }
 }
 
@@ -96,7 +96,7 @@ impl ClientDll for Dll {
     }
 
     fn update_client_data(&self, data: &mut client_data_s, time: f32) -> bool {
-        self.input.borrow_mut().in_commands();
+        self.input.borrow().in_commands();
         self.hud.borrow_mut().update_client_data(data, time)
     }
 

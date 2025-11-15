@@ -1,21 +1,70 @@
+use core::cell::UnsafeCell;
+
 use xash3d_shared::ffi::common::kbutton_t;
 
 use crate::prelude::*;
 
 pub use xash3d_shared::input::*;
 
-// TODO: add safe wrapper for kbutton_t and remove this trait
-pub trait KeyButtonExt {
-    fn key_down(&mut self);
-    fn key_up(&mut self);
-    fn key_state(&mut self) -> f32;
+pub struct KeyButton {
+    engine: ClientEngineRef,
+    raw: UnsafeCell<kbutton_t>,
 }
 
-impl KeyButtonExt for kbutton_t {
-    fn key_down(&mut self) {
-        // TODO: remove me
-        let engine = unsafe { ClientEngineRef::new() };
-        let s = engine.cmd_argv(1);
+impl KeyButton {
+    pub fn new(engine: ClientEngineRef) -> Self {
+        Self {
+            engine,
+            raw: UnsafeCell::new(kbutton_t {
+                down: [0; 2],
+                state: 0,
+            }),
+        }
+    }
+
+    pub fn as_ptr(&self) -> *mut kbutton_t {
+        self.raw.get()
+    }
+
+    pub fn state(&self) -> KeyState {
+        let state = unsafe { (*self.raw.get()).state };
+        KeyState::from_bits_retain(state)
+    }
+
+    pub fn set_state(&self, state: KeyState) {
+        unsafe {
+            (*self.raw.get()).state = state.bits();
+        }
+    }
+
+    pub fn with_state(&self, map: impl FnOnce(KeyState) -> KeyState) {
+        self.set_state(map(self.state()));
+    }
+
+    pub fn is_down(&self) -> bool {
+        self.state().contains(KeyState::DOWN)
+    }
+
+    pub fn is_up(&self) -> bool {
+        !self.is_down()
+    }
+
+    pub fn is_impulse_down(&self) -> bool {
+        self.state().intersects(KeyState::IMPULSE_DOWN)
+    }
+
+    pub fn is_impulse_up(&self) -> bool {
+        self.state().intersects(KeyState::IMPULSE_UP)
+    }
+
+    pub fn clear(&self) {
+        unsafe {
+            (*self.raw.get()).down.fill(0);
+        }
+    }
+
+    pub fn key_down(&self) {
+        let s = self.engine.cmd_argv(1);
         let k = if !s.is_empty() {
             s.to_str().ok().and_then(|s| s.parse().ok()).unwrap_or(0)
         } else {
@@ -23,41 +72,41 @@ impl KeyButtonExt for kbutton_t {
             -1
         };
 
-        if !self.down.contains(&k) {
-            if let Some(i) = self.down.iter_mut().find(|i| **i == 0) {
+        let down = unsafe { &mut (*self.raw.get()).down };
+        if !down.contains(&k) {
+            if let Some(i) = down.iter_mut().find(|i| **i == 0) {
                 *i = k;
 
                 if !self.is_down() {
-                    self.state_mut()
-                        .insert(KeyState::DOWN | KeyState::IMPULSE_DOWN);
+                    self.with_state(|state| state | KeyState::DOWN | KeyState::IMPULSE_DOWN);
                 }
             }
         }
     }
 
-    fn key_up(&mut self) {
-        // TODO: remove me
-        let engine = unsafe { ClientEngineRef::new() };
-        let s = engine.cmd_argv(1);
+    pub fn key_up(&self) {
+        let s = self.engine.cmd_argv(1);
         if !s.is_empty() {
             let k = s.to_str().ok().and_then(|s| s.parse().ok()).unwrap_or(0);
 
-            if let Some(i) = self.down.iter_mut().find(|i| **i == k) {
+            let down = unsafe { &mut (*self.raw.get()).down };
+            if let Some(i) = down.iter_mut().find(|i| **i == k) {
                 *i = 0;
 
-                if self.is_down() && !self.down.iter().any(|i| *i != 0) {
-                    self.state_mut().remove(KeyState::DOWN);
-                    self.state_mut().insert(KeyState::IMPULSE_UP);
+                if self.is_down() && !down.iter().any(|i| *i != 0) {
+                    self.with_state(|state| {
+                        state.difference(KeyState::DOWN).union(KeyState::IMPULSE_UP)
+                    });
                 }
             }
         } else {
             // typed manually at the console, assume for unsticking, so clear all
-            self.down.fill(0);
-            self.state_mut().insert(KeyState::IMPULSE_UP);
+            self.clear();
+            self.with_state(|state| state | KeyState::IMPULSE_UP);
         }
     }
 
-    fn key_state(&mut self) -> f32 {
+    pub fn key_state(&self) -> f32 {
         let mut val = 0.0;
         let impulsedown = self.is_impulse_down();
         let impulseup = self.is_impulse_up();
@@ -89,7 +138,7 @@ impl KeyButtonExt for kbutton_t {
         }
 
         // clear impulses
-        *self.state_mut() &= KeyState::DOWN;
+        self.with_state(|state| state & KeyState::DOWN);
 
         val
     }

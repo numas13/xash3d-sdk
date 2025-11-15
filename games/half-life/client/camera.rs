@@ -2,15 +2,15 @@ use core::{cmp::Ordering, ffi::c_int};
 
 use xash3d_client::{
     consts::{PITCH, ROLL, YAW},
-    ffi::common::{kbutton_t, vec3_t},
-    input::KeyButtonExt,
+    ffi::common::vec3_t,
+    input::KeyButton,
     macros::{hook_command, hook_command_key},
     math::fabsf,
     prelude::*,
 };
 
 use crate::{
-    export::{camera_mut, input_mut},
+    export::{camera_mut, input},
     helpers,
 };
 
@@ -54,12 +54,12 @@ pub struct Camera {
     cam_distancemove: bool,
     cam_ofs: vec3_t,
 
-    cam_pitchup: kbutton_t,
-    cam_pitchdown: kbutton_t,
-    cam_yawleft: kbutton_t,
-    cam_yawright: kbutton_t,
-    cam_in: kbutton_t,
-    cam_out: kbutton_t,
+    cam_pitchup: KeyButton,
+    cam_pitchdown: KeyButton,
+    cam_yawleft: KeyButton,
+    cam_yawright: KeyButton,
+    cam_in: KeyButton,
+    cam_out: KeyButton,
 }
 
 impl Camera {
@@ -88,12 +88,12 @@ impl Camera {
             cam_distancemove: false,
             cam_ofs: vec3_t::ZERO,
 
-            cam_pitchup: kbutton_t::new(),
-            cam_pitchdown: kbutton_t::new(),
-            cam_yawleft: kbutton_t::new(),
-            cam_yawright: kbutton_t::new(),
-            cam_in: kbutton_t::new(),
-            cam_out: kbutton_t::new(),
+            cam_pitchup: KeyButton::new(engine),
+            cam_pitchdown: KeyButton::new(engine),
+            cam_yawleft: KeyButton::new(engine),
+            cam_yawright: KeyButton::new(engine),
+            cam_in: KeyButton::new(engine),
+            cam_out: KeyButton::new(engine),
         }
     }
 
@@ -158,13 +158,13 @@ impl Camera {
 
         if !self.cam_mousemove {
             self.cam_mousemove = false;
-            input_mut().mouse_in_use(true);
+            input().mouse_in_use(true);
         }
     }
 
     fn end_mouse_move(&mut self) {
         self.cam_mousemove = false;
-        input_mut().mouse_in_use(false);
+        input().mouse_in_use(false);
     }
 
     fn start_distance(&mut self) {
@@ -176,14 +176,14 @@ impl Camera {
         if !self.cam_distancemove {
             self.cam_distancemove = true;
             self.cam_mousemove = true;
-            input_mut().mouse_in_use(true);
+            input().mouse_in_use(true);
         }
     }
 
     fn end_distance(&mut self) {
         self.cam_distancemove = false;
         self.cam_mousemove = false;
-        input_mut().mouse_in_use(false);
+        input().mouse_in_use(false);
     }
 
     pub fn think(&mut self) {
