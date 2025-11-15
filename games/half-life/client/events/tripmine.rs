@@ -4,9 +4,9 @@ use xash3d_client::{consts::PM_NORMAL, engine::event::EventArgs, prelude::*};
 use xash3d_hl_shared::weapons::tripmine::TripmineAnimation;
 
 impl super::Events {
-    pub(super) fn fire_tripmine(&mut self, args: &mut EventArgs) {
+    pub(super) fn fire_tripmine(&self, args: &mut EventArgs) {
         let idx = args.entindex();
-        if !self.utils.is_local(idx) {
+        if !self.is_local(idx) {
             return;
         }
 

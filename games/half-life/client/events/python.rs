@@ -9,7 +9,7 @@ use crate::export::view_mut;
 use super::Bullet;
 
 impl super::Events {
-    pub(super) fn fire_python(&mut self, args: &mut EventArgs) {
+    pub(super) fn fire_python(&self, args: &mut EventArgs) {
         let idx = args.entindex();
         let origin = args.origin();
         let angles = args.angles();
@@ -17,7 +17,7 @@ impl super::Events {
         let engine = self.engine;
         let ev = engine.event_api();
 
-        if self.utils.is_local(idx) {
+        if self.is_local(idx) {
             let body = if engine.is_singleplayer() { 0 } else { 1 };
             ev.weapon_animation(PythonAnimation::Fire1 as c_int, body);
             view_mut().punch_axis(PITCH, -10.0);
@@ -34,12 +34,11 @@ impl super::Events {
             .volume(engine.random_float(0.8, 0.9))
             .play(sample);
 
-        let src = self.utils.get_gun_position(args, origin);
+        let src = self.get_gun_position(args, origin);
         let aiming = av.forward;
         let bullet = Bullet::Player357;
         let spread = (args.fparam1(), args.fparam2());
 
-        self.utils
-            .fire_bullets(idx, av, 1, src, aiming, 8192.0, bullet, None, spread);
+        self.fire_bullets(idx, av, 1, src, aiming, 8192.0, bullet, None, spread);
     }
 }

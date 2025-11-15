@@ -12,7 +12,10 @@ mod snark;
 mod train;
 mod tripmine;
 
-use core::ffi::{CStr, c_int};
+use core::{
+    cell::{Cell, RefCell},
+    ffi::{CStr, c_int},
+};
 
 use res::valve::{self, sound};
 use xash3d_client::{
@@ -34,10 +37,7 @@ use xash3d_client::{
 };
 use xash3d_player_move as pm;
 
-use crate::export::events_mut;
-
-const DEFAULT_VIEWHEIGHT: f32 = 28.0;
-const VEC_DUCK_VIEW: f32 = 12.0;
+use crate::export::events;
 
 #[allow(dead_code)]
 #[derive(Copy, Clone, PartialEq, Eq)]
@@ -55,11 +55,15 @@ enum Bullet {
     Monster12mm,
 }
 
+struct ShellInfo {
+    origin: vec3_t,
+    velocity: vec3_t,
+}
+
 pub struct Events {
     engine: ClientEngineRef,
-    swing: u32,
-    tracer_count: [c_int; MAX_PLAYERS],
-    utils: Utils,
+    swing: Cell<u32>,
+    tracer_count: RefCell<[i32; MAX_PLAYERS]>,
 }
 
 impl Events {
@@ -70,7 +74,7 @@ impl Events {
         macro_rules! hook {
             ($engine:expr; $($event:expr => $func:ident),* $(,)?) => (
                 $(hook_event!($engine, $event, |args| {
-                    events_mut().$func(args)
+                    events().$func(args)
                 });)*
             );
         }
@@ -100,23 +104,11 @@ impl Events {
 
         Self {
             engine,
-            swing: 0,
-            tracer_count: [0; MAX_PLAYERS],
-            utils: Utils { engine },
+            swing: Cell::default(),
+            tracer_count: RefCell::new([0; MAX_PLAYERS]),
         }
     }
-}
 
-struct ShellInfo {
-    origin: vec3_t,
-    velocity: vec3_t,
-}
-
-struct Utils {
-    engine: ClientEngineRef,
-}
-
-impl Utils {
     fn is_player(&self, idx: EntityIndex) -> bool {
         let idx = idx.to_i32();
         idx >= 1 && idx <= self.engine.get_max_clients()
@@ -138,10 +130,10 @@ impl Utils {
             if self.is_local(idx) {
                 return self.engine.event_api().local_player_view_height();
             } else if args.ducking() {
-                return vec3_t::new(0.0, 0.0, VEC_DUCK_VIEW);
+                return vec3_t::new(0.0, 0.0, pm::DUCK_VIEW_OFFSET.z);
             }
         }
-        vec3_t::new(0.0, 0.0, DEFAULT_VIEWHEIGHT)
+        vec3_t::new(0.0, 0.0, pm::VIEW_OFFSET.z)
     }
 
     #[allow(clippy::too_many_arguments)]

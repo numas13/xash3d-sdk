@@ -13,7 +13,7 @@ use crate::export::view_mut;
 use super::Bullet;
 
 impl super::Events {
-    pub(super) fn fire_glock1(&mut self, args: &mut EventArgs) {
+    pub(super) fn fire_glock1(&self, args: &mut EventArgs) {
         let idx = args.entindex();
         let origin = args.origin();
         let angles = args.angles();
@@ -23,8 +23,8 @@ impl super::Events {
         let ev = engine.event_api();
         let shell = ev.find_model_index(models::SHELL);
 
-        if self.utils.is_local(idx) {
-            self.utils.muzzle_flash();
+        if self.is_local(idx) {
+            self.muzzle_flash();
             let seq = if args.bparam1() {
                 GlockAnimation::ShootEmpty
             } else {
@@ -34,12 +34,9 @@ impl super::Events {
             view_mut().punch_axis(PITCH, -2.0);
         }
 
-        let si = self
-            .utils
-            .get_default_shell_info(args, origin, velocity, av, 20.0, -12.0, 4.0);
+        let si = self.get_default_shell_info(args, origin, velocity, av, 20.0, -12.0, 4.0);
         let soundtype = TE_BOUNCE_SHELL as c_int;
-        self.utils
-            .eject_brass(si.origin, si.velocity, angles[YAW], shell, soundtype);
+        self.eject_brass(si.origin, si.velocity, angles[YAW], shell, soundtype);
 
         ev.build_sound_at(origin)
             .entity(idx)
@@ -48,15 +45,14 @@ impl super::Events {
             .pitch(98 + engine.random_int(0, 3))
             .play(sound::weapons::PL_GUN3);
 
-        let src = self.utils.get_gun_position(args, origin);
+        let src = self.get_gun_position(args, origin);
         let aiming = av.forward;
         let bullet = Bullet::Player9mm;
         let spread = (args.fparam1(), args.fparam2());
-        self.utils
-            .fire_bullets(idx, av, 1, src, aiming, 8192.0, bullet, None, spread);
+        self.fire_bullets(idx, av, 1, src, aiming, 8192.0, bullet, None, spread);
     }
 
-    pub(super) fn fire_glock2(&mut self, args: &mut EventArgs) {
+    pub(super) fn fire_glock2(&self, args: &mut EventArgs) {
         let idx = args.entindex();
         let origin = args.origin();
         let angles = args.angles();
@@ -66,18 +62,15 @@ impl super::Events {
         let ev = engine.event_api();
         let shell = ev.find_model_index(models::SHELL);
 
-        if self.utils.is_local(idx) {
-            self.utils.muzzle_flash();
+        if self.is_local(idx) {
+            self.muzzle_flash();
             ev.weapon_animation(GlockAnimation::Shoot as c_int, 2);
             view_mut().punch_axis(PITCH, -2.0);
         }
 
-        let si = self
-            .utils
-            .get_default_shell_info(args, origin, velocity, av, 20.0, -12.0, 4.0);
+        let si = self.get_default_shell_info(args, origin, velocity, av, 20.0, -12.0, 4.0);
         let soundtype = TE_BOUNCE_SHELL as c_int;
-        self.utils
-            .eject_brass(si.origin, si.velocity, angles[YAW], shell, soundtype);
+        self.eject_brass(si.origin, si.velocity, angles[YAW], shell, soundtype);
 
         ev.build_sound_at(origin)
             .entity(idx)
@@ -86,11 +79,10 @@ impl super::Events {
             .pitch(98 + engine.random_int(0, 3))
             .play(sound::weapons::PL_GUN3);
 
-        let src = self.utils.get_gun_position(args, origin);
+        let src = self.get_gun_position(args, origin);
         let aiming = av.forward;
         let bullet = Bullet::Player9mm;
         let spread = (args.fparam1(), args.fparam2());
-        self.utils
-            .fire_bullets(idx, av, 1, src, aiming, 8192.0, bullet, None, spread);
+        self.fire_bullets(idx, av, 1, src, aiming, 8192.0, bullet, None, spread);
     }
 }

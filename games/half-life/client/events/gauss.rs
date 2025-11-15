@@ -24,7 +24,7 @@ impl super::Events {
         ev.stop_sound(ent, Channel::Weapon, sound::ambience::PULSEMACHINE);
     }
 
-    pub(super) fn fire_gauss(&mut self, args: &mut EventArgs) {
+    pub(super) fn fire_gauss(&self, args: &mut EventArgs) {
         let idx = args.entindex();
         if args.bparam2() {
             self.stop_previous_gauss(idx);
@@ -44,7 +44,7 @@ impl super::Events {
         let glow = ev.find_model_index(sprites::HOTGLOW);
         let balls = glow;
 
-        if self.utils.is_local(idx) {
+        if self.is_local(idx) {
             ev.weapon_animation(GaussAnimation::Fire2 as c_int, 2);
             view_mut().punch_axis(PITCH, -2.0);
 
@@ -75,7 +75,7 @@ impl super::Events {
 
         let width = if primary_fire { 1.0 } else { 2.5 };
 
-        let mut src = self.utils.get_gun_position(args, origin);
+        let mut src = self.get_gun_position(args, origin);
         let mut dest = src + forward * 8192.0;
         let mut first_beam = true;
         let mut has_punched = false;
@@ -97,8 +97,8 @@ impl super::Events {
 
             if first_beam {
                 first_beam = false;
-                if self.utils.is_local(idx) {
-                    self.utils.muzzle_flash();
+                if self.is_local(idx) {
+                    self.muzzle_flash();
                 }
 
                 efx.beam_ent_point(
@@ -172,7 +172,7 @@ impl super::Events {
                     let n = if n == 0.0 { 0.1 } else { n };
                     damage *= 1.0 - n;
                 } else {
-                    self.utils.decal_gunshot(&tr, Bullet::Monster12mm);
+                    self.decal_gunshot(&tr, Bullet::Monster12mm);
 
                     efx.temp_sprite(
                         tr.endpos,
@@ -223,7 +223,7 @@ impl super::Events {
                                     100.0,
                                 );
 
-                                self.utils.decal_gunshot(&beam_tr, Bullet::Monster12mm);
+                                self.decal_gunshot(&beam_tr, Bullet::Monster12mm);
 
                                 efx.temp_sprite(
                                     beam_tr.endpos,
@@ -281,7 +281,7 @@ impl super::Events {
         }
     }
 
-    pub(super) fn spin_gauss(&mut self, args: &mut EventArgs) {
+    pub(super) fn spin_gauss(&self, args: &mut EventArgs) {
         self.engine
             .event_api()
             .build_sound_at(args.origin())

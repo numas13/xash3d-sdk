@@ -5,9 +5,9 @@ use xash3d_hl_shared::weapons::snark::SqueakAnimation;
 use xash3d_player_move::{DUCK_HULL_MIN, HULL_MIN};
 
 impl super::Events {
-    pub(super) fn fire_snark(&mut self, args: &mut EventArgs) {
+    pub(super) fn fire_snark(&self, args: &mut EventArgs) {
         let idx = args.entindex();
-        if !self.utils.is_local(idx) {
+        if !self.is_local(idx) {
             return;
         }
 

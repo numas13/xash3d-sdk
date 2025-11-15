@@ -11,7 +11,7 @@ const EGON_SOUND_RUN: &CStr = sound::weapons::EGON_RUN3;
 const EGON_SOUND_STARTUP: &CStr = sound::weapons::EGON_WINDUP2;
 
 impl super::Events {
-    pub(super) fn fire_egon(&mut self, args: &mut EventArgs) {
+    pub(super) fn fire_egon(&self, args: &mut EventArgs) {
         let engine = self.engine;
         let ev = engine.event_api();
 
@@ -54,7 +54,7 @@ impl super::Events {
             }
         }
 
-        if self.utils.is_local(idx) {
+        if self.is_local(idx) {
             let seq = match engine.random_int(0, 3) {
                 0 => EgonAnimation::Fire1,
                 1 => EgonAnimation::Fire2,
@@ -65,7 +65,7 @@ impl super::Events {
         }
     }
 
-    pub(super) fn stop_egon(&mut self, args: &mut EventArgs) {
+    pub(super) fn stop_egon(&self, args: &mut EventArgs) {
         let engine = self.engine;
         let ev = engine.event_api();
 

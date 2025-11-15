@@ -14,7 +14,7 @@ use xash3d_hl_shared::weapons::crossbow::CrossbowAnimation;
 use crate::export::view_mut;
 
 impl super::Events {
-    pub(super) fn fire_crossbow(&mut self, args: &mut EventArgs) {
+    pub(super) fn fire_crossbow(&self, args: &mut EventArgs) {
         let idx = args.entindex();
         let origin = args.origin();
 
@@ -34,7 +34,7 @@ impl super::Events {
             .pitch(93 + engine.random_int(0, 0xf))
             .play(sound::weapons::XBOW_RELOAD1);
 
-        if self.utils.is_local(idx) {
+        if self.is_local(idx) {
             if args.iparam1() != 0 {
                 ev.weapon_animation(CrossbowAnimation::Fire1 as c_int, 1);
             } else if args.iparam2() != 0 {
@@ -45,7 +45,7 @@ impl super::Events {
         }
     }
 
-    pub(super) fn fire_crossbow2(&mut self, args: &mut EventArgs) {
+    pub(super) fn fire_crossbow2(&self, args: &mut EventArgs) {
         let idx = args.entindex();
         let origin = args.origin();
         let forward = args.angles().angle_vectors().forward();
@@ -53,7 +53,7 @@ impl super::Events {
         let ev = engine.event_api();
         let efx = engine.efx_api();
 
-        let src = self.utils.get_gun_position(args, origin);
+        let src = self.get_gun_position(args, origin);
         let end = src + forward * 8192.0;
 
         ev.build_sound_at(origin)
@@ -69,7 +69,7 @@ impl super::Events {
             .pitch(93 + engine.random_int(0, 0xf))
             .play(sound::weapons::XBOW_RELOAD1);
 
-        if self.utils.is_local(idx) {
+        if self.is_local(idx) {
             if args.iparam1() != 0 {
                 ev.weapon_animation(CrossbowAnimation::Fire1 as c_int, 1);
             } else if args.iparam2() != 0 {

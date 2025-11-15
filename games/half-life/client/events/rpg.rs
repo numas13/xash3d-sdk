@@ -7,7 +7,7 @@ use xash3d_hl_shared::weapons::rpg::RpgAnimation;
 use crate::export::view_mut;
 
 impl super::Events {
-    pub(super) fn fire_rpg(&mut self, args: &mut EventArgs) {
+    pub(super) fn fire_rpg(&self, args: &mut EventArgs) {
         let idx = args.entindex();
         let origin = args.origin();
 
@@ -26,7 +26,7 @@ impl super::Events {
             .volume(0.7)
             .play(sound::weapons::GLAUNCHER);
 
-        if self.utils.is_local(idx) {
+        if self.is_local(idx) {
             ev.weapon_animation(RpgAnimation::Fire2 as c_int, 1);
 
             view_mut().punch_axis(PITCH, -5.0);

@@ -7,7 +7,7 @@ use xash3d_hl_shared::weapons::hgun::HgunAnimation;
 use crate::export::view_mut;
 
 impl super::Events {
-    pub(super) fn fire_hornet_gun(&mut self, args: &mut EventArgs) {
+    pub(super) fn fire_hornet_gun(&self, args: &mut EventArgs) {
         let engine = self.engine;
         let ev = engine.event_api();
 
@@ -15,7 +15,7 @@ impl super::Events {
         let origin = args.origin();
         let _fire_mode = args.iparam1();
 
-        if self.utils.is_local(idx) {
+        if self.is_local(idx) {
             ev.weapon_animation(HgunAnimation::Shoot as c_int, 1);
             view_mut().punch_axis(PITCH, engine.random_int(0, 2) as f32);
         }

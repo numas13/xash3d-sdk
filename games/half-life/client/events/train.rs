@@ -4,7 +4,7 @@ use res::valve::sound;
 use xash3d_client::{engine::event::EventArgs, sound::Channel};
 
 impl super::Events {
-    pub(super) fn train_pitch_adjust(&mut self, args: &mut EventArgs) {
+    pub(super) fn train_pitch_adjust(&self, args: &mut EventArgs) {
         let idx = args.entindex();
         let origin = args.origin();
         let us_params = args.iparam1() as u16;
