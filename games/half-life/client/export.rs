@@ -63,7 +63,7 @@ impl_global_getter!(Input, input);
 impl_global_getter!(Camera, camera, camera_mut);
 impl_global_getter!(View, view, view_mut);
 impl_global_getter!(Hud, hud);
-impl_global_getter!(Weapons, weapons, weapons_mut);
+impl_global_getter!(Weapons, weapons);
 impl_global_getter!(StudioRenderer, renderer);
 
 impl Drop for Dll {
