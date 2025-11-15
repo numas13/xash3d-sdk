@@ -1,5 +1,5 @@
 use core::{
-    cell::{Ref, RefCell, RefMut},
+    cell::RefCell,
     ffi::{c_int, c_uint},
     ptr,
 };
@@ -44,13 +44,13 @@ impl_unsync_global!(Dll);
 macro_rules! impl_global_getter {
     ($ty:ty, $name:ident $(, $name_mut:ident)? $(,)?) => {
         #[allow(dead_code)]
-        pub fn $name<'a>() -> Ref<'a, $ty> {
+        pub fn $name<'a>() -> core::cell::Ref<'a, $ty> {
             unsafe { Dll::global_assume_init_ref() }.$name.borrow()
         }
 
         $(
             #[allow(dead_code)]
-            pub fn $name_mut<'a>() -> RefMut<'a, $ty> {
+            pub fn $name_mut<'a>() -> core::cell::RefMut<'a, $ty> {
                 unsafe { Dll::global_assume_init_ref() }.$name.borrow_mut()
             }
         )?
@@ -60,7 +60,7 @@ macro_rules! impl_global_getter {
 impl_global_getter!(Events, events);
 impl_global_getter!(Entities, entities);
 impl_global_getter!(Input, input);
-impl_global_getter!(Camera, camera, camera_mut);
+impl_global_getter!(Camera, camera);
 impl_global_getter!(View, view);
 impl_global_getter!(Hud, hud);
 impl_global_getter!(Weapons, weapons);

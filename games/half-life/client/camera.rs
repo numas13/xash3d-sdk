@@ -1,4 +1,4 @@
-use core::{cmp::Ordering, ffi::c_int};
+use core::{cell::Cell, cmp::Ordering, ffi::c_int};
 
 use xash3d_client::{
     consts::{PITCH, ROLL, YAW},
@@ -10,7 +10,7 @@ use xash3d_client::{
 };
 
 use crate::{
-    export::{camera_mut, input},
+    export::{camera, input},
     helpers,
 };
 
@@ -49,10 +49,10 @@ mod cvar {
 pub struct Camera {
     engine: ClientEngineRef,
 
-    cam_thirdperson: bool,
-    cam_mousemove: bool,
-    cam_distancemove: bool,
-    cam_ofs: vec3_t,
+    cam_thirdperson: Cell<bool>,
+    cam_mousemove: Cell<bool>,
+    cam_distancemove: Cell<bool>,
+    cam_ofs: Cell<vec3_t>,
 
     cam_pitchup: KeyButton,
     cam_pitchdown: KeyButton,
@@ -64,29 +64,28 @@ pub struct Camera {
 
 impl Camera {
     pub fn new(engine: ClientEngineRef) -> Self {
-        hook_command_key!(engine, "campitchup", camera_mut().cam_pitchup);
-        hook_command_key!(engine, "campitchdown", camera_mut().cam_pitchdown);
-        hook_command_key!(engine, "camyawleft", camera_mut().cam_yawleft);
-        hook_command_key!(engine, "camyawright", camera_mut().cam_yawright);
-        hook_command_key!(engine, "camin", camera_mut().cam_in);
-        hook_command_key!(engine, "camout", camera_mut().cam_out);
+        hook_command_key!(engine, "campitchup", camera().cam_pitchup);
+        hook_command_key!(engine, "campitchdown", camera().cam_pitchdown);
+        hook_command_key!(engine, "camyawleft", camera().cam_yawleft);
+        hook_command_key!(engine, "camyawright", camera().cam_yawright);
+        hook_command_key!(engine, "camin", camera().cam_in);
+        hook_command_key!(engine, "camout", camera().cam_out);
 
-        hook_command!(engine, c"snapto", |_| camera_mut().toggle_snapto());
-        hook_command!(engine, c"thirdperson", |_| camera_mut().set_third_person());
-        hook_command!(engine, c"firstperson", |_| camera_mut().set_first_person());
-        hook_command!(engine, c"+cammousemove", |_| camera_mut()
-            .start_mouse_move());
-        hook_command!(engine, c"-cammousemove", |_| camera_mut().end_mouse_move());
-        hook_command!(engine, c"+camdistance", |_| camera_mut().start_distance());
-        hook_command!(engine, c"-camdistance", |_| camera_mut().end_distance());
+        hook_command!(engine, c"snapto", |_| camera().toggle_snapto());
+        hook_command!(engine, c"thirdperson", |_| camera().set_third_person());
+        hook_command!(engine, c"firstperson", |_| camera().set_first_person());
+        hook_command!(engine, c"+cammousemove", |_| camera().start_mouse_move());
+        hook_command!(engine, c"-cammousemove", |_| camera().end_mouse_move());
+        hook_command!(engine, c"+camdistance", |_| camera().start_distance());
+        hook_command!(engine, c"-camdistance", |_| camera().end_distance());
 
         Self {
             engine,
 
-            cam_thirdperson: false,
-            cam_mousemove: false,
-            cam_distancemove: false,
-            cam_ofs: vec3_t::ZERO,
+            cam_thirdperson: Cell::default(),
+            cam_mousemove: Cell::default(),
+            cam_distancemove: Cell::default(),
+            cam_ofs: Cell::default(),
 
             cam_pitchup: KeyButton::new(engine),
             cam_pitchdown: KeyButton::new(engine),
@@ -98,7 +97,7 @@ impl Camera {
     }
 
     pub fn is_third_person(&self) -> bool {
-        if self.cam_thirdperson || unsafe { helpers::g_iUser1 } != 0 {
+        if self.cam_thirdperson.get() || unsafe { helpers::g_iUser1 } != 0 {
             return true;
         }
         let player = self.engine.get_local_player();
@@ -109,15 +108,15 @@ impl Camera {
     //     !self.is_third_person()
     // }
 
-    fn offset_set(&mut self, offset: vec3_t) {
-        self.cam_ofs = offset;
-    }
-
     pub fn offset(&self) -> vec3_t {
-        self.cam_ofs
+        self.cam_ofs.get()
     }
 
-    pub fn toggle_snapto(&mut self) {
+    fn set_offset(&self, offset: vec3_t) {
+        self.cam_ofs.set(offset);
+    }
+
+    pub fn toggle_snapto(&self) {
         let v = if cvar::cam_snapto.value() != 0.0 {
             0.0
         } else {
@@ -126,7 +125,7 @@ impl Camera {
         cvar::cam_snapto.value_set(v);
     }
 
-    pub fn set_third_person(&mut self) {
+    pub fn set_third_person(&self) {
         let engine = self.engine;
         if engine.is_multiplayer() {
             return;
@@ -134,55 +133,57 @@ impl Camera {
 
         let viewangles = engine.get_view_angles();
 
-        if !self.cam_thirdperson {
-            self.cam_thirdperson = true;
+        if !self.cam_thirdperson.get() {
+            self.cam_thirdperson.set(true);
 
-            self.cam_ofs[YAW] = viewangles[YAW];
-            self.cam_ofs[PITCH] = viewangles[PITCH];
-            self.cam_ofs[ROLL] = CAM_MIN_DIST;
+            let mut cam_ofs = vec3_t::ZERO;
+            cam_ofs[YAW] = viewangles[YAW];
+            cam_ofs[PITCH] = viewangles[PITCH];
+            cam_ofs[ROLL] = CAM_MIN_DIST;
+            self.set_offset(cam_ofs);
         }
 
         cvar::cam_command.value_set(0.0);
     }
 
-    pub fn set_first_person(&mut self) {
-        self.cam_thirdperson = false;
+    pub fn set_first_person(&self) {
+        self.cam_thirdperson.set(false);
         cvar::cam_command.value_set(0.0);
     }
 
-    fn start_mouse_move(&mut self) {
+    fn start_mouse_move(&self) {
         if !self.is_third_person() {
             self.end_mouse_move();
             return;
         }
 
-        if !self.cam_mousemove {
-            self.cam_mousemove = false;
+        if !self.cam_mousemove.get() {
+            self.cam_mousemove.set(false);
             input().mouse_in_use(true);
         }
     }
 
-    fn end_mouse_move(&mut self) {
-        self.cam_mousemove = false;
+    fn end_mouse_move(&self) {
+        self.cam_mousemove.set(false);
         input().mouse_in_use(false);
     }
 
-    fn start_distance(&mut self) {
+    fn start_distance(&self) {
         if !self.is_third_person() {
             self.end_distance();
             return;
         }
 
-        if !self.cam_distancemove {
-            self.cam_distancemove = true;
-            self.cam_mousemove = true;
+        if !self.cam_distancemove.get() {
+            self.cam_distancemove.set(true);
+            self.cam_mousemove.set(true);
             input().mouse_in_use(true);
         }
     }
 
-    fn end_distance(&mut self) {
-        self.cam_distancemove = false;
-        self.cam_mousemove = false;
+    fn end_distance(&self) {
+        self.cam_distancemove.set(false);
+        self.cam_mousemove.set(false);
         input().mouse_in_use(false);
     }
 
@@ -193,7 +194,7 @@ impl Camera {
             _ => {}
         }
 
-        if !self.cam_thirdperson {
+        if !self.cam_thirdperson.get() {
             return;
         }
 
@@ -206,7 +207,7 @@ impl Camera {
         cam_angles[YAW] = cvar::cam_idealyaw.value();
         let mut dist = cvar::cam_idealdist.value();
 
-        if self.cam_mousemove && !self.cam_distancemove {
+        if self.cam_mousemove.get() && !self.cam_distancemove.get() {
             match mouse_x.cmp(&center_x) {
                 Ordering::Greater => {
                     let c_maxyaw = cvar::c_maxyaw.value();
@@ -279,7 +280,7 @@ impl Camera {
             dist += CAM_DIST_DELTA;
         }
 
-        if self.cam_distancemove {
+        if self.cam_distancemove.get() {
             match mouse_y.cmp(&center_y) {
                 Ordering::Greater => {
                     let c_maxdistance = cvar::c_maxdistance.value();
@@ -333,7 +334,7 @@ impl Camera {
             }
         }
 
-        self.offset_set(vec3_t::new(cam_angles[0], cam_angles[1], dist));
+        self.set_offset(vec3_t::new(cam_angles[0], cam_angles[1], dist));
     }
 }
 
