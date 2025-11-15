@@ -64,7 +64,7 @@ impl_global_getter!(Camera, camera, camera_mut);
 impl_global_getter!(View, view, view_mut);
 impl_global_getter!(Hud, hud);
 impl_global_getter!(Weapons, weapons, weapons_mut);
-impl_global_getter!(StudioRenderer, renderer, renderer_mut);
+impl_global_getter!(StudioRenderer, renderer);
 
 impl Drop for Dll {
     fn drop(&mut self) {
@@ -248,13 +248,13 @@ export_dll!(Dll);
 
 #[allow(non_snake_case)]
 unsafe extern "C" fn StudioDrawModel(flags: c_int) -> c_int {
-    renderer_mut().draw_model(flags)
+    renderer().draw_model(flags)
 }
 
 #[allow(non_snake_case)]
 unsafe extern "C" fn StudioDrawPlayer(flags: c_int, player: *mut entity_state_s) -> c_int {
     let player = unsafe { &mut *player };
-    renderer_mut().draw_player(flags, player)
+    renderer().draw_player(flags, player)
 }
 
 static mut STUDIO: r_studio_interface_s = r_studio_interface_s {

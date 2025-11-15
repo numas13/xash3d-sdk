@@ -9,12 +9,12 @@ impl StudioRenderer {
         Self {}
     }
 
-    pub fn draw_player(&mut self, _flags: c_int, _player: &mut entity_state_s) -> c_int {
+    pub fn draw_player(&self, _flags: c_int, _player: &mut entity_state_s) -> c_int {
         // TODO:
         0
     }
 
-    pub fn draw_model(&mut self, _flags: c_int) -> c_int {
+    pub fn draw_model(&self, _flags: c_int) -> c_int {
         // TODO:
         0
     }
