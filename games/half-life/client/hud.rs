@@ -17,7 +17,7 @@ pub mod weapon_menu;
 
 use core::{
     any::{Any, TypeId},
-    cell::{Ref, RefCell, RefMut},
+    cell::{Cell, Ref, RefCell, RefMut},
     cmp,
     ffi::c_int,
     fmt::Write,
@@ -33,12 +33,12 @@ use xash3d_client::{
     macros::hook_command,
     prelude::*,
     sprite::{DigitSprites, Sprite, SpriteHandle, Sprites},
-    user_message::{hook_user_message, hook_user_message_flag},
+    user_message::hook_user_message,
 };
 use xash3d_hl_shared::{user_message, weapons::Weapons};
 
 use crate::{
-    export::{hud_mut, input, input_mut},
+    export::{hud, input, input_mut},
     hud::{
         health::Health, inventory::Inventory, menu::Menu, scoreboard::ScoreBoard,
         text_message::TextMessage, weapon_menu::WeaponMenu,
@@ -159,20 +159,20 @@ pub trait HudItem: Any {
         HudFlags::ACTIVE
     }
 
-    fn vid_init(&mut self, state: &mut State) {}
+    fn vid_init(&mut self, state: &State) {}
 
-    fn init_hud_data(&mut self, state: &mut State) {}
+    fn init_hud_data(&mut self, state: &State) {}
 
     fn reset(&mut self) {}
 
-    fn think(&mut self, state: &mut State) {}
+    fn think(&mut self, state: &State) {}
 
-    fn draw(&mut self, state: &mut State) {}
+    fn draw(&mut self, state: &State) {}
 }
 
 bitflags! {
     /// Flags to hide HUD items.
-    #[derive(Copy, Clone, PartialEq, Eq)]
+    #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
     #[repr(transparent)]
     pub struct Hide: u32 {
         /// Hide weapons.
@@ -195,107 +195,186 @@ pub struct PlayerInfoExtra {
 
 pub struct State {
     engine: ClientEngineRef,
-    /// Default color for HUD items.
-    color: RGB,
-    /// Is the game in an intermission/pause?
-    pub intermission: bool,
-    /// Previous engine time.
-    time_old: f32,
-    /// Current engine time.
-    time: f32,
-    /// The difference between current and previous engine time.
-    time_delta: f64,
-    /// Default sprite resolution to load.
-    sprite_resolution: u32,
-    /// Current hide flags for HUD items.
-    hide: Hide,
-    /// The position of player in the world.
-    pub origin: vec3_t,
-    /// The camera angles.
-    pub angles: vec3_t,
-    /// Player inventory.
-    inv: Inventory,
-    /// HUD sprites.
-    sprites: Sprites,
-    /// HUD sprites for numbers.
-    digits: DigitSprites,
-    last_fov: u8,
-    fov: u8,
-    mouse_sensitivity: f32,
-    key_bits: c_int,
 
-    server_name: CStrBox,
-    player_info_extra: [Option<PlayerInfoExtra>; MAX_PLAYERS + 1],
+    /// Is the game in an intermission/pause?
+    intermission: Cell<bool>,
+    /// Previous engine time.
+    time_old: Cell<f32>,
+    /// Current engine time.
+    time: Cell<f32>,
+    /// The difference between current and previous engine time.
+    time_delta: Cell<f64>,
+
+    /// Default color for HUD items.
+    color: Cell<RGB>,
+    /// Current hide flags for HUD items.
+    hide: Cell<Hide>,
+
+    /// The position of player in the world.
+    origin: Cell<vec3_t>,
+    /// The camera angles.
+    angles: Cell<vec3_t>,
+
+    last_fov: Cell<u8>,
+    fov: Cell<u8>,
+    mouse_sensitivity: Cell<f32>,
+    key_bits: Cell<i32>,
+
+    /// Player inventory.
+    inv: RefCell<Inventory>,
+
+    /// Default sprite resolution to load.
+    sprite_resolution: Cell<u32>,
+    /// HUD sprites.
+    sprites: RefCell<Sprites>,
+    /// HUD sprites for numbers.
+    digits: RefCell<DigitSprites>,
+
+    server_name: RefCell<CStrBox>,
+    player_info_extra: RefCell<[Option<PlayerInfoExtra>; MAX_PLAYERS + 1]>,
 }
 
 impl State {
     fn new(engine: ClientEngineRef) -> Self {
         Self {
             engine,
-            color: DEFAULT_COLOR,
-            intermission: false,
-            time_old: 0.0,
-            time: 1.0,
-            time_delta: 0.0,
-            sprite_resolution: 0,
-            hide: Hide::empty(),
-            origin: vec3_t::ZERO,
-            angles: vec3_t::ZERO,
-            inv: Inventory::new(engine),
-            sprites: Sprites::new(engine),
-            digits: DigitSprites::new(),
-            last_fov: 0,
-            fov: 0,
-            mouse_sensitivity: 0.0,
-            key_bits: 0,
-
-            server_name: Default::default(),
-            player_info_extra: [None; MAX_PLAYERS + 1],
+            intermission: Cell::default(),
+            time_old: Cell::default(),
+            time: Cell::new(1.0),
+            time_delta: Cell::default(),
+            color: Cell::new(DEFAULT_COLOR),
+            hide: Cell::default(),
+            origin: Cell::default(),
+            angles: Cell::default(),
+            last_fov: Cell::default(),
+            fov: Cell::default(),
+            mouse_sensitivity: Cell::default(),
+            key_bits: Cell::default(),
+            inv: RefCell::new(Inventory::new(engine)),
+            sprite_resolution: Cell::default(),
+            sprites: RefCell::new(Sprites::new(engine)),
+            digits: RefCell::new(DigitSprites::new()),
+            server_name: RefCell::default(),
+            player_info_extra: RefCell::new([None; MAX_PLAYERS + 1]),
         }
     }
 
-    fn vid_init(&mut self) {
+    fn vid_init(&self) {
         let engine = self.engine;
-
         let screen_info = engine.screen_info();
-        self.sprite_resolution = screen_info.sprite_resolution();
+        let res = screen_info.sprite_resolution();
+        self.sprite_resolution.set(res);
+        let mut sprites = self.sprites.borrow_mut();
+        sprites.reload_from_file(res, c"sprites/hud.txt");
+        self.digits.replace(DigitSprites::from_sprites(&sprites));
 
-        self.sprites
-            .reload_from_file(self.sprite_resolution, c"sprites/hud.txt");
-
-        self.digits = DigitSprites::from_sprites(&self.sprites);
-
-        self.inv.vid_init();
-
+        let mut inv = self.inv.borrow_mut();
+        inv.vid_init();
         if !engine.is_spectator_only() && !self.is_hidden(Hide::WEAPONS | Hide::ALL) {
-            self.inv.set_crosshair();
+            inv.set_crosshair();
         }
     }
 
-    fn reset(&mut self) {
-        self.inv.reset();
-        self.fov = 90;
-        self.last_fov = cvar::default_fov.value() as u8;
+    fn reset(&self) {
+        self.inv.borrow_mut().reset();
+        self.fov.set(90);
+        self.last_fov.set(cvar::default_fov.value() as u8);
     }
 
-    fn think(&mut self) {
-        self.inv.think();
+    fn think(&self) {
+        self.inv.borrow_mut().think();
     }
 
-    fn find_sprite_index(&self, name: impl AsRef<CStrThin>) -> Option<usize> {
-        self.sprites.find_index(name)
+    pub fn intermission(&self) -> bool {
+        self.intermission.get()
     }
 
-    fn find_sprite(&self, name: impl AsRef<CStrThin>) -> Option<Sprite> {
-        self.sprites.find(name).copied()
+    pub fn time(&self) -> f32 {
+        self.time.get()
+    }
+
+    pub fn time_delta(&self) -> f64 {
+        self.time_delta.get()
+    }
+
+    pub fn color(&self) -> RGB {
+        self.color.get()
+    }
+
+    pub fn set_color(&self, color: RGB) {
+        self.color.set(color)
+    }
+
+    pub fn hide(&self) -> Hide {
+        self.hide.get()
+    }
+
+    pub fn set_hide(&self, hide: Hide) {
+        self.hide.set(hide);
     }
 
     pub fn is_hidden(&self, value: Hide) -> bool {
-        self.hide.intersects(value)
+        self.hide().intersects(value)
+    }
+
+    pub fn origin(&self) -> vec3_t {
+        self.origin.get()
+    }
+
+    pub fn angles(&self) -> vec3_t {
+        self.angles.get()
+    }
+
+    pub fn fov(&self) -> u8 {
+        self.fov.get()
+    }
+
+    pub fn key_bits(&self) -> i32 {
+        self.key_bits.get()
+    }
+
+    pub fn set_key_bits(&self, bits: i32) {
+        self.key_bits.set(bits);
+    }
+
+    pub fn with_key_bits(&self, map: impl FnOnce(i32) -> i32) {
+        self.set_key_bits(map(self.key_bits()));
+    }
+
+    pub fn inventory(&self) -> Ref<'_, Inventory> {
+        self.inv.borrow()
+    }
+
+    pub fn inventory_mut(&self) -> RefMut<'_, Inventory> {
+        self.inv.borrow_mut()
     }
 
     fn has_suit(&self) -> bool {
-        self.inv.weapons().contains(Weapons::SUIT)
+        self.inventory().weapons().contains(Weapons::SUIT)
+    }
+
+    pub fn sprite_resolution(&self) -> u32 {
+        self.sprite_resolution.get()
+    }
+
+    fn find_sprite_index(&self, name: impl AsRef<CStrThin>) -> Option<usize> {
+        self.sprites.borrow().find_index(name)
+    }
+
+    fn find_sprite(&self, name: impl AsRef<CStrThin>) -> Option<Sprite> {
+        self.sprites.borrow().find(name).copied()
+    }
+
+    fn sprite(&self, index: usize) -> Option<Sprite> {
+        self.sprites.borrow().get(index).map(|i| **i)
+    }
+
+    fn sprites(&self) -> Ref<'_, Sprites> {
+        self.sprites.borrow()
+    }
+
+    fn digits(&self) -> Ref<'_, DigitSprites> {
+        self.digits.borrow()
     }
 
     fn draw_number(&self, number: c_int) -> DrawNumber<'_> {
@@ -303,12 +382,24 @@ impl State {
             engine: self.engine,
             state: self,
             width: 0,
-            color: self.color,
+            color: self.color.get(),
             number,
             zero: true,
             string: false,
             reverse: false,
         }
+    }
+
+    fn server_name(&self) -> Ref<'_, CStrThin> {
+        Ref::map(self.server_name.borrow(), |s| s.as_c_str())
+    }
+
+    fn set_server_name(&self, name: impl Into<CStrBox>) {
+        self.server_name.replace(name.into());
+    }
+
+    fn set_player_info_extra(&self, index: usize, info: Option<PlayerInfoExtra>) {
+        self.player_info_extra.borrow_mut()[index] = info;
     }
 
     fn get_client_color(&self, _client: c_int) -> RGB {
@@ -369,7 +460,7 @@ impl DrawNumber<'_> {
     }
 
     fn at(self, x: c_int, y: c_int) -> c_int {
-        let digits = &self.state.digits;
+        let digits = self.state.digits();
         if self.number == 0 && !self.zero {
             return x + digits.width() * self.width as c_int;
         }
@@ -438,8 +529,8 @@ impl Items {
         self.find::<T>().unwrap().borrow_mut()
     }
 
-    fn iter_mut(&mut self) -> impl Iterator<Item = RefMut<'_, dyn HudItem>> {
-        self.items.iter_mut().map(|(_, i)| i.borrow_mut())
+    fn iter(&self) -> impl Iterator<Item = RefMut<'_, dyn HudItem>> {
+        self.items.iter().map(|(_, i)| i.borrow_mut())
     }
 }
 
@@ -452,9 +543,9 @@ pub struct Hud {
     #[allow(dead_code)]
     pub text_message: TextMessage,
 
-    logo: bool,
-    logo_hspr: Option<SpriteHandle>,
-    old_hud_color: String,
+    logo: Cell<bool>,
+    logo_hspr: Cell<Option<SpriteHandle>>,
+    old_hud_color: RefCell<String>,
 }
 
 impl Hud {
@@ -485,42 +576,44 @@ impl Hud {
 
             text_message: TextMessage::new(engine),
 
-            logo: false,
-            logo_hspr: None,
-            old_hud_color: String::new(),
+            logo: Cell::default(),
+            logo_hspr: Cell::default(),
+            old_hud_color: RefCell::default(),
         }
     }
 
     pub fn get_sensitivity(&self) -> f32 {
-        self.state.mouse_sensitivity
+        self.state.mouse_sensitivity.get()
     }
 
-    pub fn set_fov(&mut self, fov: u8) {
+    pub fn set_fov(&self, fov: u8) {
         let default_fov = cvar::default_fov.value() as u8;
-        self.state.fov = if fov == 0 { default_fov } else { fov };
+        self.state.fov.set(if fov == 0 { default_fov } else { fov });
 
-        self.state.mouse_sensitivity = if self.state.fov != default_fov {
-            let zsr = cvar::zoom_sensitivity_ratio.value();
-            input().get_mouse_sensitivity() * (fov as f32 / default_fov as f32) * zsr
-        } else {
-            0.0
-        };
+        self.state
+            .mouse_sensitivity
+            .set(if self.state.fov.get() != default_fov {
+                let zsr = cvar::zoom_sensitivity_ratio.value();
+                input().get_mouse_sensitivity() * (fov as f32 / default_fov as f32) * zsr
+            } else {
+                0.0
+            });
     }
 
-    pub fn set_last_fov(&mut self, fov: u8) {
-        self.state.last_fov = fov;
-    }
-
-    pub fn get_last_fov(&self) -> u8 {
+    pub fn last_fov(&self) -> u8 {
         // TODO: demo api
-        self.state.last_fov
+        self.state.last_fov.get()
     }
 
-    pub fn get_fov(&self) -> u8 {
-        self.state.fov
+    pub fn set_last_fov(&self, fov: u8) {
+        self.state.last_fov.set(fov);
     }
 
-    pub fn score_info(&mut self, info: &user_message::ScoreInfo) {
+    pub fn fov(&self) -> u8 {
+        self.state.fov.get()
+    }
+
+    pub fn score_info(&self, info: &user_message::ScoreInfo) {
         let cl = info.cl;
         if cl > 0 && cl <= MAX_PLAYERS as u8 {
             let index = cl as usize;
@@ -530,81 +623,84 @@ impl Hud {
                 teamnumber: cmp::max(0, info.teamnumber),
             };
             self.items.get_mut::<ScoreBoard>().score_info(cl, &extra);
-            self.state.player_info_extra[index] = Some(extra);
+            self.state.set_player_info_extra(index, Some(extra));
         }
     }
 
-    pub fn show_score_board(&mut self, show: bool) {
+    pub fn show_score_board(&self, show: bool) {
         if self.engine.is_multiplayer() {
             self.items.get_mut::<ScoreBoard>().show(show);
         }
     }
 
-    pub fn vid_init(&mut self) {
-        self.logo_hspr = None;
+    pub fn vid_init(&self) {
+        self.logo_hspr.set(None);
 
         self.state.vid_init();
 
-        for mut i in self.items.iter_mut() {
-            i.vid_init(&mut self.state);
+        for mut i in self.items.iter() {
+            i.vid_init(&self.state);
         }
     }
 
-    fn init_hud(&mut self) {
-        for mut i in self.items.iter_mut() {
-            i.init_hud_data(&mut self.state);
+    fn init_hud(&self) {
+        for mut i in self.items.iter() {
+            i.init_hud_data(&self.state);
         }
 
         self.reset();
     }
 
-    pub fn reset(&mut self) {
+    pub fn reset(&self) {
         self.state.reset();
 
-        for mut i in self.items.iter_mut() {
+        for mut i in self.items.iter() {
             i.reset();
         }
     }
 
-    fn think(&mut self) {
+    fn think(&self) {
         self.state.think();
 
-        for mut i in self.items.iter_mut() {
-            i.think(&mut self.state);
+        for mut i in self.items.iter() {
+            i.think(&self.state);
         }
 
-        self.set_fov(self.get_last_fov());
-        if self.state.fov == 0 {
-            self.state.fov = cmp::max(90, cvar::default_fov.value() as u8);
+        self.set_fov(self.last_fov());
+        if self.state.fov.get() == 0 {
+            self.state
+                .fov
+                .set(cmp::max(90, cvar::default_fov.value() as u8));
         }
     }
 
     pub fn show_score(&self) -> bool {
-        self.items.get::<Health>().is_dead() || self.state.intermission
+        self.items.get::<Health>().is_dead() || self.state.intermission()
     }
 
-    pub fn update_client_data(&mut self, data: &mut client_data_s, _time: f32) -> bool {
-        self.state.origin = data.origin;
-        self.state.angles = data.viewangles;
+    pub fn update_client_data(&self, data: &mut client_data_s, _time: f32) -> bool {
+        self.state.origin.set(data.origin);
+        self.state.angles.set(data.viewangles);
 
         let show_score = self.show_score();
-        self.state.key_bits = input_mut().button_bits(false, show_score);
+        self.state
+            .set_key_bits(input_mut().button_bits(false, show_score));
 
         self.state
-            .inv
+            .inventory_mut()
             .weapons_set(Weapons::from_bits_retain(data.iWeaponBits as u32));
 
         self.think();
 
-        data.fov = self.get_fov() as f32;
+        data.fov = self.fov() as f32;
 
-        input_mut().reset_button_bits(self.state.key_bits, show_score);
+        input_mut().reset_button_bits(self.state.key_bits(), show_score);
 
         // data has been changed
         true
     }
 
-    fn update_hud_color(&mut self) {
+    fn update_hud_color(&self) {
         const COLOR_MAP: [(&str, RGB); 16] = [
             ("black", RGB::BLACK),
             ("silver", RGB::SILVER),
@@ -627,14 +723,15 @@ impl Hud {
         let s = cvar::hud_color.value_str();
         let Ok(s) = s.to_str() else { return };
 
-        if self.old_hud_color == s {
+        let mut old_hud_color = self.old_hud_color.borrow_mut();
+        if old_hud_color.as_str() == s {
             return;
         }
-        self.old_hud_color.clear();
-        self.old_hud_color.push_str(s);
+        old_hud_color.clear();
+        old_hud_color.push_str(s);
 
         if s.is_empty() {
-            self.state.color = DEFAULT_COLOR;
+            self.state.set_color(DEFAULT_COLOR);
             return;
         }
 
@@ -646,19 +743,17 @@ impl Hud {
             return;
         }
 
-        self.state.color = match COLOR_MAP.iter().find(|i| i.0 == s) {
+        let color = match COLOR_MAP.iter().find(|i| i.0 == s) {
             Some((_, color)) => *color,
-            None => match parse_color(s) {
-                Some(c) => c,
-                None => {
-                    warn!("invalid hud_color {s:?}");
-                    DEFAULT_COLOR
-                }
-            },
+            None => parse_color(s).unwrap_or_else(|| {
+                warn!("invalid hud_color {s:?}");
+                DEFAULT_COLOR
+            }),
         };
+        self.state.set_color(color);
     }
 
-    fn draw_logo(&mut self) {
+    fn draw_logo(&self) {
         const MAX_LOGO_FRAMES: usize = 56;
         const LOGO_FRAME: [c_int; MAX_LOGO_FRAMES] = [
             1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 13, 13, 13, 13, 13, 12, 11, 10, 9, 8, 14,
@@ -666,46 +761,51 @@ impl Hud {
             29, 29, 29, 28, 27, 26, 25, 24, 30, 31,
         ];
 
-        if !self.logo {
+        if !self.logo.get() {
             return;
         }
 
         let engine = self.engine;
-        if self.logo_hspr.is_none() {
-            self.logo_hspr = try_spr_load(self.state.sprite_resolution, |res| {
-                engine.spr_load(format_args!("sprites/{res}_logo.spr"))
-            });
+        if self.logo_hspr.get().is_none() {
+            self.logo_hspr
+                .set(try_spr_load(self.state.sprite_resolution(), |res| {
+                    engine.spr_load(format_args!("sprites/{res}_logo.spr"))
+                }));
         }
 
-        let Some(hspr) = self.logo_hspr else { return };
+        let Some(hspr) = self.logo_hspr.get() else {
+            return;
+        };
         let info = engine.screen_info();
         let (w, h) = hspr.size(0);
         let x = info.width() - w;
         let y = h / 2;
-        let frame = (self.state.time * 20.0) as usize % MAX_LOGO_FRAMES;
+        let frame = (self.state.time() * 20.0) as usize % MAX_LOGO_FRAMES;
         let i = LOGO_FRAME[frame] - 1;
         hspr.draw_additive(i, x, y, RGB::splat(250));
     }
 
-    pub fn draw(&mut self, time: f32, intermission: bool) -> bool {
-        self.state.time_old = self.state.time;
-        self.state.time = time;
-        self.state.time_delta = time as f64 - self.state.time_old as f64;
-        if self.state.time_delta < 0.0 {
-            self.state.time_delta = 0.0;
+    pub fn draw(&self, time: f32, intermission: bool) -> bool {
+        let time_old = self.state.time.replace(time);
+        self.state.time_old.set(time_old);
+        let mut time_delta = time as f64 - time_old as f64;
+        if time_delta < 0.0 {
+            time_delta = 0.0;
         }
-        self.state.intermission = intermission;
+        self.state.time_delta.set(time_delta);
+
+        self.state.intermission.set(intermission);
 
         if cvar::hud_draw.value() != 0.0 {
             self.update_hud_color();
-            for mut i in self.items.iter_mut() {
+            for mut i in self.items.iter() {
                 let flags = i.flags();
                 if !intermission {
                     if flags.contains(HudFlags::ACTIVE) && !self.state.is_hidden(Hide::ALL) {
-                        i.draw(&mut self.state);
+                        i.draw(&self.state);
                     }
                 } else if flags.contains(HudFlags::INTERMISSION) {
-                    i.draw(&mut self.state);
+                    i.draw(&self.state);
                 }
             }
         }
@@ -751,10 +851,14 @@ fn parse_color(s: &str) -> Option<RGB> {
 }
 
 fn hook_messages_and_commands(engine: ClientEngineRef) {
-    hook_user_message_flag!(engine, Logo, hud_mut().logo);
+    hook_user_message!(engine, Logo, |_, msg| {
+        let value = msg.read_u8()?;
+        hud().logo.set(value != 0);
+        Ok(())
+    });
 
     hook_user_message!(engine, InitHUD, {
-        hud_mut().init_hud();
+        hud().init_hud();
         true
     });
 
@@ -765,7 +869,7 @@ fn hook_messages_and_commands(engine: ClientEngineRef) {
 
     hook_user_message!(engine, SetFOV, |_, msg| {
         let msg = msg.read::<user_message::SetFOV>()?;
-        let mut hud = hud_mut();
+        let hud = hud();
         hud.set_last_fov(msg.fov);
         hud.set_fov(msg.fov);
         Ok(())
@@ -773,13 +877,13 @@ fn hook_messages_and_commands(engine: ClientEngineRef) {
 
     hook_user_message!(engine, ScoreInfo, |_, msg| {
         let msg = msg.read::<user_message::ScoreInfo>()?;
-        hud_mut().score_info(&msg);
+        hud().score_info(&msg);
         Ok(())
     });
 
     hook_user_message!(engine, ServerName, |_, msg| {
         let msg = msg.read::<user_message::ServerName>()?;
-        hud_mut().state.server_name = msg.name.into();
+        hud().state.set_server_name(msg.name);
         Ok(())
     });
 
@@ -788,19 +892,19 @@ fn hook_messages_and_commands(engine: ClientEngineRef) {
         if msg.x != 0 {
             warn!("ResetHUD: unexpected user message data");
         }
-        hud_mut().reset();
+        hud().reset();
         Ok(())
     });
 
     fn cmd_slot(slot: u32) {
-        let hud = &mut *hud_mut();
+        let hud = hud();
         let mut menu = hud.items.get_mut::<Menu>();
         if menu.is_displayed() {
             menu.select_menu_item(slot);
         } else {
             hud.items
                 .get_mut::<WeaponMenu>()
-                .select_slot(&mut hud.state, slot);
+                .select_slot(&hud.state, slot);
         }
     }
 

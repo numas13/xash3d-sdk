@@ -42,16 +42,18 @@ pub struct Dll {
 impl_unsync_global!(Dll);
 
 macro_rules! impl_global_getter {
-    ($ty:ty, $name:ident, $name_mut:ident) => {
+    ($ty:ty, $name:ident $(, $name_mut:ident)? $(,)?) => {
         #[allow(dead_code)]
         pub fn $name<'a>() -> Ref<'a, $ty> {
             unsafe { Dll::global_assume_init_ref() }.$name.borrow()
         }
 
-        #[allow(dead_code)]
-        pub fn $name_mut<'a>() -> RefMut<'a, $ty> {
-            unsafe { Dll::global_assume_init_ref() }.$name.borrow_mut()
-        }
+        $(
+            #[allow(dead_code)]
+            pub fn $name_mut<'a>() -> RefMut<'a, $ty> {
+                unsafe { Dll::global_assume_init_ref() }.$name.borrow_mut()
+            }
+        )?
     };
 }
 
@@ -60,7 +62,7 @@ impl_global_getter!(Entities, entities, entities_mut);
 impl_global_getter!(Input, input, input_mut);
 impl_global_getter!(Camera, camera, camera_mut);
 impl_global_getter!(View, view, view_mut);
-impl_global_getter!(Hud, hud, hud_mut);
+impl_global_getter!(Hud, hud);
 impl_global_getter!(Weapons, weapons, weapons_mut);
 impl_global_getter!(StudioRenderer, renderer, renderer_mut);
 

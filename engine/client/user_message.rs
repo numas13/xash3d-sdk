@@ -38,6 +38,7 @@ macro_rules! hook_user_message {
 #[doc(inline)]
 pub use hook_user_message;
 
+#[deprecated]
 #[doc(hidden)]
 #[macro_export]
 macro_rules! hook_user_message_flag {
@@ -49,5 +50,6 @@ macro_rules! hook_user_message_flag {
         });
     }};
 }
+#[allow(deprecated)]
 #[doc(inline)]
 pub use hook_user_message_flag;

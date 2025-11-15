@@ -29,12 +29,13 @@ impl HudItem for Ammo {
         self.fade.stop();
     }
 
-    fn draw(&mut self, state: &mut State) {
+    fn draw(&mut self, state: &State) {
         if !state.has_suit() || state.is_hidden(Hide::WEAPONS) {
             return;
         }
 
-        let Some(weapon) = state.inv.current() else {
+        let inv = state.inventory();
+        let Some(weapon) = inv.current() else {
             return;
         };
 
@@ -42,19 +43,19 @@ impl HudItem for Ammo {
             return;
         }
 
-        let a = self.fade.alpha(state.time_delta);
-        let color = state.color.scale_color(a);
+        let a = self.fade.alpha(state.time_delta());
+        let color = state.color().scale_color(a);
 
         let engine = self.engine;
         let screen = engine.screen_info();
-        let digits = &state.digits;
+        let digits = state.digits();
         let ammo_width = digits.width();
 
         let mut y = screen.height() - digits.height() - digits.height() / 2;
         y += (digits.height() as f32 * 0.2) as c_int;
 
         if let Some(ammo) = weapon.ammo[0] {
-            let ammo_count = state.inv.ammo_count(ammo.ty) as c_int;
+            let ammo_count = inv.ammo_count(ammo.ty) as c_int;
             let icon_width = ammo.icon.map_or(FALLBACK_WIDTH, |s| s.width());
 
             let mut x = screen.width() - icon_width;
@@ -68,7 +69,7 @@ impl HudItem for Ammo {
 
                 let bar_width = ammo_width / 10;
                 x += ammo_width / 2;
-                engine.fill_rgba(x, y, bar_width, digits.height(), state.color.rgba(a));
+                engine.fill_rgba(x, y, bar_width, digits.height(), state.color().rgba(a));
 
                 x += ammo_width / 2 + bar_width;
                 x = state.draw_number(ammo_count).width(3).color(color).at(x, y);
@@ -84,7 +85,7 @@ impl HudItem for Ammo {
         }
 
         if let Some(ammo) = weapon.ammo[1] {
-            let ammo_count = state.inv.ammo_count(ammo.ty) as c_int;
+            let ammo_count = inv.ammo_count(ammo.ty) as c_int;
             if ammo_count > 0 {
                 let icon_width = ammo.icon.map_or(FALLBACK_WIDTH, |s| s.width());
 

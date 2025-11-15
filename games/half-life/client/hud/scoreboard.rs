@@ -55,7 +55,7 @@ impl HudItem for ScoreBoard {
         self.flags
     }
 
-    fn init_hud_data(&mut self, _: &mut State) {
+    fn init_hud_data(&mut self, _: &State) {
         self.scores.clear();
     }
 
@@ -63,7 +63,7 @@ impl HudItem for ScoreBoard {
         self.flags.remove(HudFlags::ACTIVE);
     }
 
-    fn draw(&mut self, state: &mut State) {
+    fn draw(&mut self, state: &State) {
         let engine = self.engine;
         let screen = engine.screen_info();
         let width = 70 * screen.char_width(b'w') as c_int;
@@ -79,7 +79,7 @@ impl HudItem for ScoreBoard {
         let gap = 30;
         let name_x = left + gap;
         let mut y = top + gap;
-        engine.draw_string(name_x, y, &state.server_name, state.color);
+        engine.draw_string(name_x, y, &*state.server_name(), state.color());
         y += screen.char_height() * 2;
 
         let fields = [c"SCORE", c"DEATHS", c"PING", c"VOICE"];
@@ -97,7 +97,7 @@ impl HudItem for ScoreBoard {
         let mut x = fields_x;
         for &i in &fields {
             x += w;
-            engine.set_text_color(state.color);
+            engine.set_text_color(state.color());
             let (tw, th) = engine.console_string_size(i);
             engine.draw_console_string(x - tw, y + (h - th) / 2, i);
         }
@@ -114,7 +114,7 @@ impl HudItem for ScoreBoard {
             if cl == local {
                 let x = left + gap / 2;
                 let w = right - left - gap;
-                engine.fill_rgba_blend(x, y, w, h, state.color.rgba(128));
+                engine.fill_rgba_blend(x, y, w, h, state.color().rgba(128));
             }
 
             let th = engine.console_string_height(info.name());

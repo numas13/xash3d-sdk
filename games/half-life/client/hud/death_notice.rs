@@ -138,7 +138,7 @@ impl DeathNotice {
             state.find_sprite(buf)
         };
 
-        let display_time = state.time + cvar::hud_deathnotice_time.value();
+        let display_time = state.time() + cvar::hud_deathnotice_time.value();
 
         match victim {
             Victim::Player(victim) => {
@@ -196,20 +196,20 @@ impl DeathNotice {
 }
 
 impl HudItem for DeathNotice {
-    fn vid_init(&mut self, state: &mut State) {
+    fn vid_init(&mut self, state: &State) {
         self.list.clear();
         self.skull = state.find_sprite(c"d_skull");
     }
 
-    fn init_hud_data(&mut self, _: &mut State) {
+    fn init_hud_data(&mut self, _: &State) {
         self.list.clear();
     }
 
-    fn draw(&mut self, state: &mut State) {
+    fn draw(&mut self, state: &State) {
         // TODO: exit if !viewport.allowed_to_print_text()
 
         while let Some(i) = self.list.front() {
-            if i.display_time >= state.time {
+            if i.display_time >= state.time() {
                 break;
             }
             self.list.pop_front();

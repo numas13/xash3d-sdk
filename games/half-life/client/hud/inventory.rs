@@ -11,7 +11,10 @@ use xash3d_client::{
 };
 use xash3d_hl_shared::user_message;
 
-use crate::hud::{MAX_WEAPONS, Sprite, Weapons, hud_mut, weapon_menu::WeaponMenu};
+use crate::{
+    export::hud,
+    hud::{MAX_WEAPONS, Sprite, Weapons, weapon_menu::WeaponMenu},
+};
 
 pub const MAX_WEAPON_POSITIONS: usize = MAX_WEAPON_SLOTS;
 // hud item selection slots
@@ -193,7 +196,7 @@ impl Inventory {
         hook_user_message!(engine, WeaponList, |engine, msg| {
             match Weapon::read_from_message(engine, msg) {
                 Ok(weapon) => {
-                    hud_mut().state.inv.weapon_add(weapon);
+                    hud().state.inventory_mut().weapon_add(weapon);
                     true
                 }
                 Err(_) => {
@@ -205,9 +208,9 @@ impl Inventory {
 
         hook_user_message!(engine, AmmoX, |_, msg| {
             let msg = msg.read::<user_message::AmmoX>()?;
-            hud_mut()
+            hud()
                 .state
-                .inv
+                .inventory_mut()
                 .ammo_set(msg.ty.into(), msg.count.into());
             Ok(())
         });
@@ -223,15 +226,15 @@ impl Inventory {
             use super::Hide;
 
             let msg = msg.read::<user_message::HideWeapon>()?;
-            let mut hud = hud_mut();
-            hud.state.hide = Hide::from_bits(msg.hide as u32).unwrap();
+            let hud = hud();
+            hud.state.set_hide(Hide::from_bits_retain(msg.hide as u32));
 
             if !engine.is_spectator_only() {
                 if hud.state.is_hidden(Hide::WEAPONS | Hide::ALL) {
                     hud.items.get_mut::<WeaponMenu>().close();
                     engine.unset_crosshair();
                 } else {
-                    hud.state.inv.set_crosshair();
+                    hud.state.inventory_mut().set_crosshair();
                 }
             }
 
@@ -425,8 +428,8 @@ impl Inventory {
 
         // TODO: if g_iUser1 != OBS_IN_EYE
 
-        let hud = &mut *hud_mut();
-        let weapons = &mut hud.state.inv;
+        let hud = hud();
+        let mut weapons = hud.state.inventory_mut();
         let Some(weapon) = &mut weapons.list[id as usize] else {
             return false;
         };
@@ -442,14 +445,14 @@ impl Inventory {
             return true;
         }
 
-        weapons.current = Some(id as u32);
         hud.items.get_mut::<super::ammo::Ammo>().fade_start();
 
-        let (autoaim, crosshair) = if hud.state.fov >= 90 {
+        let (autoaim, crosshair) = if hud.state.fov() >= 90 {
             (weapon.autoaim, weapon.crosshair)
         } else {
             (weapon.zoomed_autoaim, weapon.zoomed_crosshair)
         };
+        weapons.current = Some(id as u32);
 
         let on_target = state > 1;
         if let (true, Some(s)) = (on_target, autoaim) {

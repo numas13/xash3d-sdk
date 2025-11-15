@@ -19,7 +19,7 @@ use xash3d_client::{
 };
 
 use crate::{
-    export::{hud, hud_mut, input, input_mut, view_mut},
+    export::{hud, input, input_mut, view_mut},
     helpers,
     hud::weapon_menu::WeaponMenu,
     input,
@@ -193,14 +193,14 @@ impl Input {
         hook_command_key!(engine, "reload", input_mut().in_reload);
         hook_command_key!(engine, "alt1", input_mut().in_alt1);
         hook_command_key!(engine, "score", input_mut().in_score, down {
-            hud_mut().show_score_board(true);
+            hud().show_score_board(true);
         }, up {
-            hud_mut().show_score_board(false);
+            hud().show_score_board(false);
         });
         hook_command_key!(engine, "showscores", input_mut().in_score, down {
-            hud_mut().show_score_board(true);
+            hud().show_score_board(true);
         }, up {
-            hud_mut().show_score_board(false);
+            hud().show_score_board(false);
         });
         hook_command_key!(engine, "graph", unsafe { &mut *addr_of_mut!(in_graph) });
         hook_command_key!(engine, "break", input_mut().in_break);
@@ -507,7 +507,7 @@ impl Input {
             view_mut().stop_pitch_drift();
         }
 
-        if !self.mouse_in_use && !hud().state.intermission && !self.mouse_visible {
+        if !self.mouse_in_use && !hud().state.intermission() && !self.mouse_visible {
             let (dx, dy) = self.get_relative_mouse_pos();
 
             let mx = dx + self.mx_accum;

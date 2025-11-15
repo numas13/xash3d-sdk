@@ -59,7 +59,7 @@ impl Flashlight {
 }
 
 impl super::HudItem for Flashlight {
-    fn vid_init(&mut self, state: &mut State) {
+    fn vid_init(&mut self, state: &State) {
         self.flash_empty = state.find_sprite(c"flash_empty");
         self.flash_full = state.find_sprite(c"flash_full");
         self.flash_beam = state.find_sprite(c"flash_beam");
@@ -69,7 +69,7 @@ impl super::HudItem for Flashlight {
         self.enabled = false;
     }
 
-    fn draw(&mut self, state: &mut State) {
+    fn draw(&mut self, state: &State) {
         if state.is_hidden(Hide::FLASHLIGHT) || !state.has_suit() {
             return;
         }
@@ -85,7 +85,7 @@ impl super::HudItem for Flashlight {
         let color = if self.battery < 20 {
             RGB::REDISH
         } else {
-            state.color
+            state.color()
         };
         let color = color.scale_color(a);
 

@@ -60,7 +60,7 @@ impl Menu {
         self.data = buf;
 
         self.time = if time > 0 {
-            state.time + time as f32
+            state.time() + time as f32
         } else {
             0.0
         };
@@ -94,12 +94,12 @@ impl Menu {
 }
 
 impl HudItem for Menu {
-    fn draw(&mut self, state: &mut State) {
+    fn draw(&mut self, state: &State) {
         // TODO: do not draw if score board is visible
 
         if self.time == 0.0 {
             return;
-        } else if self.time <= state.time {
+        } else if self.time <= state.time() {
             self.time = 0.0;
             return;
         }

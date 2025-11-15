@@ -71,7 +71,7 @@ impl Msg {
             total_height += screen.char_height();
         }
 
-        let time = state.time - self.start_time;
+        let time = state.time() - self.start_time;
         let fade_time;
         let mut fade_blend = 0.0;
         let mut char_time = 0.0;
@@ -210,16 +210,17 @@ impl HudMessage {
         if s == "END3" {
             self.end_after_message = true;
         }
-        self.message_add(s, state.time);
+        let now = state.time();
+        self.message_add(s, now);
         // save time to fixup level transitions
-        self.fixup_time = state.time;
+        self.fixup_time = now;
         self.active = true;
     }
 
     fn msg_game_title(&mut self, state: &State) {
         self.game_title = self.engine.text_message_get(c"GAMETITLE");
         if self.game_title.is_some() {
-            self.game_title_time = state.time;
+            self.game_title_time = state.time();
             self.active = true;
         }
     }
@@ -287,7 +288,7 @@ impl HudMessage {
         self.messages[index] = Some(new);
     }
 
-    fn draw_game_title(&mut self, state: &mut State) -> bool {
+    fn draw_game_title(&mut self, state: &State) -> bool {
         let Some(title) = self.game_title else {
             return false;
         };
@@ -298,11 +299,12 @@ impl HudMessage {
             return false;
         };
 
-        if self.game_title_time > state.time {
-            self.game_title_time = state.time;
+        let now = state.time();
+        if self.game_title_time > now {
+            self.game_title_time = now;
         }
 
-        let local_time = state.time - self.game_title_time;
+        let local_time = now - self.game_title_time;
         if local_time > (title.fadein + title.holdtime + title.fadeout) {
             self.game_title = None;
             return false;
@@ -324,20 +326,20 @@ impl HudMessage {
         true
     }
 
-    fn draw_messages(&mut self, state: &mut State) -> bool {
-        let mut drawn = false;
-
+    fn draw_messages(&mut self, state: &State) -> bool {
+        let now = state.time();
         for i in self.messages.iter_mut().filter_map(|i| i.as_mut()) {
-            if i.start_time > state.time {
-                i.start_time = state.time + self.fixup_time - i.start_time + 0.2;
+            if i.start_time > now {
+                i.start_time = now + self.fixup_time - i.start_time + 0.2;
             }
         }
 
         let engine = self.engine;
         let screen = engine.screen_info();
+        let mut drawn = false;
         for i in self.messages.iter_mut() {
             if let Some(msg) = i {
-                if state.time <= msg.end_time() {
+                if now <= msg.end_time() {
                     msg.draw(state, &engine, &screen);
                     drawn = true;
                 } else {
@@ -350,7 +352,7 @@ impl HudMessage {
             }
         }
 
-        self.fixup_time = state.time;
+        self.fixup_time = now;
 
         drawn
     }
@@ -373,12 +375,12 @@ impl HudItem for HudMessage {
         self.messages.fill(None);
     }
 
-    fn vid_init(&mut self, state: &mut State) {
+    fn vid_init(&mut self, state: &State) {
         self.title_half = state.find_sprite(c"title_half");
         self.title_life = state.find_sprite(c"title_life");
     }
 
-    fn draw(&mut self, state: &mut State) {
+    fn draw(&mut self, state: &State) {
         if !self.draw_game_title(state) && !self.draw_messages(state) {
             self.active = false;
         }

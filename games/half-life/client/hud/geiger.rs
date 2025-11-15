@@ -38,15 +38,16 @@ impl HudItem for Geiger {
         self.time = 0.0;
     }
 
-    fn draw(&mut self, state: &mut State) {
+    fn draw(&mut self, state: &State) {
         if !(1..1000).contains(&self.range) {
             return;
         }
 
-        if state.time_delta != 0.0 && self.time >= state.time {
+        let now = state.time();
+        if state.time_delta() != 0.0 && self.time >= now {
             return;
         }
-        self.time = state.time + LIFE;
+        self.time = now + LIFE;
 
         let pct;
         let vol;

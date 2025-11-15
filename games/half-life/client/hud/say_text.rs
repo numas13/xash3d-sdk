@@ -78,7 +78,7 @@ impl SayText {
         }
 
         if self.lines.is_empty() {
-            self.scroll_time = state.time + cvar::hud_saytext_time.value();
+            self.scroll_time = state.time() + cvar::hud_saytext_time.value();
         }
 
         // TODO: ensure text fits in one line
@@ -102,24 +102,24 @@ impl HudItem for SayText {
         HudFlags::ACTIVE | HudFlags::INTERMISSION
     }
 
-    fn init_hud_data(&mut self, _: &mut State) {
+    fn init_hud_data(&mut self, _: &State) {
         self.lines.clear();
     }
 
-    fn vid_init(&mut self, _: &mut State) {
+    fn vid_init(&mut self, _: &State) {
         self.line_height = self.engine.console_string_height(c"test");
     }
 
-    fn draw(&mut self, state: &mut State) {
+    fn draw(&mut self, state: &State) {
         if self.lines.is_empty() {
             return;
         }
 
         let engine = self.engine;
-
+        let now = state.time();
         let saytext_time = cvar::hud_saytext_time.value();
-        self.scroll_time = fminf(self.scroll_time, state.time + saytext_time);
-        if self.scroll_time <= state.time {
+        self.scroll_time = fminf(self.scroll_time, now + saytext_time);
+        if self.scroll_time <= now {
             self.scroll_time += saytext_time;
             self.lines.pop_back();
             if self.lines.is_empty() {

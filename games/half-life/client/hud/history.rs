@@ -76,13 +76,14 @@ impl History {
 
     fn add(&mut self, state: &State, kind: ItemKind) {
         let engine = self.engine;
-        let height = self.slot as c_int * state.inv.pickup_gap() + state.inv.pickup_height();
+        let inv = state.inventory();
+        let height = self.slot as c_int * inv.pickup_gap() + inv.pickup_height();
         let height_max = engine.screen_info().height() - 100;
         if height > height_max || self.slot >= self.items.len() {
             self.slot = 0;
         }
         self.items[self.slot] = Some(Item {
-            time: state.time + cvar::hud_drawhistory_time.value(),
+            time: state.time() + cvar::hud_drawhistory_time.value(),
             kind,
         });
         self.slot += 1;
@@ -94,21 +95,23 @@ impl HudItem for History {
         self.items.fill(None);
     }
 
-    fn draw(&mut self, state: &mut State) {
+    fn draw(&mut self, state: &State) {
         if !state.has_suit() || state.is_hidden(Hide::WEAPONS | Hide::ALL) {
             return;
         }
 
-        let gap = state.inv.pickup_gap();
-        let height = state.inv.pickup_height();
+        let inv = state.inventory();
+        let gap = inv.pickup_gap();
+        let height = inv.pickup_height();
 
         let engine = self.engine;
         let screen = engine.screen_info();
+        let now = state.time();
 
         for i in 0..self.items.len() {
             let item = match self.items[i] {
                 Some(item) => {
-                    if item.time <= state.time {
+                    if item.time <= now {
                         self.items[i] = None;
                         if self.items.iter().all(|i| i.is_none()) {
                             self.slot = 0;
@@ -120,14 +123,14 @@ impl HudItem for History {
                 None => continue,
             };
 
-            let a = ((item.time - state.time) * 80.0) as u8;
-            let color = state.color.scale_color(a);
+            let a = ((item.time - now) * 80.0) as u8;
+            let color = state.color().scale_color(a);
             let mut x = screen.width() - 4;
             let y = screen.height() - height - gap * i as c_int;
 
             match item.kind {
                 ItemKind::Ammo(index, count) => {
-                    let Some(icon) = state.inv.ammo_icon(index as u32) else {
+                    let Some(icon) = inv.ammo_icon(index as u32) else {
                         continue;
                     };
 
@@ -142,7 +145,7 @@ impl HudItem for History {
                         .at(x - 10, y);
                 }
                 ItemKind::Weapon(index) => {
-                    let Some(icon) = state.inv.weapon_icon(index as u32) else {
+                    let Some(icon) = inv.weapon_icon(index as u32) else {
                         continue;
                     };
 
@@ -151,7 +154,7 @@ impl HudItem for History {
                 }
                 ItemKind::Item(index) => {
                     let Some(index) = index else { continue };
-                    let Some(icon) = state.sprites.get(index) else {
+                    let Some(icon) = state.sprite(index) else {
                         continue;
                     };
 

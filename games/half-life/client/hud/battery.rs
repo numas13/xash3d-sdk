@@ -44,12 +44,12 @@ impl Battery {
 }
 
 impl super::HudItem for Battery {
-    fn vid_init(&mut self, state: &mut State) {
+    fn vid_init(&mut self, state: &State) {
         self.suit_empty = state.find_sprite(c"suit_empty");
         self.suit_full = state.find_sprite(c"suit_full");
     }
 
-    fn draw(&mut self, state: &mut State) {
+    fn draw(&mut self, state: &State) {
         let engine = self.engine;
         if state.is_hidden(Hide::HEALTH) || engine.is_spectator_only() || !state.has_suit() {
             return;
@@ -60,8 +60,10 @@ impl super::HudItem for Battery {
             return;
         };
 
-        let digits = &state.digits;
-        let color = state.color.scale_color(self.fade.alpha(state.time_delta));
+        let digits = state.digits();
+        let color = state
+            .color()
+            .scale_color(self.fade.alpha(state.time_delta()));
         let screen_info = engine.screen_info();
         let width = empty.width();
         let mut x = width * 3;

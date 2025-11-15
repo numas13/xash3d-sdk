@@ -6,7 +6,7 @@ use xash3d_client::{
     prelude::*,
 };
 
-use crate::export::{hud, hud_mut};
+use crate::export::hud;
 
 pub struct Weapons {
     cl_lw: CVarPtr,
@@ -41,11 +41,11 @@ impl Weapons {
         if cfg!(feature = "client-weapons") && !self.cl_lw.is_null() && self.cl_lw.value() != 0.0 {
             self.weapons_post_think(from, to, cmd, time, random_seed);
         } else {
-            to.client.fov = hud().get_last_fov() as f32;
+            to.client.fov = hud().last_fov() as f32;
         }
 
         // TODO: gauss predication
 
-        hud_mut().set_last_fov(to.client.fov as u8);
+        hud().set_last_fov(to.client.fov as u8);
     }
 }
