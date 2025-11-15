@@ -4,7 +4,7 @@ use res::valve::sound;
 use xash3d_client::{consts::PITCH, engine::event::EventArgs, prelude::*};
 use xash3d_hl_shared::weapons::hgun::HgunAnimation;
 
-use crate::export::view_mut;
+use crate::export::view;
 
 impl super::Events {
     pub(super) fn fire_hornet_gun(&self, args: &mut EventArgs) {
@@ -17,7 +17,7 @@ impl super::Events {
 
         if self.is_local(idx) {
             ev.weapon_animation(HgunAnimation::Shoot as c_int, 1);
-            view_mut().punch_axis(PITCH, engine.random_int(0, 2) as f32);
+            view().punch_axis(PITCH, engine.random_int(0, 2) as f32);
         }
 
         let sample = match engine.random_int(0, 2) {

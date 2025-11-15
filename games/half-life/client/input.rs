@@ -19,7 +19,7 @@ use xash3d_client::{
 };
 
 use crate::{
-    export::{hud, input, view_mut},
+    export::{hud, input, view},
     helpers,
     hud::weapon_menu::WeaponMenu,
 };
@@ -176,7 +176,7 @@ impl Input {
         hook_command_key!(engine, "mlook", input().in_mlook, up {
             let state = input().in_mlook.state();
             if !state.contains(KeyState::DOWN) && cvar::lookspring.value() != 0.0 {
-                view_mut().start_pitch_drift();
+                view().start_pitch_drift();
             }
         });
         hook_command_key!(engine, "jlook", input().in_jlook);
@@ -500,7 +500,7 @@ impl Input {
 
         let in_mlook_state = self.in_mlook.state();
         if in_mlook_state.contains(KeyState::DOWN) {
-            view_mut().stop_pitch_drift();
+            view().stop_pitch_drift();
         }
 
         if !self.mouse_in_use.get() && !hud().state.intermission() && !self.mouse_visible {
@@ -567,7 +567,7 @@ impl Input {
 
         let pitchspeed = cvar::cl_pitchspeed.value();
         if self.in_klook.is_down() {
-            view_mut().stop_pitch_drift();
+            view().stop_pitch_drift();
             viewangles[PITCH] -= speed * pitchspeed * self.in_forward.key_state();
             viewangles[PITCH] += speed * pitchspeed * self.in_back.key_state();
         }
@@ -579,7 +579,7 @@ impl Input {
         viewangles[PITCH] += speed * pitchspeed * down;
 
         if up != 0.0 || down != 0.0 {
-            view_mut().stop_pitch_drift();
+            view().stop_pitch_drift();
         }
 
         let pitchdown = cvar::cl_pitchdown.value();

@@ -12,7 +12,7 @@ use xash3d_client::{
 };
 use xash3d_hl_shared::weapons::gauss::GaussAnimation;
 
-use crate::export::view_mut;
+use crate::export::view;
 
 use super::Bullet;
 
@@ -46,7 +46,7 @@ impl super::Events {
 
         if self.is_local(idx) {
             ev.weapon_animation(GaussAnimation::Fire2 as c_int, 2);
-            view_mut().punch_axis(PITCH, -2.0);
+            view().punch_axis(PITCH, -2.0);
 
             if !primary_fire {
                 // TODO: g_flApplyVel = flDamage;

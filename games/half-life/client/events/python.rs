@@ -4,7 +4,7 @@ use res::valve::sound;
 use xash3d_client::{consts::PITCH, engine::event::EventArgs, prelude::*};
 use xash3d_hl_shared::weapons::python::PythonAnimation;
 
-use crate::export::view_mut;
+use crate::export::view;
 
 use super::Bullet;
 
@@ -20,7 +20,7 @@ impl super::Events {
         if self.is_local(idx) {
             let body = if engine.is_singleplayer() { 0 } else { 1 };
             ev.weapon_animation(PythonAnimation::Fire1 as c_int, body);
-            view_mut().punch_axis(PITCH, -10.0);
+            view().punch_axis(PITCH, -10.0);
         }
 
         let sample = match engine.random_int(0, 1) {

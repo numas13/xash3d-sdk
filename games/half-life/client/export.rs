@@ -61,7 +61,7 @@ impl_global_getter!(Events, events);
 impl_global_getter!(Entities, entities);
 impl_global_getter!(Input, input);
 impl_global_getter!(Camera, camera, camera_mut);
-impl_global_getter!(View, view, view_mut);
+impl_global_getter!(View, view);
 impl_global_getter!(Hud, hud);
 impl_global_getter!(Weapons, weapons);
 impl_global_getter!(StudioRenderer, renderer);

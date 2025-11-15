@@ -8,7 +8,7 @@ use xash3d_client::{
 };
 use xash3d_hl_shared::weapons::glock::GlockAnimation;
 
-use crate::export::view_mut;
+use crate::export::view;
 
 use super::Bullet;
 
@@ -31,7 +31,7 @@ impl super::Events {
                 GlockAnimation::Shoot
             };
             ev.weapon_animation(seq as c_int, 2);
-            view_mut().punch_axis(PITCH, -2.0);
+            view().punch_axis(PITCH, -2.0);
         }
 
         let si = self.get_default_shell_info(args, origin, velocity, av, 20.0, -12.0, 4.0);
@@ -65,7 +65,7 @@ impl super::Events {
         if self.is_local(idx) {
             self.muzzle_flash();
             ev.weapon_animation(GlockAnimation::Shoot as c_int, 2);
-            view_mut().punch_axis(PITCH, -2.0);
+            view().punch_axis(PITCH, -2.0);
         }
 
         let si = self.get_default_shell_info(args, origin, velocity, av, 20.0, -12.0, 4.0);

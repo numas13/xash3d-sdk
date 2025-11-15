@@ -8,7 +8,7 @@ use xash3d_client::{
 };
 use xash3d_hl_shared::weapons::shotgun::ShotgunAnimation;
 
-use crate::export::view_mut;
+use crate::export::view;
 
 use super::Bullet;
 
@@ -26,7 +26,7 @@ impl super::Events {
         if self.is_local(idx) {
             self.muzzle_flash();
             ev.weapon_animation(ShotgunAnimation::Fire as c_int, 2);
-            view_mut().punch_axis(PITCH, -5.0);
+            view().punch_axis(PITCH, -5.0);
         }
 
         let si = self.get_default_shell_info(args, origin, velocity, av, 32.0, -12.0, 6.0);
@@ -66,7 +66,7 @@ impl super::Events {
         if self.is_local(idx) {
             self.muzzle_flash();
             ev.weapon_animation(ShotgunAnimation::Fire2 as c_int, 2);
-            view_mut().punch_axis(PITCH, -10.0);
+            view().punch_axis(PITCH, -10.0);
         }
 
         for _ in 0..2 {

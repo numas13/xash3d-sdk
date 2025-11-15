@@ -8,7 +8,7 @@ use xash3d_client::{
 };
 use xash3d_hl_shared::weapons::mp5::Mp5Animation;
 
-use crate::export::view_mut;
+use crate::export::view;
 
 use super::Bullet;
 
@@ -28,7 +28,7 @@ impl super::Events {
             let rand = engine.random_int(0, 2);
             ev.weapon_animation(Mp5Animation::Fire1 as c_int + rand, 2);
             let pitch = engine.random_float(-2.0, 2.0);
-            view_mut().punch_axis(PITCH, pitch);
+            view().punch_axis(PITCH, pitch);
         }
 
         let si = self.get_default_shell_info(args, origin, velocity, av, 20.0, -12.0, 6.0);
@@ -62,7 +62,7 @@ impl super::Events {
 
         if self.is_local(idx) {
             ev.weapon_animation(Mp5Animation::Launch as c_int, 2);
-            view_mut().punch_axis(PITCH, -10.0);
+            view().punch_axis(PITCH, -10.0);
         }
 
         let sample = match engine.random_int(0, 1) {

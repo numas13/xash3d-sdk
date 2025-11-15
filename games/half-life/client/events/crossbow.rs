@@ -11,7 +11,7 @@ use xash3d_client::{
 };
 use xash3d_hl_shared::weapons::crossbow::CrossbowAnimation;
 
-use crate::export::view_mut;
+use crate::export::view;
 
 impl super::Events {
     pub(super) fn fire_crossbow(&self, args: &mut EventArgs) {
@@ -41,7 +41,7 @@ impl super::Events {
                 ev.weapon_animation(CrossbowAnimation::Fire3 as c_int, 1);
             }
 
-            view_mut().punch_axis(PITCH, -2.0);
+            view().punch_axis(PITCH, -2.0);
         }
     }
 

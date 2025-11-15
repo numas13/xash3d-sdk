@@ -1,4 +1,9 @@
-use core::{f32, ffi::c_int, ptr};
+use core::{
+    cell::{Cell, RefCell},
+    f32,
+    ffi::c_int,
+    ptr,
+};
 
 use xash3d_client::{
     consts::{CONTENTS_WATER, PITCH, ROLL, YAW},
@@ -10,7 +15,7 @@ use xash3d_client::{
 };
 
 use crate::{
-    export::{camera, input, view_mut},
+    export::{camera, input, view},
     helpers::*,
 };
 
@@ -251,9 +256,9 @@ impl ViewInterp {
 
 pub struct View {
     engine: ClientEngineRef,
-    punchangle: vec3_t,
+    punchangle: Cell<vec3_t>,
     bob: Bob,
-    pitch_drift: PitchDrift,
+    pitch_drift: RefCell<PitchDrift>,
     view_interp: ViewInterp,
     old_z: f32,
     last_time: f32,
@@ -261,29 +266,31 @@ pub struct View {
 
 impl View {
     pub fn new(engine: ClientEngineRef) -> Self {
-        hook_command!(engine, c"centerview", |_| view_mut().pitch_drift.start());
+        hook_command!(engine, c"centerview", |_| view().start_pitch_drift());
 
         Self {
             engine,
-            punchangle: vec3_t::ZERO,
+            punchangle: Cell::default(),
             bob: Bob::default(),
-            pitch_drift: PitchDrift::new(engine),
+            pitch_drift: RefCell::new(PitchDrift::new(engine)),
             view_interp: ViewInterp::new(),
             old_z: 0.0,
             last_time: 0.0,
         }
     }
 
-    pub fn start_pitch_drift(&mut self) {
-        self.pitch_drift.start();
+    pub fn start_pitch_drift(&self) {
+        self.pitch_drift.borrow_mut().start();
     }
 
-    pub fn stop_pitch_drift(&mut self) {
-        self.pitch_drift.stop();
+    pub fn stop_pitch_drift(&self) {
+        self.pitch_drift.borrow_mut().stop();
     }
 
-    pub fn punch_axis(&mut self, axis: usize, punch: f32) {
-        self.punchangle[axis] = punch;
+    pub fn punch_axis(&self, axis: usize, punch: f32) {
+        let mut punchangle = self.punchangle.get();
+        punchangle[axis] = punch;
+        self.punchangle.set(punchangle);
     }
 
     fn calc_gun_angle(&self, params: &ref_params_s) {
@@ -329,7 +336,7 @@ impl View {
     fn calc_normal_refdef(&mut self, params: &mut ref_params_s) {
         let engine = self.engine;
 
-        self.pitch_drift.drift_pitch(params);
+        self.pitch_drift.borrow_mut().drift_pitch(params);
 
         let ent = if engine.is_spectator_only() {
             engine.get_entity_by_index(unsafe { g_iUser2 })
@@ -451,8 +458,10 @@ impl View {
         }
 
         params.viewangles += params.punchangle;
-        params.viewangles += self.punchangle;
-        self.punchangle = drop_punch_angle(params.frametime, self.punchangle);
+        let punchangle = self.punchangle.get();
+        params.viewangles += punchangle;
+        self.punchangle
+            .set(drop_punch_angle(params.frametime, punchangle));
 
         if params.smoothing == 0 && params.onground != 0 && params.simorg[2] - self.old_z > 0.0 {
             let mut steptime = params.time - self.last_time;

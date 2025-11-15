@@ -4,7 +4,7 @@ use res::valve::sound;
 use xash3d_client::{consts::PITCH, engine::event::EventArgs};
 use xash3d_hl_shared::weapons::rpg::RpgAnimation;
 
-use crate::export::view_mut;
+use crate::export::view;
 
 impl super::Events {
     pub(super) fn fire_rpg(&self, args: &mut EventArgs) {
@@ -29,7 +29,7 @@ impl super::Events {
         if self.is_local(idx) {
             ev.weapon_animation(RpgAnimation::Fire2 as c_int, 1);
 
-            view_mut().punch_axis(PITCH, -5.0);
+            view().punch_axis(PITCH, -5.0);
         }
     }
 }
