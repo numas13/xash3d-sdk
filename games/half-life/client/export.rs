@@ -58,7 +58,7 @@ macro_rules! impl_global_getter {
 }
 
 impl_global_getter!(Events, events);
-impl_global_getter!(Entities, entities, entities_mut);
+impl_global_getter!(Entities, entities);
 impl_global_getter!(Input, input);
 impl_global_getter!(Camera, camera, camera_mut);
 impl_global_getter!(View, view, view_mut);
