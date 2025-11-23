@@ -170,13 +170,14 @@ impl Player {
             let start = pv.origin() + pv.view_ofs();
             let end = tv.bmodel_origin();
             let trace = engine.trace_line(start, end, TraceIgnore::MONSTERS, Some(pv));
+            let hit_entity = trace.hit_entity().unwrap();
             if trace.fraction() < 0.9
                 && !ptr::eq(
                     tv.containing_entity_raw(),
-                    trace.hit_entity().vars().containing_entity_raw(),
+                    hit_entity.vars().containing_entity_raw(),
                 )
             {
-                let name = trace.hit_entity().get_entity().map(|e| e.pretty_name());
+                let name = hit_entity.get_entity().map(|e| e.pretty_name());
                 trace!("player use trace hit {name:?} ({})", trace.fraction());
                 target = None;
             }

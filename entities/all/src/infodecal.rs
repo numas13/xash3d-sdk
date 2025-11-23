@@ -2,11 +2,11 @@ use core::cell::Cell;
 
 use xash3d_server::{
     engine::TraceIgnore,
-    entity::{delegate_entity, BaseEntity, KeyValue, UseType},
+    entity::{BaseEntity, KeyValue, UseType, delegate_entity},
+    ffi::common::vec3_t,
     prelude::*,
     private::impl_private,
     user_message,
-ffi::common::vec3_t,
 };
 
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
@@ -47,9 +47,10 @@ impl Decal {
             TraceIgnore::MONSTERS,
             Some(self),
         );
-        let entity = trace.hit_entity().entity_index();
+        let hit_entity = trace.hit_entity().unwrap();
+        let entity = hit_entity.entity_index();
         let model_index = if !entity.is_world_spawn() {
-            trace.hit_entity().vars().model_index_raw()
+            hit_entity.vars().model_index_raw()
         } else {
             0
         };
@@ -121,11 +122,12 @@ impl Entity for Decal {
         let end = origin + vec3_t::splat(5.0);
         let trace = engine.trace_line(start, end, TraceIgnore::MONSTERS, Some(self));
 
+        let hit_entity = trace.hit_entity().unwrap();
         let msg = user_message::BspDecal {
             position: origin.into(),
             texture_index: self.vars().skin() as u16,
-            entity: engine.get_entity_index(&trace.hit_entity()),
-            model_index: trace.hit_entity().vars().model_index_raw() as u16,
+            entity: engine.get_entity_index(&hit_entity),
+            model_index: hit_entity.vars().model_index_raw() as u16,
         };
         engine.msg_broadcast(&msg);
 

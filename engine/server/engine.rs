@@ -310,7 +310,6 @@ pub struct TraceResult<'a> {
 
 impl<'a> TraceResult<'a> {
     pub fn new(engine: &'a ServerEngine, raw: ffi::server::TraceResult) -> Self {
-        debug_assert!(!raw.pHit.is_null());
         Self {
             engine: engine.engine_ref(),
             raw,
@@ -353,10 +352,8 @@ impl<'a> TraceResult<'a> {
         self.raw.vecPlaneNormal
     }
 
-    // TODO: return Option if fraction is 1.0?
-    pub fn hit_entity(&self) -> EntityHandleRef<'a> {
-        // SAFETY: the engine returns non-null pointer
-        unsafe { EntityHandleRef::new_unchecked(self.engine, self.raw.pHit) }
+    pub fn hit_entity(&self) -> Option<EntityHandleRef<'a>> {
+        unsafe { EntityHandleRef::new(self.engine, self.raw.pHit) }
     }
 
     /// Returns `0` for generic group and non-zero for a specific body part.

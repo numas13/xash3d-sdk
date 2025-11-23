@@ -248,7 +248,11 @@ pub fn decal_trace(engine: &ServerEngine, trace: &TraceResult, decal_index: u16)
         return;
     }
 
-    let mut entity_index = trace.hit_entity().entity_index();
+    let Some(hit_entity) = trace.hit_entity() else {
+        return;
+    };
+
+    let mut entity_index = hit_entity.entity_index();
     if !entity_index.is_world_spawn() {
         if let Some(entity) = trace.hit_entity().get_entity() {
             if !entity.is_bsp_model() {
