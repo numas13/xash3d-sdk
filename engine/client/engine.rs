@@ -11,6 +11,7 @@ use core::{
 
 use xash3d_shared::{
     csz::{CStrSlice, CStrThin},
+    cvar::CvarFlags,
     engine::net::NetApi,
     export::impl_unsync_global,
     ffi::{
@@ -23,12 +24,15 @@ use xash3d_shared::{
 
 use crate::{
     color::{RGB, RGBA},
-    cvar::{CVarFlags, CVarPtr},
+    cvar::Cvar,
     engine::{demo::DemoApi, efx::EfxApi, event::EventApi, tri::TriangleApi},
     global_state::GlobalStateRef,
     screen::ScreenInfo,
     sprite::{SpriteHandle, SpriteList},
 };
+
+#[allow(deprecated)]
+use crate::cvar::{CVarFlags, CVarPtr};
 
 pub use xash3d_shared::engine::{AddCmdError, BufferError, EngineRef, net};
 
@@ -146,6 +150,7 @@ impl ClientEngine {
     }
 
     pub fn engine_ref(&self) -> ClientEngineRef {
+        // SAFETY: we are in the game thread
         unsafe { ClientEngineRef::new() }
     }
 
@@ -267,6 +272,8 @@ impl ClientEngine {
         unsafe { unwrap!(self, pfnSetCrosshair)(sprite.raw(), rect, r, g, b) }
     }
 
+    #[deprecated]
+    #[allow(deprecated)]
     pub fn register_variable(
         &self,
         name: impl ToEngineStr,
@@ -287,6 +294,38 @@ impl ClientEngine {
                 None
             }
         }
+    }
+
+    /// Register a console variable.
+    pub fn register_cvar(
+        &self,
+        name: impl ToEngineStr,
+        value: impl ToEngineStr,
+        flags: CvarFlags,
+    ) -> bool {
+        self.create_cvar::<f32>(name, value, flags).is_some()
+    }
+
+    /// Creates a console variable.
+    pub fn create_cvar<T>(
+        &self,
+        name: impl ToEngineStr,
+        value: impl ToEngineStr,
+        flags: CvarFlags,
+    ) -> Option<Cvar<T>> {
+        let name = name.to_engine_str();
+        let value = value.to_engine_str();
+        let ptr = unsafe {
+            unwrap!(self, pfnRegisterVariable)(name.as_ptr(), value.as_ptr(), flags.bits() as i32)
+        };
+        unsafe { Cvar::new(self.engine_ref(), ptr) }
+    }
+
+    /// Searches for a cvar with the given name.
+    pub fn find_cvar<T>(&self, name: impl ToEngineStr) -> Option<Cvar<T>> {
+        let name = name.to_engine_str();
+        let ptr = unsafe { unwrap!(self, pfnGetCvarPointer)(name.as_ptr()) };
+        unsafe { Cvar::new(self.engine_ref(), ptr) }
     }
 
     pub fn hook_user_msg(&self, name: impl ToEngineStr, func: UserMsgHookFn) -> c_int {
@@ -535,6 +574,8 @@ impl ClientEngine {
     // pub Con_IsVisible: Option<unsafe extern "C" fn() -> c_int>,
     // pub pfnGetGameDirectory: Option<unsafe extern "C" fn() -> *const c_char>,
 
+    #[deprecated]
+    #[allow(deprecated)]
     pub fn get_cvar(&self, name: impl ToEngineStr) -> CVarPtr {
         let name = name.to_engine_str();
         let ptr = unsafe { unwrap!(self, pfnGetCvarPointer)(name.as_ptr()) };

@@ -15,6 +15,7 @@ pub unsafe fn init_engine(
     unsafe {
         (*ServerEngine::global_as_mut_ptr()).write(engine);
     }
+    #[allow(deprecated)]
     crate::cvar::init(|name, _, _| {
         // TODO: remove me
         let engine = unsafe { ServerEngineRef::new() };

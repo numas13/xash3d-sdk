@@ -2,7 +2,12 @@ use core::ffi::{CStr, c_int};
 
 use alloc::collections::vec_deque::VecDeque;
 use xash3d_client::{
-    color::RGB, csz::CStrArray, math::fminf, prelude::*, user_message::hook_user_message,
+    color::RGB,
+    csz::CStrArray,
+    cvar::{self, Cvar},
+    math::fminf,
+    prelude::*,
+    user_message::hook_user_message,
 };
 use xash3d_hl_shared::user_message;
 
@@ -15,13 +20,6 @@ const MAX_CHARS_PER_LINE: usize = 256;
 
 const SAY_MESSAGE: u8 = 2;
 
-mod cvar {
-    xash3d_client::cvar::define! {
-        pub static hud_saytext(c"1", NONE);
-        pub static hud_saytext_time(c"5", NONE);
-    }
-}
-
 struct Line {
     name_len: usize,
     color: RGB,
@@ -33,6 +31,9 @@ pub struct SayText {
     scroll_time: f32,
     line_height: c_int,
     lines: VecDeque<Line>,
+
+    hud_saytext: Cvar<bool>,
+    hud_saytext_time: Cvar,
 }
 
 impl SayText {
@@ -53,6 +54,13 @@ impl SayText {
             scroll_time: 0.0,
             line_height: 0,
             lines: Default::default(),
+
+            hud_saytext: engine
+                .create_cvar(c"hud_saytext", c"1", cvar::NO_FLAGS)
+                .unwrap(),
+            hud_saytext_time: engine
+                .create_cvar(c"hud_saytext_time", c"5", cvar::NO_FLAGS)
+                .unwrap(),
         }
     }
 
@@ -78,7 +86,7 @@ impl SayText {
         }
 
         if self.lines.is_empty() {
-            self.scroll_time = state.time() + cvar::hud_saytext_time.value();
+            self.scroll_time = state.time() + self.hud_saytext_time.get();
         }
 
         // TODO: ensure text fits in one line
@@ -111,13 +119,13 @@ impl HudItem for SayText {
     }
 
     fn draw(&mut self, state: &State) {
-        if self.lines.is_empty() {
+        if self.lines.is_empty() || !self.hud_saytext.get() {
             return;
         }
 
         let engine = self.engine;
         let now = state.time();
-        let saytext_time = cvar::hud_saytext_time.value();
+        let saytext_time = self.hud_saytext_time.get();
         self.scroll_time = fminf(self.scroll_time, now + saytext_time);
         if self.scroll_time <= now {
             self.scroll_time += saytext_time;

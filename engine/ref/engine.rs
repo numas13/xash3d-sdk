@@ -7,6 +7,7 @@ use core::{
 
 use xash3d_shared::{
     bsp::MAX_MAP_LEAFS_BYTES,
+    cvar::CvarFlags,
     export::impl_unsync_global,
     ffi::{
         self,
@@ -19,6 +20,7 @@ use xash3d_shared::{
 
 use crate::{
     buffer::SwBuffer,
+    cvar::{self, Cvar},
     engine::draw::Draw,
     globals::RefGlobals,
     render::RefParm,
@@ -105,30 +107,69 @@ impl RefEngine {
         &self.raw
     }
 
+    pub fn engine_ref(&self) -> RefEngineRef {
+        // SAFETY: we are in the game thread
+        unsafe { RefEngineRef::new() }
+    }
+
     pub fn get_parm(&self, parm: RefParm, arg: c_int) -> isize {
         unsafe { unwrap!(self, EngineGetParm)(parm.as_raw(), arg) }
     }
 
-    // pub Cvar_Get: Option<
-    //     unsafe extern "C" fn(
-    //         szName: *const c_char,
-    //         szValue: *const c_char,
-    //         flags: c_int,
-    //         description: *const c_char,
-    //     ) -> *mut cvar_s,
-    // >,
-
+    #[deprecated]
     pub fn get_cvar_ptr(&self, name: impl ToEngineStr, ignore_flags: c_int) -> *mut cvar_s {
         let name = name.to_engine_str();
         unsafe { unwrap!(self, pfnGetCvarPointer)(name.as_ptr(), ignore_flags).cast() }
     }
 
+    #[deprecated]
     pub fn cvar_register(&self, var: &'static mut convar_s) {
         unsafe { unwrap!(self, Cvar_RegisterVariable)(var) }
     }
 
-    // pub Cvar_FullSet:
-    //     Option<unsafe extern "C" fn(var_name: *const c_char, value: *const c_char, flags: c_int)>,
+    /// Creates a console variable.
+    pub fn create_cvar<T>(
+        &self,
+        name: impl ToEngineStr,
+        value: impl ToEngineStr,
+        flags: CvarFlags,
+        description: impl ToEngineStr,
+    ) -> Option<Cvar<T>> {
+        let name = name.to_engine_str();
+        let value = value.to_engine_str();
+        let flags = flags.bits() as i32;
+        let desc = description.to_engine_str();
+        let ptr =
+            unsafe { unwrap!(self, Cvar_Get)(name.as_ptr(), value.as_ptr(), flags, desc.as_ptr()) };
+        unsafe { Cvar::new(self.engine_ref(), ptr) }
+    }
+
+    // pub Cvar_RegisterVariable: Option<unsafe extern "C" fn(var: *mut convar_t)>,
+
+    /// Searches for a cvar with the given name.
+    pub fn find_cvar<T>(&self, name: impl ToEngineStr) -> Option<Cvar<T>> {
+        let name = name.to_engine_str();
+        self.find_cvar_ext(name.as_ref(), cvar::NO_FLAGS)
+    }
+
+    /// Searches for a cvar with the given name and without the given flags.
+    pub fn find_cvar_ext<T>(
+        &self,
+        name: impl ToEngineStr,
+        ignore_flags: CvarFlags,
+    ) -> Option<Cvar<T>> {
+        let name = name.to_engine_str();
+        let ignore_flags = ignore_flags.bits() as i32;
+        let ptr = unsafe { unwrap!(self, pfnGetCvarPointer)(name.as_ptr(), ignore_flags) };
+        unsafe { Cvar::new(self.engine_ref(), ptr) }
+    }
+
+    pub fn set_cvar_full(&self, name: impl ToEngineStr, value: impl ToEngineStr, flags: CvarFlags) {
+        let name = name.to_engine_str();
+        let value = value.to_engine_str();
+        let flags = flags.bits() as i32;
+        unsafe { unwrap!(self, Cvar_FullSet)(name.as_ptr(), value.as_ptr(), flags) }
+    }
 
     pub fn add_command_with_desc(
         &self,

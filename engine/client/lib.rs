@@ -14,6 +14,7 @@ extern crate log;
 #[macro_use]
 pub mod macros;
 
+pub mod cvar;
 pub mod engine;
 pub mod entity;
 pub mod export;
@@ -31,7 +32,7 @@ pub mod user_message;
 pub mod utils;
 
 pub use xash3d_shared::{
-    cell, color, consts, csz, cvar, ffi, math, misc, model, parser, sound, str::ToEngineStr,
+    cell, color, consts, csz, ffi, math, misc, model, parser, sound, str::ToEngineStr,
 };
 
 pub use crate::studio::*;

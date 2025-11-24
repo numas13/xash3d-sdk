@@ -1,6 +1,12 @@
 use core::{cmp, ffi::c_int, mem};
 
-use xash3d_client::{color::RGB, consts, macros::hook_command, prelude::*};
+use xash3d_client::{
+    color::RGB,
+    consts,
+    cvar::{self, Cvar},
+    macros::hook_command,
+    prelude::*,
+};
 
 use crate::{
     export::hud,
@@ -9,12 +15,6 @@ use crate::{
         inventory::{MAX_WEAPON_POSITIONS, MAX_WEAPON_SLOTS, Weapon},
     },
 };
-
-mod cvar {
-    xash3d_client::cvar::define! {
-        pub static hud_fastswitch(c"0", ARCHIVE);
-    }
-}
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 enum Select {
@@ -38,6 +38,8 @@ pub struct WeaponMenu {
     ab_width: c_int,
     ab_height: c_int,
     weapon_select: u32,
+
+    hud_fastswitch: Cvar<bool>,
 }
 
 impl WeaponMenu {
@@ -67,6 +69,10 @@ impl WeaponMenu {
             weapon_select: 0,
             ab_width: 0,
             ab_height: 0,
+
+            hud_fastswitch: engine
+                .create_cvar(c"hud_fastswitch", c"0", cvar::ARCHIVE)
+                .unwrap(),
         }
     }
 
@@ -84,7 +90,7 @@ impl WeaponMenu {
         }
 
         let engine = self.engine;
-        let fast_switch = cvar::hud_fastswitch.value() != 0.0;
+        let fast_switch = self.hud_fastswitch.get();
 
         let slot = slot - 1;
         let mut selected = None;

@@ -7,6 +7,7 @@ use core::{
 
 use xash3d_client::{
     consts::{CONTENTS_WATER, PITCH, ROLL, YAW},
+    cvar::{self, Cvar},
     ffi::common::{cl_entity_s, ref_params_s, vec3_t},
     input::KeyState,
     macros::hook_command,
@@ -19,38 +20,32 @@ use crate::{
     helpers::*,
 };
 
-mod cvar {
-    xash3d_client::cvar::define! {
-        pub static cl_bobcycle(c"0.8", NONE);
-        pub static cl_bob(c"0.01", ARCHIVE);
-        pub static cl_bobup(c"0.5", NONE);
-
-        pub static v_centermove(c"0.15", NONE);
-        pub static v_centerspeed(c"500", NONE);
-
-        pub static cl_vsmoothing(c"0.05", ARCHIVE);
-        pub static cl_forwardspeed(c"400", ARCHIVE);
-
-        pub static scr_ofsx(c"0", NONE);
-        pub static scr_ofsy(c"0", NONE);
-        pub static scr_ofsz(c"0", NONE);
-
-        pub static cl_waterdist(c"4", NONE);
-    }
-}
-
 struct Bob {
     bob_time: f64,
     bob: f32,
     last_time: f32,
+
+    cl_bobcycle: Cvar,
+    cl_bob: Cvar,
+    cl_bobup: Cvar,
 }
 
 impl Bob {
-    fn new() -> Self {
+    fn new(engine: ClientEngineRef) -> Self {
         Self {
             bob_time: 0.0,
             bob: 0.0,
             last_time: 0.0,
+
+            cl_bobcycle: engine
+                .create_cvar(c"cl_bobcycle", c"0.8", cvar::NO_FLAGS)
+                .unwrap(),
+            cl_bob: engine
+                .create_cvar(c"cl_bob", c"0.01", cvar::ARCHIVE)
+                .unwrap(),
+            cl_bobup: engine
+                .create_cvar(c"cl_bobup", c"0.5", cvar::NO_FLAGS)
+                .unwrap(),
         }
     }
 
@@ -62,30 +57,23 @@ impl Bob {
         self.last_time = params.time;
 
         self.bob_time += params.frametime as f64;
-        let tmp = (self.bob_time / cvar::cl_bobcycle.value() as f64) as c_int;
-        let mut cycle = (self.bob_time - (tmp as f32 * cvar::cl_bobcycle.value()) as f64) as f32;
-        cycle /= cvar::cl_bobcycle.value();
+        let tmp = (self.bob_time / self.cl_bobcycle.get() as f64) as i32;
+        let mut cycle = (self.bob_time - (tmp as f32 * self.cl_bobcycle.get()) as f64) as f32;
+        cycle /= self.cl_bobcycle.get();
 
-        if cycle < cvar::cl_bobup.value() {
-            cycle = f32::consts::PI * cycle / cvar::cl_bobup.value();
+        if cycle < self.cl_bobup.get() {
+            cycle = f32::consts::PI * cycle / self.cl_bobup.get();
         } else {
             cycle = f32::consts::PI
-                + f32::consts::PI * (cycle - cvar::cl_bobup.value())
-                    / (1.0 - cvar::cl_bobup.value());
+                + f32::consts::PI * (cycle - self.cl_bobup.get()) / (1.0 - self.cl_bobup.get());
         }
 
         let vel = params.simvel.with_z(0.0);
 
-        self.bob = sqrtf(vel[0] * vel[0] + vel[1] * vel[1]) * cvar::cl_bob.value();
+        self.bob = sqrtf(vel[0] * vel[0] + vel[1] * vel[1]) * self.cl_bob.get();
         self.bob = self.bob * 0.3 + self.bob * 0.7 * sinf(cycle);
         self.bob = self.bob.clamp(-7.0, 4.0);
         self.bob
-    }
-}
-
-impl Default for Bob {
-    fn default() -> Self {
-        Self::new()
     }
 }
 
@@ -95,6 +83,10 @@ struct PitchDrift {
     drift: bool,
     driftmove: f32,
     laststop: f64,
+
+    v_centermove: Cvar,
+    v_centerspeed: Cvar,
+    cl_forwardspeed: Cvar,
 }
 
 impl PitchDrift {
@@ -105,6 +97,16 @@ impl PitchDrift {
             drift: false,
             driftmove: 0.0,
             laststop: 0.0,
+
+            v_centermove: engine
+                .create_cvar(c"v_centermove", c"0.15", cvar::NO_FLAGS)
+                .unwrap(),
+            v_centerspeed: engine
+                .create_cvar(c"v_centerspeed", c"500", cvar::NO_FLAGS)
+                .unwrap(),
+            cl_forwardspeed: engine
+                .create_cvar(c"cl_forwardspeed", c"400", cvar::ARCHIVE)
+                .unwrap(),
         }
     }
 
@@ -114,7 +116,7 @@ impl PitchDrift {
         }
 
         if !self.drift || self.pitchvel == 0.0 {
-            self.pitchvel = cvar::v_centerspeed.value();
+            self.pitchvel = self.v_centerspeed.get();
             self.drift = true;
             self.driftmove = 0.0;
         }
@@ -140,14 +142,14 @@ impl PitchDrift {
 
         if !self.drift {
             let state = input().in_mlook_state();
-            if cvar::v_centermove.value() > 0.0 && !state.contains(KeyState::DOWN) {
-                if fabsf(params.cmd().forwardmove) < cvar::cl_forwardspeed.value() {
+            if self.v_centermove.get() > 0.0 && !state.contains(KeyState::DOWN) {
+                if fabsf(params.cmd().forwardmove) < self.cl_forwardspeed.get() {
                     self.driftmove = 0.0;
                 } else {
                     self.driftmove += params.frametime;
                 }
 
-                if self.driftmove > cvar::v_centermove.value() {
+                if self.driftmove > self.v_centermove.get() {
                     self.start();
                 } else {
                     return;
@@ -192,15 +194,21 @@ struct ViewInterp {
     origin_time: [f32; ORIGIN_BACKUP],
     current_origin: usize,
     last_origin: vec3_t,
+
+    cl_vsmoothing: Cvar,
 }
 
 impl ViewInterp {
-    fn new() -> Self {
+    fn new(engine: ClientEngineRef) -> Self {
         Self {
             origins: [vec3_t::ZERO; ORIGIN_BACKUP],
             origin_time: [0.0; ORIGIN_BACKUP],
             current_origin: 0,
             last_origin: vec3_t::ZERO,
+
+            cl_vsmoothing: engine
+                .create_cvar(c"cl_vsmoothing", c"0.05", cvar::ARCHIVE)
+                .unwrap(),
         }
     }
 
@@ -214,12 +222,12 @@ impl ViewInterp {
             self.last_origin = params.simorg;
         }
 
-        if cvar::cl_vsmoothing.value() != 0.0 && params.smoothing != 0 && params.maxclients > 1 {
-            if cvar::cl_vsmoothing.value() < 0.0 {
-                cvar::cl_vsmoothing.value_set(0.0);
+        if self.cl_vsmoothing.get() != 0.0 && params.smoothing != 0 && params.maxclients > 1 {
+            if self.cl_vsmoothing.get() < 0.0 {
+                self.cl_vsmoothing.set(0.0);
             }
 
-            let t = params.time - cvar::cl_vsmoothing.value();
+            let t = params.time - self.cl_vsmoothing.get();
 
             let mut foundidx = 0;
             let mut i = 1;
@@ -262,6 +270,11 @@ pub struct View {
     view_interp: ViewInterp,
     old_z: f32,
     last_time: f32,
+
+    scr_ofsx: Cvar,
+    scr_ofsy: Cvar,
+    scr_ofsz: Cvar,
+    cl_waterdist: Cvar<i32>,
 }
 
 impl View {
@@ -271,11 +284,24 @@ impl View {
         Self {
             engine,
             punchangle: Cell::default(),
-            bob: Bob::default(),
+            bob: Bob::new(engine),
             pitch_drift: RefCell::new(PitchDrift::new(engine)),
-            view_interp: ViewInterp::new(),
+            view_interp: ViewInterp::new(engine),
             old_z: 0.0,
             last_time: 0.0,
+
+            scr_ofsx: engine
+                .create_cvar(c"scr_ofsx", c"0", cvar::NO_FLAGS)
+                .unwrap(),
+            scr_ofsy: engine
+                .create_cvar(c"scr_ofsy", c"0", cvar::NO_FLAGS)
+                .unwrap(),
+            scr_ofsz: engine
+                .create_cvar(c"scr_ofsz", c"0", cvar::NO_FLAGS)
+                .unwrap(),
+            cl_waterdist: engine
+                .create_cvar(c"cl_waterdist", c"4", cvar::NO_FLAGS)
+                .unwrap(),
         }
     }
 
@@ -362,7 +388,7 @@ impl View {
 
         let mut water_offset = 0.0;
         if params.waterlevel >= 2 {
-            let mut water_dist = cvar::cl_waterdist.value() as c_int;
+            let mut water_dist = self.cl_waterdist.get();
 
             if params.hardware != 0 {
                 let water_ent = engine.pm_water_entity(params.simorg);
@@ -412,9 +438,9 @@ impl View {
         params.up = av.up;
 
         if params.maxclients <= 1 {
-            params.vieworg += params.forward * cvar::scr_ofsx.value();
-            params.vieworg += params.right * cvar::scr_ofsy.value();
-            params.vieworg += params.up * cvar::scr_ofsz.value();
+            params.vieworg += params.forward * self.scr_ofsx.get();
+            params.vieworg += params.right * self.scr_ofsy.get();
+            params.vieworg += params.up * self.scr_ofsz.get();
         }
 
         let mut cam_angles = vec3_t::ZERO;

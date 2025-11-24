@@ -65,7 +65,7 @@ impl ServerDll for Dll {
     type Player = TestPlayer;
 
     fn new(engine: ServerEngineRef, global_state: GlobalStateRef) -> Self {
-        crate::cvar::init(engine);
+        crate::cvar::init(&engine);
         if let Err(err) = Self::register_user_messages(engine) {
             panic!("{err}");
         }

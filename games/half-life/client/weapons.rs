@@ -1,7 +1,7 @@
 use core::ffi::c_uint;
 
 use xash3d_client::{
-    cvar::CVarPtr,
+    cvar::Cvar,
     ffi::common::{local_state_s, usercmd_s},
     prelude::*,
 };
@@ -9,12 +9,12 @@ use xash3d_client::{
 use crate::export::hud;
 
 pub struct Weapons {
-    cl_lw: CVarPtr,
+    cl_lw: Option<Cvar<bool>>,
 }
 
 impl Weapons {
     pub fn new(engine: ClientEngineRef) -> Self {
-        let cl_lw = engine.get_cvar(c"cl_lw");
+        let cl_lw = engine.find_cvar(c"cl_lw");
         Self { cl_lw }
     }
 
@@ -38,7 +38,7 @@ impl Weapons {
         time: f64,
         random_seed: c_uint,
     ) {
-        if cfg!(feature = "client-weapons") && !self.cl_lw.is_null() && self.cl_lw.value() != 0.0 {
+        if cfg!(feature = "client-weapons") && self.cl_lw.as_ref().is_some_and(|i| i.get()) {
             self.weapons_post_think(from, to, cmd, time, random_seed);
         } else {
             to.client.fov = hud().last_fov() as f32;

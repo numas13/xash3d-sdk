@@ -9,6 +9,7 @@ use core::{
 use xash3d_shared::{
     borrow::{BorrowRef, Ref},
     csz::{CStrArray, CStrSlice, CStrThin},
+    cvar::CvarFlags,
     engine::net::{NetApi, netadr_s},
     entity::EntityType,
     export::impl_unsync_global,
@@ -28,7 +29,7 @@ use xash3d_shared::{
 use crate::{
     color::{RGB, RGBA},
     consts::{MAX_STRING, MAX_SYSPATH},
-    cvar::{CVarFlags, CVarPtr},
+    cvar::Cvar,
     file::{Cursor, FileList},
     game_info::GameInfo2,
     globals::UiGlobals,
@@ -36,7 +37,10 @@ use crate::{
 };
 
 #[allow(deprecated)]
-use crate::game_info::GameInfo;
+use crate::{
+    cvar::{CVarFlags, CVarPtr},
+    game_info::GameInfo,
+};
 
 pub use xash3d_shared::engine::{AddCmdError, BufferError, EngineRef, net};
 
@@ -199,6 +203,10 @@ impl UiEngine {
         &self.ext
     }
 
+    pub fn engine_ref(&self) -> UiEngineRef {
+        unsafe { UiEngineRef::new() }
+    }
+
     pub fn pic_load_raw(
         &self,
         path: impl ToEngineStr,
@@ -335,6 +343,8 @@ impl UiEngine {
         }
     }
 
+    #[deprecated]
+    #[allow(deprecated)]
     pub fn register_variable(
         &self,
         name: impl ToEngineStr,
@@ -351,6 +361,31 @@ impl UiEngine {
         } else {
             None
         }
+    }
+
+    /// Register a console variable.
+    pub fn register_cvar(
+        &self,
+        name: impl ToEngineStr,
+        value: impl ToEngineStr,
+        flags: CvarFlags,
+    ) -> bool {
+        self.create_cvar::<f32>(name, value, flags).is_some()
+    }
+
+    /// Creates a console variable.
+    pub fn create_cvar<T>(
+        &self,
+        name: impl ToEngineStr,
+        value: impl ToEngineStr,
+        flags: CvarFlags,
+    ) -> Option<Cvar<T>> {
+        let name = name.to_engine_str();
+        let value = value.to_engine_str();
+        let ptr = unsafe {
+            unwrap!(self, pfnRegisterVariable)(name.as_ptr(), value.as_ptr(), flags.bits() as c_int)
+        };
+        unsafe { Cvar::new(self.engine_ref(), ptr) }
     }
 
     pub fn client_cmd(&self, cmd: impl ToEngineStr) {

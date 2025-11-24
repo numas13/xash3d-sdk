@@ -8,6 +8,7 @@ use alloc::collections::vec_deque::VecDeque;
 use xash3d_client::{
     color::RGB,
     csz::{CStrArray, CStrThin},
+    cvar::{self, Cvar},
     prelude::*,
     user_message::hook_user_message,
 };
@@ -20,12 +21,6 @@ use crate::{
 
 const MAX_DEATH_NOTICES: usize = 4;
 const DEATHNOTICE_TOP: c_int = 32;
-
-mod cvar {
-    xash3d_client::cvar::define! {
-        pub static hud_deathnotice_time(c"6", ARCHIVE);
-    }
-}
 
 #[derive(Copy, Clone)]
 struct Player {
@@ -83,6 +78,8 @@ pub struct DeathNotice {
     engine: ClientEngineRef,
     list: VecDeque<Notice>,
     skull: Option<Sprite>,
+
+    hud_deathnotice_time: Cvar,
 }
 
 impl DeathNotice {
@@ -98,6 +95,10 @@ impl DeathNotice {
             engine,
             list: Default::default(),
             skull: None,
+
+            hud_deathnotice_time: engine
+                .create_cvar(c"hud_deathnotice_time", c"6", cvar::ARCHIVE)
+                .unwrap(),
         }
     }
 
@@ -138,7 +139,7 @@ impl DeathNotice {
             state.find_sprite(buf)
         };
 
-        let display_time = state.time() + cvar::hud_deathnotice_time.value();
+        let display_time = state.time() + self.hud_deathnotice_time.get();
 
         match victim {
             Victim::Player(victim) => {

@@ -7,6 +7,7 @@ extern crate std;
 extern crate log;
 
 pub mod consts;
+pub mod cvar;
 pub mod engine;
 pub mod export;
 pub mod file;
@@ -19,5 +20,5 @@ pub mod prelude;
 pub mod utils;
 
 pub use xash3d_shared::{
-    cell, color, csz, cvar, entity, ffi, math, misc, parser, render, str::ToEngineStr,
+    cell, color, csz, entity, ffi, math, misc, parser, render, str::ToEngineStr,
 };

@@ -29,6 +29,7 @@ use xash3d_client::{
     color::RGB,
     consts::MAX_PLAYERS,
     csz::{CStrArray, CStrBox, CStrThin},
+    cvar::{self, Cvar},
     ffi::{client::client_data_s, common::vec3_t},
     macros::hook_command,
     prelude::*,
@@ -56,17 +57,6 @@ const FADE_TIME_AMMO: f32 = 200.0;
 const DEFAULT_COLOR: RGB = RGB::new(255, 0, 255); // TODO: remove me
 
 const MAX_PLAYER_NAME_LENGTH: usize = 32;
-
-mod cvar {
-    xash3d_client::cvar::define! {
-        pub static zoom_sensitivity_ratio(c"1.2", ARCHIVE);
-        pub static cl_autowepswitch(c"1", ARCHIVE.union(USERINFO));
-        pub static default_fov(c"90", ARCHIVE);
-        pub static hud_capturemouse(c"1", ARCHIVE);
-        pub static hud_draw(c"1", ARCHIVE);
-        pub static hud_color(c"", ARCHIVE);
-    }
-}
 
 fn lower_sprite_resolution(res: u32) -> u32 {
     match res {
@@ -273,12 +263,6 @@ impl State {
         if !engine.is_spectator_only() && !self.is_hidden(Hide::WEAPONS | Hide::ALL) {
             inv.set_crosshair();
         }
-    }
-
-    fn reset(&self) {
-        self.inv.borrow_mut().reset();
-        self.fov.set(90);
-        self.last_fov.set(cvar::default_fov.value() as u8);
     }
 
     fn think(&self) {
@@ -546,6 +530,11 @@ pub struct Hud {
     logo: Cell<bool>,
     logo_hspr: Cell<Option<SpriteHandle>>,
     old_hud_color: RefCell<String>,
+
+    zoom_sensitivity_ratio: Cvar,
+    default_fov: Cvar<u8>,
+    hud_draw: Cvar<bool>,
+    hud_color: Cvar<CStrThin>,
 }
 
 impl Hud {
@@ -568,6 +557,8 @@ impl Hud {
             .add(message::HudMessage::new(engine))
             .add(scoreboard::ScoreBoard::new(engine));
 
+        engine.register_cvar(c"cl_autowepswitch", c"1", cvar::ARCHIVE | cvar::USER_INFO);
+
         Self {
             engine,
 
@@ -579,6 +570,19 @@ impl Hud {
             logo: Cell::default(),
             logo_hspr: Cell::default(),
             old_hud_color: RefCell::default(),
+
+            zoom_sensitivity_ratio: engine
+                .create_cvar(c"zoom_sensitivity_ratio", c"1.2", cvar::ARCHIVE)
+                .unwrap(),
+            default_fov: engine
+                .create_cvar(c"default_fov", c"90", cvar::ARCHIVE)
+                .unwrap(),
+            hud_draw: engine
+                .create_cvar(c"hud_draw", c"1", cvar::ARCHIVE)
+                .unwrap(),
+            hud_color: engine
+                .create_cvar(c"hud_color", c"", cvar::ARCHIVE)
+                .unwrap(),
         }
     }
 
@@ -587,13 +591,13 @@ impl Hud {
     }
 
     pub fn set_fov(&self, fov: u8) {
-        let default_fov = cvar::default_fov.value() as u8;
+        let default_fov = self.default_fov.get();
         self.state.fov.set(if fov == 0 { default_fov } else { fov });
 
         self.state
             .mouse_sensitivity
             .set(if self.state.fov.get() != default_fov {
-                let zsr = cvar::zoom_sensitivity_ratio.value();
+                let zsr = self.zoom_sensitivity_ratio.get();
                 input().get_mouse_sensitivity() * (fov as f32 / default_fov as f32) * zsr
             } else {
                 0.0
@@ -652,7 +656,9 @@ impl Hud {
     }
 
     pub fn reset(&self) {
-        self.state.reset();
+        self.state.inv.borrow_mut().reset();
+        self.state.fov.set(90);
+        self.state.last_fov.set(self.default_fov.get());
 
         for mut i in self.items.iter() {
             i.reset();
@@ -668,9 +674,7 @@ impl Hud {
 
         self.set_fov(self.last_fov());
         if self.state.fov.get() == 0 {
-            self.state
-                .fov
-                .set(cmp::max(90, cvar::default_fov.value() as u8));
+            self.state.fov.set(cmp::max(90, self.default_fov.get()));
         }
     }
 
@@ -720,7 +724,7 @@ impl Hud {
             ("cyan", RGB::CYAN),
         ];
 
-        let s = cvar::hud_color.value_str();
+        let s = self.hud_color.get();
         let Ok(s) = s.to_str() else { return };
 
         let mut old_hud_color = self.old_hud_color.borrow_mut();
@@ -796,7 +800,7 @@ impl Hud {
 
         self.state.intermission.set(intermission);
 
-        if cvar::hud_draw.value() != 0.0 {
+        if self.hud_draw.get() {
             self.update_hud_color();
             for mut i in self.items.iter() {
                 let flags = i.flags();

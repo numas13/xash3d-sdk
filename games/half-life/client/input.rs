@@ -8,6 +8,7 @@ use alloc::{boxed::Box, vec::Vec};
 use xash3d_client::{
     consts::{self, PITCH, ROLL, YAW},
     csz::{CStrBox, CStrThin},
+    cvar::{self, Cvar},
     ffi::{
         common::{kbutton_t, usercmd_s, vec3_t},
         keys,
@@ -25,37 +26,6 @@ use crate::{
 };
 
 const MOUSE_BUTTON_COUNT: c_int = 5;
-
-mod cvar {
-    xash3d_client::cvar::define! {
-        pub static lookstrafe(c"0", ARCHIVE);
-        pub static lookspring(c"0", ARCHIVE);
-        pub static cl_pitchup(c"89", NONE);
-        pub static cl_pitchdown(c"89", NONE);
-        pub static cl_pitchspeed(c"225", NONE);
-        pub static cl_anglespeedkey(c"0.67", NONE);
-        pub static cl_yawspeed(c"210", NONE);
-        pub static cl_upspeed(c"320", NONE);
-        pub static cl_forwardspeed(c"400", ARCHIVE);
-        pub static cl_backspeed(c"400", ARCHIVE);
-        pub static cl_sidespeed(c"400", NONE);
-        pub static cl_movespeedkey(c"0.3", NONE);
-
-        pub static m_pitch(c"0.022", ARCHIVE);
-        pub static m_yaw(c"0.022", ARCHIVE);
-        pub static m_forward(c"1", ARCHIVE);
-        pub static m_side(c"0.8", ARCHIVE);
-
-        pub static m_rawinput(c"1", ARCHIVE);
-        pub static m_filter(c"0", ARCHIVE);
-        pub static sensitivity(c"3", ARCHIVE.union(FILTERSTUFFTEXT));
-
-        pub static m_customaccel(c"0", ARCHIVE);
-        pub static m_customaccel_scale(c"0.04", ARCHIVE);
-        pub static m_customaccel_max(c"0", ARCHIVE);
-        pub static m_customaccel_exponent(c"1", ARCHIVE);
-    }
-}
 
 struct Mouse {}
 
@@ -150,6 +120,33 @@ pub struct Input {
     in_alt1: KeyButton,
     in_score: KeyButton,
     in_break: KeyButton,
+
+    lookstrafe: Cvar<bool>,
+    lookspring: Cvar<bool>,
+    cl_pitchup: Cvar,
+    cl_pitchdown: Cvar,
+    cl_pitchspeed: Cvar,
+    cl_anglespeedkey: Cvar,
+    cl_yawspeed: Cvar,
+    cl_upspeed: Cvar,
+    cl_forwardspeed: Cvar,
+    cl_backspeed: Cvar,
+    cl_sidespeed: Cvar,
+    cl_movespeedkey: Cvar,
+
+    m_pitch: Cvar,
+    m_yaw: Cvar,
+    m_forward: Cvar,
+    m_side: Cvar,
+
+    m_rawinput: Cvar<bool>,
+    m_filter: Cvar<bool>,
+    sensitivity: Cvar,
+
+    m_customaccel: Cvar,
+    m_customaccel_scale: Cvar<f64>,
+    m_customaccel_max: Cvar,
+    m_customaccel_exponent: Cvar<f64>,
 }
 
 impl Input {
@@ -174,8 +171,9 @@ impl Input {
         hook_command_key!(engine, "jump", input().in_jump);
         hook_command_key!(engine, "klook", input().in_klook);
         hook_command_key!(engine, "mlook", input().in_mlook, up {
-            let state = input().in_mlook.state();
-            if !state.contains(KeyState::DOWN) && cvar::lookspring.value() != 0.0 {
+            let input = input();
+            let state = input.in_mlook.state();
+            if !state.contains(KeyState::DOWN) && input.lookspring.get() {
                 view().start_pitch_drift();
             }
         });
@@ -275,6 +273,79 @@ impl Input {
             in_alt1: KeyButton::new(engine),
             in_score: KeyButton::new(engine),
             in_break: KeyButton::new(engine),
+
+            lookstrafe: engine
+                .create_cvar(c"lookstrafe", c"0", cvar::ARCHIVE)
+                .unwrap(),
+            lookspring: engine
+                .create_cvar(c"lookspring", c"0", cvar::ARCHIVE)
+                .unwrap(),
+            cl_pitchup: engine
+                .create_cvar(c"cl_pitchup", c"89", cvar::NO_FLAGS)
+                .unwrap(),
+            cl_pitchdown: engine
+                .create_cvar(c"cl_pitchdown", c"89", cvar::NO_FLAGS)
+                .unwrap(),
+            cl_pitchspeed: engine
+                .create_cvar(c"cl_pitchspeed", c"225", cvar::NO_FLAGS)
+                .unwrap(),
+            cl_anglespeedkey: engine
+                .create_cvar(c"cl_anglespeedkey", c"0.67", cvar::NO_FLAGS)
+                .unwrap(),
+            cl_yawspeed: engine
+                .create_cvar(c"cl_yawspeed", c"210", cvar::NO_FLAGS)
+                .unwrap(),
+            cl_upspeed: engine
+                .create_cvar(c"cl_upspeed", c"320", cvar::NO_FLAGS)
+                .unwrap(),
+            cl_forwardspeed: engine
+                .create_cvar(c"cl_forwardspeed", c"400", cvar::ARCHIVE)
+                .unwrap(),
+            cl_backspeed: engine
+                .create_cvar(c"cl_backspeed", c"400", cvar::ARCHIVE)
+                .unwrap(),
+            cl_sidespeed: engine
+                .create_cvar(c"cl_sidespeed", c"400", cvar::NO_FLAGS)
+                .unwrap(),
+            cl_movespeedkey: engine
+                .create_cvar(c"cl_movespeedkey", c"0.3", cvar::NO_FLAGS)
+                .unwrap(),
+
+            m_pitch: engine
+                .create_cvar(c"m_pitch", c"0.022", cvar::ARCHIVE)
+                .unwrap(),
+            m_yaw: engine
+                .create_cvar(c"m_yaw", c"0.022", cvar::ARCHIVE)
+                .unwrap(),
+            m_forward: engine
+                .create_cvar(c"m_forward", c"1", cvar::ARCHIVE)
+                .unwrap(),
+            m_side: engine
+                .create_cvar(c"m_side", c"0.8", cvar::ARCHIVE)
+                .unwrap(),
+
+            m_rawinput: engine
+                .create_cvar(c"m_rawinput", c"1", cvar::ARCHIVE)
+                .unwrap(),
+            m_filter: engine
+                .create_cvar(c"m_filter", c"0", cvar::ARCHIVE)
+                .unwrap(),
+            sensitivity: engine
+                .create_cvar(c"sensitivity", c"3", cvar::ARCHIVE | cvar::FILTERABLE)
+                .unwrap(),
+
+            m_customaccel: engine
+                .create_cvar(c"m_customaccel", c"0", cvar::ARCHIVE)
+                .unwrap(),
+            m_customaccel_scale: engine
+                .create_cvar(c"m_customaccel_scale", c"0.04", cvar::ARCHIVE)
+                .unwrap(),
+            m_customaccel_max: engine
+                .create_cvar(c"m_customaccel_max", c"0", cvar::ARCHIVE)
+                .unwrap(),
+            m_customaccel_exponent: engine
+                .create_cvar(c"m_customaccel_exponent", c"1", cvar::ARCHIVE)
+                .unwrap(),
         }
     }
 
@@ -293,7 +364,7 @@ impl Input {
     }
 
     fn use_raw_input(&self) -> bool {
-        cvar::m_rawinput.value() != 0.0
+        self.m_rawinput.get()
     }
 
     pub fn activate_mouse(&mut self) {
@@ -309,10 +380,10 @@ impl Input {
     }
 
     pub fn get_mouse_sensitivity(&self) -> f32 {
-        let v = cvar::sensitivity.value();
+        let v = self.sensitivity.get();
         if !(0.01..=10000.0).contains(&v) {
             let v = v.clamp(0.01, 10000.0);
-            cvar::sensitivity.value_set(v);
+            self.sensitivity.set(v);
             v
         } else {
             v
@@ -464,15 +535,15 @@ impl Input {
             self.get_mouse_sensitivity()
         };
 
-        if cvar::m_customaccel.value() != 0.0 {
+        if self.m_customaccel.get() != 0.0 {
             let raw_mouse_movement_distance = sqrt((mx * mx + my * my) as f64);
-            let acceleration_scale = cvar::m_customaccel_scale.value();
-            let accelerated_sensitivity_max = cvar::m_customaccel_max.value();
-            let accelerated_sensitivity_exponent = cvar::m_customaccel_exponent.value();
+            let acceleration_scale = self.m_customaccel_scale.get();
+            let accelerated_sensitivity_max = self.m_customaccel_max.get();
+            let accelerated_sensitivity_exponent = self.m_customaccel_exponent.get();
             let mut accelerated_sensitivity = (pow(
                 raw_mouse_movement_distance,
-                accelerated_sensitivity_exponent as f64,
-            ) * acceleration_scale as f64
+                accelerated_sensitivity_exponent,
+            ) * acceleration_scale
                 + mouse_senstivity as f64) as f32;
 
             if accelerated_sensitivity_max > 0.0001
@@ -484,9 +555,9 @@ impl Input {
             self.mouse_x *= accelerated_sensitivity;
             self.mouse_y *= accelerated_sensitivity;
 
-            if cvar::m_customaccel.value() == 2.0 {
-                self.mouse_x *= cvar::m_yaw.value();
-                self.mouse_y *= cvar::m_pitch.value();
+            if self.m_customaccel.get() == 2.0 {
+                self.mouse_x *= self.m_yaw.get();
+                self.mouse_y *= self.m_pitch.get();
             }
         } else {
             self.mouse_x *= mouse_senstivity;
@@ -512,7 +583,7 @@ impl Input {
             self.mx_accum = 0;
             self.my_accum = 0;
 
-            if cvar::m_filter.value() != 0.0 {
+            if self.m_filter.get() {
                 self.mouse_x = (mx + self.old_mouse_x) as f32 * 0.5;
                 self.mouse_y = (my + self.old_mouse_y) as f32 * 0.5;
             } else {
@@ -526,25 +597,25 @@ impl Input {
             self.scale_mouse();
 
             if self.in_strafe.is_down()
-                || cvar::lookstrafe.value() != 0.0 && in_mlook_state.contains(KeyState::DOWN)
+                || self.lookstrafe.get() && in_mlook_state.contains(KeyState::DOWN)
             {
-                cmd.sidemove += cvar::m_side.value() * self.mouse_x;
+                cmd.sidemove += self.m_side.get() * self.mouse_x;
             } else {
-                viewangles[YAW] -= cvar::m_yaw.value() * self.mouse_x;
+                viewangles[YAW] -= self.m_yaw.get() * self.mouse_x;
             }
 
             if in_mlook_state.contains(KeyState::DOWN) && !self.in_strafe.is_down() {
-                viewangles[PITCH] += cvar::m_pitch.value() * self.mouse_y;
-                if viewangles[PITCH] > cvar::cl_pitchdown.value() {
-                    viewangles[PITCH] = cvar::cl_pitchdown.value();
+                viewangles[PITCH] += self.m_pitch.get() * self.mouse_y;
+                if viewangles[PITCH] > self.cl_pitchdown.get() {
+                    viewangles[PITCH] = self.cl_pitchdown.get();
                 }
-                if viewangles[PITCH] < -cvar::cl_pitchup.value() {
-                    viewangles[PITCH] = -cvar::cl_pitchup.value();
+                if viewangles[PITCH] < -self.cl_pitchup.get() {
+                    viewangles[PITCH] = -self.cl_pitchup.get();
                 }
             } else if self.in_strafe.is_down() && engine.is_no_clipping() {
-                cmd.upmove -= cvar::m_forward.value() * self.mouse_y;
+                cmd.upmove -= self.m_forward.get() * self.mouse_y;
             } else {
-                cmd.forwardmove -= cvar::m_forward.value() * self.mouse_y;
+                cmd.forwardmove -= self.m_forward.get() * self.mouse_y;
             }
         }
 
@@ -553,19 +624,19 @@ impl Input {
 
     fn adjust_angles(&self, frametime: f32, viewangles: &mut vec3_t) {
         let speed = if self.in_speed.is_down() {
-            frametime * cvar::cl_anglespeedkey.value()
+            frametime * self.cl_anglespeedkey.get()
         } else {
             frametime
         };
 
         if !self.in_strafe.is_down() {
-            let yawspeed = cvar::cl_yawspeed.value();
+            let yawspeed = self.cl_yawspeed.get();
             viewangles[YAW] -= speed * yawspeed * self.in_right.key_state();
             viewangles[YAW] += speed * yawspeed * self.in_left.key_state();
             viewangles[YAW] = angle_mod(viewangles[YAW]);
         }
 
-        let pitchspeed = cvar::cl_pitchspeed.value();
+        let pitchspeed = self.cl_pitchspeed.get();
         if self.in_klook.is_down() {
             view().stop_pitch_drift();
             viewangles[PITCH] -= speed * pitchspeed * self.in_forward.key_state();
@@ -582,8 +653,8 @@ impl Input {
             view().stop_pitch_drift();
         }
 
-        let pitchdown = cvar::cl_pitchdown.value();
-        let pitchup = cvar::cl_pitchup.value();
+        let pitchdown = self.cl_pitchdown.get();
+        let pitchup = self.cl_pitchup.get();
         viewangles[PITCH] = viewangles[PITCH].clamp(-pitchup, pitchdown);
 
         viewangles[ROLL] = viewangles[ROLL].clamp(-50.0, 50.0);
@@ -626,28 +697,28 @@ impl Input {
             engine.set_view_angles(viewangles);
 
             if self.in_strafe.is_down() {
-                let sidespeed = cvar::cl_sidespeed.value();
+                let sidespeed = self.cl_sidespeed.get();
                 cmd.sidemove += sidespeed * self.in_right.key_state();
                 cmd.sidemove -= sidespeed * self.in_left.key_state();
             }
 
-            let sidespeed = cvar::cl_sidespeed.value();
+            let sidespeed = self.cl_sidespeed.get();
             cmd.sidemove += sidespeed * self.in_moveright.key_state();
             cmd.sidemove -= sidespeed * self.in_moveleft.key_state();
 
-            let upspeed = cvar::cl_upspeed.value();
+            let upspeed = self.cl_upspeed.get();
             cmd.upmove += upspeed * self.in_up.key_state();
             cmd.upmove -= upspeed * self.in_down.key_state();
 
             if !self.in_klook.is_down() {
-                let forwardspeed = cvar::cl_forwardspeed.value();
-                let backspeed = cvar::cl_backspeed.value();
+                let forwardspeed = self.cl_forwardspeed.get();
+                let backspeed = self.cl_backspeed.get();
                 cmd.forwardmove += forwardspeed * self.in_forward.key_state();
                 cmd.forwardmove -= backspeed * self.in_back.key_state();
             }
 
             if self.in_speed.is_down() {
-                let cl_movespeedkey = cvar::cl_movespeedkey.value();
+                let cl_movespeedkey = self.cl_movespeedkey.get();
                 cmd.forwardmove *= cl_movespeedkey;
                 cmd.sidemove *= cl_movespeedkey;
                 cmd.upmove *= cl_movespeedkey;

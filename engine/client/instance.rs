@@ -1,6 +1,9 @@
 use core::ffi::c_int;
 
-use xash3d_shared::{cvar::CVarPtr, export::UnsyncGlobal, ffi};
+use xash3d_shared::{export::UnsyncGlobal, ffi};
+
+#[allow(deprecated)]
+use xash3d_shared::cvar::CVarPtr;
 
 use crate::{prelude::*, studio::Studio};
 
@@ -49,6 +52,7 @@ pub unsafe fn init_engine(engine_funcs: &ffi::client::cl_enginefuncs_s) -> bool 
         (*ClientEngine::global_as_mut_ptr()).write(engine);
     }
 
+    #[allow(deprecated)]
     crate::cvar::init(|name, value, flags| {
         // TODO: remove me
         let engine = unsafe { ClientEngineRef::new() };

@@ -1,11 +1,25 @@
 use core::{ffi::CStr, ptr};
 
-use xash3d_shared::{csz::CStrThin, ffi::render::convar_s};
+use xash3d_shared::{
+    csz::CStrThin,
+    ffi::{common::cvar_s, render::convar_s},
+    macros::const_assert_size_eq,
+};
+
+use crate::prelude::*;
 
 pub use xash3d_shared::cvar::*;
 
+pub type Cvar<T = f32> = xash3d_shared::cvar::Cvar<RefEngine, T>;
+
+const_assert_size_eq!(*mut cvar_s, Cvar);
+const_assert_size_eq!(*mut cvar_s, Option<Cvar>);
+
+#[deprecated]
 pub const CVAR_SENTINEL: usize = 0xdeadbeefdeadbeef_u64 as usize;
 
+#[deprecated]
+#[allow(deprecated)]
 pub trait ConVarExt {
     fn builder(name: &'static CStr) -> ConVarBuilder {
         ConVarBuilder::new(name)
@@ -18,6 +32,7 @@ pub trait ConVarExt {
     fn value(&self) -> f32;
 }
 
+#[allow(deprecated)]
 impl ConVarExt for convar_s {
     fn name(&self) -> &CStrThin {
         unsafe { CStrThin::from_ptr(self.name) }
@@ -32,10 +47,12 @@ impl ConVarExt for convar_s {
     }
 }
 
+#[deprecated]
 pub struct ConVarBuilder {
     var: convar_s,
 }
 
+#[allow(deprecated)]
 impl ConVarBuilder {
     pub const fn new(name: &'static CStr) -> Self {
         ConVarBuilder {

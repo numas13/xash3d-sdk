@@ -20,6 +20,7 @@ pub mod macros;
 
 pub mod change_level;
 pub mod consts;
+pub mod cvar;
 pub mod engine;
 pub mod entities;
 pub mod entity;
@@ -38,4 +39,4 @@ pub mod time;
 pub mod user_message;
 pub mod utils;
 
-pub use xash3d_shared::{cell, color, csz, cvar, ffi, math, parser, render};
+pub use xash3d_shared::{cell, color, csz, ffi, math, parser, render};

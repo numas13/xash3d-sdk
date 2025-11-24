@@ -3,20 +3,22 @@ pub mod net;
 use core::{
     cmp::Ordering,
     ffi::{c_char, c_int},
-    fmt, hash,
+    fmt::{self, Write},
+    hash,
     marker::PhantomData,
     ops::Deref,
     time::Duration,
 };
 
-use csz::CStrThin;
-use xash3d_ffi::common::vec3_t;
+use csz::{CStrArray, CStrThin};
+use xash3d_ffi::common::{cvar_s, vec3_t};
 
 use crate::{
     color::RGB,
-    cvar::{GetCvar, SetCvar},
+    cvar::{Cvar, GetCvar, SetCvar},
     export::UnsyncGlobal,
     file::File,
+    math::fabsf,
     str::{AsCStrPtr, ToEngineStr},
 };
 
@@ -109,6 +111,13 @@ pub trait EngineCvar: Sized {
     fn fn_set_cvar_string(&self)
     -> unsafe extern "C" fn(name: *const c_char, value: *const c_char);
 
+    #[doc(hidden)]
+    fn fn_direct_set_cvar_string(
+        &self,
+    ) -> Option<unsafe extern "C" fn(var: *mut cvar_s, value: *const c_char)> {
+        None
+    }
+
     fn get_cvar_float(&self, name: impl ToEngineStr) -> f32 {
         let name = name.to_engine_str();
         unsafe { self.fn_get_cvar_float()(name.as_ptr()) }
@@ -133,12 +142,39 @@ pub trait EngineCvar: Sized {
         unsafe { self.fn_set_cvar_string()(name.as_ptr(), value.as_ptr()) }
     }
 
+    fn direct_set_cvar_float<T>(&self, cvar: &Cvar<Self, T>, value: f32) {
+        if let Some(f) = self.fn_direct_set_cvar_string() {
+            let mut buf = CStrArray::<64>::new();
+            if fabsf(value - value as i32 as f32) < 0.000001 {
+                write!(buf.cursor(), "{}", value as i32).unwrap();
+            } else {
+                write!(buf.cursor(), "{}", value).unwrap();
+            }
+            unsafe { (f)(cvar.as_ptr(), buf.as_ptr()) }
+        } else {
+            self.set_cvar_float(cvar.name(), value);
+        }
+    }
+
+    fn direct_set_cvar_string<T>(&self, cvar: &Cvar<Self, T>, value: impl ToEngineStr) {
+        let value = value.to_engine_str();
+        if let Some(f) = self.fn_direct_set_cvar_string() {
+            unsafe { (f)(cvar.as_ptr(), value.as_ptr()) }
+        } else {
+            self.set_cvar_string(cvar.name(), value.as_ref());
+        }
+    }
+
     fn get_cvar<'a, T: GetCvar<'a>>(&'a self, name: impl ToEngineStr) -> T {
         T::get_cvar(self, name)
     }
 
     fn set_cvar<T: SetCvar>(&self, name: impl ToEngineStr, value: T) {
         T::set_cvar(self, name, value)
+    }
+
+    fn direct_set_cvar<T: SetCvar>(&self, cvar: &Cvar<Self, T>, value: T) {
+        T::direct_set_cvar(self, cvar, value)
     }
 }
 

@@ -18,7 +18,7 @@ use xash3d_shared::{
     export::impl_unsync_global,
     ffi::{
         self,
-        common::{cvar_s, cvar_t, entity_state_s, vec3_t},
+        common::{cvar_s, entity_state_s, vec3_t},
         server::{
             ALERT_TYPE, CRC32_t, KeyValueData, edict_s, enginefuncs_s, entvars_s, globalvars_t,
         },
@@ -31,7 +31,7 @@ use xash3d_shared::{
 };
 
 use crate::{
-    cvar::CVarPtr,
+    cvar::{Cvar, CvarStorage},
     entity::{
         AsEntityHandle, BaseEntity, CreateEntity, Entity, EntityHandle, EntityHandleRef,
         EntityOffset, EntityVars, KeyValue,
@@ -42,6 +42,9 @@ use crate::{
     str::MapString,
     user_message::{MessageDest, ServerMessage},
 };
+
+#[allow(deprecated)]
+use crate::cvar::CVarPtr;
 
 #[cfg(feature = "save")]
 use crate::save::{self, Restore, Save};
@@ -1442,6 +1445,7 @@ impl ServerEngine {
         unsafe { unwrap!(self, pfnWriteEntity)(index.to_i32()) }
     }
 
+    #[deprecated]
     pub fn cvar_register(&self, cvar: &'static mut cvar_s) {
         unsafe { unwrap!(self, pfnCVarRegister)(cvar) }
     }
@@ -1782,8 +1786,48 @@ impl ServerEngine {
 
     // TODO: add safety docs
     #[allow(clippy::missing_safety_doc)]
-    pub unsafe fn register_cvar_raw(&self, cvar: *mut cvar_t) {
+    #[deprecated]
+    pub unsafe fn register_cvar_raw(&self, cvar: *mut cvar_s) {
         unsafe { unwrap!(self, pfnCvar_RegisterVariable)(cvar) }
+    }
+
+    /// Register a console variable.
+    pub fn register_cvar(&self, storage: &'static CvarStorage) {
+        unsafe { unwrap!(self, pfnCVarRegister)(storage.as_ptr()) };
+    }
+
+    /// Creates a console variable.
+    pub fn create_cvar<T>(&self, storage: &'static CvarStorage) -> Cvar<T> {
+        self.register_cvar(storage);
+        // numas13: can not return a pointer to this storage because register_cvar may fail if
+        // cvar already registered but the engine method does not return an error code.
+        self.find_cvar(storage.name())
+            .expect("cvar must be present")
+    }
+
+    /// Register a persistent console variable.
+    ///
+    /// The console variable will not be deleted after unloading game dlls.
+    pub fn register_engine_cvar(&self, storage: &'static CvarStorage) {
+        let ptr = storage.as_ptr();
+        unsafe { unwrap!(self, pfnCvar_RegisterVariable)(ptr) }
+    }
+
+    /// Creates a persistent console variable.
+    ///
+    /// The console variable will not be deleted after unloading game dlls.
+    pub fn create_engine_cvar<T>(&self, storage: &'static CvarStorage) -> Cvar<T> {
+        self.register_engine_cvar(storage);
+        // numas13: can not return a pointer to this storage, see comment in create_cvar.
+        self.find_cvar(storage.name())
+            .expect("cvar must be present")
+    }
+
+    /// Searches for a cvar with the given name.
+    pub fn find_cvar<T>(&self, name: impl ToEngineStr) -> Option<Cvar<T>> {
+        let name = name.to_engine_str();
+        let ptr = unsafe { unwrap!(self, pfnCVarGetPointer)(name.as_ptr()) };
+        unsafe { Cvar::new(self.engine_ref(), ptr) }
     }
 
     pub fn fade_client_volume(
@@ -1967,6 +2011,8 @@ impl ServerEngine {
         unsafe { unwrap!(self, pfnIsDedicatedServer)() != 0 }
     }
 
+    #[deprecated]
+    #[allow(deprecated)]
     pub fn get_cvar_ptr(&self, name: impl ToEngineStr) -> CVarPtr {
         let name = name.to_engine_str();
         let ptr = unsafe { unwrap!(self, pfnCVarGetPointer)(name.as_ptr()) };
@@ -2137,8 +2183,6 @@ impl ServerEngine {
         if index != 0 { Some(index) } else { None }
     }
 
-    // pub pfnCvar_DirectSet: Option<unsafe extern "C" fn(var: *mut cvar_s, value: *const c_char)>,
-
     pub fn force_unmodified(
         &self,
         ty: ForceType,
@@ -2290,6 +2334,12 @@ impl EngineCvar for ServerEngine {
         &self,
     ) -> unsafe extern "C" fn(name: *const c_char, value: *const c_char) {
         unwrap!(self, pfnCVarSetString)
+    }
+
+    fn fn_direct_set_cvar_string(
+        &self,
+    ) -> Option<unsafe extern "C" fn(var: *mut cvar_s, value: *const c_char)> {
+        self.raw.pfnCvar_DirectSet
     }
 }
 

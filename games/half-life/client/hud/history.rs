@@ -1,6 +1,10 @@
 use core::ffi::c_int;
 
-use xash3d_client::{prelude::*, user_message::hook_user_message};
+use xash3d_client::{
+    cvar::{self, Cvar},
+    prelude::*,
+    user_message::hook_user_message,
+};
 use xash3d_hl_shared::user_message;
 
 use crate::{
@@ -9,12 +13,6 @@ use crate::{
 };
 
 const MAX_HISTORY: usize = 12;
-
-mod cvar {
-    xash3d_client::cvar::define! {
-        pub static hud_drawhistory_time(c"5", NONE);
-    }
-}
 
 #[derive(Copy, Clone, Debug)]
 enum ItemKind {
@@ -33,6 +31,8 @@ pub struct History {
     engine: ClientEngineRef,
     items: [Option<Item>; MAX_HISTORY],
     slot: usize,
+
+    hud_drawhistory_time: Cvar,
 }
 
 impl History {
@@ -71,6 +71,10 @@ impl History {
             engine,
             items: [None; MAX_HISTORY],
             slot: 0,
+
+            hud_drawhistory_time: engine
+                .create_cvar(c"hud_drawhistory_time", c"5", cvar::NO_FLAGS)
+                .unwrap(),
         }
     }
 
@@ -83,7 +87,7 @@ impl History {
             self.slot = 0;
         }
         self.items[self.slot] = Some(Item {
-            time: state.time() + cvar::hud_drawhistory_time.value(),
+            time: state.time() + self.hud_drawhistory_time.get(),
             kind,
         });
         self.slot += 1;
