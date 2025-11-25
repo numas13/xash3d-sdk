@@ -9,7 +9,7 @@ members = [
 exclude = ["tools"]
 
 [workspace.package]
-license = "LGPL-3.0-only"
+license = "Unlicense"
 authors = ["Denis Drakhnia <numas13@gmail.com>"]
 edition = "2024"
 rust-version = "1.86"
